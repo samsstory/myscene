@@ -33,6 +33,8 @@ export interface ShowData {
   venue: string;
   venueLocation: string;
   venueId: string | null;
+  venueLatitude?: number;
+  venueLongitude?: number;
   showType: 'venue' | 'festival' | 'other';
   date: Date | undefined;
   datePrecision: "exact" | "approximate" | "unknown";
@@ -172,8 +174,14 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
     }
   };
 
-  const handleVenueSelect = (venue: string, location: string, venueId: string | null) => {
-    updateShowData({ venue, venueLocation: location, venueId });
+  const handleVenueSelect = (venue: string, location: string, venueId: string | null, latitude?: number, longitude?: number) => {
+    updateShowData({ 
+      venue, 
+      venueLocation: location, 
+      venueId,
+      venueLatitude: latitude,
+      venueLongitude: longitude
+    });
     setStep(2); // Auto-advance to date step
   };
 
@@ -272,9 +280,27 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         show = newShow;
       }
 
-      // Update venue cache if a venue ID was selected
+      // Insert or update venue cache
+      let venueIdToUse = showData.venueId;
+      
       if (showData.venueId) {
+        // Existing venue - update cache with coordinates
         const { error: venueError } = await supabase
+          .from('venues')
+          .update({
+            location: showData.venueLocation || null,
+            latitude: showData.venueLatitude || null,
+            longitude: showData.venueLongitude || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', showData.venueId);
+
+        if (venueError) {
+          console.error('Error updating venue cache:', venueError);
+        }
+
+        // Update user_venues tracking
+        const { error: userVenueError } = await supabase
           .from('user_venues')
           .upsert({
             user_id: user.id,
@@ -286,8 +312,42 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
             ignoreDuplicates: false,
           });
 
+        if (userVenueError) {
+          console.error('Error updating user venue cache:', userVenueError);
+        }
+      } else if (showData.venue) {
+        // New venue - insert into cache with coordinates
+        const { data: newVenue, error: venueError } = await supabase
+          .from('venues')
+          .insert({
+            name: showData.venue,
+            location: showData.venueLocation || null,
+            latitude: showData.venueLatitude || null,
+            longitude: showData.venueLongitude || null,
+          })
+          .select('id')
+          .single();
+
         if (venueError) {
-          console.error('Error updating venue cache:', venueError);
+          console.error('Error creating venue cache:', venueError);
+        } else if (newVenue) {
+          venueIdToUse = newVenue.id;
+          
+          // Also update the show record with the new venue_id
+          await supabase
+            .from('shows')
+            .update({ venue_id: newVenue.id })
+            .eq('id', show.id);
+
+          // Create user_venues entry
+          await supabase
+            .from('user_venues')
+            .insert({
+              user_id: user.id,
+              venue_id: newVenue.id,
+              show_count: 1,
+              last_show_date: showDate,
+            });
         }
       }
 
