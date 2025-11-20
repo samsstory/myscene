@@ -4,4 +4,4 @@ project_id = "swbaamxtmzjnbaxizjuw"
 verify_jwt = false
 
 [functions.search-venues]
-verify_jwt = false
+verify_jwt = true
