@@ -117,68 +117,107 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
   }, [homeCoordinates]);
 
-  // Update markers when shows change
+  // Update markers when shows change - geocode shows without coordinates
   useEffect(() => {
     if (!map.current) return;
 
-    // Clear existing markers
-    markers.current.forEach(marker => marker.remove());
-    markers.current = [];
+    const processShows = async () => {
+      // Clear existing markers
+      markers.current.forEach(marker => marker.remove());
+      markers.current = [];
 
-    const showsWithCoords: Show[] = [];
-    const showsWithout: Show[] = [];
+      const showsWithCoords: Show[] = [];
+      const showsWithout: Show[] = [];
+      const showsToGeocode: Show[] = [];
 
-    shows.forEach(show => {
-      if (show.latitude && show.longitude) {
-        showsWithCoords.push(show);
-      } else {
-        showsWithout.push(show);
+      shows.forEach(show => {
+        if (show.latitude && show.longitude) {
+          showsWithCoords.push(show);
+        } else if (show.venue.location) {
+          showsToGeocode.push(show);
+        } else {
+          showsWithout.push(show);
+        }
+      });
+
+      // Geocode shows with venue location but no coordinates
+      for (const show of showsToGeocode) {
+        const coords = await geocodeLocation(show.venue.location);
+        if (coords) {
+          show.latitude = coords[1];
+          show.longitude = coords[0];
+          showsWithCoords.push(show);
+
+          // Update the venue in database with coordinates
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: venueData } = await supabase
+              .from('shows')
+              .select('venue_id')
+              .eq('id', show.id)
+              .single();
+
+            if (venueData?.venue_id) {
+              await supabase
+                .from('venues')
+                .update({
+                  latitude: coords[1],
+                  longitude: coords[0],
+                })
+                .eq('id', venueData.venue_id);
+            }
+          }
+        } else {
+          showsWithout.push(show);
+        }
       }
-    });
 
-    setShowsWithoutLocation(showsWithout);
+      setShowsWithoutLocation(showsWithout);
 
-    // Add markers for shows with coordinates
-    showsWithCoords.forEach(show => {
-      const el = document.createElement('div');
-      el.className = 'map-marker';
-      el.innerHTML = `
-        <div style="
-          background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          font-size: 16px;
-          transition: transform 0.2s;
-        " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
-          ${getRatingEmoji(show.rating)}
-        </div>
-      `;
-
-      el.addEventListener('click', () => {
-        setSelectedShow(show);
-      });
-
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([show.longitude!, show.latitude!])
-        .addTo(map.current!);
-
-      markers.current.push(marker);
-    });
-
-    // Fit bounds to show all markers if there are any
-    if (showsWithCoords.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
+      // Add markers for shows with coordinates
       showsWithCoords.forEach(show => {
-        bounds.extend([show.longitude!, show.latitude!]);
+        const el = document.createElement('div');
+        el.className = 'map-marker';
+        el.innerHTML = `
+          <div style="
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-size: 16px;
+            transition: transform 0.2s;
+          " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+            ${getRatingEmoji(show.rating)}
+          </div>
+        `;
+
+        el.addEventListener('click', () => {
+          setSelectedShow(show);
+        });
+
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([show.longitude!, show.latitude!])
+          .addTo(map.current!);
+
+        markers.current.push(marker);
       });
-      map.current?.fitBounds(bounds, { padding: 50, maxZoom: 12 });
-    }
+
+      // Fit bounds to show all markers if there are any
+      if (showsWithCoords.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        showsWithCoords.forEach(show => {
+          bounds.extend([show.longitude!, show.latitude!]);
+        });
+        map.current?.fitBounds(bounds, { padding: 50, maxZoom: 12 });
+      }
+    };
+
+    processShows();
   }, [shows]);
 
   return (
