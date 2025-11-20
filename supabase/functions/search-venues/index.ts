@@ -2,10 +2,101 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
+// Declare EdgeRuntime for background tasks
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Background task to cache more venues in discovered cities
+async function cacheVenuesInCity(
+  city: string,
+  supabaseUrl: string,
+  supabaseKey: string,
+  jambaseApiKey: string,
+  userLat?: number,
+  userLon?: number
+) {
+  try {
+    console.log(`[Background] Caching venues in ${city}...`);
+    
+    const params = new URLSearchParams({
+      apikey: jambaseApiKey,
+      city: city,
+      page: '1',
+      pageSize: '30', // Cache more venues in background
+    });
+
+    if (userLat && userLon) {
+      params.append('geoLatitude', userLat.toString());
+      params.append('geoLongitude', userLon.toString());
+    }
+
+    const response = await fetch(`https://www.jambase.com/jb-api/v1/venues?${params}`);
+    
+    if (!response.ok) {
+      console.error(`[Background] Cache error: ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+    
+    if (data.venues && Array.isArray(data.venues) && data.venues.length > 0) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const venuesToCache = [];
+
+      for (const v of data.venues) {
+        const venueName = v.name;
+        const venueCity = v.location?.city || '';
+        const state = v.location?.state || '';
+        const country = v.location?.country || 'US';
+        
+        let location = '';
+        if (venueCity && state) {
+          location = `${venueCity}, ${state}`;
+        } else if (venueCity && country) {
+          location = `${venueCity}, ${country}`;
+        } else if (venueCity) {
+          location = venueCity;
+        }
+
+        // Check if venue already exists
+        const { data: existing } = await supabase
+          .from('venues')
+          .select('id')
+          .eq('name', venueName)
+          .eq('city', venueCity)
+          .maybeSingle();
+
+        if (!existing && venueName) {
+          venuesToCache.push({
+            name: venueName,
+            location: location,
+            city: venueCity || null,
+            country: country || null,
+            latitude: v.location?.latitude ? parseFloat(v.location.latitude.toString()) : null,
+            longitude: v.location?.longitude ? parseFloat(v.location.longitude.toString()) : null,
+          });
+        }
+      }
+
+      if (venuesToCache.length > 0) {
+        const { error } = await supabase.from('venues').insert(venuesToCache);
+        if (error) {
+          console.error('[Background] Insert error:', error);
+        } else {
+          console.log(`[Background] Cached ${venuesToCache.length} venues in ${city}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Background] Caching error:', error);
+  }
+}
 
 interface JamBaseVenue {
   name: string;
@@ -282,7 +373,29 @@ serve(async (req) => {
       }
     }
 
-    // 8. Sort and return - prioritize exact matches
+    // 8. Trigger background caching for discovered cities
+    const discoveredCities = new Set<string>();
+    for (const venue of jambaseVenues) {
+      if (venue.city) {
+        discoveredCities.add(venue.city);
+      }
+    }
+
+    // Launch background tasks to cache more venues in these cities
+    if (JAMBASE_API_KEY && discoveredCities.size > 0) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+      const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+      const userLat = profile?.home_latitude;
+      const userLon = profile?.home_longitude;
+
+      for (const city of Array.from(discoveredCities).slice(0, 2)) { // Limit to 2 cities to avoid overload
+        EdgeRuntime.waitUntil(
+          cacheVenuesInCity(city, supabaseUrl, supabaseKey, JAMBASE_API_KEY, userLat, userLon)
+        );
+      }
+    }
+
+    // 9. Sort and return - prioritize exact matches
     const searchLower = searchTerm.trim().toLowerCase();
     const suggestions = Array.from(venueMap.values()).sort((a, b) => {
       // Exact match priority
