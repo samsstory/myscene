@@ -54,6 +54,7 @@ export interface ShowData {
 const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
   const [step, setStep] = useState(1);
   const [showStepSelector, setShowStepSelector] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showData, setShowData] = useState<ShowData>({
     venue: "",
     venueLocation: "",
@@ -187,6 +188,7 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
       venueLatitude: latitude,
       venueLongitude: longitude
     });
+    setHasUnsavedChanges(true);
     if (showStepSelector) {
       setStep(0); // Return to step selector when editing
     } else {
@@ -195,6 +197,7 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
   };
 
   const handleDateSelect = () => {
+    setHasUnsavedChanges(true);
     if (showStepSelector) {
       setStep(0); // Return to step selector when editing
     } else {
@@ -203,6 +206,7 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
   };
 
   const handleArtistsComplete = () => {
+    setHasUnsavedChanges(true);
     if (showStepSelector) {
       setStep(0); // Return to step selector when editing
     } else {
@@ -529,6 +533,14 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
                   </div>
                 </div>
               </button>
+
+              {hasUnsavedChanges && (
+                <div className="pt-4">
+                  <Button onClick={handleSubmit} className="w-full" size="lg">
+                    Save Changes
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
