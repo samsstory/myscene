@@ -121,10 +121,10 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
         <div className="space-y-6 py-4">
           {/* Venue */}
           <div className="space-y-2">
-            <Label htmlFor="venue">Venue *</Label>
+            <Label htmlFor="venue">Show *</Label>
             <Input
               id="venue"
-              placeholder="Search or add venue..."
+              placeholder="Search or add Festival, concert, or other..."
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
             />
