@@ -340,38 +340,38 @@ const Feed = () => {
             <span className="hidden sm:inline">Map</span>
           </TabsTrigger>
         </TabsList>
-      </Tabs>
 
-      {loading ? (
-        <Card className="border-border shadow-card">
-          <CardContent className="py-16 text-center">
-            <Music2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground animate-pulse" />
-            <p className="text-muted-foreground">Loading shows...</p>
-          </CardContent>
-        </Card>
-      ) : shows.length === 0 ? (
-        <Card className="border-border shadow-card">
-          <CardContent className="py-16 text-center">
-            <Music2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">No shows yet</h3>
-            <p className="text-muted-foreground">
-              Start logging your concert experiences!
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <TabsContent value="list">{renderListView()}</TabsContent>
-          <TabsContent value="calendar">{renderCalendarView()}</TabsContent>
-          <TabsContent value="top-rated">{renderListView()}</TabsContent>
-          <TabsContent value="map">
-            <MapView shows={shows} onEditShow={(show) => {
-              setEditShow(show);
-              setEditDialogOpen(true);
-            }} />
-          </TabsContent>
-        </>
-      )}
+        {loading ? (
+          <Card className="border-border shadow-card mt-6">
+            <CardContent className="py-16 text-center">
+              <Music2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground animate-pulse" />
+              <p className="text-muted-foreground">Loading shows...</p>
+            </CardContent>
+          </Card>
+        ) : shows.length === 0 ? (
+          <Card className="border-border shadow-card mt-6">
+            <CardContent className="py-16 text-center">
+              <Music2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-2">No shows yet</h3>
+              <p className="text-muted-foreground">
+                Start logging your concert experiences!
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <TabsContent value="list">{renderListView()}</TabsContent>
+            <TabsContent value="calendar">{renderCalendarView()}</TabsContent>
+            <TabsContent value="top-rated">{renderListView()}</TabsContent>
+            <TabsContent value="map">
+              <MapView shows={shows} onEditShow={(show) => {
+                setEditShow(show);
+                setEditDialogOpen(true);
+              }} />
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
 
       <ShareShowSheet
         show={shareShow}
