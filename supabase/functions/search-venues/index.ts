@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface MapboxVenue {
+interface JamBaseVenue {
   name: string;
   location: string;
   city: string;
@@ -115,110 +115,82 @@ serve(async (req) => {
       .eq('id', userId)
       .single();
     
-    // 5. Search Mapbox Geocoding API with enhanced parameters
-    const MAPBOX_API_KEY = Deno.env.get('MAPBOX_API_KEY');
-    let mapboxVenues: MapboxVenue[] = [];
+    // 5. Search JamBase API for venues
+    const JAMBASE_API_KEY = Deno.env.get('JAMBASE_API_KEY');
+    let jambaseVenues: JamBaseVenue[] = [];
 
-    if (MAPBOX_API_KEY) {
+    if (JAMBASE_API_KEY) {
       try {
-        // Build Mapbox URL with enhanced parameters
+        // Build JamBase URL with search parameters
         const params = new URLSearchParams({
-          access_token: MAPBOX_API_KEY,
-          types: 'poi',
-          limit: '15',
-          autocomplete: 'true',
-          language: 'en',
+          apikey: JAMBASE_API_KEY,
+          name: searchTerm.trim(),
+          page: '0',
+          pageSize: '15',
         });
         
-        // Add proximity biasing if user has home coordinates
+        // Add location biasing if user has home coordinates
         if (profile?.home_longitude && profile?.home_latitude) {
-          params.append('proximity', `${profile.home_longitude},${profile.home_latitude}`);
+          params.append('geoLatitude', profile.home_latitude.toString());
+          params.append('geoLongitude', profile.home_longitude.toString());
+          params.append('geoRadius', '100'); // 100 mile radius
           console.log(`Using proximity: ${profile.home_longitude},${profile.home_latitude}`);
         }
         
-        const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchTerm.trim())}.json?${params.toString()}`;
-        console.log(`Calling Mapbox API with enhanced parameters...`);
+        const jambaseUrl = `https://www.jambase.com/jb-api/v1/venues?${params.toString()}`;
+        console.log(`Calling JamBase API...`);
         
-        const mapboxResponse = await fetch(mapboxUrl);
+        const jambaseResponse = await fetch(jambaseUrl, {
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
         
-        if (!mapboxResponse.ok) {
-          console.error(`Mapbox error: ${mapboxResponse.status}`);
+        if (!jambaseResponse.ok) {
+          console.error(`JamBase error: ${jambaseResponse.status}`);
+          const errorText = await jambaseResponse.text();
+          console.error(`JamBase error response: ${errorText}`);
         } else {
-          const data = await mapboxResponse.json();
-          console.log(`Mapbox returned ${data.features?.length || 0} results`);
+          const data = await jambaseResponse.json();
+          console.log(`JamBase returned ${data.venues?.length || 0} results`);
 
-          if (data.features && Array.isArray(data.features)) {
-            mapboxVenues = data.features
-              .filter((feature: any) => {
-                // Filter for venue-like POIs
-                const categories = feature.properties?.category?.split(',') || [];
-                const maki = feature.properties?.maki || '';
-                
-                // Prioritize entertainment/venue categories
-                const venueKeywords = [
-                  'music', 'theater', 'theatre', 'concert', 'club', 'bar', 
-                  'entertainment', 'nightlife', 'arts', 'stadium', 'arena',
-                  'festival', 'venue', 'hall', 'center', 'auditorium'
-                ];
-                
-                const isVenueType = categories.some((cat: string) => 
-                  venueKeywords.some(keyword => cat.toLowerCase().includes(keyword))
-                ) || venueKeywords.some(keyword => 
-                  maki.toLowerCase().includes(keyword) || 
-                  feature.text?.toLowerCase().includes(keyword)
-                );
-                
-                // Always include if explicitly a POI
-                return feature.place_type?.includes('poi') || isVenueType;
-              })
-              .map((feature: any) => {
-                let city = '';
-                let country = '';
-                let region = '';
-                
-                if (feature.context) {
-                  for (const ctx of feature.context) {
-                    if (ctx.id.startsWith('place.')) city = ctx.text;
-                    if (ctx.id.startsWith('region.')) region = ctx.short_code || ctx.text;
-                    if (ctx.id.startsWith('country.')) country = ctx.short_code || ctx.text;
-                  }
-                }
+          if (data.venues && Array.isArray(data.venues)) {
+            jambaseVenues = data.venues.map((venue: any) => {
+              // Extract location details
+              const city = venue.location?.city || '';
+              const state = venue.location?.state || '';
+              const country = venue.location?.country || 'US';
+              
+              // Build clean location string
+              let location = '';
+              if (city && state) {
+                location = `${city}, ${state}`;
+              } else if (city && country) {
+                location = `${city}, ${country}`;
+              } else if (city) {
+                location = city;
+              }
 
-                // Build a clean location string
-                let location = feature.place_name || '';
-                if (city && country) {
-                  location = `${city}, ${country}`;
-                } else if (region && country) {
-                  location = `${region}, ${country}`;
-                } else if (country) {
-                  location = country;
-                }
-
-                // Extract venue name (prefer text over place_name for POIs)
-                const name = feature.text || feature.place_name.split(',')[0];
-
-                return {
-                  name: name,
-                  city: city,
-                  country: country,
-                  latitude: feature.center?.[1]?.toString() || '',
-                  longitude: feature.center?.[0]?.toString() || '',
-                  location: location,
-                  relevance: feature.relevance || 0, // Mapbox relevance score
-                  category: feature.properties?.category || '',
-                };
-              })
-              // Sort by relevance score from Mapbox
-              .sort((a: any, b: any) => b.relevance - a.relevance);
+              return {
+                name: venue.name || '',
+                city: city,
+                country: country,
+                latitude: venue.location?.latitude?.toString() || '',
+                longitude: venue.location?.longitude?.toString() || '',
+                location: location,
+                relevance: 1, // JamBase doesn't provide relevance score
+                category: 'music venue',
+              };
+            }).filter((v: any) => v.name); // Filter out venues without names
             
-            console.log(`Processed ${mapboxVenues.length} Mapbox venues`);
+            console.log(`Processed ${jambaseVenues.length} JamBase venues`);
           }
         }
       } catch (error) {
-        console.error('Mapbox error:', error);
+        console.error('JamBase error:', error);
       }
     } else {
-      console.warn('MAPBOX_API_KEY not set!');
+      console.warn('JAMBASE_API_KEY not set!');
     }
 
     // 6. Merge results
@@ -259,7 +231,7 @@ serve(async (req) => {
       }
     }
 
-    for (const venue of mapboxVenues) {
+    for (const venue of jambaseVenues) {
       const key = `${venue.name}-${venue.location}`;
       
       if (!venueMap.has(key)) {
@@ -272,11 +244,11 @@ serve(async (req) => {
       }
     }
 
-    // 7. Cache new Mapbox venues
-    if (mapboxVenues.length > 0) {
+    // 7. Cache new JamBase venues
+    if (jambaseVenues.length > 0) {
       const venuesToCache = [];
       
-      for (const venue of mapboxVenues) {
+      for (const venue of jambaseVenues) {
         const { data: existing } = await supabaseClient
           .from('venues')
           .select('id')
