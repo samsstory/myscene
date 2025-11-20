@@ -21,7 +21,8 @@ interface MapViewProps {
   onEditShow: (show: Show) => void;
 }
 
-const MAPBOX_TOKEN = "pk.eyJ1IjoibG92YWJsZS1haS1kZW1vIiwiYSI6ImNsemRsYnBoYzAxaHYyanBzZ2NnaHBrZDcifQ.p7xMXbSdGtWT_VXNvxWcog";
+// TODO: Replace with your actual Mapbox public token from https://mapbox.com
+const MAPBOX_TOKEN = "YOUR_MAPBOX_PUBLIC_TOKEN_HERE";
 
 const getRatingEmoji = (rating: number) => {
   const emojiMap: { [key: number]: string } = {
