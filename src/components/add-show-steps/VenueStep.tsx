@@ -147,15 +147,14 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
         await geocodeAndSelect(locationFilter, pendingVenueName, locationFilter);
       } else {
         onSelect(pendingVenueName, "", null);
+        setHasChanges(true);
       }
-      setHasChanges(true);
       setShowAddressDialog(false);
       return;
     }
 
     // Geocode the provided address
     await geocodeAndSelect(venueAddress, pendingVenueName, venueAddress);
-    setHasChanges(true);
     setShowAddressDialog(false);
   };
 
@@ -174,9 +173,11 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       } else {
         onSelect(venueName, locationName, null);
       }
+      setHasChanges(true);
     } catch (error) {
       console.error('Error geocoding address:', error);
       onSelect(venueName, locationName, null);
+      setHasChanges(true);
     } finally {
       setIsGeocoding(false);
     }
