@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Music, MapPin, TrendingUp, Activity, Trophy, Sparkles } from "lucide-react";
+import { Share2, Music, MapPin, TrendingUp, Activity, Trophy, Sparkles, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -145,7 +145,7 @@ const Stats = () => {
         <StatCard
           title="Shows This Year"
           value={mockStats.showsThisYear}
-          icon={Activity}
+          icon={Calendar}
           gradient="bg-gradient-to-br from-primary/20 via-card to-card"
         />
         <StatCard
