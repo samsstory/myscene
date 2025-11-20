@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, X } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { CalendarIcon, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,14 @@ const ratingEmojis = [
   { value: 5, emoji: "🤩", label: "Amazing" },
 ];
 
+interface ArtistSuggestion {
+  id: string;
+  name: string;
+  disambiguation: string;
+  country: string;
+  type: string;
+}
+
 const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
   const [date, setDate] = useState<Date>();
   const [datePrecision, setDatePrecision] = useState<string>("exact");
@@ -42,6 +51,9 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
   const [artists, setArtists] = useState<Array<{ name: string; isHeadliner: boolean }>>([]);
   const [currentArtist, setCurrentArtist] = useState("");
   const [rating, setRating] = useState<number | null>(null);
+  const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -51,10 +63,45 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
-  const addArtist = (isHeadliner: boolean) => {
-    if (currentArtist.trim()) {
-      setArtists([...artists, { name: currentArtist.trim(), isHeadliner }]);
+  // Debounced artist search
+  useEffect(() => {
+    const searchArtists = async () => {
+      if (currentArtist.trim().length < 2) {
+        setArtistSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setIsSearching(true);
+      setShowSuggestions(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('search-artists', {
+          body: { searchTerm: currentArtist.trim() }
+        });
+
+        if (error) throw error;
+
+        setArtistSuggestions(data?.artists || []);
+      } catch (error) {
+        console.error('Error searching artists:', error);
+        setArtistSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const timer = setTimeout(searchArtists, 300);
+    return () => clearTimeout(timer);
+  }, [currentArtist]);
+
+  const addArtist = (isHeadliner: boolean, artistName?: string) => {
+    const nameToAdd = artistName || currentArtist.trim();
+    if (nameToAdd) {
+      setArtists([...artists, { name: nameToAdd, isHeadliner }]);
       setCurrentArtist("");
+      setShowSuggestions(false);
+      setArtistSuggestions([]);
     }
   };
 
@@ -271,30 +318,87 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
           {/* Artists */}
           <div className="space-y-2">
             <Label htmlFor="artist">Artists *</Label>
-            <div className="flex gap-2">
-              <Input
-                id="artist"
-                placeholder="Artist name..."
-                value={currentArtist}
-                onChange={(e) => setCurrentArtist(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addArtist(artists.length === 0);
-                  }
-                }}
-              />
-              <Button type="button" onClick={() => addArtist(artists.length === 0)}>
-                Add Headliner
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => addArtist(false)}
-              >
-                Add Opener
-              </Button>
-            </div>
+            <Popover open={showSuggestions && (artistSuggestions.length > 0 || isSearching)} onOpenChange={setShowSuggestions}>
+              <PopoverTrigger asChild>
+                <div className="relative flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="artist"
+                      placeholder="Search for artist name..."
+                      value={currentArtist}
+                      onChange={(e) => setCurrentArtist(e.target.value)}
+                      onFocus={() => {
+                        if (currentArtist.trim().length >= 2) {
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !showSuggestions) {
+                          e.preventDefault();
+                          addArtist(artists.length === 0);
+                        }
+                        if (e.key === "Escape") {
+                          setShowSuggestions(false);
+                        }
+                      }}
+                    />
+                    {isSearching && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  <Button type="button" onClick={() => addArtist(artists.length === 0)}>
+                    Add Headliner
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => addArtist(false)}
+                  >
+                    Add Opener
+                  </Button>
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-[600px] p-0" align="start">
+                <Command>
+                  <CommandList>
+                    <CommandEmpty>
+                      {currentArtist.trim() ? (
+                        <div className="py-6 text-center text-sm">
+                          No results found - press Enter or click button to add "{currentArtist.trim()}"
+                        </div>
+                      ) : (
+                        <div className="py-6 text-center text-sm">Start typing to search...</div>
+                      )}
+                    </CommandEmpty>
+                    {artistSuggestions.length > 0 && (
+                      <CommandGroup heading="Suggested Artists">
+                        {artistSuggestions.map((artist) => (
+                          <CommandItem
+                            key={artist.id}
+                            value={artist.name}
+                            onSelect={() => {
+                              addArtist(artists.length === 0, artist.name);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <div className="flex flex-col gap-1">
+                              <div className="font-medium">{artist.name}</div>
+                              {(artist.disambiguation || artist.country || artist.type) && (
+                                <div className="text-xs text-muted-foreground">
+                                  {[artist.disambiguation, artist.type, artist.country]
+                                    .filter(Boolean)
+                                    .join(" • ")}
+                                </div>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
             {artists.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
