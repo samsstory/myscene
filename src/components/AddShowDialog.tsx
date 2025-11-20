@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
-import { CalendarIcon, X, Loader2 } from "lucide-react";
+import { CalendarIcon, X, Loader2, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -48,12 +48,24 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [venue, setVenue] = useState("");
+  const [venueLocation, setVenueLocation] = useState("");
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const [artists, setArtists] = useState<Array<{ name: string; isHeadliner: boolean }>>([]);
   const [currentArtist, setCurrentArtist] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [venueSuggestions, setVenueSuggestions] = useState<Array<{
+    id?: string;
+    name: string;
+    location: string;
+    scene_users_count: number;
+    user_show_count: number;
+  }>>([]);
+  const [isSearchingVenues, setIsSearchingVenues] = useState(false);
+  const [showVenueSuggestions, setShowVenueSuggestions] = useState(false);
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -94,6 +106,38 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
     const timer = setTimeout(searchArtists, 300);
     return () => clearTimeout(timer);
   }, [currentArtist]);
+
+  // Debounced venue search
+  useEffect(() => {
+    const searchVenues = async () => {
+      if (venue.trim().length < 2) {
+        setVenueSuggestions([]);
+        setShowVenueSuggestions(false);
+        return;
+      }
+
+      setIsSearchingVenues(true);
+      setShowVenueSuggestions(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('search-venues', {
+          body: { searchTerm: venue.trim() }
+        });
+
+        if (error) throw error;
+
+        setVenueSuggestions(data?.suggestions || []);
+      } catch (error) {
+        console.error('Error searching venues:', error);
+        setVenueSuggestions([]);
+      } finally {
+        setIsSearchingVenues(false);
+      }
+    };
+
+    const timer = setTimeout(searchVenues, 300);
+    return () => clearTimeout(timer);
+  }, [venue]);
 
   const addArtist = (isHeadliner: boolean, artistName?: string) => {
     const nameToAdd = artistName || currentArtist.trim();
@@ -159,7 +203,7 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
         .insert({
           user_id: user.id,
           venue_name: venue,
-          venue_location: "", // Can be added later
+          venue_location: venueLocation || null,
           show_date: showDate,
           date_precision: datePrecision,
           rating: rating,
@@ -168,6 +212,25 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
         .single();
 
       if (showError) throw showError;
+
+      // Update venue cache if a venue ID was selected
+      if (selectedVenueId) {
+        const { error: venueError } = await supabase
+          .from('user_venues')
+          .upsert({
+            user_id: user.id,
+            venue_id: selectedVenueId,
+            show_count: 1,
+            last_show_date: showDate,
+          }, {
+            onConflict: 'user_id,venue_id',
+            ignoreDuplicates: false,
+          });
+
+        if (venueError) {
+          console.error('Error updating venue cache:', venueError);
+        }
+      }
 
       // Insert the artists
       const artistsToInsert = artists.map(artist => ({
@@ -187,6 +250,8 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
       
       // Reset form
       setVenue("");
+      setVenueLocation("");
+      setSelectedVenueId(null);
       setArtists([]);
       setDate(undefined);
       setSelectedMonth("");
@@ -213,12 +278,86 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
           {/* Venue */}
           <div className="space-y-2">
             <Label htmlFor="venue">Show *</Label>
-            <Input
-              id="venue"
-              placeholder="Search or add Festival, concert, or other..."
-              value={venue}
-              onChange={(e) => setVenue(e.target.value)}
-            />
+            <Popover 
+              open={showVenueSuggestions && (venueSuggestions.length > 0 || isSearchingVenues)} 
+              onOpenChange={setShowVenueSuggestions}
+            >
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <Input
+                    id="venue"
+                    placeholder="Search or add Festival, concert, or other..."
+                    value={venue}
+                    onChange={(e) => {
+                      setVenue(e.target.value);
+                      setSelectedVenueId(null);
+                      setVenueLocation("");
+                    }}
+                    onFocus={() => {
+                      if (venue.trim().length >= 2) {
+                        setShowVenueSuggestions(true);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setShowVenueSuggestions(false);
+                      }
+                    }}
+                  />
+                  {isSearchingVenues && (
+                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-[--radix-popover-trigger-width] p-0" 
+                align="start"
+              >
+                <Command>
+                  <CommandList>
+                    <CommandEmpty>
+                      No venues found - type to add new
+                    </CommandEmpty>
+                    <CommandGroup heading="Venues">
+                      {venueSuggestions.map((suggestion, index) => (
+                        <CommandItem
+                          key={`${suggestion.name}-${suggestion.location}-${index}`}
+                          value={`${suggestion.name}-${suggestion.location}`}
+                          onSelect={() => {
+                            setVenue(suggestion.name);
+                            setVenueLocation(suggestion.location);
+                            setSelectedVenueId(suggestion.id || null);
+                            setShowVenueSuggestions(false);
+                          }}
+                        >
+                          <div className="flex flex-col w-full">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium">{suggestion.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-5 flex-wrap">
+                              {suggestion.location && (
+                                <span>{suggestion.location}</span>
+                              )}
+                              {suggestion.user_show_count > 0 && (
+                                <span className="text-primary font-medium">
+                                  • You've been {suggestion.user_show_count} time{suggestion.user_show_count !== 1 ? 's' : ''}
+                                </span>
+                              )}
+                              {suggestion.scene_users_count > 0 && (
+                                <span>
+                                  • {suggestion.scene_users_count} Scene user{suggestion.scene_users_count !== 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Date */}
