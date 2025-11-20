@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, Compass, BarChart3, Plus, Music } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Feed from "@/components/Feed";
 import Stats from "@/components/Stats";
 import Profile from "@/components/Profile";
@@ -86,9 +87,10 @@ const Dashboard = () => {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-end justify-between h-16 pb-2">
+      <TooltipProvider>
+        <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
+          <div className="container mx-auto px-4">
+            <div className="flex items-end justify-between h-16 pb-2">
             {/* Home */}
             <button
               onClick={() => setActiveTab("feed")}
@@ -101,12 +103,18 @@ const Dashboard = () => {
             </button>
 
             {/* Compass - Coming Soon */}
-            <button
-              disabled
-              className="flex flex-col items-center justify-center gap-1 text-muted-foreground/40 cursor-not-allowed flex-1"
-            >
-              <Compass className="h-6 w-6" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors flex-1"
+                >
+                  <Compass className="h-6 w-6" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Coming soon.. 🤫</p>
+              </TooltipContent>
+            </Tooltip>
 
             {/* Add Show Button - Elevated */}
             <div className="flex-1 flex justify-center">
@@ -144,9 +152,10 @@ const Dashboard = () => {
                 </AvatarFallback>
               </Avatar>
             </button>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </TooltipProvider>
 
       <AddShowFlow open={showAddDialog} onOpenChange={setShowAddDialog} />
     </div>
