@@ -13,6 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -35,10 +36,20 @@ const ratingEmojis = [
 const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
   const [date, setDate] = useState<Date>();
   const [datePrecision, setDatePrecision] = useState<string>("exact");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("");
   const [venue, setVenue] = useState("");
   const [artists, setArtists] = useState<Array<{ name: string; isHeadliner: boolean }>>([]);
   const [currentArtist, setCurrentArtist] = useState("");
   const [rating, setRating] = useState<number | null>(null);
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
   const addArtist = (isHeadliner: boolean) => {
     if (currentArtist.trim()) {
@@ -57,11 +68,34 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
       return;
     }
 
+    // Validate date based on precision
+    if (datePrecision === "exact" && !date) {
+      toast.error("Please select a date");
+      return;
+    }
+    if (datePrecision === "approximate" && (!selectedMonth || !selectedYear)) {
+      toast.error("Please select a month and year");
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error("Please sign in to add shows");
         return;
+      }
+
+      // Determine the show date based on precision
+      let showDate: string;
+      if (datePrecision === "exact" && date) {
+        showDate = date.toISOString().split('T')[0];
+      } else if (datePrecision === "approximate" && selectedMonth && selectedYear) {
+        // Use the first day of the selected month
+        const monthIndex = months.indexOf(selectedMonth);
+        const approximateDate = new Date(parseInt(selectedYear), monthIndex, 1);
+        showDate = approximateDate.toISOString().split('T')[0];
+      } else {
+        showDate = new Date().toISOString().split('T')[0];
       }
 
       // Insert the show
@@ -71,7 +105,7 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
           user_id: user.id,
           venue_name: venue,
           venue_location: "", // Can be added later
-          show_date: date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+          show_date: showDate,
           date_precision: datePrecision,
           rating: rating,
         })
@@ -100,6 +134,8 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
       setVenue("");
       setArtists([]);
       setDate(undefined);
+      setSelectedMonth("");
+      setSelectedYear("");
       setRating(null);
       setDatePrecision("exact");
     } catch (error) {
@@ -154,7 +190,7 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
               </div>
             </RadioGroup>
 
-            {datePrecision !== "unknown" && (
+            {datePrecision === "exact" && (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -177,6 +213,35 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
                   />
                 </PopoverContent>
               </Popover>
+            )}
+
+            {datePrecision === "approximate" && (
+              <div className="flex gap-2">
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month} value={month}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </div>
 
