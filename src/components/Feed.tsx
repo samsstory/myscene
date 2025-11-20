@@ -344,13 +344,17 @@ const Feed = () => {
                 {dayShows.length > 0 ? (
                   <div className="flex flex-wrap gap-1 items-center justify-center">
                     {dayShows.map((show) => (
-                      <div
+                      <button
                         key={show.id}
-                        className="text-2xl"
+                        className="text-2xl hover:scale-110 transition-transform cursor-pointer"
                         title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name}`}
+                        onClick={() => {
+                          setReviewShow(show);
+                          setReviewSheetOpen(true);
+                        }}
                       >
                         {getRatingEmoji(show.rating)}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 ) : (
