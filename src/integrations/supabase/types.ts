@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      artist_associations: {
+        Row: {
+          artist1_name: string
+          artist2_name: string
+          co_occurrence_count: number
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          artist1_name: string
+          artist2_name: string
+          co_occurrence_count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          artist1_name?: string
+          artist2_name?: string
+          co_occurrence_count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       show_artists: {
         Row: {
           artist_name: string
@@ -79,6 +106,121 @@ export type Database = {
           user_id?: string
           venue_location?: string | null
           venue_name?: string
+        }
+        Relationships: []
+      }
+      user_venues: {
+        Row: {
+          created_at: string
+          last_show_date: string | null
+          show_count: number
+          updated_at: string
+          user_id: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_show_date?: string | null
+          show_count?: number
+          updated_at?: string
+          user_id: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          last_show_date?: string | null
+          show_count?: number
+          updated_at?: string
+          user_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_venues_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_artist_popularity: {
+        Row: {
+          artist_name: string
+          created_at: string
+          id: string
+          last_show_date: string | null
+          show_count: number
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          artist_name: string
+          created_at?: string
+          id?: string
+          last_show_date?: string | null
+          show_count?: number
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          artist_name?: string
+          created_at?: string
+          id?: string
+          last_show_date?: string | null
+          show_count?: number
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_artist_popularity_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues: {
+        Row: {
+          bandsintown_id: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          metadata: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bandsintown_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          metadata?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bandsintown_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          metadata?: Json | null
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
