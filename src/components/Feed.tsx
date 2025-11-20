@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Share2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -239,29 +240,77 @@ const Feed = () => {
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const startDay = monthStart.getDay();
 
+    const currentYear = currentMonth.getFullYear();
+    const currentMonthIndex = currentMonth.getMonth();
+
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    // Generate year options (from 1990 to current year + 1)
+    const years = Array.from(
+      { length: new Date().getFullYear() - 1989 + 1 },
+      (_, i) => 1990 + i
+    );
+
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-2xl font-bold">{format(currentMonth, "MMMM yyyy")}</h3>
+        <div className="flex items-center justify-between mb-4 gap-4">
+          <div className="flex items-center gap-2">
+            <Select
+              value={months[currentMonthIndex]}
+              onValueChange={(value) => {
+                const monthIndex = months.indexOf(value);
+                setCurrentMonth(new Date(currentYear, monthIndex));
+              }}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={currentYear.toString()}
+              onValueChange={(value) => {
+                setCurrentMonth(new Date(parseInt(value), currentMonthIndex));
+              }}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.reverse().map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-              className="px-3 py-1 rounded bg-secondary hover:bg-secondary/80 transition-colors"
+            <Button
+              onClick={() => setCurrentMonth(new Date(currentYear, currentMonthIndex - 1))}
+              size="sm"
+              variant="default"
             >
-              ←
-            </button>
-            <button
-              onClick={() => setCurrentMonth(new Date())}
-              className="px-3 py-1 rounded bg-secondary hover:bg-secondary/80 transition-colors text-sm"
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => setCurrentMonth(new Date(currentYear, currentMonthIndex + 1))}
+              size="sm"
+              variant="default"
             >
-              Today
-            </button>
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-              className="px-3 py-1 rounded bg-secondary hover:bg-secondary/80 transition-colors"
-            >
-              →
-            </button>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
