@@ -124,7 +124,7 @@ serve(async (req) => {
         // Build JamBase URL with search parameters
         const params = new URLSearchParams({
           apikey: JAMBASE_API_KEY,
-          name: searchTerm.trim(),
+          venueName: searchTerm.trim(),
           page: '0',
           pageSize: '15',
         });
