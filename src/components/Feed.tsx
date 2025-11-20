@@ -167,7 +167,7 @@ const Feed = () => {
     
     return (
       <div className="grid gap-4">
-        {sortedShows.map((show) => (
+        {sortedShows.map((show, index) => (
           <Card
             key={show.id}
             className="border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-hidden cursor-pointer"
@@ -177,7 +177,22 @@ const Feed = () => {
             }}
           >
             <CardContent className="p-6">
-              <div className="flex items-start justify-between gap-6">
+              <div className="flex items-start gap-6">
+                {/* Leaderboard ranking number (only in top-rated view) */}
+                {viewMode === "top-rated" && (
+                  <div className="flex-shrink-0">
+                    <div className={`
+                      w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl
+                      ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-yellow-950' : ''}
+                      ${index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-gray-950' : ''}
+                      ${index === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-950' : ''}
+                      ${index > 2 ? 'bg-muted text-muted-foreground' : ''}
+                    `}>
+                      {index + 1}
+                    </div>
+                  </div>
+                )}
+
                 {/* Left section: Artist and show details */}
                 <div className="flex-1 space-y-4">
                   {/* Artist names */}
