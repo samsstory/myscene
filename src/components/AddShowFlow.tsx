@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Music, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VenueStep from "./add-show-steps/VenueStep";
 import DateStep from "./add-show-steps/DateStep";
@@ -53,6 +53,7 @@ export interface ShowData {
 
 const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
   const [step, setStep] = useState(1);
+  const [showStepSelector, setShowStepSelector] = useState(false);
   const [showData, setShowData] = useState<ShowData>({
     venue: "",
     venueLocation: "",
@@ -103,7 +104,11 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         venueVibe: editShow.venueVibe || null,
         notes: editShow.notes || "",
       });
-      setStep(1);
+      setShowStepSelector(true); // Show step selector for editing
+      setStep(0); // Start at step selector
+    } else if (open) {
+      setShowStepSelector(false);
+      setStep(1); // Normal flow starts at venue step
     }
   }, [editShow, open]);
 
@@ -182,15 +187,27 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
       venueLatitude: latitude,
       venueLongitude: longitude
     });
-    setStep(2); // Auto-advance to date step
+    if (showStepSelector) {
+      setStep(0); // Return to step selector when editing
+    } else {
+      setStep(2); // Auto-advance to date step
+    }
   };
 
   const handleDateSelect = () => {
-    setStep(3); // Auto-advance to artists step
+    if (showStepSelector) {
+      setStep(0); // Return to step selector when editing
+    } else {
+      setStep(3); // Auto-advance to artists step
+    }
   };
 
   const handleArtistsComplete = () => {
-    setStep(4); // Auto-advance to rating step
+    if (showStepSelector) {
+      setStep(0); // Return to step selector when editing
+    } else {
+      setStep(4); // Auto-advance to rating step
+    }
   };
 
   const handleSubmit = async () => {
@@ -416,6 +433,7 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
       notes: "",
     });
     setStep(1);
+    setShowStepSelector(false);
     onOpenChange(false);
   };
 
@@ -434,11 +452,86 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h2 className="text-2xl font-bold">Add a Show</h2>
+          <h2 className="text-2xl font-bold">
+            {editShow ? "Edit Show" : "Add a Show"}
+          </h2>
         </div>
 
         {/* Step content - scrollable */}
         <div className="flex-1 overflow-y-auto px-6 pb-6">
+          {/* Step selector for editing */}
+          {step === 0 && showStepSelector && (
+            <div className="space-y-3">
+              <p className="text-muted-foreground mb-4">What would you like to edit?</p>
+              
+              <button
+                onClick={() => setStep(1)}
+                className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Venue</div>
+                    <div className="text-sm text-muted-foreground">{showData.venue}</div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setStep(2)}
+                className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Date</div>
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(editShow?.date || "").toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setStep(3)}
+                className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Music className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Artists</div>
+                    <div className="text-sm text-muted-foreground">
+                      {showData.artists.map(a => a.name).join(", ")}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setStep(4)}
+                className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Star className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Rating & Notes</div>
+                    <div className="text-sm text-muted-foreground">
+                      {["😴", "😐", "🙂", "😃", "🤩"][showData.rating ? showData.rating - 1 : 0]}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
           {step === 1 && (
             <VenueStep
               value={showData.venue}
@@ -490,17 +583,19 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
           )}
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex gap-1 px-6 pb-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                i <= step ? "bg-primary" : "bg-muted"
-              }`}
-            />
-          ))}
-        </div>
+        {/* Progress indicator - hide for step selector */}
+        {step > 0 && (
+          <div className="flex gap-1 px-6 pb-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className={`h-1 flex-1 rounded-full transition-colors ${
+                  i <= step ? "bg-primary" : "bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
