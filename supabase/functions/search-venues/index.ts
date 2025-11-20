@@ -216,7 +216,7 @@ serve(async (req) => {
         const params = new URLSearchParams({
           apikey: JAMBASE_API_KEY,
           venueName: searchTerm.trim(),
-          page: '0',
+          page: '1',
           pageSize: '15',
         });
         
