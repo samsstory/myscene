@@ -68,9 +68,6 @@ const DateStep = ({
     <div className="space-y-6">
       <div>
         <Label className="text-base font-semibold">When was the show?</Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          Select how precisely you remember the date
-        </p>
       </div>
 
       <RadioGroup value={datePrecision} onValueChange={onPrecisionChange}>
