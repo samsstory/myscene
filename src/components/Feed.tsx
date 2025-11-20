@@ -213,7 +213,7 @@ const Feed = () => {
                       )}
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="default"
                         className="mt-2"
                         onClick={() => {
                           setShareShow(show);
