@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,64 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
     rating: null,
     locationFilter: "",
   });
+  const [userHomeCity, setUserHomeCity] = useState<string>("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  // Fetch user's home city from profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('home_city')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.home_city) {
+          setUserHomeCity(profile.home_city);
+          setShowData(prev => ({ ...prev, locationFilter: profile.home_city }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    if (open) {
+      fetchUserProfile();
+    }
+  }, [open]);
 
   const updateShowData = (updates: Partial<ShowData>) => {
     setShowData(prev => ({ ...prev, ...updates }));
+  };
+
+  const updateLocationFilter = async (newLocation: string) => {
+    updateShowData({ locationFilter: newLocation });
+    
+    // Update user's home city in profile if changed
+    if (newLocation !== userHomeCity && newLocation.trim()) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            home_city: newLocation,
+          });
+
+        setUserHomeCity(newLocation);
+        toast.success(`Home city updated to ${newLocation}`);
+      } catch (error) {
+        console.error('Error updating home city:', error);
+      }
+    }
   };
 
   const handleBack = () => {
@@ -208,7 +263,8 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
               location={showData.venueLocation}
               locationFilter={showData.locationFilter}
               onSelect={handleVenueSelect}
-              onLocationFilterChange={(filter) => updateShowData({ locationFilter: filter })}
+              onLocationFilterChange={updateLocationFilter}
+              isLoadingDefaultCity={isLoadingProfile}
             />
           )}
 
