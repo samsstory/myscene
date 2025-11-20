@@ -382,11 +382,8 @@ const Feed = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h2 className="text-2xl font-bold">Your Show History</h2>
-        <Badge variant="secondary" className="text-sm">
-          {shows.length} shows
-        </Badge>
       </div>
 
       <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)} className="mb-6">
