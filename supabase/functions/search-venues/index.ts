@@ -123,25 +123,60 @@ serve(async (req) => {
       }
     }
 
-    // 4. Search Bandsintown API
+    // 4. Search Bandsintown API by searching for events in a city and extracting unique venues
     const BANDSINTOWN_API_KEY = Deno.env.get('BANDSINTOWN_API_KEY');
     let bandsintownVenues: BandsintownVenue[] = [];
 
     if (BANDSINTOWN_API_KEY) {
       try {
-        const bandsintownUrl = `https://rest.bandsintown.com/venues?app_id=${BANDSINTOWN_API_KEY}&name=${encodeURIComponent(searchTerm.trim())}`;
+        // Search for upcoming events that might match the venue name
+        // We'll search by location and filter venues on our side
+        const bandsintownUrl = `https://rest.bandsintown.com/events/search?app_id=${BANDSINTOWN_API_KEY}&query=${encodeURIComponent(searchTerm.trim())}&per_page=50`;
+        console.log(`Searching Bandsintown: ${bandsintownUrl}`);
         const bandsintownResponse = await fetch(bandsintownUrl);
         
         if (bandsintownResponse.ok) {
-          const data = await bandsintownResponse.json();
-          bandsintownVenues = Array.isArray(data) ? data.slice(0, 10) : [];
-          console.log(`Bandsintown returned ${bandsintownVenues.length} venues`);
+          const events = await bandsintownResponse.json();
+          console.log(`Bandsintown returned ${Array.isArray(events) ? events.length : 0} events`);
+          
+          if (Array.isArray(events)) {
+            // Extract unique venues from events
+            const venueMap = new Map<string, BandsintownVenue>();
+            
+            events.forEach((event: any) => {
+              if (event.venue && event.venue.name) {
+                const venueName = event.venue.name.toLowerCase();
+                const searchLower = searchTerm.trim().toLowerCase();
+                
+                // Only include if venue name matches our search term
+                if (venueName.includes(searchLower)) {
+                  const venueKey = `${event.venue.name}|${event.venue.location || ''}`;
+                  
+                  if (!venueMap.has(venueKey)) {
+                    venueMap.set(venueKey, {
+                      name: event.venue.name,
+                      location: event.venue.location || `${event.venue.city}, ${event.venue.country}`,
+                      city: event.venue.city || '',
+                      country: event.venue.country || '',
+                      latitude: event.venue.latitude || '',
+                      longitude: event.venue.longitude || ''
+                    });
+                  }
+                }
+              }
+            });
+            
+            bandsintownVenues = Array.from(venueMap.values()).slice(0, 10);
+            console.log(`Extracted ${bandsintownVenues.length} unique matching venues`);
+          }
         } else {
-          console.error(`Bandsintown API error: ${bandsintownResponse.status}`);
+          console.error(`Bandsintown API error: ${bandsintownResponse.status} - ${await bandsintownResponse.text()}`);
         }
       } catch (error) {
         console.error('Error fetching from Bandsintown:', error);
       }
+    } else {
+      console.warn('BANDSINTOWN_API_KEY not configured');
     }
 
     // 5. Process and merge results
