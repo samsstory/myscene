@@ -283,27 +283,25 @@ const Feed = () => {
             return (
               <div
                 key={day.toISOString()}
-                className={`aspect-square border rounded-lg p-2 ${
+                className={`aspect-square border rounded-lg p-2 flex items-center justify-center ${
                   isToday ? "border-primary bg-primary/10" : "border-border"
                 } ${dayShows.length > 0 ? "bg-card" : "bg-background"}`}
               >
-                <div className="text-xs font-medium mb-1">{format(day, "d")}</div>
-                <div className="flex flex-wrap gap-1">
-                  {dayShows.slice(0, 3).map((show, idx) => (
-                    <div
-                      key={show.id}
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/40 to-accent/40 flex items-center justify-center text-xs border border-primary/20"
-                      title={`${show.artists.map(a => a.name).join(", ")} - ${getRatingEmoji(show.rating)}`}
-                    >
-                      {getRatingEmoji(show.rating)}
-                    </div>
-                  ))}
-                  {dayShows.length > 3 && (
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs">
-                      +{dayShows.length - 3}
-                    </div>
-                  )}
-                </div>
+                {dayShows.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 items-center justify-center">
+                    {dayShows.map((show) => (
+                      <div
+                        key={show.id}
+                        className="text-2xl"
+                        title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name}`}
+                      >
+                        {getRatingEmoji(show.rating)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                )}
               </div>
             );
           })}
