@@ -161,6 +161,23 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
       {/* Venue suggestions */}
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
+        {/* Option to enter exactly what they typed - shown first */}
+        {searchTerm.trim() && !isSearching && (
+          <button
+            onClick={handleManualEntry}
+            className="w-full text-left p-4 rounded-lg border-2 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <div>
+                <div className="font-semibold text-primary">"{searchTerm.trim()}"</div>
+                <div className="text-sm text-muted-foreground">{getManualEntryLabel()}</div>
+              </div>
+            </div>
+          </button>
+        )}
+
+        {/* Search results */}
         {filteredSuggestions.map((suggestion, index) => (
           <button
             key={`${suggestion.name}-${suggestion.location}-${index}`}
@@ -193,25 +210,9 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
           </button>
         ))}
 
-        {/* Manual entry option */}
-        {searchTerm.trim() && filteredSuggestions.length === 0 && !isSearching && (
-          <button
-            onClick={handleManualEntry}
-            className="w-full text-left p-4 rounded-lg border border-dashed border-border hover:border-primary hover:bg-accent transition-all"
-          >
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-semibold">Add "{searchTerm}"</div>
-                <div className="text-sm text-muted-foreground">{getManualEntryLabel()}</div>
-              </div>
-            </div>
-          </button>
-        )}
-
-        {!isSearching && searchTerm.trim().length >= 2 && filteredSuggestions.length === 0 && !searchTerm.trim() && (
+        {!isSearching && searchTerm.trim().length >= 2 && filteredSuggestions.length === 0 && (
           <div className="text-center py-8 text-muted-foreground text-sm">
-            No venues found. Press Enter to add manually.
+            No matching venues found
           </div>
         )}
       </div>
