@@ -51,10 +51,18 @@ serve(async (req) => {
       );
     }
 
+    // Extract JWT token from "Bearer <token>"
+    const token = authHeader.replace('Bearer ', '');
+
+    // Create client with the user's JWT token
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { 
+        global: { 
+          headers: { Authorization: `Bearer ${token}` } 
+        } 
+      }
     );
 
     const { data: { user } } = await supabaseClient.auth.getUser();
