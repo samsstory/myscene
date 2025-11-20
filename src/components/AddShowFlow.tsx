@@ -18,6 +18,7 @@ export interface ShowData {
   venue: string;
   venueLocation: string;
   venueId: string | null;
+  showType: 'venue' | 'festival' | 'other';
   date: Date | undefined;
   datePrecision: "exact" | "approximate" | "unknown";
   selectedMonth: string;
@@ -33,6 +34,7 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
     venue: "",
     venueLocation: "",
     venueId: null,
+    showType: 'venue',
     date: undefined,
     datePrecision: "exact",
     selectedMonth: "",
@@ -75,6 +77,10 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
 
   const updateShowData = (updates: Partial<ShowData>) => {
     setShowData(prev => ({ ...prev, ...updates }));
+  };
+
+  const updateShowType = (type: 'venue' | 'festival' | 'other') => {
+    updateShowData({ showType: type });
   };
 
   const updateLocationFilter = async (newLocation: string) => {
@@ -203,6 +209,7 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
         venue: "",
         venueLocation: "",
         venueId: null,
+        showType: 'venue',
         date: undefined,
         datePrecision: "exact",
         selectedMonth: "",
@@ -225,6 +232,7 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
       venue: "",
       venueLocation: "",
       venueId: null,
+      showType: 'venue',
       date: undefined,
       datePrecision: "exact",
       selectedMonth: "",
@@ -262,8 +270,10 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
               value={showData.venue}
               location={showData.venueLocation}
               locationFilter={showData.locationFilter}
+              showType={showData.showType}
               onSelect={handleVenueSelect}
               onLocationFilterChange={updateLocationFilter}
+              onShowTypeChange={updateShowType}
               isLoadingDefaultCity={isLoadingProfile}
             />
           )}
