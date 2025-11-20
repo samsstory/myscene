@@ -169,57 +169,59 @@ const Feed = () => {
             key={show.id}
             className="border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-hidden"
           >
-            <CardContent className="p-0">
-              <div className="flex items-center gap-4 p-6">
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Music2 className="h-5 w-5 text-primary" />
-                        <div className="flex flex-wrap gap-2">
-                          {show.artists.map((artist, idx) => (
-                            <span key={idx} className="text-lg font-bold">
-                              {artist.name}
-                              {idx < show.artists.length - 1 && <span className="mx-1">•</span>}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>
-                            {show.venue.name}
-                            {show.venue.location && ` • ${show.venue.location}`}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-4 w-4" />
-                          <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="text-4xl">{getRatingEmoji(show.rating)}</div>
-                      {viewMode === "top-rated" && (
-                        <Badge variant="outline" className="text-xs">
-                          {show.rating}/5
-                        </Badge>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="mt-2"
-                        onClick={() => {
-                          setShareShow(show);
-                          setShareSheetOpen(true);
-                        }}
-                      >
-                        <Share2 className="h-4 w-4 mr-1" />
-                        Share
-                      </Button>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between gap-6">
+                {/* Left section: Artist and show details */}
+                <div className="flex-1 space-y-4">
+                  {/* Artist names */}
+                  <div className="flex items-center gap-2">
+                    <Music2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <div className="flex flex-wrap gap-2">
+                      {show.artists.map((artist, idx) => (
+                        <span key={idx} className="text-lg font-bold">
+                          {artist.name}
+                          {idx < show.artists.length - 1 && <span className="mx-1">•</span>}
+                        </span>
+                      ))}
                     </div>
                   </div>
+
+                  {/* Venue and Date in a clean grid */}
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                      <span>
+                        {show.venue.name}
+                        {show.venue.location && ` • ${show.venue.location}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                      <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right section: Rating and Share button */}
+                <div className="flex flex-col items-center gap-3 min-w-[100px]">
+                  <div className="text-4xl">{getRatingEmoji(show.rating)}</div>
+                  {viewMode === "top-rated" && (
+                    <Badge variant="outline" className="text-xs">
+                      {show.rating}/5
+                    </Badge>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="w-full"
+                    onClick={() => {
+                      setShareShow(show);
+                      setShareSheetOpen(true);
+                    }}
+                  >
+                    <Share2 className="h-4 w-4 mr-1" />
+                    Share
+                  </Button>
                 </div>
               </div>
             </CardContent>
