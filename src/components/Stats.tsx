@@ -60,11 +60,11 @@ const StatCard = ({
               <Icon className="h-8 w-8 text-primary/80" />
             </div>
             <div>
-              <div className="text-5xl font-black bg-gradient-primary bg-clip-text text-transparent mb-2">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-black bg-gradient-primary bg-clip-text text-transparent mb-2 truncate">
                 {value}
               </div>
               {subtitle && (
-                <p className="text-sm text-muted-foreground">{subtitle}</p>
+                <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
               )}
             </div>
             <div className="text-xs text-muted-foreground/60 flex items-center gap-1">
@@ -119,20 +119,20 @@ const Stats = () => {
       {/* Activity Rank Badge - Celebratory */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/20 via-primary/20 to-secondary/20 border border-primary/30">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent animate-pulse" />
-        <CardContent className="relative p-6">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Trophy className="h-16 w-16 text-accent animate-bounce" />
-              <Sparkles className="absolute -top-1 -right-1 h-6 w-6 text-primary animate-pulse" />
+        <CardContent className="relative p-4 sm:p-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative shrink-0">
+              <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-accent animate-bounce" />
+              <Sparkles className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-6 sm:w-6 text-primary animate-pulse" />
             </div>
-            <div className="flex-1">
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-1">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Activity Rank
               </div>
-              <div className="text-5xl font-black bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-black bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
                 Top {100 - mockStats.userPercentile}%
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 More active than {mockStats.userPercentile}% of users! 🎉
               </p>
             </div>
