@@ -26,6 +26,12 @@ export interface ShowData {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   rating: number | null;
   locationFilter: string;
+  artistPerformance: number | null;
+  sound: number | null;
+  lighting: number | null;
+  crowd: number | null;
+  venueVibe: number | null;
+  notes: string;
 }
 
 const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
@@ -42,6 +48,12 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
     artists: [],
     rating: null,
     locationFilter: "",
+    artistPerformance: null,
+    sound: null,
+    lighting: null,
+    crowd: null,
+    venueVibe: null,
+    notes: "",
   });
   const [userHomeCity, setUserHomeCity] = useState<string>("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -164,6 +176,12 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
           show_date: showDate,
           date_precision: showData.datePrecision,
           rating: showData.rating,
+          artist_performance: showData.artistPerformance,
+          sound: showData.sound,
+          lighting: showData.lighting,
+          crowd: showData.crowd,
+          venue_vibe: showData.venueVibe,
+          notes: showData.notes || null,
         })
         .select()
         .single();
@@ -217,6 +235,12 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
         artists: [],
         rating: null,
         locationFilter: "",
+        artistPerformance: null,
+        sound: null,
+        lighting: null,
+        crowd: null,
+        venueVibe: null,
+        notes: "",
       });
       setStep(1);
       onOpenChange(false);
@@ -240,6 +264,12 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
       artists: [],
       rating: null,
       locationFilter: "",
+      artistPerformance: null,
+      sound: null,
+      lighting: null,
+      crowd: null,
+      venueVibe: null,
+      notes: "",
     });
     setStep(1);
     onOpenChange(false);
@@ -304,6 +334,13 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
             <RatingStep
               rating={showData.rating}
               onRatingChange={(rating) => updateShowData({ rating })}
+              artistPerformance={showData.artistPerformance}
+              sound={showData.sound}
+              lighting={showData.lighting}
+              crowd={showData.crowd}
+              venueVibe={showData.venueVibe}
+              notes={showData.notes}
+              onDetailChange={(field, value) => updateShowData({ [field]: value })}
               onSubmit={handleSubmit}
             />
           )}
