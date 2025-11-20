@@ -10,6 +10,7 @@ interface VenueStepProps {
   locationFilter: string;
   onSelect: (venue: string, location: string, venueId: string | null) => void;
   onLocationFilterChange: (filter: string) => void;
+  isLoadingDefaultCity?: boolean;
 }
 
 interface VenueSuggestion {
@@ -20,7 +21,7 @@ interface VenueSuggestion {
   user_show_count: number;
 }
 
-const VenueStep = ({ value, locationFilter, onSelect, onLocationFilterChange }: VenueStepProps) => {
+const VenueStep = ({ value, locationFilter, onSelect, onLocationFilterChange, isLoadingDefaultCity }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -97,12 +98,13 @@ const VenueStep = ({ value, locationFilter, onSelect, onLocationFilterChange }: 
         {/* Location filter */}
         <div className="relative">
           <Input
-            placeholder="Filter by location (e.g., Austin, Texas)..."
+            placeholder={isLoadingDefaultCity ? "Loading home city..." : "Filter by location (e.g., Austin, Texas)..."}
             value={locationFilter}
             onChange={(e) => onLocationFilterChange(e.target.value)}
             className="h-10 text-sm"
+            disabled={isLoadingDefaultCity}
           />
-          {locationFilter && (
+          {locationFilter && !isLoadingDefaultCity && (
             <Button
               variant="ghost"
               size="icon"
@@ -114,13 +116,17 @@ const VenueStep = ({ value, locationFilter, onSelect, onLocationFilterChange }: 
           )}
         </div>
 
-        {locationFilter && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground px-1">
+        {locationFilter && !isLoadingDefaultCity && (
+          <button
+            onClick={() => onLocationFilterChange("")}
+            className="flex items-center gap-2 text-sm text-muted-foreground px-1 hover:text-foreground transition-colors"
+          >
             <MapPin className="h-3 w-3 text-primary" />
             <span>
               Searching near <span className="text-primary font-medium">{locationFilter}</span>
             </span>
-          </div>
+            <span className="text-xs ml-auto">Click to change</span>
+          </button>
         )}
       </div>
 
