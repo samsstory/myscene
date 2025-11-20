@@ -180,11 +180,6 @@ const Feed = () => {
                           {show.artists.map((artist, idx) => (
                             <span key={idx} className="text-lg font-bold">
                               {artist.name}
-                              {artist.isHeadliner && (
-                                <Badge variant="secondary" className="ml-2 text-xs">
-                                  Headliner
-                                </Badge>
-                              )}
                               {idx < show.artists.length - 1 && <span className="mx-1">•</span>}
                             </span>
                           ))}
