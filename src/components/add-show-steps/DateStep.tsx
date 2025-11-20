@@ -74,19 +74,19 @@ const DateStep = ({
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="exact" id="exact" />
           <Label htmlFor="exact" className="font-normal cursor-pointer">
-            Exact date
+            It was
           </Label>
         </div>
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="approximate" id="approximate" />
           <Label htmlFor="approximate" className="font-normal cursor-pointer">
-            Approximate (month/year)
+            Sometime in
           </Label>
         </div>
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="unknown" id="unknown" />
           <Label htmlFor="unknown" className="font-normal cursor-pointer">
-            I forget (year only)
+            Back in
           </Label>
         </div>
       </RadioGroup>
