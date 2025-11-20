@@ -96,37 +96,55 @@ export type Database = {
       }
       shows: {
         Row: {
+          artist_performance: number | null
           created_at: string
+          crowd: number | null
           date_precision: string
           id: string
+          lighting: number | null
+          notes: string | null
           rating: number
           show_date: string
+          sound: number | null
           updated_at: string
           user_id: string
           venue_location: string | null
           venue_name: string
+          venue_vibe: number | null
         }
         Insert: {
+          artist_performance?: number | null
           created_at?: string
+          crowd?: number | null
           date_precision?: string
           id?: string
+          lighting?: number | null
+          notes?: string | null
           rating: number
           show_date: string
+          sound?: number | null
           updated_at?: string
           user_id: string
           venue_location?: string | null
           venue_name: string
+          venue_vibe?: number | null
         }
         Update: {
+          artist_performance?: number | null
           created_at?: string
+          crowd?: number | null
           date_precision?: string
           id?: string
+          lighting?: number | null
+          notes?: string | null
           rating?: number
           show_date?: string
+          sound?: number | null
           updated_at?: string
           user_id?: string
           venue_location?: string | null
           venue_name?: string
+          venue_vibe?: number | null
         }
         Relationships: []
       }
