@@ -1,1 +1,4 @@
 project_id = "swbaamxtmzjnbaxizjuw"
+
+[functions.search-artists]
+verify_jwt = false
