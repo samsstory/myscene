@@ -311,26 +311,30 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
             className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
           >
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="font-semibold text-base">{suggestion.name}</span>
-              </div>
-              {suggestion.location && (
-                <div className="text-sm text-muted-foreground ml-6">
-                  {suggestion.location}
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-semibold text-base">{suggestion.name}</span>
+                    {suggestion.location && (
+                      <span className="text-xs text-muted-foreground">
+                        {suggestion.location}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                    {suggestion.user_show_count > 0 && (
+                      <span className="text-primary font-medium">
+                        You've been {suggestion.user_show_count} time{suggestion.user_show_count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {suggestion.scene_users_count > 0 && (
+                      <span>
+                        {suggestion.scene_users_count} Scene user{suggestion.scene_users_count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground ml-6 mt-1">
-                {suggestion.user_show_count > 0 && (
-                  <span className="text-primary font-medium">
-                    You've been {suggestion.user_show_count} time{suggestion.user_show_count !== 1 ? 's' : ''}
-                  </span>
-                )}
-                {suggestion.scene_users_count > 0 && (
-                  <span>
-                    {suggestion.scene_users_count} Scene user{suggestion.scene_users_count !== 1 ? 's' : ''}
-                  </span>
-                )}
               </div>
             </div>
           </button>
