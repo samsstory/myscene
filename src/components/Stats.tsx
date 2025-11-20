@@ -111,16 +111,11 @@ const Stats = () => {
   return (
     <div className="space-y-8 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
-            Your Stats
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">Your concert journey, by the numbers</p>
-        </div>
-        <Badge variant="secondary" className="text-xs">
-          Updated daily
-        </Badge>
+      <div>
+        <h2 className="text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
+          Your Stats
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">Your concert journey, by the numbers</p>
       </div>
 
       {/* Activity Rank Badge - Celebratory */}
