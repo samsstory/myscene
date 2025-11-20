@@ -108,14 +108,36 @@ serve(async (req) => {
       }
     }
 
-    // 4. Search Mapbox Geocoding API
+    // 4. Get user's home coordinates for proximity biasing
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('home_latitude, home_longitude')
+      .eq('id', userId)
+      .single();
+    
+    // 5. Search Mapbox Geocoding API with enhanced parameters
     const MAPBOX_API_KEY = Deno.env.get('MAPBOX_API_KEY');
     let mapboxVenues: MapboxVenue[] = [];
 
     if (MAPBOX_API_KEY) {
       try {
-        const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchTerm.trim())}.json?access_token=${MAPBOX_API_KEY}&types=poi,address&limit=10`;
-        console.log(`Calling Mapbox API...`);
+        // Build Mapbox URL with enhanced parameters
+        const params = new URLSearchParams({
+          access_token: MAPBOX_API_KEY,
+          types: 'poi',
+          limit: '15',
+          autocomplete: 'true',
+          language: 'en',
+        });
+        
+        // Add proximity biasing if user has home coordinates
+        if (profile?.home_longitude && profile?.home_latitude) {
+          params.append('proximity', `${profile.home_longitude},${profile.home_latitude}`);
+          console.log(`Using proximity: ${profile.home_longitude},${profile.home_latitude}`);
+        }
+        
+        const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchTerm.trim())}.json?${params.toString()}`;
+        console.log(`Calling Mapbox API with enhanced parameters...`);
         
         const mapboxResponse = await fetch(mapboxUrl);
         
@@ -126,26 +148,69 @@ serve(async (req) => {
           console.log(`Mapbox returned ${data.features?.length || 0} results`);
 
           if (data.features && Array.isArray(data.features)) {
-            mapboxVenues = data.features.map((feature: any) => {
-              let city = '';
-              let country = '';
-              
-              if (feature.context) {
-                for (const ctx of feature.context) {
-                  if (ctx.id.startsWith('place.')) city = ctx.text;
-                  if (ctx.id.startsWith('country.')) country = ctx.text;
+            mapboxVenues = data.features
+              .filter((feature: any) => {
+                // Filter for venue-like POIs
+                const categories = feature.properties?.category?.split(',') || [];
+                const maki = feature.properties?.maki || '';
+                
+                // Prioritize entertainment/venue categories
+                const venueKeywords = [
+                  'music', 'theater', 'theatre', 'concert', 'club', 'bar', 
+                  'entertainment', 'nightlife', 'arts', 'stadium', 'arena',
+                  'festival', 'venue', 'hall', 'center', 'auditorium'
+                ];
+                
+                const isVenueType = categories.some((cat: string) => 
+                  venueKeywords.some(keyword => cat.toLowerCase().includes(keyword))
+                ) || venueKeywords.some(keyword => 
+                  maki.toLowerCase().includes(keyword) || 
+                  feature.text?.toLowerCase().includes(keyword)
+                );
+                
+                // Always include if explicitly a POI
+                return feature.place_type?.includes('poi') || isVenueType;
+              })
+              .map((feature: any) => {
+                let city = '';
+                let country = '';
+                let region = '';
+                
+                if (feature.context) {
+                  for (const ctx of feature.context) {
+                    if (ctx.id.startsWith('place.')) city = ctx.text;
+                    if (ctx.id.startsWith('region.')) region = ctx.short_code || ctx.text;
+                    if (ctx.id.startsWith('country.')) country = ctx.short_code || ctx.text;
+                  }
                 }
-              }
 
-              return {
-                name: feature.text || feature.place_name,
-                city: city,
-                country: country,
-                latitude: feature.center?.[1]?.toString() || '',
-                longitude: feature.center?.[0]?.toString() || '',
-                location: feature.place_name || `${city}, ${country}`.trim(),
-              };
-            });
+                // Build a clean location string
+                let location = feature.place_name || '';
+                if (city && country) {
+                  location = `${city}, ${country}`;
+                } else if (region && country) {
+                  location = `${region}, ${country}`;
+                } else if (country) {
+                  location = country;
+                }
+
+                // Extract venue name (prefer text over place_name for POIs)
+                const name = feature.text || feature.place_name.split(',')[0];
+
+                return {
+                  name: name,
+                  city: city,
+                  country: country,
+                  latitude: feature.center?.[1]?.toString() || '',
+                  longitude: feature.center?.[0]?.toString() || '',
+                  location: location,
+                  relevance: feature.relevance || 0, // Mapbox relevance score
+                  category: feature.properties?.category || '',
+                };
+              })
+              // Sort by relevance score from Mapbox
+              .sort((a: any, b: any) => b.relevance - a.relevance);
+            
             console.log(`Processed ${mapboxVenues.length} Mapbox venues`);
           }
         }
@@ -156,7 +221,7 @@ serve(async (req) => {
       console.warn('MAPBOX_API_KEY not set!');
     }
 
-    // 5. Merge results
+    // 6. Merge results
     const venueMap = new Map<string, VenueSuggestion>();
 
     if (userShows) {
@@ -207,7 +272,7 @@ serve(async (req) => {
       }
     }
 
-    // 6. Cache new Mapbox venues
+    // 7. Cache new Mapbox venues
     if (mapboxVenues.length > 0) {
       const venuesToCache = [];
       
@@ -245,7 +310,7 @@ serve(async (req) => {
       }
     }
 
-    // 7. Sort and return - prioritize exact matches
+    // 8. Sort and return - prioritize exact matches
     const searchLower = searchTerm.trim().toLowerCase();
     const suggestions = Array.from(venueMap.values()).sort((a, b) => {
       // Exact match priority
