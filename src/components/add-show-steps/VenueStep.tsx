@@ -148,12 +148,14 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       } else {
         onSelect(pendingVenueName, "", null);
       }
+      setHasChanges(true);
       setShowAddressDialog(false);
       return;
     }
 
     // Geocode the provided address
     await geocodeAndSelect(venueAddress, pendingVenueName, venueAddress);
+    setHasChanges(true);
     setShowAddressDialog(false);
   };
 
@@ -460,10 +462,12 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       </Dialog>
 
       {/* Save button for editing mode */}
-      {isEditing && hasChanges && onSave && (
-        <Button onClick={onSave} className="w-full">
-          Save Changes
-        </Button>
+      {isEditing && onSave && (
+        <div className="sticky bottom-0 pt-4 pb-2 bg-background">
+          <Button onClick={onSave} className="w-full" disabled={!hasChanges}>
+            Save Changes
+          </Button>
+        </div>
       )}
     </div>
   );
