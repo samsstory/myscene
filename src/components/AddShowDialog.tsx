@@ -77,6 +77,10 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
       toast.error("Please select a month and year");
       return;
     }
+    if (datePrecision === "unknown" && !selectedYear) {
+      toast.error("Please select a year");
+      return;
+    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -94,6 +98,10 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
         const monthIndex = months.indexOf(selectedMonth);
         const approximateDate = new Date(parseInt(selectedYear), monthIndex, 1);
         showDate = approximateDate.toISOString().split('T')[0];
+      } else if (datePrecision === "unknown" && selectedYear) {
+        // Use January 1st of the selected year
+        const unknownDate = new Date(parseInt(selectedYear), 0, 1);
+        showDate = unknownDate.toISOString().split('T')[0];
       } else {
         showDate = new Date().toISOString().split('T')[0];
       }
@@ -242,6 +250,21 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
                   </SelectContent>
                 </Select>
               </div>
+            )}
+
+            {datePrecision === "unknown" && (
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 
