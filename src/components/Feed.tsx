@@ -8,6 +8,7 @@ import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Share2, Chevron
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
+import { ShowReviewSheet } from "./ShowReviewSheet";
 import MapView from "./MapView";
 import AddShowFlow from "./AddShowFlow";
 
@@ -48,6 +49,8 @@ const Feed = () => {
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [editShow, setEditShow] = useState<Show | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [reviewShow, setReviewShow] = useState<Show | null>(null);
+  const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchShows();
@@ -167,7 +170,11 @@ const Feed = () => {
         {sortedShows.map((show) => (
           <Card
             key={show.id}
-            className="border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-hidden"
+            className="border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-hidden cursor-pointer"
+            onClick={() => {
+              setReviewShow(show);
+              setReviewSheetOpen(true);
+            }}
           >
             <CardContent className="p-6">
               <div className="flex items-start justify-between gap-6">
@@ -214,7 +221,8 @@ const Feed = () => {
                     size="sm"
                     variant="default"
                     className="w-full"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setShareShow(show);
                       setShareSheetOpen(true);
                     }}
@@ -421,6 +429,16 @@ const Feed = () => {
         show={shareShow}
         open={shareSheetOpen}
         onOpenChange={setShareSheetOpen}
+      />
+
+      <ShowReviewSheet
+        show={reviewShow}
+        open={reviewSheetOpen}
+        onOpenChange={setReviewSheetOpen}
+        onEdit={(show) => {
+          setEditShow(show);
+          setEditDialogOpen(true);
+        }}
       />
 
       <AddShowFlow
