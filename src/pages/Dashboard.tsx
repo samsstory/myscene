@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Feed from "@/components/Feed";
 import Stats from "@/components/Stats";
 import Profile from "@/components/Profile";
-import AddShowDialog from "@/components/AddShowDialog";
+import AddShowFlow from "@/components/AddShowFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 
@@ -104,7 +104,7 @@ const Dashboard = () => {
         </Tabs>
       </main>
 
-      <AddShowDialog open={showAddDialog} onOpenChange={setShowAddDialog} />
+      <AddShowFlow open={showAddDialog} onOpenChange={setShowAddDialog} />
     </div>
   );
 };
