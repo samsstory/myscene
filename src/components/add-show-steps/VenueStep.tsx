@@ -20,6 +20,8 @@ interface VenueStepProps {
   onLocationFilterChange: (filter: string) => void;
   onShowTypeChange: (type: 'venue' | 'festival' | 'other') => void;
   isLoadingDefaultCity?: boolean;
+  isEditing?: boolean;
+  onSave?: () => void;
 }
 
 interface VenueSuggestion {
@@ -35,7 +37,7 @@ interface CitySuggestion {
   fullLocation: string;
 }
 
-const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity }: VenueStepProps) => {
+const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -47,6 +49,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
   const [pendingVenueName, setPendingVenueName] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Debounced venue search
   useEffect(() => {
@@ -124,6 +127,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   const handleVenueSelect = (suggestion: VenueSuggestion) => {
     onSelect(suggestion.name, suggestion.location, suggestion.id || null);
+    setHasChanges(true);
   };
 
   const handleManualEntry = () => {
@@ -221,7 +225,12 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
         <ToggleGroup 
           type="single" 
           value={showType} 
-          onValueChange={(value) => value && onShowTypeChange(value as 'venue' | 'festival' | 'other')}
+          onValueChange={(value) => {
+            if (value) {
+              onShowTypeChange(value as 'venue' | 'festival' | 'other');
+              setHasChanges(true);
+            }
+          }}
           className="justify-start w-full"
         >
           <ToggleGroupItem value="venue" className="flex items-center gap-2 flex-1">
@@ -449,6 +458,13 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Save button for editing mode */}
+      {isEditing && hasChanges && onSave && (
+        <Button onClick={onSave} className="w-full">
+          Save Changes
+        </Button>
+      )}
     </div>
   );
 };

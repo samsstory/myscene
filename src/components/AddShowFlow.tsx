@@ -542,6 +542,8 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
               onLocationFilterChange={updateLocationFilter}
               onShowTypeChange={updateShowType}
               isLoadingDefaultCity={isLoadingProfile}
+              isEditing={showStepSelector}
+              onSave={showStepSelector ? handleSubmit : undefined}
             />
           )}
 
@@ -556,6 +558,8 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
               onMonthChange={(month) => updateShowData({ selectedMonth: month })}
               onYearChange={(year) => updateShowData({ selectedYear: year })}
               onContinue={handleDateSelect}
+              isEditing={showStepSelector}
+              onSave={showStepSelector ? handleSubmit : undefined}
             />
           )}
 
@@ -564,6 +568,8 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
               artists={showData.artists}
               onArtistsChange={(artists) => updateShowData({ artists })}
               onContinue={handleArtistsComplete}
+              isEditing={showStepSelector}
+              onSave={showStepSelector ? handleSubmit : undefined}
             />
           )}
 

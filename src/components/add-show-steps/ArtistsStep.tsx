@@ -10,6 +10,8 @@ interface ArtistsStepProps {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   onArtistsChange: (artists: Array<{ name: string; isHeadliner: boolean }>) => void;
   onContinue: () => void;
+  isEditing?: boolean;
+  onSave?: () => void;
 }
 
 interface ArtistSuggestion {
@@ -20,7 +22,7 @@ interface ArtistSuggestion {
   type: string;
 }
 
-const ArtistsStep = ({ artists, onArtistsChange, onContinue }: ArtistsStepProps) => {
+const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }: ArtistsStepProps) => {
   const [currentArtist, setCurrentArtist] = useState("");
   const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -188,14 +190,24 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue }: ArtistsStepProps)
         </div>
       )}
 
-      {/* Continue button */}
-      <Button
-        onClick={onContinue}
-        disabled={artists.length === 0}
-        className="w-full h-12 text-base"
-      >
-        Continue
-      </Button>
+      {/* Continue/Save button */}
+      {isEditing && onSave ? (
+        <Button
+          onClick={onSave}
+          disabled={artists.length === 0}
+          className="w-full h-12 text-base"
+        >
+          Save Changes
+        </Button>
+      ) : (
+        <Button
+          onClick={onContinue}
+          disabled={artists.length === 0}
+          className="w-full h-12 text-base"
+        >
+          Continue
+        </Button>
+      )}
     </div>
   );
 };

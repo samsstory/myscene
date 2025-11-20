@@ -19,6 +19,8 @@ interface DateStepProps {
   onMonthChange: (month: string) => void;
   onYearChange: (year: string) => void;
   onContinue: () => void;
+  isEditing?: boolean;
+  onSave?: () => void;
 }
 
 const DateStep = ({
@@ -31,6 +33,8 @@ const DateStep = ({
   onMonthChange,
   onYearChange,
   onContinue,
+  isEditing,
+  onSave,
 }: DateStepProps) => {
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -199,13 +203,23 @@ const DateStep = ({
         </Select>
       )}
 
-      <Button
-        onClick={onContinue}
-        disabled={!isValid()}
-        className="w-full h-12 text-base"
-      >
-        Continue
-      </Button>
+      {isEditing && onSave ? (
+        <Button
+          onClick={onSave}
+          disabled={!isValid()}
+          className="w-full h-12 text-base"
+        >
+          Save Changes
+        </Button>
+      ) : (
+        <Button
+          onClick={onContinue}
+          disabled={!isValid()}
+          className="w-full h-12 text-base"
+        >
+          Continue
+        </Button>
+      )}
     </div>
   );
 };
