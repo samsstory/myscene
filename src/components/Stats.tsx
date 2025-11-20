@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Music, MapPin, TrendingUp, Activity, Trophy, Sparkles, Calendar } from "lucide-react";
+import { Share2, Music, MapPin, TrendingUp, Activity, Trophy, Sparkles, Calendar, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -158,7 +158,7 @@ const Stats = () => {
           title="Most Seen Artist"
           value={mockStats.mostSeenArtist}
           subtitle={`${mockStats.mostSeenArtistCount} shows`}
-          icon={Music}
+          icon={Mic}
           gradient="bg-gradient-to-br from-accent/20 via-card to-card"
         />
         <StatCard
