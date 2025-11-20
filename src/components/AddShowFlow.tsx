@@ -140,11 +140,12 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
 
   const handleSubmit = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
         toast.error("Please sign in to add shows");
         return;
       }
+      const user = session.user;
 
       // Determine the show date based on precision
       const months = [
