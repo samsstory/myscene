@@ -84,6 +84,8 @@ serve(async (req) => {
 
     if (userShowsError) {
       console.error('Error fetching user shows:', userShowsError);
+    } else {
+      console.log(`Found ${userShows?.length || 0} user shows matching search`);
     }
 
     // 2. Search cached venues
@@ -102,6 +104,8 @@ serve(async (req) => {
 
     if (cachedError) {
       console.error('Error fetching cached venues:', cachedError);
+    } else {
+      console.log(`Found ${cachedVenues?.length || 0} cached venues matching search`);
     }
 
     // 3. Get Scene user counts for cached venues
@@ -123,14 +127,18 @@ serve(async (req) => {
     }
 
     // 4. Search Bandsintown API by searching for events in a city and extracting unique venues
-    const BANDSINTOWN_API_KEY = Deno.env.get('BANDSINTOWN_API_KEY');
+    // Note: Bandsintown API is currently disabled due to authentication issues
     let bandsintownVenues: BandsintownVenue[] = [];
+    const BANDSINTOWN_APP_ID = 'show-log-app';
 
-    if (BANDSINTOWN_API_KEY) {
+    // Temporarily disabled - API requires authentication token
+    const ENABLE_BANDSINTOWN = false;
+
+    if (ENABLE_BANDSINTOWN) {
       try {
         // Search for upcoming events that might match the venue name
         // We'll search by location and filter venues on our side
-        const bandsintownUrl = `https://rest.bandsintown.com/events/search?app_id=${BANDSINTOWN_API_KEY}&query=${encodeURIComponent(searchTerm.trim())}&per_page=50`;
+        const bandsintownUrl = `https://rest.bandsintown.com/events/search?app_id=${BANDSINTOWN_APP_ID}&query=${encodeURIComponent(searchTerm.trim())}&per_page=50`;
         console.log(`Searching Bandsintown: ${bandsintownUrl}`);
         const bandsintownResponse = await fetch(bandsintownUrl);
         
@@ -174,8 +182,6 @@ serve(async (req) => {
       } catch (error) {
         console.error('Error fetching from Bandsintown:', error);
       }
-    } else {
-      console.warn('BANDSINTOWN_API_KEY not configured');
     }
 
     // 5. Process and merge results
