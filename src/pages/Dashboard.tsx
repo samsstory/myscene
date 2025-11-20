@@ -88,12 +88,12 @@ const Dashboard = () => {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-around h-16 relative">
+          <div className="flex items-end justify-between h-16 pb-2">
             {/* Home */}
             <button
               onClick={() => setActiveTab("feed")}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors",
+                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
                 activeTab === "feed" ? "text-primary" : "text-muted-foreground"
               )}
             >
@@ -103,24 +103,26 @@ const Dashboard = () => {
             {/* Compass - Coming Soon */}
             <button
               disabled
-              className="flex flex-col items-center justify-center gap-1 text-muted-foreground/40 cursor-not-allowed"
+              className="flex flex-col items-center justify-center gap-1 text-muted-foreground/40 cursor-not-allowed flex-1"
             >
               <Compass className="h-6 w-6" />
             </button>
 
             {/* Add Show Button - Elevated */}
-            <button
-              onClick={() => setShowAddDialog(true)}
-              className="absolute left-1/2 -translate-x-1/2 -top-4 bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-transform hover:scale-105 active:scale-95"
-            >
-              <Plus className="h-8 w-8" />
-            </button>
+            <div className="flex-1 flex justify-center">
+              <button
+                onClick={() => setShowAddDialog(true)}
+                className="bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-transform hover:scale-105 active:scale-95 -mt-8"
+              >
+                <Plus className="h-8 w-8" />
+              </button>
+            </div>
 
             {/* Stats */}
             <button
               onClick={() => setActiveTab("stats")}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors",
+                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
                 activeTab === "stats" ? "text-primary" : "text-muted-foreground"
               )}
             >
@@ -131,7 +133,7 @@ const Dashboard = () => {
             <button
               onClick={() => setActiveTab("profile")}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors",
+                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
                 activeTab === "profile" ? "text-primary" : "text-muted-foreground"
               )}
             >
