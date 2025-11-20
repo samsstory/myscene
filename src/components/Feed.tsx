@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy } from "lucide-react";
+import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
+import { ShareShowSheet } from "./ShareShowSheet";
 
 interface Artist {
   name: string;
@@ -29,6 +31,8 @@ const Feed = () => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "calendar" | "top-rated">("list");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [shareShow, setShareShow] = useState<Show | null>(null);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchShows();
@@ -171,6 +175,18 @@ const Feed = () => {
                           {show.rating}/5
                         </Badge>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => {
+                          setShareShow(show);
+                          setShareSheetOpen(true);
+                        }}
+                      >
+                        <Share2 className="h-4 w-4 mr-1" />
+                        Share
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -309,6 +325,12 @@ const Feed = () => {
       ) : (
         renderListView()
       )}
+
+      <ShareShowSheet
+        show={shareShow}
+        open={shareSheetOpen}
+        onOpenChange={setShareSheetOpen}
+      />
     </div>
   );
 };
