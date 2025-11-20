@@ -170,7 +170,7 @@ const Feed = () => {
         {sortedShows.map((show, index) => (
           <Card
             key={show.id}
-            className="border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-hidden cursor-pointer"
+            className="border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-visible cursor-pointer relative ml-8"
             onClick={() => {
               setReviewShow(show);
               setReviewSheetOpen(true);
@@ -180,16 +180,13 @@ const Feed = () => {
               <div className="flex items-start gap-6">
                 {/* Leaderboard ranking number (only in top-rated view) */}
                 {viewMode === "top-rated" && (
-                  <div className="flex-shrink-0">
-                    <div className={`
-                      w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl
-                      ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-yellow-950' : ''}
-                      ${index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-gray-950' : ''}
-                      ${index === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-950' : ''}
-                      ${index > 2 ? 'bg-muted text-muted-foreground' : ''}
-                    `}>
-                      {index + 1}
-                    </div>
+                  <div 
+                    className="absolute -left-4 top-1/2 -translate-y-1/2 text-5xl font-black text-primary z-10"
+                    style={{
+                      textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    {index + 1}
                   </div>
                 )}
 
