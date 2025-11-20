@@ -375,7 +375,7 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
                         {artistSuggestions.map((artist) => (
                           <CommandItem
                             key={artist.id}
-                            value={artist.name}
+                            value={`${artist.id}-${artist.name}`}
                             onSelect={() => {
                               addArtist(artists.length === 0, artist.name);
                             }}
