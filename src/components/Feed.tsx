@@ -51,6 +51,7 @@ const Feed = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
+  const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
 
   useEffect(() => {
     fetchShows();
@@ -147,15 +148,36 @@ const Feed = () => {
   };
 
   const getSortedShows = () => {
+    let filteredShows = shows;
+
+    // Filter by time period if in top-rated view
     if (viewMode === "top-rated") {
-      return [...shows].sort((a, b) => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      if (topRatedFilter === "this-year") {
+        filteredShows = shows.filter(show => {
+          const showDate = parseISO(show.date);
+          return showDate.getFullYear() === currentYear;
+        });
+      } else if (topRatedFilter === "this-month") {
+        filteredShows = shows.filter(show => {
+          const showDate = parseISO(show.date);
+          return showDate.getFullYear() === currentYear && showDate.getMonth() === currentMonth;
+        });
+      }
+
+      // Sort by rating (descending) and then by date (descending)
+      return [...filteredShows].sort((a, b) => {
         if (b.rating !== a.rating) {
           return b.rating - a.rating;
         }
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
     }
-    return shows;
+
+    return filteredShows;
   };
 
   const getShowsForDate = (date: Date) => {
@@ -405,6 +427,33 @@ const Feed = () => {
             <span className="hidden sm:inline">Map</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Time period filters for Top Rated view */}
+        {viewMode === "top-rated" && (
+          <div className="flex justify-center gap-2 mt-4">
+            <Button
+              variant={topRatedFilter === "all-time" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTopRatedFilter("all-time")}
+            >
+              All Time
+            </Button>
+            <Button
+              variant={topRatedFilter === "this-year" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTopRatedFilter("this-year")}
+            >
+              This Year
+            </Button>
+            <Button
+              variant={topRatedFilter === "this-month" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTopRatedFilter("this-month")}
+            >
+              This Month
+            </Button>
+          </div>
+        )}
 
         {loading ? (
           <Card className="border-border shadow-card mt-6">
