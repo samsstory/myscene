@@ -74,7 +74,7 @@ const DateStep = ({
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="exact" id="exact" />
           <Label htmlFor="exact" className="font-normal cursor-pointer">
-            It was
+            It was on
           </Label>
         </div>
         <div className="flex items-center space-x-2">
