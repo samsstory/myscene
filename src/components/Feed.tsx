@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
+import MapView from "./MapView";
+import AddShowFlow from "./AddShowFlow";
 
 interface Artist {
   name: string;
@@ -19,6 +21,16 @@ interface Show {
   venue: { name: string; location: string };
   date: string;
   rating: number;
+  datePrecision?: string;
+  artistPerformance?: number | null;
+  sound?: number | null;
+  lighting?: number | null;
+  crowd?: number | null;
+  venueVibe?: number | null;
+  notes?: string | null;
+  venueId?: string | null;
+  latitude?: number;
+  longitude?: number;
 }
 
 const getRatingEmoji = (rating: number) => {
@@ -29,10 +41,12 @@ const getRatingEmoji = (rating: number) => {
 const Feed = () => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"list" | "calendar" | "top-rated">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "top-rated" | "map">("list");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [shareShow, setShareShow] = useState<Show | null>(null);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const [editShow, setEditShow] = useState<Show | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchShows();
@@ -58,6 +72,11 @@ const Feed = () => {
     };
   }, []);
 
+  const handleEditShow = (show: Show) => {
+    setEditShow(show);
+    setEditDialogOpen(true);
+  };
+
   const fetchShows = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -69,7 +88,13 @@ const Feed = () => {
 
       const { data: showsData, error: showsError } = await supabase
         .from('shows')
-        .select('*')
+        .select(`
+          *,
+          venues (
+            latitude,
+            longitude
+          )
+        `)
         .eq('user_id', user.id)
         .order('show_date', { ascending: false });
 
@@ -94,7 +119,17 @@ const Feed = () => {
               location: show.venue_location || ''
             },
             date: show.show_date,
-            rating: show.rating
+            rating: show.rating,
+            datePrecision: show.date_precision,
+            artistPerformance: show.artist_performance,
+            sound: show.sound,
+            lighting: show.lighting,
+            crowd: show.crowd,
+            venueVibe: show.venue_vibe,
+            notes: show.notes,
+            venueId: show.venue_id,
+            latitude: show.venues?.latitude,
+            longitude: show.venues?.longitude,
           };
         })
       );
@@ -287,7 +322,7 @@ const Feed = () => {
       </div>
 
       <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)} className="mb-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="list" className="flex items-center gap-2">
             <List className="h-4 w-4" />
             <span className="hidden sm:inline">List</span>
@@ -299,6 +334,10 @@ const Feed = () => {
           <TabsTrigger value="top-rated" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             <span className="hidden sm:inline">Top Rated</span>
+          </TabsTrigger>
+          <TabsTrigger value="map" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            <span className="hidden sm:inline">Map</span>
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -320,16 +359,44 @@ const Feed = () => {
             </p>
           </CardContent>
         </Card>
-      ) : viewMode === "calendar" ? (
-        renderCalendarView()
       ) : (
-        renderListView()
+        <>
+          <TabsContent value="list">{renderListView()}</TabsContent>
+          <TabsContent value="calendar">{renderCalendarView()}</TabsContent>
+          <TabsContent value="top-rated">{renderListView()}</TabsContent>
+          <TabsContent value="map">
+            <MapView shows={shows} onEditShow={(show) => {
+              setEditShow(show);
+              setEditDialogOpen(true);
+            }} />
+          </TabsContent>
+        </>
       )}
 
       <ShareShowSheet
         show={shareShow}
         open={shareSheetOpen}
         onOpenChange={setShareSheetOpen}
+      />
+
+      <AddShowFlow
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        editShow={editShow ? {
+          id: editShow.id,
+          venue: editShow.venue,
+          date: editShow.date,
+          datePrecision: editShow.datePrecision || 'exact',
+          artists: editShow.artists,
+          rating: editShow.rating,
+          artistPerformance: editShow.artistPerformance,
+          sound: editShow.sound,
+          lighting: editShow.lighting,
+          crowd: editShow.crowd,
+          venueVibe: editShow.venueVibe,
+          notes: editShow.notes,
+          venueId: editShow.venueId,
+        } : null}
       />
     </div>
   );

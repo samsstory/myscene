@@ -45,18 +45,24 @@ export type Database = {
         Row: {
           created_at: string
           home_city: string | null
+          home_latitude: number | null
+          home_longitude: number | null
           id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           home_city?: string | null
+          home_latitude?: number | null
+          home_longitude?: number | null
           id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           home_city?: string | null
+          home_latitude?: number | null
+          home_longitude?: number | null
           id?: string
           updated_at?: string
         }
@@ -108,6 +114,7 @@ export type Database = {
           sound: number | null
           updated_at: string
           user_id: string
+          venue_id: string | null
           venue_location: string | null
           venue_name: string
           venue_vibe: number | null
@@ -125,6 +132,7 @@ export type Database = {
           sound?: number | null
           updated_at?: string
           user_id: string
+          venue_id?: string | null
           venue_location?: string | null
           venue_name: string
           venue_vibe?: number | null
@@ -142,11 +150,20 @@ export type Database = {
           sound?: number | null
           updated_at?: string
           user_id?: string
+          venue_id?: string | null
           venue_location?: string | null
           venue_name?: string
           venue_vibe?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shows_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_venues: {
         Row: {

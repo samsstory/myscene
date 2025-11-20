@@ -12,6 +12,21 @@ import { toast } from "sonner";
 interface AddShowFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editShow?: {
+    id: string;
+    venue: { name: string; location: string };
+    date: string;
+    datePrecision: string;
+    artists: Array<{ name: string; isHeadliner: boolean }>;
+    rating: number;
+    artistPerformance?: number | null;
+    sound?: number | null;
+    lighting?: number | null;
+    crowd?: number | null;
+    venueVibe?: number | null;
+    notes?: string | null;
+    venueId?: string | null;
+  } | null;
 }
 
 export interface ShowData {
@@ -34,7 +49,7 @@ export interface ShowData {
   notes: string;
 }
 
-const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
+const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
   const [step, setStep] = useState(1);
   const [showData, setShowData] = useState<ShowData>({
     venue: "",
@@ -57,6 +72,38 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
   });
   const [userHomeCity, setUserHomeCity] = useState<string>("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  // Populate form with edit data
+  useEffect(() => {
+    if (editShow && open) {
+      const showDate = new Date(editShow.date);
+      const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+
+      setShowData({
+        venue: editShow.venue.name,
+        venueLocation: editShow.venue.location,
+        venueId: editShow.venueId || null,
+        showType: 'venue',
+        date: editShow.datePrecision === 'exact' ? showDate : undefined,
+        datePrecision: editShow.datePrecision as "exact" | "approximate" | "unknown",
+        selectedMonth: months[showDate.getMonth()],
+        selectedYear: showDate.getFullYear().toString(),
+        artists: editShow.artists,
+        rating: editShow.rating,
+        locationFilter: "",
+        artistPerformance: editShow.artistPerformance || null,
+        sound: editShow.sound || null,
+        lighting: editShow.lighting || null,
+        crowd: editShow.crowd || null,
+        venueVibe: editShow.venueVibe || null,
+        notes: editShow.notes || "",
+      });
+      setStep(1);
+    }
+  }, [editShow, open]);
 
   // Fetch user's home city from profile
   useEffect(() => {
@@ -147,6 +194,8 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
       }
       const user = session.user;
 
+      const isEditing = !!editShow;
+
       // Determine the show date based on precision
       const months = [
         "January", "February", "March", "April", "May", "June",
@@ -167,27 +216,61 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
         showDate = new Date().toISOString().split('T')[0];
       }
 
-      // Insert the show
-      const { data: show, error: showError } = await supabase
-        .from("shows")
-        .insert({
-          user_id: user.id,
-          venue_name: showData.venue,
-          venue_location: showData.venueLocation || null,
-          show_date: showDate,
-          date_precision: showData.datePrecision,
-          rating: showData.rating,
-          artist_performance: showData.artistPerformance,
-          sound: showData.sound,
-          lighting: showData.lighting,
-          crowd: showData.crowd,
-          venue_vibe: showData.venueVibe,
-          notes: showData.notes || null,
-        })
-        .select()
-        .single();
+      // Insert or update the show
+      let show;
+      if (isEditing) {
+        const { data: updatedShow, error: showError } = await supabase
+          .from("shows")
+          .update({
+            venue_name: showData.venue,
+            venue_location: showData.venueLocation || null,
+            venue_id: showData.venueId || null,
+            show_date: showDate,
+            date_precision: showData.datePrecision,
+            rating: showData.rating,
+            artist_performance: showData.artistPerformance,
+            sound: showData.sound,
+            lighting: showData.lighting,
+            crowd: showData.crowd,
+            venue_vibe: showData.venueVibe,
+            notes: showData.notes || null,
+          })
+          .eq('id', editShow.id)
+          .select()
+          .single();
 
-      if (showError) throw showError;
+        if (showError) throw showError;
+        show = updatedShow;
+
+        // Delete existing artists
+        await supabase
+          .from("show_artists")
+          .delete()
+          .eq('show_id', editShow.id);
+      } else {
+        const { data: newShow, error: showError } = await supabase
+          .from("shows")
+          .insert({
+            user_id: user.id,
+            venue_name: showData.venue,
+            venue_location: showData.venueLocation || null,
+            venue_id: showData.venueId || null,
+            show_date: showDate,
+            date_precision: showData.datePrecision,
+            rating: showData.rating,
+            artist_performance: showData.artistPerformance,
+            sound: showData.sound,
+            lighting: showData.lighting,
+            crowd: showData.crowd,
+            venue_vibe: showData.venueVibe,
+            notes: showData.notes || null,
+          })
+          .select()
+          .single();
+
+        if (showError) throw showError;
+        show = newShow;
+      }
 
       // Update venue cache if a venue ID was selected
       if (showData.venueId) {
@@ -221,7 +304,7 @@ const AddShowFlow = ({ open, onOpenChange }: AddShowFlowProps) => {
 
       if (artistsError) throw artistsError;
 
-      toast.success("Show added successfully! 🎉");
+      toast.success(isEditing ? "Show updated successfully! 🎉" : "Show added successfully! 🎉");
       
       // Reset and close
       setShowData({
