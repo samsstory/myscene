@@ -239,22 +239,30 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       {showsWithoutLocation.length > 0 && (
         <Card className="absolute bottom-4 right-4 w-80 max-h-60 overflow-y-auto z-10 shadow-lg">
           <CardContent className="p-4">
-            <h3 className="font-bold mb-2 flex items-center gap-2">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Shows without locations
             </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Click to add location and pin to map
+            </p>
             <div className="space-y-2">
               {showsWithoutLocation.map(show => (
                 <div
                   key={show.id}
-                  className="text-sm p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
+                  className="text-sm p-3 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors border border-border/50 hover:border-primary/50"
                   onClick={() => onEditShow(show)}
                 >
-                  <div className="font-medium">
-                    {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {show.venue.name} • {new Date(show.date).toLocaleDateString()}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="font-medium mb-1">
+                        {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {show.venue.name} • {new Date(show.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Edit className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                   </div>
                 </div>
               ))}
