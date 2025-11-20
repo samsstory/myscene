@@ -4,6 +4,12 @@ import { MapPin, Loader2, X, Building2, Music2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface VenueStepProps {
   value: string;
@@ -24,10 +30,19 @@ interface VenueSuggestion {
   user_show_count: number;
 }
 
+interface CitySuggestion {
+  name: string;
+  fullLocation: string;
+}
+
 const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [showCityDialog, setShowCityDialog] = useState(false);
+  const [citySearchTerm, setCitySearchTerm] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
+  const [isSearchingCities, setIsSearchingCities] = useState(false);
 
   // Debounced venue search
   useEffect(() => {
@@ -53,11 +68,55 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       } finally {
         setIsSearching(false);
       }
-    };
+  };
+
+  const handleCitySelect = (city: CitySuggestion) => {
+    onLocationFilterChange(city.fullLocation);
+    setShowCityDialog(false);
+    setCitySearchTerm("");
+  };
 
     const timer = setTimeout(searchVenues, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  // City search
+  useEffect(() => {
+    const searchCities = async () => {
+      if (citySearchTerm.trim().length < 2) {
+        setCitySuggestions([]);
+        return;
+      }
+
+      setIsSearchingCities(true);
+
+      try {
+        const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(citySearchTerm.trim())}.json?access_token=${MAPBOX_TOKEN}&types=place,region&limit=10`
+        );
+        const data = await response.json();
+
+        if (data.features && data.features.length > 0) {
+          const cities = data.features.map((feature: any) => ({
+            name: feature.text,
+            fullLocation: feature.place_name,
+          }));
+          setCitySuggestions(cities);
+        } else {
+          setCitySuggestions([]);
+        }
+      } catch (error) {
+        console.error('Error searching cities:', error);
+        setCitySuggestions([]);
+      } finally {
+        setIsSearchingCities(false);
+      }
+    };
+
+    const timer = setTimeout(searchCities, 300);
+    return () => clearTimeout(timer);
+  }, [citySearchTerm]);
 
   const handleVenueSelect = (suggestion: VenueSuggestion) => {
     onSelect(suggestion.name, suggestion.location, suggestion.id || null);
@@ -67,6 +126,12 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
     if (searchTerm.trim()) {
       onSelect(searchTerm.trim(), "", null);
     }
+  };
+
+  const handleCitySelect = (city: CitySuggestion) => {
+    onLocationFilterChange(city.fullLocation);
+    setShowCityDialog(false);
+    setCitySearchTerm("");
   };
 
   // Filter suggestions by location if filter is set
@@ -147,7 +212,8 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
         {locationFilter && !isLoadingDefaultCity && (
           <button
-            onClick={() => onLocationFilterChange("")}
+            type="button"
+            onClick={() => setShowCityDialog(true)}
             className="flex items-center gap-2 text-sm text-muted-foreground px-1 hover:text-foreground transition-colors"
           >
             <MapPin className="h-3 w-3 text-primary" />
@@ -216,6 +282,72 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
           </div>
         )}
       </div>
+
+      {/* City Search Dialog */}
+      <Dialog open={showCityDialog} onOpenChange={setShowCityDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Search City or Region</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Search for a city..."
+                value={citySearchTerm}
+                onChange={(e) => setCitySearchTerm(e.target.value)}
+                className="pr-10"
+              />
+              {isSearchingCities && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {citySuggestions.map((city, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleCitySelect(city)}
+                  className="w-full text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <div className="font-medium">{city.name}</div>
+                      <div className="text-sm text-muted-foreground">{city.fullLocation}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+
+              {!isSearchingCities && citySearchTerm.trim().length >= 2 && citySuggestions.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No cities found
+                </div>
+              )}
+
+              {!citySearchTerm.trim() && (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  Start typing to search for cities
+                </div>
+              )}
+            </div>
+
+            {locationFilter && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  onLocationFilterChange("");
+                  setShowCityDialog(false);
+                }}
+              >
+                Clear Location Filter
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
