@@ -144,26 +144,6 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
           )}
         </div>
 
-        {/* Location filter */}
-        <div className="relative">
-          <Input
-            placeholder={isLoadingDefaultCity ? "Loading home city..." : "Filter by location (e.g., Austin, Texas)..."}
-            value={locationFilter}
-            onChange={(e) => onLocationFilterChange(e.target.value)}
-            className="h-10 text-sm"
-            disabled={isLoadingDefaultCity}
-          />
-          {locationFilter && !isLoadingDefaultCity && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-10 w-10"
-              onClick={() => onLocationFilterChange("")}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
 
         {locationFilter && !isLoadingDefaultCity && (
           <button
