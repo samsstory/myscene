@@ -14,7 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      show_artists: {
+        Row: {
+          artist_name: string
+          created_at: string
+          id: string
+          is_headliner: boolean
+          show_id: string
+        }
+        Insert: {
+          artist_name: string
+          created_at?: string
+          id?: string
+          is_headliner?: boolean
+          show_id: string
+        }
+        Update: {
+          artist_name?: string
+          created_at?: string
+          id?: string
+          is_headliner?: boolean
+          show_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_artists_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shows: {
+        Row: {
+          created_at: string
+          date_precision: string
+          id: string
+          rating: number
+          show_date: string
+          updated_at: string
+          user_id: string
+          venue_location: string | null
+          venue_name: string
+        }
+        Insert: {
+          created_at?: string
+          date_precision?: string
+          id?: string
+          rating: number
+          show_date: string
+          updated_at?: string
+          user_id: string
+          venue_location?: string | null
+          venue_name: string
+        }
+        Update: {
+          created_at?: string
+          date_precision?: string
+          id?: string
+          rating?: number
+          show_date?: string
+          updated_at?: string
+          user_id?: string
+          venue_location?: string | null
+          venue_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

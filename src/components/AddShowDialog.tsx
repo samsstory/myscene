@@ -17,6 +17,7 @@ import { CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddShowDialogProps {
   open: boolean;
@@ -50,21 +51,61 @@ const AddShowDialog = ({ open, onOpenChange }: AddShowDialogProps) => {
     setArtists(artists.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!venue || artists.length === 0 || rating === null) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    toast.success("Show added successfully! 🎉");
-    onOpenChange(false);
-    
-    // Reset form
-    setVenue("");
-    setArtists([]);
-    setDate(undefined);
-    setRating(null);
-    setDatePrecision("exact");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please sign in to add shows");
+        return;
+      }
+
+      // Insert the show
+      const { data: show, error: showError } = await supabase
+        .from("shows")
+        .insert({
+          user_id: user.id,
+          venue_name: venue,
+          venue_location: "", // Can be added later
+          show_date: date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+          date_precision: datePrecision,
+          rating: rating,
+        })
+        .select()
+        .single();
+
+      if (showError) throw showError;
+
+      // Insert the artists
+      const artistsToInsert = artists.map(artist => ({
+        show_id: show.id,
+        artist_name: artist.name,
+        is_headliner: artist.isHeadliner,
+      }));
+
+      const { error: artistsError } = await supabase
+        .from("show_artists")
+        .insert(artistsToInsert);
+
+      if (artistsError) throw artistsError;
+
+      toast.success("Show added successfully! 🎉");
+      onOpenChange(false);
+      
+      // Reset form
+      setVenue("");
+      setArtists([]);
+      setDate(undefined);
+      setRating(null);
+      setDatePrecision("exact");
+    } catch (error) {
+      console.error("Error adding show:", error);
+      toast.error("Failed to add show. Please try again.");
+    }
   };
 
   return (

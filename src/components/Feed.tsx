@@ -1,34 +1,21 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Music2, MapPin, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock data - will be replaced with real data from Supabase
-const mockShows = [
-  {
-    id: "1",
-    artists: [{ name: "Arctic Monkeys", isHeadliner: true }],
-    venue: { name: "Madison Square Garden", location: "New York, NY" },
-    date: "2024-03-15",
-    rating: 5,
-  },
-  {
-    id: "2",
-    artists: [
-      { name: "The Strokes", isHeadliner: true },
-      { name: "Wallows", isHeadliner: false },
-    ],
-    venue: { name: "The Forum", location: "Los Angeles, CA" },
-    date: "2024-02-28",
-    rating: 4,
-  },
-  {
-    id: "3",
-    artists: [{ name: "Tame Impala", isHeadliner: true }],
-    venue: { name: "Red Rocks Amphitheatre", location: "Morrison, CO" },
-    date: "2024-01-20",
-    rating: 5,
-  },
-];
+interface Artist {
+  name: string;
+  isHeadliner: boolean;
+}
+
+interface Show {
+  id: string;
+  artists: Artist[];
+  venue: { name: string; location: string };
+  date: string;
+  rating: number;
+}
 
 const getRatingEmoji = (rating: number) => {
   const emojis = ["😞", "😕", "😐", "😊", "🤩"];
@@ -36,16 +23,99 @@ const getRatingEmoji = (rating: number) => {
 };
 
 const Feed = () => {
+  const [shows, setShows] = useState<Show[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchShows();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('shows_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shows'
+        },
+        () => {
+          fetchShows();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchShows = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setShows([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: showsData, error: showsError } = await supabase
+        .from('shows')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('show_date', { ascending: false });
+
+      if (showsError) throw showsError;
+
+      // Fetch artists for each show
+      const showsWithArtists = await Promise.all(
+        (showsData || []).map(async (show) => {
+          const { data: artistsData } = await supabase
+            .from('show_artists')
+            .select('*')
+            .eq('show_id', show.id);
+
+          return {
+            id: show.id,
+            artists: (artistsData || []).map(a => ({
+              name: a.artist_name,
+              isHeadliner: a.is_headliner
+            })),
+            venue: {
+              name: show.venue_name,
+              location: show.venue_location || ''
+            },
+            date: show.show_date,
+            rating: show.rating
+          };
+        })
+      );
+
+      setShows(showsWithArtists);
+    } catch (error) {
+      console.error('Error fetching shows:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Your Show History</h2>
         <Badge variant="secondary" className="text-sm">
-          {mockShows.length} shows
+          {shows.length} shows
         </Badge>
       </div>
 
-      {mockShows.length === 0 ? (
+      {loading ? (
+        <Card className="border-border shadow-card">
+          <CardContent className="py-16 text-center">
+            <Music2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground animate-pulse" />
+            <p className="text-muted-foreground">Loading shows...</p>
+          </CardContent>
+        </Card>
+      ) : shows.length === 0 ? (
         <Card className="border-border shadow-card">
           <CardContent className="py-16 text-center">
             <Music2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -57,7 +127,7 @@ const Feed = () => {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {mockShows.map((show) => (
+          {shows.map((show) => (
             <Card
               key={show.id}
               className="border-border shadow-card hover:shadow-glow transition-all duration-300 group"
