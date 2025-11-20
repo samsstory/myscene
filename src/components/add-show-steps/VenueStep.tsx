@@ -16,7 +16,7 @@ interface VenueStepProps {
   location: string;
   locationFilter: string;
   showType: 'venue' | 'festival' | 'other';
-  onSelect: (venue: string, location: string, venueId: string | null) => void;
+  onSelect: (venue: string, location: string, venueId: string | null, latitude?: number, longitude?: number) => void;
   onLocationFilterChange: (filter: string) => void;
   onShowTypeChange: (type: 'venue' | 'festival' | 'other') => void;
   isLoadingDefaultCity?: boolean;
@@ -43,6 +43,10 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
   const [citySearchTerm, setCitySearchTerm] = useState("");
   const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
   const [isSearchingCities, setIsSearchingCities] = useState(false);
+  const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [pendingVenueName, setPendingVenueName] = useState("");
+  const [venueAddress, setVenueAddress] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Debounced venue search
   useEffect(() => {
@@ -124,7 +128,51 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   const handleManualEntry = () => {
     if (searchTerm.trim()) {
-      onSelect(searchTerm.trim(), "", null);
+      setPendingVenueName(searchTerm.trim());
+      setVenueAddress("");
+      setShowAddressDialog(true);
+    }
+  };
+
+  const handleAddressSubmit = async (skipAddress: boolean = false) => {
+    if (!pendingVenueName) return;
+
+    if (skipAddress || !venueAddress.trim()) {
+      // No address provided - geocode the city filter or use default
+      if (locationFilter) {
+        await geocodeAndSelect(locationFilter, pendingVenueName, locationFilter);
+      } else {
+        onSelect(pendingVenueName, "", null);
+      }
+      setShowAddressDialog(false);
+      return;
+    }
+
+    // Geocode the provided address
+    await geocodeAndSelect(venueAddress, pendingVenueName, venueAddress);
+    setShowAddressDialog(false);
+  };
+
+  const geocodeAndSelect = async (query: string, venueName: string, locationName: string) => {
+    setIsGeocoding(true);
+    try {
+      const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=1`
+      );
+      const data = await response.json();
+
+      if (data.features && data.features.length > 0) {
+        const [longitude, latitude] = data.features[0].center;
+        onSelect(venueName, locationName, null, latitude, longitude);
+      } else {
+        onSelect(venueName, locationName, null);
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+      onSelect(venueName, locationName, null);
+    } finally {
+      setIsGeocoding(false);
     }
   };
 
@@ -345,6 +393,59 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
                 Clear Location Filter
               </Button>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Address Input Dialog */}
+      <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Address (Optional)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Adding an address helps place "{pendingVenueName}" accurately on the map.
+              </p>
+              <Input
+                type="text"
+                placeholder="Enter venue address..."
+                value={venueAddress}
+                onChange={(e) => setVenueAddress(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && venueAddress.trim()) {
+                    handleAddressSubmit(false);
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleAddressSubmit(true)}
+                disabled={isGeocoding}
+              >
+                Skip
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => handleAddressSubmit(false)}
+                disabled={isGeocoding || !venueAddress.trim()}
+              >
+                {isGeocoding ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add Venue'
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
