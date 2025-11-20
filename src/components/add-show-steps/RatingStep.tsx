@@ -19,10 +19,7 @@ const RatingStep = ({ rating, onRatingChange, onSubmit }: RatingStepProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <Label className="text-base font-semibold">How was it?</Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          Rate your experience
-        </p>
+        <Label className="text-base font-semibold">What'd ya think?</Label>
       </div>
 
       {/* Rating buttons */}
