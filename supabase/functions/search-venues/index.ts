@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface BandsintownVenue {
+interface MapboxVenue {
   name: string;
   location: string;
   city: string;
@@ -17,15 +17,10 @@ interface BandsintownVenue {
 }
 
 interface VenueSuggestion {
-  id?: string;
   name: string;
   location: string;
-  city?: string;
-  country?: string;
-  bandsintown_id?: string;
-  scene_users_count: number;
-  user_show_count: number;
-  source: 'scene' | 'bandsintown';
+  userShowCount: number;
+  sceneUserCount: number;
 }
 
 serve(async (req) => {
@@ -43,8 +38,6 @@ serve(async (req) => {
       );
     }
 
-    // Get JWT token from Authorization header
-    // The JWT is already verified by the edge function runtime (verify_jwt = true)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -54,8 +47,6 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    
-    // Decode JWT to get user ID (token is already verified by runtime)
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
 
@@ -66,7 +57,6 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client for database operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -74,7 +64,7 @@ serve(async (req) => {
 
     console.log(`Searching venues for: ${searchTerm}`);
 
-    // 1. Search user's own shows for matching venues
+    // 1. Search user's own shows
     const { data: userShows, error: userShowsError } = await supabaseClient
       .from('shows')
       .select('venue_name, venue_location')
@@ -85,224 +75,194 @@ serve(async (req) => {
     if (userShowsError) {
       console.error('Error fetching user shows:', userShowsError);
     } else {
-      console.log(`Found ${userShows?.length || 0} user shows matching search`);
+      console.log(`Found ${userShows?.length || 0} user shows`);
     }
 
     // 2. Search cached venues
     const { data: cachedVenues, error: cachedError } = await supabaseClient
       .from('venues')
-      .select(`
-        id,
-        name,
-        location,
-        city,
-        country,
-        bandsintown_id
-      `)
+      .select('id, name, location, city, country')
       .ilike('name', `%${searchTerm.trim()}%`)
       .limit(10);
 
     if (cachedError) {
       console.error('Error fetching cached venues:', cachedError);
     } else {
-      console.log(`Found ${cachedVenues?.length || 0} cached venues matching search`);
+      console.log(`Found ${cachedVenues?.length || 0} cached venues`);
     }
 
-    // 3. Get Scene user counts for cached venues
+    // 3. Get scene user counts
     const venueIds = cachedVenues?.map(v => v.id) || [];
-    let sceneUserCounts: Record<string, number> = {};
+    const sceneUserCounts = new Map<string, number>();
     
     if (venueIds.length > 0) {
-      const { data: userVenueCounts, error: countError } = await supabaseClient
+      const { data: userVenueCounts } = await supabaseClient
         .from('user_venues')
         .select('venue_id')
         .in('venue_id', venueIds);
 
-      if (!countError && userVenueCounts) {
-        sceneUserCounts = userVenueCounts.reduce((acc, uv) => {
-          acc[uv.venue_id] = (acc[uv.venue_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
+      if (userVenueCounts) {
+        for (const uv of userVenueCounts) {
+          sceneUserCounts.set(uv.venue_id, (sceneUserCounts.get(uv.venue_id) || 0) + 1);
+        }
       }
     }
 
-    // 4. Search Bandsintown API by searching for events in a city and extracting unique venues
-    // Note: Bandsintown API is currently disabled due to authentication issues
-    let bandsintownVenues: BandsintownVenue[] = [];
-    const BANDSINTOWN_APP_ID = 'show-log-app';
+    // 4. Search Mapbox Geocoding API
+    const MAPBOX_API_KEY = Deno.env.get('MAPBOX_API_KEY');
+    let mapboxVenues: MapboxVenue[] = [];
 
-    // Temporarily disabled - API requires authentication token
-    const ENABLE_BANDSINTOWN = false;
-
-    if (ENABLE_BANDSINTOWN) {
+    if (MAPBOX_API_KEY) {
       try {
-        // Search for upcoming events that might match the venue name
-        // We'll search by location and filter venues on our side
-        const bandsintownUrl = `https://rest.bandsintown.com/events/search?app_id=${BANDSINTOWN_APP_ID}&query=${encodeURIComponent(searchTerm.trim())}&per_page=50`;
-        console.log(`Searching Bandsintown: ${bandsintownUrl}`);
-        const bandsintownResponse = await fetch(bandsintownUrl);
+        const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchTerm.trim())}.json?access_token=${MAPBOX_API_KEY}&types=poi,address&limit=10`;
+        console.log(`Calling Mapbox API...`);
         
-        if (bandsintownResponse.ok) {
-          const events = await bandsintownResponse.json();
-          console.log(`Bandsintown returned ${Array.isArray(events) ? events.length : 0} events`);
-          
-          if (Array.isArray(events)) {
-            // Extract unique venues from events
-            const venueMap = new Map<string, BandsintownVenue>();
-            
-            events.forEach((event: any) => {
-              if (event.venue && event.venue.name) {
-                const venueName = event.venue.name.toLowerCase();
-                const searchLower = searchTerm.trim().toLowerCase();
-                
-                // Only include if venue name matches our search term
-                if (venueName.includes(searchLower)) {
-                  const venueKey = `${event.venue.name}|${event.venue.location || ''}`;
-                  
-                  if (!venueMap.has(venueKey)) {
-                    venueMap.set(venueKey, {
-                      name: event.venue.name,
-                      location: event.venue.location || `${event.venue.city}, ${event.venue.country}`,
-                      city: event.venue.city || '',
-                      country: event.venue.country || '',
-                      latitude: event.venue.latitude || '',
-                      longitude: event.venue.longitude || ''
-                    });
-                  }
+        const mapboxResponse = await fetch(mapboxUrl);
+        
+        if (!mapboxResponse.ok) {
+          console.error(`Mapbox error: ${mapboxResponse.status}`);
+        } else {
+          const data = await mapboxResponse.json();
+          console.log(`Mapbox returned ${data.features?.length || 0} results`);
+
+          if (data.features && Array.isArray(data.features)) {
+            mapboxVenues = data.features.map((feature: any) => {
+              let city = '';
+              let country = '';
+              
+              if (feature.context) {
+                for (const ctx of feature.context) {
+                  if (ctx.id.startsWith('place.')) city = ctx.text;
+                  if (ctx.id.startsWith('country.')) country = ctx.text;
                 }
               }
+
+              return {
+                name: feature.text || feature.place_name,
+                city: city,
+                country: country,
+                latitude: feature.center?.[1]?.toString() || '',
+                longitude: feature.center?.[0]?.toString() || '',
+                location: feature.place_name || `${city}, ${country}`.trim(),
+              };
             });
-            
-            bandsintownVenues = Array.from(venueMap.values()).slice(0, 10);
-            console.log(`Extracted ${bandsintownVenues.length} unique matching venues`);
+            console.log(`Processed ${mapboxVenues.length} Mapbox venues`);
           }
-        } else {
-          console.error(`Bandsintown API error: ${bandsintownResponse.status} - ${await bandsintownResponse.text()}`);
         }
       } catch (error) {
-        console.error('Error fetching from Bandsintown:', error);
+        console.error('Mapbox error:', error);
+      }
+    } else {
+      console.warn('MAPBOX_API_KEY not set!');
+    }
+
+    // 5. Merge results
+    const venueMap = new Map<string, VenueSuggestion>();
+
+    if (userShows) {
+      for (const show of userShows) {
+        const key = `${show.venue_name}-${show.venue_location || ''}`;
+        if (!venueMap.has(key)) {
+          venueMap.set(key, {
+            name: show.venue_name,
+            location: show.venue_location || '',
+            userShowCount: 1,
+            sceneUserCount: 0,
+          });
+        } else {
+          venueMap.get(key)!.userShowCount++;
+        }
       }
     }
 
-    // 5. Process and merge results
-    const suggestions: VenueSuggestion[] = [];
-    const seenVenues = new Set<string>();
-
-    // Add user's own shows (highest priority)
-    if (userShows) {
-      const groupedUserShows: Record<string, { venue_name: string; venue_location: string | null; count: number }> = userShows.reduce((acc, show) => {
-        const key = `${show.venue_name}|${show.venue_location || ''}`;
-        if (!acc[key]) {
-          acc[key] = {
-            venue_name: show.venue_name,
-            venue_location: show.venue_location,
-            count: 0
-          };
-        }
-        acc[key].count++;
-        return acc;
-      }, {} as Record<string, { venue_name: string; venue_location: string | null; count: number }>);
-
-      Object.entries(groupedUserShows).forEach(([, { venue_name, venue_location, count }]) => {
-        const key = `${venue_name}|${venue_location || ''}`.toLowerCase();
-        if (!seenVenues.has(key)) {
-          seenVenues.add(key);
-          suggestions.push({
-            name: venue_name,
-            location: venue_location || '',
-            scene_users_count: 0,
-            user_show_count: count,
-            source: 'scene'
-          });
-        }
-      });
-    }
-
-    // Add cached venues
     if (cachedVenues) {
-      cachedVenues.forEach(venue => {
-        const key = `${venue.name}|${venue.location || ''}`.toLowerCase();
-        if (!seenVenues.has(key)) {
-          seenVenues.add(key);
-          suggestions.push({
-            id: venue.id,
+      for (const venue of cachedVenues) {
+        const key = `${venue.name}-${venue.location || ''}`;
+        const sceneCount = sceneUserCounts.get(venue.id) || 0;
+        
+        if (!venueMap.has(key)) {
+          venueMap.set(key, {
             name: venue.name,
             location: venue.location || '',
-            city: venue.city || undefined,
-            country: venue.country || undefined,
-            bandsintown_id: venue.bandsintown_id || undefined,
-            scene_users_count: sceneUserCounts[venue.id] || 0,
-            user_show_count: 0,
-            source: 'scene'
+            userShowCount: 0,
+            sceneUserCount: sceneCount,
           });
+        } else {
+          const existing = venueMap.get(key)!;
+          existing.sceneUserCount = Math.max(existing.sceneUserCount, sceneCount);
         }
-      });
+      }
     }
 
-    // Add Bandsintown venues (cache new ones)
-    for (const btVenue of bandsintownVenues) {
-      const location = `${btVenue.city}, ${btVenue.country}`;
-      const key = `${btVenue.name}|${location}`.toLowerCase();
+    for (const venue of mapboxVenues) {
+      const key = `${venue.name}-${venue.location}`;
       
-      if (!seenVenues.has(key)) {
-        seenVenues.add(key);
+      if (!venueMap.has(key)) {
+        venueMap.set(key, {
+          name: venue.name,
+          location: venue.location,
+          userShowCount: 0,
+          sceneUserCount: 0,
+        });
+      }
+    }
 
-        // Cache this venue for future searches
-        const { data: newVenue, error: insertError } = await supabaseClient
+    // 6. Cache new Mapbox venues
+    if (mapboxVenues.length > 0) {
+      const venuesToCache = [];
+      
+      for (const venue of mapboxVenues) {
+        const { data: existing } = await supabaseClient
           .from('venues')
-          .upsert({
-            name: btVenue.name,
-            location: location,
-            city: btVenue.city,
-            country: btVenue.country,
-            latitude: parseFloat(btVenue.latitude) || null,
-            longitude: parseFloat(btVenue.longitude) || null,
-            bandsintown_id: `${btVenue.name}-${btVenue.city}`.toLowerCase().replace(/\s+/g, '-')
-          }, {
-            onConflict: 'bandsintown_id',
-            ignoreDuplicates: false
-          })
-          .select()
-          .single();
+          .select('id')
+          .eq('name', venue.name)
+          .eq('location', venue.location)
+          .maybeSingle();
 
-        if (!insertError && newVenue) {
-          suggestions.push({
-            id: newVenue.id,
-            name: btVenue.name,
-            location: location,
-            city: btVenue.city,
-            country: btVenue.country,
-            bandsintown_id: newVenue.bandsintown_id || undefined,
-            scene_users_count: 0,
-            user_show_count: 0,
-            source: 'bandsintown'
+        if (!existing) {
+          venuesToCache.push({
+            name: venue.name,
+            location: venue.location,
+            city: venue.city || null,
+            country: venue.country || null,
+            latitude: venue.latitude ? parseFloat(venue.latitude) : null,
+            longitude: venue.longitude ? parseFloat(venue.longitude) : null,
           });
+        }
+      }
+
+      if (venuesToCache.length > 0) {
+        const { data: insertData, error: insertError } = await supabaseClient
+          .from('venues')
+          .insert(venuesToCache)
+          .select();
+
+        if (insertData) {
+          console.log(`Cached ${insertData.length} new venues`);
+        } else if (insertError) {
+          console.error('Cache error:', insertError);
         }
       }
     }
 
-    // Sort: user's venues first, then by Scene users count, then alphabetically
-    suggestions.sort((a, b) => {
-      if (a.user_show_count !== b.user_show_count) {
-        return b.user_show_count - a.user_show_count;
-      }
-      if (a.scene_users_count !== b.scene_users_count) {
-        return b.scene_users_count - a.scene_users_count;
-      }
+    // 7. Sort and return
+    const suggestions = Array.from(venueMap.values()).sort((a, b) => {
+      if (a.userShowCount !== b.userShowCount) return b.userShowCount - a.userShowCount;
+      if (a.sceneUserCount !== b.sceneUserCount) return b.sceneUserCount - a.sceneUserCount;
       return a.name.localeCompare(b.name);
-    });
+    }).slice(0, 15);
 
-    console.log(`Returning ${suggestions.length} venue suggestions`);
+    console.log(`Returning ${suggestions.length} suggestions`);
 
     return new Response(
-      JSON.stringify({ suggestions: suggestions.slice(0, 15) }),
+      JSON.stringify({ suggestions }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
-  } catch (error) {
-    console.error('Error in search-venues function:', error);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Function error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
