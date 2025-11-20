@@ -67,10 +67,17 @@ const StatCard = ({
                 <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
               )}
             </div>
-            <div className="text-xs text-muted-foreground/60 flex items-center gap-1">
-              <Share2 className="h-3 w-3" />
-              Tap to share
-            </div>
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
           </CardContent>
         </Card>
 
