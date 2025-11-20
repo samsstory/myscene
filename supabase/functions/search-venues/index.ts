@@ -245,10 +245,28 @@ serve(async (req) => {
       }
     }
 
-    // 7. Sort and return
+    // 7. Sort and return - prioritize exact matches
+    const searchLower = searchTerm.trim().toLowerCase();
     const suggestions = Array.from(venueMap.values()).sort((a, b) => {
+      // Exact match priority
+      const aExactMatch = a.name.toLowerCase() === searchLower || a.location.toLowerCase() === searchLower;
+      const bExactMatch = b.name.toLowerCase() === searchLower || b.location.toLowerCase() === searchLower;
+      if (aExactMatch && !bExactMatch) return -1;
+      if (!aExactMatch && bExactMatch) return 1;
+      
+      // Starts with match priority
+      const aStartsWith = a.name.toLowerCase().startsWith(searchLower) || a.location.toLowerCase().startsWith(searchLower);
+      const bStartsWith = b.name.toLowerCase().startsWith(searchLower) || b.location.toLowerCase().startsWith(searchLower);
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+      
+      // User's own shows priority
       if (a.userShowCount !== b.userShowCount) return b.userShowCount - a.userShowCount;
+      
+      // Scene users priority
       if (a.sceneUserCount !== b.sceneUserCount) return b.sceneUserCount - a.sceneUserCount;
+      
+      // Alphabetical
       return a.name.localeCompare(b.name);
     }).slice(0, 15);
 
