@@ -43,28 +43,34 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with service role for database access
+    // Get JWT token from Authorization header
     // The JWT is already verified by the edge function runtime (verify_jwt = true)
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! }
-        }
-      }
-    );
-
-    // Get the authenticated user (JWT already verified by runtime)
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
+        JSON.stringify({ error: 'Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Decode JWT to get user ID (token is already verified by runtime)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Supabase client for database operations
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
 
     console.log(`Searching venues for: ${searchTerm}`);
 
@@ -72,7 +78,7 @@ serve(async (req) => {
     const { data: userShows, error: userShowsError } = await supabaseClient
       .from('shows')
       .select('venue_name, venue_location')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .ilike('venue_name', `%${searchTerm.trim()}%`)
       .order('venue_name');
 
