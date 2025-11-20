@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Plus, Music, TrendingUp, User } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Home, Compass, BarChart3, Plus, Music } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Feed from "@/components/Feed";
 import Stats from "@/components/Stats";
 import Profile from "@/components/Profile";
 import AddShowFlow from "@/components/AddShowFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("feed");
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -55,54 +56,95 @@ const Dashboard = () => {
     return null;
   }
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case "feed":
+        return <Feed />;
+      case "stats":
+        return <Stats />;
+      case "profile":
+        return <Profile />;
+      default:
+        return <Feed />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-accent">
+    <div className="min-h-screen bg-gradient-accent pb-20">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Scene
-            </h1>
-            <Button onClick={() => setShowAddDialog(true)} className="shadow-glow">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Show
-            </Button>
-          </div>
+          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            Scene
+          </h1>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="feed" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="feed" className="gap-2">
-              <Music className="h-4 w-4" />
-              Feed
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Stats
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="gap-2">
-              <User className="h-4 w-4" />
-              Profile
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="feed">
-            <Feed />
-          </TabsContent>
-
-          <TabsContent value="stats">
-            <Stats />
-          </TabsContent>
-
-          <TabsContent value="profile">
-            <Profile />
-          </TabsContent>
-        </Tabs>
+        {renderContent()}
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-around h-16 relative">
+            {/* Home */}
+            <button
+              onClick={() => setActiveTab("feed")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 transition-colors",
+                activeTab === "feed" ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <Home className="h-6 w-6" />
+            </button>
+
+            {/* Compass - Coming Soon */}
+            <button
+              disabled
+              className="flex flex-col items-center justify-center gap-1 text-muted-foreground/40 cursor-not-allowed"
+            >
+              <Compass className="h-6 w-6" />
+            </button>
+
+            {/* Add Show Button - Elevated */}
+            <button
+              onClick={() => setShowAddDialog(true)}
+              className="absolute left-1/2 -translate-x-1/2 -top-4 bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-transform hover:scale-105 active:scale-95"
+            >
+              <Plus className="h-8 w-8" />
+            </button>
+
+            {/* Stats */}
+            <button
+              onClick={() => setActiveTab("stats")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 transition-colors",
+                activeTab === "stats" ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <BarChart3 className="h-6 w-6" />
+            </button>
+
+            {/* Profile */}
+            <button
+              onClick={() => setActiveTab("profile")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 transition-colors",
+                activeTab === "profile" ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <Avatar className="h-7 w-7 border-2 border-transparent transition-colors data-[active=true]:border-primary" data-active={activeTab === "profile"}>
+                <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
+                <AvatarFallback className="text-xs">
+                  {session?.user?.email?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </div>
+        </div>
+      </nav>
 
       <AddShowFlow open={showAddDialog} onOpenChange={setShowAddDialog} />
     </div>
