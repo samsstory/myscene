@@ -43,32 +43,25 @@ serve(async (req) => {
       );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Extract JWT token from "Bearer <token>"
-    const token = authHeader.replace('Bearer ', '');
-
-    // Create client with the user's JWT token
+    // Create Supabase client with service role for database access
+    // The JWT is already verified by the edge function runtime (verify_jwt = true)
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { 
-        global: { 
-          headers: { Authorization: `Bearer ${token}` } 
-        } 
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! }
+        }
       }
     );
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
+    // Get the authenticated user (JWT already verified by runtime)
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Authentication failed' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
