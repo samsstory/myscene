@@ -108,10 +108,11 @@ interface JamBaseVenue {
 }
 
 interface VenueSuggestion {
+  id?: string;
   name: string;
   location: string;
-  userShowCount: number;
-  sceneUserCount: number;
+  user_show_count: number;
+  scene_users_count: number;
 }
 
 serve(async (req) => {
@@ -294,11 +295,11 @@ serve(async (req) => {
           venueMap.set(key, {
             name: show.venue_name,
             location: show.venue_location || '',
-            userShowCount: 1,
-            sceneUserCount: 0,
+            user_show_count: 1,
+            scene_users_count: 0,
           });
         } else {
-          venueMap.get(key)!.userShowCount++;
+          venueMap.get(key)!.user_show_count++;
         }
       }
     }
@@ -310,14 +311,15 @@ serve(async (req) => {
         
         if (!venueMap.has(key)) {
           venueMap.set(key, {
+            id: venue.id,
             name: venue.name,
             location: venue.location || '',
-            userShowCount: 0,
-            sceneUserCount: sceneCount,
+            user_show_count: 0,
+            scene_users_count: sceneCount,
           });
         } else {
           const existing = venueMap.get(key)!;
-          existing.sceneUserCount = Math.max(existing.sceneUserCount, sceneCount);
+          existing.scene_users_count = Math.max(existing.scene_users_count, sceneCount);
         }
       }
     }
@@ -329,8 +331,8 @@ serve(async (req) => {
         venueMap.set(key, {
           name: venue.name,
           location: venue.location,
-          userShowCount: 0,
-          sceneUserCount: 0,
+          user_show_count: 0,
+          scene_users_count: 0,
         });
       }
     }
@@ -411,10 +413,10 @@ serve(async (req) => {
       if (!aStartsWith && bStartsWith) return 1;
       
       // User's own shows priority
-      if (a.userShowCount !== b.userShowCount) return b.userShowCount - a.userShowCount;
+      if (a.user_show_count !== b.user_show_count) return b.user_show_count - a.user_show_count;
       
       // Scene users priority
-      if (a.sceneUserCount !== b.sceneUserCount) return b.sceneUserCount - a.sceneUserCount;
+      if (a.scene_users_count !== b.scene_users_count) return b.scene_users_count - a.scene_users_count;
       
       // Alphabetical
       return a.name.localeCompare(b.name);
