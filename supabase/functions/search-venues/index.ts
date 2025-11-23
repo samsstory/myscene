@@ -17,26 +17,22 @@ async function cacheVenuesInCity(
   city: string,
   supabaseUrl: string,
   supabaseKey: string,
-  jambaseApiKey: string,
+  googleApiKey: string,
   userLat?: number,
   userLon?: number
 ) {
   try {
     console.log(`[Background] Caching venues in ${city}...`);
     
-    const params = new URLSearchParams({
-      apikey: jambaseApiKey,
-      city: city,
-      page: '1',
-      pageSize: '30', // Cache more venues in background
-    });
-
+    // Build location bias
+    let locationBias = '';
     if (userLat && userLon) {
-      params.append('geoLatitude', userLat.toString());
-      params.append('geoLongitude', userLon.toString());
+      locationBias = `&location=${userLat},${userLon}&radius=50000`; // 50km radius
     }
-
-    const response = await fetch(`https://www.jambase.com/jb-api/v1/venues?${params}`);
+    
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=music+venues+in+${encodeURIComponent(city)}&type=night_club|bar${locationBias}&key=${googleApiKey}`;
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       console.error(`[Background] Cache error: ${response.status}`);
@@ -45,23 +41,24 @@ async function cacheVenuesInCity(
 
     const data = await response.json();
     
-    if (data.venues && Array.isArray(data.venues) && data.venues.length > 0) {
+    if (data.results && Array.isArray(data.results) && data.results.length > 0) {
       const supabase = createClient(supabaseUrl, supabaseKey);
       const venuesToCache = [];
 
-      for (const v of data.venues) {
-        const venueName = v.name;
-        const venueCity = v.location?.city || '';
-        const state = v.location?.state || '';
-        const country = v.location?.country || 'US';
+      for (const place of data.results.slice(0, 30)) { // Limit to 30 venues
+        const venueName = place.name;
+        const venueAddress = place.formatted_address || '';
+        
+        // Extract city and state from address
+        const addressParts = venueAddress.split(', ');
+        const venueCity = addressParts.length > 1 ? addressParts[addressParts.length - 3] || '' : '';
+        const state = addressParts.length > 2 ? addressParts[addressParts.length - 2] || '' : '';
         
         let location = '';
         if (venueCity && state) {
           location = `${venueCity}, ${state}`;
-        } else if (venueCity && country) {
-          location = `${venueCity}, ${country}`;
-        } else if (venueCity) {
-          location = venueCity;
+        } else if (venueAddress) {
+          location = venueAddress;
         }
 
         // Check if venue already exists
@@ -77,9 +74,8 @@ async function cacheVenuesInCity(
             name: venueName,
             location: location,
             city: venueCity || null,
-            country: country || null,
-            latitude: v.location?.latitude ? parseFloat(v.location.latitude.toString()) : null,
-            longitude: v.location?.longitude ? parseFloat(v.location.longitude.toString()) : null,
+            latitude: place.geometry?.location?.lat || null,
+            longitude: place.geometry?.location?.lng || null,
           });
         }
       }
@@ -98,13 +94,17 @@ async function cacheVenuesInCity(
   }
 }
 
-interface JamBaseVenue {
+interface GooglePlace {
+  place_id: string;
   name: string;
-  location: string;
-  city: string;
-  country: string;
-  latitude: string;
-  longitude: string;
+  formatted_address: string;
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
+  types: string[];
 }
 
 interface VenueSuggestion {
@@ -207,87 +207,50 @@ serve(async (req) => {
       .eq('id', userId)
       .single();
     
-    // 5. Search JamBase API for venues
-    const JAMBASE_API_KEY = Deno.env.get('JAMBASE_API_KEY');
-    let jambaseVenues: JamBaseVenue[] = [];
+    // 5. Search Google Places API for venues
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
+    let googlePlaces: GooglePlace[] = [];
 
-    if (JAMBASE_API_KEY) {
+    if (GOOGLE_API_KEY) {
       try {
-        // Build JamBase URL with search parameters
-        const params = new URLSearchParams({
-          apikey: JAMBASE_API_KEY,
-          venueName: searchTerm.trim(),
-          page: '1',
-          pageSize: '15',
-        });
-        
-        // Add location biasing if user has home coordinates
-        if (profile?.home_longitude && profile?.home_latitude) {
-          params.append('geoLatitude', profile.home_latitude.toString());
-          params.append('geoLongitude', profile.home_longitude.toString());
-          params.append('geoRadius', '100'); // 100 mile radius
-          console.log(`Using proximity: ${profile.home_longitude},${profile.home_latitude}`);
+        // Build location bias
+        let locationBias = '';
+        if (profile?.home_latitude && profile?.home_longitude) {
+          locationBias = `&location=${profile.home_latitude},${profile.home_longitude}&radius=50000`; // 50km radius
+          console.log(`Using proximity: ${profile.home_latitude},${profile.home_longitude}`);
         }
         
-        const jambaseUrl = `https://www.jambase.com/jb-api/v1/venues?${params.toString()}`;
-        console.log(`Calling JamBase API...`);
+        // Use Google Places Text Search for venues
+        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchTerm.trim())}+venue+bar+club${locationBias}&type=night_club|bar|restaurant&key=${GOOGLE_API_KEY}`;
+        console.log(`Calling Google Places API...`);
         
-        const jambaseResponse = await fetch(jambaseUrl, {
-          headers: {
-            'Accept': 'application/json',
-          }
-        });
+        const googleResponse = await fetch(googleUrl);
         
-        if (!jambaseResponse.ok) {
-          console.error(`JamBase error: ${jambaseResponse.status}`);
-          const errorText = await jambaseResponse.text();
-          console.error(`JamBase error response: ${errorText}`);
+        if (!googleResponse.ok) {
+          console.error(`Google Places error: ${googleResponse.status}`);
+          const errorText = await googleResponse.text();
+          console.error(`Google Places error response: ${errorText}`);
         } else {
-          const data = await jambaseResponse.json();
-          console.log(`JamBase returned ${data.venues?.length || 0} results`);
-
-          if (data.venues && Array.isArray(data.venues)) {
-            jambaseVenues = data.venues.map((venue: any) => {
-              // Extract location details
-              const city = venue.location?.city || '';
-              const state = venue.location?.state || '';
-              const country = venue.location?.country || 'US';
-              
-              // Build clean location string
-              let location = '';
-              if (city && state) {
-                location = `${city}, ${state}`;
-              } else if (city && country) {
-                location = `${city}, ${country}`;
-              } else if (city) {
-                location = city;
-              }
-
-              return {
-                name: venue.name || '',
-                city: city,
-                country: country,
-                latitude: venue.location?.latitude?.toString() || '',
-                longitude: venue.location?.longitude?.toString() || '',
-                location: location,
-                relevance: 1, // JamBase doesn't provide relevance score
-                category: 'music venue',
-              };
-            }).filter((v: any) => v.name); // Filter out venues without names
-            
-            console.log(`Processed ${jambaseVenues.length} JamBase venues`);
+          const data = await googleResponse.json();
+          
+          if (data.status === 'OK' && data.results && Array.isArray(data.results)) {
+            console.log(`Google Places returned ${data.results.length} results`);
+            googlePlaces = data.results.slice(0, 15); // Limit to 15 results
+          } else {
+            console.log(`Google Places status: ${data.status}`);
           }
         }
       } catch (error) {
-        console.error('JamBase error:', error);
+        console.error('Google Places error:', error);
       }
     } else {
-      console.warn('JAMBASE_API_KEY not set!');
+      console.warn('GOOGLE_PLACES_API_KEY not set!');
     }
 
     // 6. Merge results
     const venueMap = new Map<string, VenueSuggestion>();
 
+    // Add user's own shows first (highest priority)
     if (userShows) {
       for (const show of userShows) {
         const key = `${show.venue_name}-${show.venue_location || ''}`;
@@ -304,6 +267,7 @@ serve(async (req) => {
       }
     }
 
+    // Add cached venues
     if (cachedVenues) {
       for (const venue of cachedVenues) {
         const key = `${venue.name}-${venue.location || ''}`;
@@ -324,39 +288,71 @@ serve(async (req) => {
       }
     }
 
-    for (const venue of jambaseVenues) {
-      const key = `${venue.name}-${venue.location}`;
+    // Add Google Places results
+    for (const place of googlePlaces) {
+      // Extract city and state from formatted_address
+      const addressParts = place.formatted_address.split(', ');
+      let location = '';
+      
+      if (addressParts.length >= 3) {
+        // Format: "Venue Name, City, State ZIP, Country"
+        const city = addressParts[addressParts.length - 3] || '';
+        const stateZip = addressParts[addressParts.length - 2] || '';
+        const state = stateZip.split(' ')[0] || ''; // Extract state from "NY 10001"
+        
+        if (city && state) {
+          location = `${city}, ${state}`;
+        } else {
+          location = place.formatted_address;
+        }
+      } else {
+        location = place.formatted_address;
+      }
+      
+      const key = `${place.name}-${location}`;
       
       if (!venueMap.has(key)) {
         venueMap.set(key, {
-          name: venue.name,
-          location: venue.location,
+          id: place.place_id,
+          name: place.name,
+          location: location,
           user_show_count: 0,
           scene_users_count: 0,
         });
       }
     }
 
-    // 7. Cache new JamBase venues
-    if (jambaseVenues.length > 0) {
+    // 7. Cache new Google Places venues
+    if (googlePlaces.length > 0) {
       const venuesToCache = [];
       
-      for (const venue of jambaseVenues) {
+      for (const place of googlePlaces) {
+        const addressParts = place.formatted_address.split(', ');
+        const city = addressParts.length >= 3 ? addressParts[addressParts.length - 3] : '';
+        const stateZip = addressParts.length >= 2 ? addressParts[addressParts.length - 2] : '';
+        const state = stateZip.split(' ')[0];
+        
+        let location = '';
+        if (city && state) {
+          location = `${city}, ${state}`;
+        } else {
+          location = place.formatted_address;
+        }
+
         const { data: existing } = await supabaseClient
           .from('venues')
           .select('id')
-          .eq('name', venue.name)
-          .eq('location', venue.location)
+          .eq('name', place.name)
+          .eq('location', location)
           .maybeSingle();
 
         if (!existing) {
           venuesToCache.push({
-            name: venue.name,
-            location: venue.location,
-            city: venue.city || null,
-            country: venue.country || null,
-            latitude: venue.latitude ? parseFloat(venue.latitude) : null,
-            longitude: venue.longitude ? parseFloat(venue.longitude) : null,
+            name: place.name,
+            location: location,
+            city: city || null,
+            latitude: place.geometry?.location?.lat || null,
+            longitude: place.geometry?.location?.lng || null,
           });
         }
       }
@@ -377,14 +373,16 @@ serve(async (req) => {
 
     // 8. Trigger background caching for discovered cities
     const discoveredCities = new Set<string>();
-    for (const venue of jambaseVenues) {
-      if (venue.city) {
-        discoveredCities.add(venue.city);
+    for (const place of googlePlaces) {
+      const addressParts = place.formatted_address.split(', ');
+      const city = addressParts.length >= 3 ? addressParts[addressParts.length - 3] : '';
+      if (city) {
+        discoveredCities.add(city);
       }
     }
 
     // Launch background tasks to cache more venues in these cities
-    if (JAMBASE_API_KEY && discoveredCities.size > 0) {
+    if (GOOGLE_API_KEY && discoveredCities.size > 0) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
       const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
       const userLat = profile?.home_latitude;
@@ -392,7 +390,7 @@ serve(async (req) => {
 
       for (const city of Array.from(discoveredCities).slice(0, 2)) { // Limit to 2 cities to avoid overload
         EdgeRuntime.waitUntil(
-          cacheVenuesInCity(city, supabaseUrl, supabaseKey, JAMBASE_API_KEY, userLat, userLon)
+          cacheVenuesInCity(city, supabaseUrl, supabaseKey, GOOGLE_API_KEY, userLat, userLon)
         );
       }
     }
