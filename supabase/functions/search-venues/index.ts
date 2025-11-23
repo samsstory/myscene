@@ -16,7 +16,7 @@ const corsHeaders = {
 async function cacheVenuesInCity(
   city: string,
   supabaseUrl: string,
-  supabaseKey: string,
+  supabaseServiceKey: string,
   googleApiKey: string,
   userLat?: number,
   userLon?: number
@@ -42,7 +42,8 @@ async function cacheVenuesInCity(
     const data = await response.json();
     
     if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      // Use service role key for background caching
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const venuesToCache = [];
 
       for (const place of data.results.slice(0, 30)) { // Limit to 30 venues
@@ -149,9 +150,16 @@ serve(async (req) => {
       );
     }
 
+    // Use anon key for user queries (respects RLS)
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    // Use service role key for caching operations (bypasses RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     console.log(`Searching venues for: ${searchTerm}`);
@@ -358,7 +366,7 @@ serve(async (req) => {
       }
 
       if (venuesToCache.length > 0) {
-        const { data: insertData, error: insertError } = await supabaseClient
+        const { data: insertData, error: insertError } = await supabaseAdmin
           .from('venues')
           .insert(venuesToCache)
           .select();
@@ -384,13 +392,13 @@ serve(async (req) => {
     // Launch background tasks to cache more venues in these cities
     if (GOOGLE_API_KEY && discoveredCities.size > 0) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-      const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
       const userLat = profile?.home_latitude;
       const userLon = profile?.home_longitude;
 
       for (const city of Array.from(discoveredCities).slice(0, 2)) { // Limit to 2 cities to avoid overload
         EdgeRuntime.waitUntil(
-          cacheVenuesInCity(city, supabaseUrl, supabaseKey, GOOGLE_API_KEY, userLat, userLon)
+          cacheVenuesInCity(city, supabaseUrl, supabaseServiceKey, GOOGLE_API_KEY, userLat, userLon)
         );
       }
     }
