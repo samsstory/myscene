@@ -2,13 +2,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, MapPin, Calendar as CalendarIcon, Music2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Edit, MapPin, Calendar as CalendarIcon, Music2, Upload, X, Image as ImageIcon, Send } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
+import { ShareShowSheet } from "./ShareShowSheet";
 
 interface Artist {
   name: string;
@@ -68,6 +69,7 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
 
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(show.photo_url);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasDetailedRatings = show.artistPerformance || show.sound || show.lighting || show.crowd || show.venueVibe;
@@ -175,17 +177,30 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
 
         <div className="space-y-6 mt-6">
           {/* Photo Section */}
-          {photoUrl ? (
-            <div className="relative rounded-lg overflow-hidden">
-              <img 
-                src={photoUrl} 
-                alt="Show photo" 
-                className="w-full h-64 object-cover"
-              />
-              <div className="absolute top-2 right-2 flex gap-2">
+          {photoUrl && (
+            <div className="space-y-3">
+              <div className="relative rounded-xl overflow-hidden aspect-video">
+                <img 
+                  src={photoUrl} 
+                  alt="Show photo" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  className="flex-1"
+                  onClick={() => {
+                    onOpenChange(false);
+                    setShareSheetOpen(true);
+                  }}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Share Photo
+                </Button>
                 <Button
                   size="sm"
-                  variant="secondary"
+                  variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                 >
@@ -194,7 +209,7 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
                 </Button>
                 <Button
                   size="sm"
-                  variant="destructive"
+                  variant="outline"
                   onClick={handleRemovePhoto}
                 >
                   <X className="h-4 w-4 mr-2" />
@@ -202,7 +217,9 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
                 </Button>
               </div>
             </div>
-          ) : (
+          )}
+
+          {!photoUrl && (
             <Button
               variant="outline"
               className="w-full h-32 border-dashed"
@@ -217,6 +234,7 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
               </div>
             </Button>
           )}
+          
           <Input
             ref={fileInputRef}
             type="file"
@@ -301,6 +319,13 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
           )}
         </div>
       </SheetContent>
+
+      {/* Separate ShareShowSheet for photo sharing */}
+      <ShareShowSheet 
+        show={show} 
+        open={shareSheetOpen} 
+        onOpenChange={setShareSheetOpen} 
+      />
     </Sheet>
   );
 };

@@ -231,11 +231,12 @@ const Feed = () => {
               <div className="flex items-start gap-4">
 
                 {/* Photo thumbnail (only if photo exists) */}
-                {show.photo_url && <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                    <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" style={{
-                maskImage: 'radial-gradient(circle at center, black 50%, transparent 100%)',
-                WebkitMaskImage: 'radial-gradient(circle at center, black 50%, transparent 100%)'
-              }} />
+                {show.photo_url && <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-md border border-border/50">
+                    <img 
+                      src={show.photo_url} 
+                      alt="Show photo" 
+                      className="w-full h-full object-cover"
+                    />
                   </div>}
 
                 {/* Left section: Artist name */}
