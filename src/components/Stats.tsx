@@ -267,7 +267,7 @@ const Stats = () => {
           <div className="sm:gap-4 flex-row flex items-center justify-start px-0 mx-0 gap-[30px] rounded-none">
             <div className="relative shrink-0">
               <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-accent animate-bounce" />
-              <Sparkles className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 h-4 w-4 sm:h-6 sm:w-6 text-primary animate-pulse" />
+              <Sparkles className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 sm:h-6 sm:w-6 text-primary animate-pulse px-0 pr-0 w-[10px] h-[10px] mx-px" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wide mb-1">
