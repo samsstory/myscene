@@ -110,19 +110,43 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     return null;
   };
 
-  // Extract country from location string
+  // Extract country from location string with better US state handling
   const getCountryFromLocation = (location: string): string => {
     const parts = location.split(',').map(p => p.trim());
-    // Assume last part is country, or second-to-last if it's a state
-    if (parts.length >= 2) {
-      const lastPart = parts[parts.length - 1];
-      // Common country codes and names
-      if (lastPart.length === 2 || ['USA', 'United States'].includes(lastPart)) {
+    
+    // Common US state abbreviations and names
+    const usStates = [
+      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+      'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
+      'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+      'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+      'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island',
+      'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+      'Wisconsin', 'Wyoming'
+    ];
+    
+    // Check if any part is a US state
+    for (const part of parts) {
+      if (usStates.includes(part)) {
         return 'United States';
       }
+    }
+    
+    // Check for USA, US, United States explicitly
+    const lastPart = parts[parts.length - 1];
+    if (['USA', 'US', 'United States', 'U.S.', 'U.S.A.'].includes(lastPart)) {
+      return 'United States';
+    }
+    
+    // If location has multiple parts, assume last is country
+    if (parts.length >= 2) {
       return lastPart;
     }
-    return 'Unknown';
+    
+    // Default to United States if only one part (assuming most users are US-based)
+    return 'United States';
   };
 
   // Initialize map
@@ -232,6 +256,14 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         } else {
           const countryData = countryMap.get(country)!;
           countryData.shows.push(show);
+          
+          // Update country center to average of all shows in country
+          const allLngs = countryData.shows.map(s => s.longitude!);
+          const allLats = countryData.shows.map(s => s.latitude!);
+          countryData.coords = [
+            allLngs.reduce((a, b) => a + b, 0) / allLngs.length,
+            allLats.reduce((a, b) => a + b, 0) / allLats.length
+          ];
           
           // Initialize city within country
           if (!countryData.cities.has(city)) {
