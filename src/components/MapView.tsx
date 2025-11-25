@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Edit, MapPin, Minus, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Show {
   id: string;
@@ -45,11 +46,13 @@ interface VenueData {
 }
 
 const MapView = ({ shows, onEditShow }: MapViewProps) => {
+  const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<{ venueName: string; location: string; count: number; shows: Show[] } | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
+  const [isBackfilling, setIsBackfilling] = useState(false);
   const [countryData, setCountryData] = useState<CountryData[]>([]);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [isLocationCardMinimized, setIsLocationCardMinimized] = useState(false);
@@ -204,6 +207,57 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       console.error(`[MapView] Error geocoding venue address "${address}":`, error);
     }
     return null;
+  };
+
+  const handleFixMissingLocations = async () => {
+    try {
+      setIsBackfilling(true);
+      console.log('Starting backfill process...');
+
+      const { data, error } = await supabase.functions.invoke('backfill-venue-coordinates', {
+        body: {}
+      });
+
+      if (error) {
+        console.error('Backfill error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fix missing locations. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Backfill results:', data);
+      
+      if (data.results.success > 0) {
+        toast({
+          title: "Success!",
+          description: `Fixed ${data.results.success} show${data.results.success > 1 ? 's' : ''}. Refreshing map...`
+        });
+        
+        // Reload the page to refresh the map with new data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        toast({
+          title: "No Changes",
+          description: "No shows were able to be geocoded. Please add location details manually.",
+          variant: "default"
+        });
+      }
+
+    } catch (error) {
+      console.error('Backfill error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fix missing locations. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsBackfilling(false);
+    }
   };
 
   // Initialize map
@@ -784,6 +838,30 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
                     </div>
                   ))}
                 </div>
+                
+                {showsWithoutLocation.length > 0 && (
+                  <Button
+                    onClick={handleFixMissingLocations}
+                    disabled={isBackfilling}
+                    className="w-full mt-4"
+                    variant="default"
+                  >
+                    {isBackfilling ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Fixing Locations...
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Fix All Missing Locations
+                      </>
+                    )}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
