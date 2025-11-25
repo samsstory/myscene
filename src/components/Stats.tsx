@@ -3,20 +3,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Share2, Music, MapPin, TrendingUp, Activity, Trophy, Sparkles, Calendar, Mic } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock stats - will be calculated from real data
-const mockStats = {
-  showsThisYear: 12,
-  showsThisMonth: 3,
-  mostSeenArtist: "Arctic Monkeys",
-  mostSeenArtistCount: 4,
-  mostVisitedVenue: "Madison Square Garden",
-  mostVisitedVenueCount: 3,
-  userPercentile: 85,
-  distanceDanced: "2.4 miles",
-};
+interface StatsData {
+  showsThisYear: number;
+  showsThisMonth: number;
+  mostSeenArtist: string;
+  mostSeenArtistCount: number;
+  mostVisitedVenue: string;
+  mostVisitedVenueCount: number;
+  userPercentile: number;
+  distanceDanced: string;
+}
 
 const StatCard = ({
   title,
@@ -107,6 +107,105 @@ const StatCard = ({
 
 const Stats = () => {
   const [showSharePreview, setShowSharePreview] = useState(false);
+  const [stats, setStats] = useState<StatsData>({
+    showsThisYear: 0,
+    showsThisMonth: 0,
+    mostSeenArtist: "—",
+    mostSeenArtistCount: 0,
+    mostVisitedVenue: "—",
+    mostVisitedVenueCount: 0,
+    userPercentile: 0,
+    distanceDanced: "0 miles",
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+
+        const userId = session.user.id;
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        const currentMonthStart = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
+        const yearStart = new Date(currentYear, 0, 1).toISOString().split('T')[0];
+
+        // Get all shows for the user
+        const { data: shows, error: showsError } = await supabase
+          .from('shows')
+          .select('id, show_date, venue_name, venue_id')
+          .eq('user_id', userId);
+
+        if (showsError) throw showsError;
+
+        // Calculate shows this year
+        const showsThisYear = shows?.filter(show => show.show_date >= yearStart).length || 0;
+
+        // Calculate shows this month
+        const showsThisMonth = shows?.filter(show => show.show_date >= currentMonthStart).length || 0;
+
+        // Get most seen artist
+        const { data: artistCounts } = await supabase
+          .from('show_artists')
+          .select('artist_name, show_id')
+          .in('show_id', shows?.map(s => s.id) || []);
+
+        const artistMap = new Map<string, number>();
+        artistCounts?.forEach(artist => {
+          artistMap.set(artist.artist_name, (artistMap.get(artist.artist_name) || 0) + 1);
+        });
+
+        let mostSeenArtist = "—";
+        let mostSeenArtistCount = 0;
+        artistMap.forEach((count, artist) => {
+          if (count > mostSeenArtistCount) {
+            mostSeenArtistCount = count;
+            mostSeenArtist = artist;
+          }
+        });
+
+        // Get most visited venue
+        const venueMap = new Map<string, number>();
+        shows?.forEach(show => {
+          if (show.venue_name) {
+            venueMap.set(show.venue_name, (venueMap.get(show.venue_name) || 0) + 1);
+          }
+        });
+
+        let mostVisitedVenue = "—";
+        let mostVisitedVenueCount = 0;
+        venueMap.forEach((count, venue) => {
+          if (count > mostVisitedVenueCount) {
+            mostVisitedVenueCount = count;
+            mostVisitedVenue = venue;
+          }
+        });
+
+        // Calculate estimated distance danced (3 hours per show * 0.2 miles per hour)
+        const totalShows = shows?.length || 0;
+        const distanceMiles = (totalShows * 3 * 0.2).toFixed(1);
+
+        setStats({
+          showsThisYear,
+          showsThisMonth,
+          mostSeenArtist,
+          mostSeenArtistCount,
+          mostVisitedVenue,
+          mostVisitedVenueCount,
+          userPercentile: totalShows > 10 ? 85 : totalShows > 5 ? 70 : 50, // Simple percentile calc
+          distanceDanced: `${distanceMiles} miles`,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        toast.error('Failed to load stats');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="space-y-8 pb-8">
@@ -132,10 +231,10 @@ const Stats = () => {
                 Activity Rank
               </div>
               <div className="text-3xl sm:text-4xl md:text-5xl font-black bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
-                Top {100 - mockStats.userPercentile}%
+                {isLoading ? "..." : `Top ${100 - stats.userPercentile}%`}
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                More active than {mockStats.userPercentile}% of users! 🎉
+                {isLoading ? "Loading..." : `More active than ${stats.userPercentile}% of users! 🎉`}
               </p>
             </div>
           </div>
@@ -146,33 +245,33 @@ const Stats = () => {
       <div className="grid gap-6 md:grid-cols-2">
         <StatCard
           title="Shows This Year"
-          value={mockStats.showsThisYear}
+          value={isLoading ? "..." : stats.showsThisYear}
           icon={Calendar}
           gradient="bg-gradient-to-br from-primary/20 via-card to-card"
         />
         <StatCard
           title="Shows This Month"
-          value={mockStats.showsThisMonth}
+          value={isLoading ? "..." : stats.showsThisMonth}
           icon={Music}
           gradient="bg-gradient-to-br from-secondary/20 via-card to-card"
         />
         <StatCard
           title="Most Seen Artist"
-          value={mockStats.mostSeenArtist}
-          subtitle={`${mockStats.mostSeenArtistCount} shows`}
+          value={isLoading ? "..." : stats.mostSeenArtist}
+          subtitle={stats.mostSeenArtistCount > 0 ? `${stats.mostSeenArtistCount} shows` : undefined}
           icon={Mic}
           gradient="bg-gradient-to-br from-accent/20 via-card to-card"
         />
         <StatCard
           title="Favorite Venue"
-          value={mockStats.mostVisitedVenue}
-          subtitle={`${mockStats.mostVisitedVenueCount} visits`}
+          value={isLoading ? "..." : stats.mostVisitedVenue}
+          subtitle={stats.mostVisitedVenueCount > 0 ? `${stats.mostVisitedVenueCount} visits` : undefined}
           icon={MapPin}
           gradient="bg-gradient-to-br from-primary/20 via-card to-secondary/10"
         />
         <StatCard
           title="Distance Danced"
-          value={mockStats.distanceDanced}
+          value={isLoading ? "..." : stats.distanceDanced}
           subtitle="Estimated from show duration"
           icon={Activity}
           gradient="bg-gradient-to-br from-secondary/20 via-card to-accent/10"
@@ -207,13 +306,13 @@ const Stats = () => {
               <p className="text-sm text-muted-foreground mb-3">Preview</p>
               <div className="bg-background/50 backdrop-blur rounded-lg p-6 space-y-3">
                 <div className="text-4xl font-black bg-gradient-primary bg-clip-text text-transparent">
-                  {mockStats.showsThisYear} Shows
+                  {stats.showsThisYear} Shows
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  Top {100 - mockStats.userPercentile}% Most Active
+                  Top {100 - stats.userPercentile}% Most Active
                 </div>
                 <div className="text-lg text-muted-foreground">
-                  {mockStats.mostSeenArtist} • {mockStats.mostVisitedVenue}
+                  {stats.mostSeenArtist} • {stats.mostVisitedVenue}
                 </div>
               </div>
             </div>
