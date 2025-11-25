@@ -361,9 +361,9 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
   const headliners = show.artists.filter(a => a.is_headliner);
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen overflow-y-auto gap-6 p-4">
+    <div className="flex flex-col lg:flex-row gap-6 pb-6">
       {/* Canvas Preview */}
-      <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg relative pointer-events-none">
+      <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg relative pointer-events-none min-h-[400px]">
         <div
           id="canvas-container"
           className="relative bg-black"
@@ -534,7 +534,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       </div>
 
       {/* Controls Panel */}
-      <div className="w-full lg:w-80 space-y-6 overflow-y-auto max-h-[80vh] lg:max-h-none pointer-events-auto">
+      <div className="w-full lg:w-80 space-y-6 pointer-events-auto">
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Customize Overlay</h3>
 
