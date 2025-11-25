@@ -38,7 +38,7 @@ const getRatingEmoji = (rating: number) => {
 const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [selectedCity, setSelectedCity] = useState<{ city: string; count: number; shows: Show[] } | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<{ venueName: string; location: string; count: number; shows: Show[] } | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
 
@@ -169,28 +169,30 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
       setShowsWithoutLocation(showsWithout);
 
-      // Aggregate shows by city (using venue.location as city identifier)
-      const cityMap = new Map<string, { shows: Show[], coords: [number, number] }>();
+      // Aggregate shows by venue (using venue name + location as unique identifier)
+      const venueMap = new Map<string, { shows: Show[], coords: [number, number], venueName: string, location: string }>();
       
       showsWithCoords.forEach(show => {
-        const city = show.venue.location;
-        if (!cityMap.has(city)) {
-          cityMap.set(city, { 
+        const venueKey = `${show.venue.name}|${show.venue.location}`;
+        if (!venueMap.has(venueKey)) {
+          venueMap.set(venueKey, { 
             shows: [show], 
-            coords: [show.longitude!, show.latitude!] 
+            coords: [show.longitude!, show.latitude!],
+            venueName: show.venue.name,
+            location: show.venue.location
           });
         } else {
-          cityMap.get(city)!.shows.push(show);
+          venueMap.get(venueKey)!.shows.push(show);
         }
       });
 
       // Calculate normalized weights
-      const cityCounts = Array.from(cityMap.values()).map(c => c.shows.length);
-      const minShows = Math.min(...cityCounts, 1);
-      const maxShows = Math.max(...cityCounts, 1);
+      const venueCounts = Array.from(venueMap.values()).map(v => v.shows.length);
+      const minShows = Math.min(...venueCounts, 1);
+      const maxShows = Math.max(...venueCounts, 1);
 
       // Build GeoJSON for heat map with normalized weights
-      const features = Array.from(cityMap.entries()).map(([city, data]) => {
+      const features = Array.from(venueMap.entries()).map(([venueKey, data]) => {
         const count = data.shows.length;
         // Logarithmic normalization for better visual distribution
         const weight = Math.log(count + 1) / Math.log(maxShows + 1);
@@ -200,7 +202,8 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           properties: { 
             count,
             weight,
-            city 
+            venueName: data.venueName,
+            location: data.location
           },
           geometry: {
             type: 'Point',
@@ -324,20 +327,22 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
-      // Add click handler for cities
+      // Add click handler for venues
       map.current.on('click', 'shows-points', (e) => {
         if (!e.features || e.features.length === 0) return;
         const feature = e.features[0];
-        const city = feature.properties?.city;
+        const venueName = feature.properties?.venueName;
+        const location = feature.properties?.location;
         const count = feature.properties?.count;
         
-        // Find all shows for this city
-        const cityShows = shows.filter(s => s.venue.location === city);
+        // Find all shows for this venue
+        const venueShows = shows.filter(s => s.venue.name === venueName && s.venue.location === location);
         
-        setSelectedCity({
-          city,
+        setSelectedVenue({
+          venueName,
+          location,
           count,
-          shows: cityShows
+          shows: venueShows
         });
       });
 
@@ -357,63 +362,45 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     <div className="relative w-full h-[calc(100vh-240px)]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg overflow-hidden" />
       
-      {/* Selected city popup */}
-      {selectedCity && (
+      {/* Selected venue popup */}
+      {selectedVenue && (
         <Card className="absolute top-4 left-4 w-80 max-h-96 overflow-y-auto z-10 shadow-lg">
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex-1">
-                <h3 className="font-bold text-xl">{selectedCity.city}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedCity.count} show{selectedCity.count !== 1 ? 's' : ''}
+                <h3 className="font-bold text-xl">{selectedVenue.venueName}</h3>
+                <p className="text-sm text-muted-foreground">{selectedVenue.location}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {selectedVenue.count} show{selectedVenue.count !== 1 ? 's' : ''}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSelectedCity(null)}
+                onClick={() => setSelectedVenue(null)}
                 className="h-6 w-6"
               >
                 ✕
               </Button>
             </div>
-            <div className="space-y-3">
-              {(() => {
-                // Group shows by venue
-                const venueMap = new Map<string, Show[]>();
-                selectedCity.shows.forEach(show => {
-                  const venueName = show.venue.name;
-                  if (!venueMap.has(venueName)) {
-                    venueMap.set(venueName, []);
-                  }
-                  venueMap.get(venueName)!.push(show);
-                });
-
-                return Array.from(venueMap.entries()).map(([venueName, venueShows]) => (
-                  <div key={venueName} className="border-l-2 border-primary/50 pl-3">
-                    <div className="font-medium mb-2">{venueName}</div>
-                    <div className="space-y-2">
-                      {venueShows.map(show => (
-                        <div
-                          key={show.id}
-                          className="p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted hover:border-primary/50 transition-colors text-sm"
-                          onClick={() => onEditShow(show)}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span>{getRatingEmoji(show.rating)}</span>
-                            <span className="font-medium">
-                              {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(show.date).toLocaleDateString()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+            <div className="space-y-2">
+              {selectedVenue.shows.map(show => (
+                <div
+                  key={show.id}
+                  className="p-3 bg-muted/50 rounded cursor-pointer hover:bg-muted hover:border-primary/50 transition-colors border border-border/50"
+                  onClick={() => onEditShow(show)}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{getRatingEmoji(show.rating)}</span>
+                    <span className="font-medium text-sm">
+                      {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
+                    </span>
                   </div>
-                ));
-              })()}
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(show.date).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
