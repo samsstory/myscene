@@ -216,9 +216,6 @@ const Feed = () => {
                   <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe))} bg-clip-text text-transparent`}>
                     {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}
                   </div>
-                  {viewMode === "top-rated" && <Badge variant="outline" className="text-xs">
-                      {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}/10
-                    </Badge>}
                 </div>
               </div>
 
