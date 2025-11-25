@@ -21,8 +21,13 @@ interface MapViewProps {
   onEditShow: (show: Show) => void;
 }
 
-// TODO: Replace with your actual Mapbox public token from https://mapbox.com
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+
+interface CountryData {
+  name: string;
+  showCount: number;
+  coordinates: [number, number];
+}
 
 const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -30,6 +35,8 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const [selectedVenue, setSelectedVenue] = useState<{ venueName: string; location: string; count: number; shows: Show[] } | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
+  const [countryData, setCountryData] = useState<CountryData[]>([]);
+  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -54,6 +61,53 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
     fetchHomeCoordinates();
   }, []);
+
+  // Extract country from location string
+  const getCountryFromLocation = (location: string): string => {
+    const parts = location.split(',').map(p => p.trim());
+    
+    // Check for USA, US, United States explicitly
+    const lastPart = parts[parts.length - 1];
+    if (['USA', 'US', 'United States', 'U.S.', 'U.S.A.'].includes(lastPart)) {
+      return 'United States';
+    }
+    
+    // Common US state abbreviations
+    const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
+    
+    // Check if any part is a US state
+    for (const part of parts) {
+      if (usStates.includes(part)) {
+        return 'United States';
+      }
+    }
+    
+    // If location has multiple parts, assume last is country
+    if (parts.length >= 2) {
+      return lastPart;
+    }
+    
+    return 'United States';
+  };
+
+  // Geocode country name to get center coordinates
+  const geocodeCountry = async (countryName: string): Promise<[number, number] | null> => {
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(countryName)}.json?types=country&access_token=${MAPBOX_TOKEN}`
+      );
+      const data = await response.json();
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        return [lng, lat];
+      }
+    } catch (error) {
+      console.error('Error geocoding country:', error);
+    }
+    return null;
+  };
 
   // Initialize map
   useEffect(() => {
@@ -80,9 +134,129 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     setShowsWithoutLocation(showsWithout);
   }, [shows]);
 
+  // Process shows and create country heat map data
+  useEffect(() => {
+    const processCountryData = async () => {
+      if (!shows.length) return;
+
+      // Group shows by country
+      const countryMap = new Map<string, number>();
+      
+      shows.forEach(show => {
+        if (show.venue.location) {
+          const country = getCountryFromLocation(show.venue.location);
+          countryMap.set(country, (countryMap.get(country) || 0) + 1);
+        }
+      });
+
+      // Geocode each country and create country data
+      const data: CountryData[] = [];
+      for (const [countryName, showCount] of countryMap.entries()) {
+        const coords = await geocodeCountry(countryName);
+        if (coords) {
+          data.push({
+            name: countryName,
+            showCount,
+            coordinates: coords
+          });
+        }
+      }
+
+      setCountryData(data);
+    };
+
+    processCountryData();
+  }, [shows]);
+
+  // Add country markers to map
+  useEffect(() => {
+    if (!map.current || !countryData.length) return;
+
+    // Wait for map to load
+    if (!map.current.isStyleLoaded()) {
+      map.current.on('load', () => addCountryMarkers());
+      return;
+    }
+
+    addCountryMarkers();
+
+    function addCountryMarkers() {
+      if (!map.current) return;
+
+      // Remove existing layers and sources
+      if (map.current.getLayer('country-dots')) {
+        map.current.removeLayer('country-dots');
+      }
+      if (map.current.getSource('countries')) {
+        map.current.removeSource('countries');
+      }
+
+      // Create GeoJSON for countries
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: countryData.map(country => ({
+          type: 'Feature',
+          properties: {
+            name: country.name,
+            showCount: country.showCount
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: country.coordinates
+          }
+        }))
+      };
+
+      // Add source
+      map.current.addSource('countries', {
+        type: 'geojson',
+        data: geojson
+      });
+
+      // Add layer
+      map.current.addLayer({
+        id: 'country-dots',
+        type: 'circle',
+        source: 'countries',
+        paint: {
+          'circle-radius': 20,
+          'circle-color': 'hsl(280, 70%, 55%)',
+          'circle-opacity': 0.8,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      // Add hover effect
+      map.current.on('mouseenter', 'country-dots', (e) => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (e.features && e.features.length > 0) {
+          setHoveredCountry(e.features[0].properties?.name);
+        }
+      });
+
+      map.current.on('mouseleave', 'country-dots', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+        setHoveredCountry(null);
+      });
+    }
+  }, [countryData]);
+
   return (
     <div className="relative w-full h-[600px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
+
+      {/* Hover info for country */}
+      {hoveredCountry && (
+        <Card className="absolute top-4 right-4 z-10">
+          <CardContent className="p-3">
+            <h3 className="font-semibold">{hoveredCountry}</h3>
+            <p className="text-sm text-muted-foreground">
+              {countryData.find(c => c.name === hoveredCountry)?.showCount} shows
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Shows without location list */}
       {showsWithoutLocation.length > 0 && (
