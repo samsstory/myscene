@@ -45,10 +45,19 @@ const getRatingEmoji = (rating: number): string => {
 };
 
 const getRatingGradient = (rating: number): string => {
-  if (rating >= 4.5) return "linear-gradient(135deg, hsl(220, 90%, 56%), hsl(280, 70%, 55%))";
-  if (rating >= 3.5) return "linear-gradient(135deg, hsl(45, 100%, 60%), hsl(330, 85%, 65%))";
-  if (rating >= 2.5) return "linear-gradient(135deg, hsl(30, 100%, 55%), hsl(45, 100%, 60%))";
-  return "linear-gradient(135deg, hsl(0, 70%, 50%), hsl(30, 100%, 55%))";
+  // Darker, more muted gradients that blend better with photos
+  if (rating >= 4.5) return "linear-gradient(135deg, rgba(45, 55, 72, 0.85), rgba(26, 32, 44, 0.90))";
+  if (rating >= 3.5) return "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.90))";
+  if (rating >= 2.5) return "linear-gradient(135deg, rgba(55, 48, 45, 0.85), rgba(28, 25, 23, 0.90))";
+  return "linear-gradient(135deg, rgba(60, 35, 35, 0.85), rgba(30, 20, 20, 0.90))";
+};
+
+const getRatingAccent = (rating: number): string => {
+  // Subtle accent colors for text highlights
+  if (rating >= 4.5) return "hsl(45, 93%, 58%)"; // Gold
+  if (rating >= 3.5) return "hsl(189, 94%, 55%)"; // Blue
+  if (rating >= 2.5) return "hsl(17, 88%, 60%)"; // Orange
+  return "hsl(0, 84%, 60%)"; // Red
 };
 
 export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) => {
@@ -316,7 +325,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
               >
                 <div
                   id="rating-overlay"
-                  className="h-full w-full rounded-3xl p-6 text-white shadow-2xl"
+                  className="h-full w-full rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10"
                   style={{
                     background: getRatingGradient(show.rating),
                     opacity: overlayOpacity / 100,
@@ -325,7 +334,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   }}
                 >
                   {overlayConfig.showArtists && (
-                    <h2 className="text-2xl font-bold mb-2">
+                    <h2 className="text-2xl font-bold mb-2" style={{ color: getRatingAccent(show.rating) }}>
                       {headliners.map(a => a.name).join(", ")}
                     </h2>
                   )}
@@ -345,7 +354,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   )}
 
                   {overlayConfig.showRating && (
-                    <div className="text-4xl font-bold mb-3">
+                    <div className="text-4xl font-bold mb-3" style={{ color: getRatingAccent(show.rating) }}>
                       {getRatingEmoji(show.rating)} {show.rating}/5
                     </div>
                   )}
