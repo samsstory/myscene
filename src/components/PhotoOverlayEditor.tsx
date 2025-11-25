@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Download } from "lucide-react";
+import { Download, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface Artist {
@@ -340,7 +340,10 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   )}
                   
                   {overlayConfig.showVenue && (
-                    <p className="text-lg mb-1">{show.venue_name}</p>
+                    <p className="text-lg mb-1 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {show.venue_name}
+                    </p>
                   )}
                   
                   {overlayConfig.showDate && (
