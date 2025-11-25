@@ -118,7 +118,7 @@ export default function Rank() {
     if (uncomparedPairs.length === 0) {
       // All pairs have been compared
       setShowPair(null);
-      toast.success("You've compared all possible show pairs! 🎉");
+      toast.success("That's all for now! Your rankings are up to date");
       return;
     }
 
@@ -256,9 +256,9 @@ export default function Rank() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-2">
-          <p className="text-foreground font-semibold">All shows ranked!</p>
+          <p className="text-foreground font-semibold">That's all for now!</p>
           <p className="text-muted-foreground text-sm">
-            You've compared all possible show pairs
+            Your rankings are up to date
           </p>
         </div>
       </div>
