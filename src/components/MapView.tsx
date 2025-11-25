@@ -218,8 +218,13 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const removeLayers = () => {
     if (!map.current) return;
     
-    // Remove all possible layers from all zoom levels
-    const layersToRemove = ['country-dots', 'city-dots', 'venue-dots', 'shows-points', 'shows-heat', 'venue-points'];
+    // Remove all possible layers from all zoom levels (including glow and ring layers)
+    const layersToRemove = [
+      'country-dots-glow', 'country-dots-ring', 'country-dots',
+      'city-dots-glow', 'city-dots-ring', 'city-dots',
+      'venue-dots-glow', 'venue-dots-ring', 'venue-dots',
+      'shows-points', 'shows-heat', 'venue-points'
+    ];
     layersToRemove.forEach(layer => {
       if (map.current?.getLayer(layer)) {
         map.current.removeLayer(layer);
@@ -246,7 +251,52 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       data: geojson
     });
 
-    // Only add country-level circles
+    // Outer glow layer (largest, most transparent)
+    map.current.addLayer({
+      id: 'country-dots-glow',
+      type: 'circle',
+      source: 'country-data',
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 14,
+          1, 50
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
+        ],
+        'circle-opacity': 0.2,
+        'circle-blur': 1
+      }
+    });
+
+    // Middle ring layer
+    map.current.addLayer({
+      id: 'country-dots-ring',
+      type: 'circle',
+      source: 'country-data',
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 10,
+          1, 36
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
+        ],
+        'circle-opacity': 0.45
+      }
+    });
+
+    // Core dot layer (smallest, most vibrant)
     map.current.addLayer({
       id: 'country-dots',
       type: 'circle',
@@ -254,16 +304,17 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       paint: {
         'circle-radius': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 15,
-          1, 35
+          0, 8,
+          1, 28
         ],
         'circle-color': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(250, 70%, 50%)',
-          0.5, 'hsl(20, 90%, 60%)',
-          1, 'hsl(189, 94%, 65%)'
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
         ],
-        'circle-opacity': 0.85
+        'circle-opacity': 0.95
       }
     });
 
@@ -346,7 +397,52 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       data: cityGeojson
     });
 
-    // Only show city-level circles
+    // Outer glow layer
+    map.current.addLayer({
+      id: 'city-dots-glow',
+      type: 'circle',
+      source: 'city-data',
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 18,
+          1, 58
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
+        ],
+        'circle-opacity': 0.2,
+        'circle-blur': 1
+      }
+    });
+
+    // Middle ring layer
+    map.current.addLayer({
+      id: 'city-dots-ring',
+      type: 'circle',
+      source: 'city-data',
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 13,
+          1, 42
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
+        ],
+        'circle-opacity': 0.45
+      }
+    });
+
+    // Core dot layer
     map.current.addLayer({
       id: 'city-dots',
       type: 'circle',
@@ -354,16 +450,17 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       paint: {
         'circle-radius': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 18,
-          1, 40
+          0, 10,
+          1, 32
         ],
         'circle-color': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(250, 70%, 50%)',
-          0.5, 'hsl(20, 90%, 60%)',
-          1, 'hsl(189, 94%, 65%)'
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
         ],
-        'circle-opacity': 0.85
+        'circle-opacity': 0.95
       }
     });
 
@@ -447,7 +544,52 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       data: venueGeojson
     });
 
-    // Only show venue-level circles
+    // Outer glow layer
+    map.current.addLayer({
+      id: 'venue-dots-glow',
+      type: 'circle',
+      source: 'venue-data',
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 14,
+          1, 36
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
+        ],
+        'circle-opacity': 0.2,
+        'circle-blur': 1
+      }
+    });
+
+    // Middle ring layer
+    map.current.addLayer({
+      id: 'venue-dots-ring',
+      type: 'circle',
+      source: 'venue-data',
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 10,
+          1, 26
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
+        ],
+        'circle-opacity': 0.45
+      }
+    });
+
+    // Core dot layer
     map.current.addLayer({
       id: 'venue-dots',
       type: 'circle',
@@ -455,16 +597,17 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       paint: {
         'circle-radius': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 12,
-          1, 25
+          0, 8,
+          1, 20
         ],
         'circle-color': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(250, 70%, 50%)',
-          0.5, 'hsl(20, 90%, 60%)',
-          1, 'hsl(189, 94%, 65%)'
+          0, 'hsl(260, 80%, 35%)',
+          0.3, 'hsl(280, 70%, 55%)',
+          0.7, 'hsl(330, 85%, 65%)',
+          1, 'hsl(45, 100%, 60%)'
         ],
-        'circle-opacity': 0.85
+        'circle-opacity': 0.95
       }
     });
 
