@@ -109,6 +109,7 @@ export type Database = {
           id: string
           lighting: number | null
           notes: string | null
+          photo_url: string | null
           rating: number
           show_date: string
           sound: number | null
@@ -127,6 +128,7 @@ export type Database = {
           id?: string
           lighting?: number | null
           notes?: string | null
+          photo_url?: string | null
           rating: number
           show_date: string
           sound?: number | null
@@ -145,6 +147,7 @@ export type Database = {
           id?: string
           lighting?: number | null
           notes?: string | null
+          photo_url?: string | null
           rating?: number
           show_date?: string
           sound?: number | null
