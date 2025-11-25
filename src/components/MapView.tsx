@@ -307,7 +307,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
               </CardContent>
             </Card>
           ) : (
-            <div className="absolute bottom-4 right-4 z-10 animate-fade-in">
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10 animate-fade-in">
               <Button
                 size="icon"
                 variant="default"
