@@ -58,6 +58,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
     showRating: true,
     showDetailedRatings: true,
     showNotes: true,
+    showBackground: true,
   });
 
   const [overlaySize, setOverlaySize] = useState<number>(0.35); // 0.25, 0.35, 0.45
@@ -409,7 +410,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   id="rating-overlay"
                   className="rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 relative"
                   style={{
-                    background: getRatingGradient(show.rating),
+                    background: overlayConfig.showBackground ? getRatingGradient(show.rating) : "transparent",
                     opacity: overlayOpacity / 100,
                     transform: `scale(${overlaySize})`,
                     transformOrigin: "top left",
@@ -594,6 +595,17 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                 checked={overlayConfig.showNotes}
                 onCheckedChange={(checked) => 
                   setOverlayConfig({ ...overlayConfig, showNotes: checked })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-background">Background Overlay</Label>
+              <Switch
+                id="show-background"
+                checked={overlayConfig.showBackground}
+                onCheckedChange={(checked) => 
+                  setOverlayConfig({ ...overlayConfig, showBackground: checked })
                 }
               />
             </div>
