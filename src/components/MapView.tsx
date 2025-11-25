@@ -187,15 +187,21 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   // Geocode venue address to get coordinates
   const geocodeVenue = async (address: string): Promise<[number, number] | null> => {
     try {
+      console.log(`[MapView] Attempting to geocode venue address: "${address}"`);
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?types=address,poi&access_token=${MAPBOX_TOKEN}`
       );
       const data = await response.json();
+      
       if (data.features?.length > 0) {
-        return data.features[0].center;
+        const coords = data.features[0].center;
+        console.log(`[MapView] Successfully geocoded "${address}" to coordinates:`, coords);
+        return coords;
+      } else {
+        console.warn(`[MapView] No geocoding results found for venue address: "${address}"`);
       }
     } catch (error) {
-      console.error('Error geocoding venue:', error);
+      console.error(`[MapView] Error geocoding venue address "${address}":`, error);
     }
     return null;
   };
@@ -321,6 +327,8 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     const cityInfo = cityData.find(c => c.name === cityName);
     if (!cityInfo) return;
 
+    console.log(`[MapView] Drilling down to city: "${cityName}" with ${cityInfo.shows.length} shows`);
+
     // Group shows by venue
     const venueMap = new Map<string, Show[]>();
     cityInfo.shows.forEach(show => {
@@ -331,6 +339,8 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       venueMap.get(venueName)!.push(show);
     });
 
+    console.log(`[MapView] Found ${venueMap.size} unique venues in ${cityName}`);
+
     // Create venue data with coordinates
     const venues: VenueData[] = [];
     for (const [venueName, venueShows] of venueMap.entries()) {
@@ -340,8 +350,16 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       
       if (showWithCoords) {
         coords = [showWithCoords.longitude!, showWithCoords.latitude!];
+        console.log(`[MapView] Venue "${venueName}" has stored coordinates:`, coords);
       } else {
+        console.log(`[MapView] Geocoding venue "${venueName}" with address: "${venueShows[0].venue.location}"`);
         coords = await geocodeVenue(venueShows[0].venue.location);
+        
+        if (!coords) {
+          console.warn(`[MapView] Failed to geocode venue "${venueName}", attempting city fallback`);
+          // Fallback: try to geocode just the city if full address fails
+          coords = await geocodeCity(cityName, selectedCountry || 'United States');
+        }
       }
       
       if (coords) {
@@ -351,8 +369,12 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           coordinates: coords,
           shows: venueShows
         });
+      } else {
+        console.error(`[MapView] Could not determine coordinates for venue "${venueName}", skipping map display`);
       }
     }
+
+    console.log(`[MapView] Successfully mapped ${venues.length} of ${venueMap.size} venues`);
 
     setVenueData(venues);
     setSelectedCity(cityName);

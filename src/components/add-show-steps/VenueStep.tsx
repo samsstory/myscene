@@ -209,9 +209,9 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
     }
 
     // If coordinates were pre-selected from dropdown, use them directly
+    // AND create a proper venue record in the database
     if (selectedCoordinates) {
-      onSelect(pendingVenueName, venueAddress, null, selectedCoordinates[1], selectedCoordinates[0]);
-      setHasChanges(true);
+      await createVenueAndSelect(pendingVenueName, venueAddress, selectedCoordinates);
       setShowAddressDialog(false);
       return;
     }
@@ -221,10 +221,69 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
     setShowAddressDialog(false);
   };
 
+  // Create a venue record in the database with geocoded coordinates
+  const createVenueAndSelect = async (
+    venueName: string, 
+    venueLocation: string, 
+    coordinates: [number, number]
+  ) => {
+    setIsGeocoding(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('[VenueStep] No authenticated user found');
+        onSelect(venueName, venueLocation, null, coordinates[1], coordinates[0]);
+        setHasChanges(true);
+        return;
+      }
+
+      // Parse city and country from location
+      const parts = venueLocation.split(',').map(p => p.trim());
+      const country = parts[parts.length - 1] || 'United States';
+      const city = parts.length >= 2 ? parts[parts.length - 2].replace(/\s*\d+\s*$/, '').trim() : parts[0];
+
+      console.log(`[VenueStep] Creating venue record for "${venueName}" at coordinates:`, coordinates);
+
+      // Create venue record with geocoded coordinates
+      const { data: venue, error } = await supabase
+        .from('venues')
+        .insert({
+          name: venueName,
+          location: venueLocation,
+          city: city,
+          country: country,
+          latitude: coordinates[1],
+          longitude: coordinates[0],
+          metadata: { source: 'user_entry', created_by: user.id }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[VenueStep] Error creating venue record:', error);
+        // Still pass coordinates even if venue creation fails
+        onSelect(venueName, venueLocation, null, coordinates[1], coordinates[0]);
+      } else if (venue) {
+        console.log(`[VenueStep] Successfully created venue record with ID: ${venue.id}`);
+        onSelect(venueName, venueLocation, venue.id, coordinates[1], coordinates[0]);
+      }
+      
+      setHasChanges(true);
+    } catch (error) {
+      console.error('[VenueStep] Unexpected error creating venue:', error);
+      onSelect(venueName, venueLocation, null, coordinates[1], coordinates[0]);
+      setHasChanges(true);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
   const geocodeAndSelect = async (query: string, venueName: string, locationName: string) => {
     setIsGeocoding(true);
     try {
       const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+      console.log(`[VenueStep] Geocoding address: "${query}"`);
+      
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=1`
       );
@@ -232,13 +291,17 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
       if (data.features && data.features.length > 0) {
         const [longitude, latitude] = data.features[0].center;
-        onSelect(venueName, locationName, null, latitude, longitude);
+        console.log(`[VenueStep] Successfully geocoded to coordinates:`, [longitude, latitude]);
+        
+        // Create venue record with coordinates
+        await createVenueAndSelect(venueName, locationName, [longitude, latitude]);
       } else {
+        console.warn(`[VenueStep] No geocoding results found for: "${query}"`);
         onSelect(venueName, locationName, null);
+        setHasChanges(true);
       }
-      setHasChanges(true);
     } catch (error) {
-      console.error('Error geocoding address:', error);
+      console.error(`[VenueStep] Error geocoding address "${query}":`, error);
       onSelect(venueName, locationName, null);
       setHasChanges(true);
     } finally {
