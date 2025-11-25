@@ -286,7 +286,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden relative">
         <div
           id="canvas-container"
-          className="relative bg-black"
+          className="relative bg-black overflow-visible"
           style={{
             width: "100%",
             maxWidth: "540px",
@@ -301,8 +301,16 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
           />
 
           {/* Draggable Overlay */}
-          <Draggable bounds="parent" defaultPosition={{ x: 40, y: 100 }}>
-            <div style={{ position: "absolute", cursor: "move" }}>
+          <Draggable 
+            bounds={{
+              left: -200,
+              top: -200,
+              right: 540,
+              bottom: 960
+            }}
+            defaultPosition={{ x: 40, y: 100 }}
+          >
+            <div style={{ position: "absolute", cursor: "move", zIndex: 10 }}>
               <Resizable
                 defaultSize={{ width: 400, height: 300 }}
                 minWidth={200}
@@ -322,7 +330,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
               >
                 <div
                   id="rating-overlay"
-                  className="h-full w-full rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 relative"
+                  className="h-full w-full rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 relative pointer-events-auto"
                   style={{
                     background: getRatingGradient(show.rating),
                     opacity: overlayOpacity / 100,
