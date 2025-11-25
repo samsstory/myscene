@@ -170,8 +170,8 @@ const Feed = () => {
         {sortedShows.map((show, index) => <Card key={show.id} className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative w-full max-w-3xl" onClick={() => {
         setReviewShow(show);
         setReviewSheetOpen(true);
-          }}>
-            <CardContent className="p-3 relative overflow-hidden">
+      }}>
+            <CardContent className="p-3 relative overflow-hidden px-0">
               <div className="flex items-start gap-4">
 
                 {/* Photo thumbnail (only if photo exists) */}
@@ -232,16 +232,11 @@ const Feed = () => {
                 </div>}
 
               {/* Share button - bottom right */}
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="absolute bottom-2 right-2 h-8 w-8" 
-                onClick={e => {
-                  e.stopPropagation();
-                  setShareShow(show);
-                  setShareSheetOpen(true);
-                }}
-              >
+              <Button size="icon" variant="ghost" className="absolute bottom-2 right-2 h-8 w-8" onClick={e => {
+            e.stopPropagation();
+            setShareShow(show);
+            setShareSheetOpen(true);
+          }}>
                 <Send className="h-4 w-4" />
               </Button>
             </CardContent>
