@@ -60,7 +60,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
     showNotes: true,
   });
 
-  const [overlaySize, setOverlaySize] = useState<number>(0.6); // 0.35, 0.475, 0.6
+  const [overlaySize, setOverlaySize] = useState<number>(0.6); // 0.45, 0.6, 0.75
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(45, 93%, 58%)");
@@ -144,7 +144,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
   });
 
   const handleSizeChange = (value: number[]) => {
-    const sizeMap = [0.35, 0.475, 0.6];
+    const sizeMap = [0.45, 0.6, 0.75];
     setOverlaySize(sizeMap[value[0]]);
   };
 
