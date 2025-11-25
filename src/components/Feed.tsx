@@ -174,8 +174,8 @@ const Feed = () => {
             <CardContent className="p-6 py-[24px] mx-0 rounded-none pt-[10px] pr-[10px] pb-[10px] pl-[10px] px-0">
               <div className="flex items-start gap-6">
                 {/* Leaderboard ranking number (only in top-rated view) */}
-                {viewMode === "top-rated" && <div className="absolute -left-4 top-1/2 -translate-y-1/2 text-5xl font-black text-primary z-10" style={{
-              textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                {viewMode === "top-rated" && <div className="absolute left-3 top-3 text-2xl font-black text-primary z-20 bg-background/80 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
             }}>
                     {index + 1}
                   </div>}
