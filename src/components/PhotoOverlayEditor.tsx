@@ -390,120 +390,136 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
             defaultPosition={{ x: 40, y: 100 }}
           >
             <div style={{ position: "absolute", cursor: "move", zIndex: 10 }}>
-              <div
-                id="rating-overlay"
-                className="rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 relative w-auto max-w-md"
-                style={{
-                  background: getRatingGradient(show.rating),
-                  opacity: overlayOpacity / 100,
-                  transform: `scale(${overlaySize})`,
-                  transformOrigin: "top left",
+              <Resizable
+                defaultSize={{ width: 400, height: "auto" }}
+                minWidth={200}
+                maxWidth={500}
+                enable={{
+                  top: false,
+                  right: true,
+                  bottom: false,
+                  left: false,
+                  topRight: false,
+                  bottomRight: false,
+                  bottomLeft: false,
+                  topLeft: false,
                 }}
               >
-                {overlayConfig.showArtists && (
-                  <h2 className="text-2xl font-bold mb-2" style={{ color: primaryColor }}>
-                    {headliners.map(a => a.name).join(", ")}
-                  </h2>
-                )}
-                
-                {overlayConfig.showVenue && (
-                  <p className="text-lg mb-1 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    {show.venue_name}
-                  </p>
-                )}
-                
-                {overlayConfig.showDate && (
-                  <p className="text-sm opacity-90 mb-3">
-                    {new Date(show.show_date).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                )}
+                <div
+                  id="rating-overlay"
+                  className="rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 relative"
+                  style={{
+                    background: getRatingGradient(show.rating),
+                    opacity: overlayOpacity / 100,
+                    transform: `scale(${overlaySize})`,
+                    transformOrigin: "top left",
+                  }}
+                >
+                  {overlayConfig.showArtists && (
+                    <h2 className="text-2xl font-bold mb-2" style={{ color: primaryColor }}>
+                      {headliners.map(a => a.name).join(", ")}
+                    </h2>
+                  )}
+                  
+                  {overlayConfig.showVenue && (
+                    <p className="text-lg mb-1 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {show.venue_name}
+                    </p>
+                  )}
+                  
+                  {overlayConfig.showDate && (
+                    <p className="text-sm opacity-90 mb-3">
+                      {new Date(show.show_date).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
 
-                {overlayConfig.showRating && (
-                  <div className="absolute top-4 right-4 text-right">
-                    <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none`}>
-                      {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
+                  {overlayConfig.showRating && (
+                    <div className="absolute top-4 right-4 text-right">
+                      <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none`}>
+                        {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
+                      </div>
                     </div>
+                  )}
+
+                  {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
+                    <div className="space-y-2 text-xs mb-3">
+                      {show.artist_performance && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">Performance</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.artist_performance / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {show.sound && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">Sound</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.sound / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {show.lighting && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">Lighting</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.lighting / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {show.crowd && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">Crowd</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.crowd / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {show.venue_vibe && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">Vibe</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {overlayConfig.showNotes && show.notes && (
+                    <p className="text-sm italic opacity-90 line-clamp-3">
+                      "{show.notes}"
+                    </p>
+                  )}
+
+                  {/* Scene logo at bottom */}
+                  <div className="mt-4 text-center">
+                    <span className="text-xs font-bold tracking-wider opacity-30" style={{ filter: "grayscale(100%)" }}>
+                      SCENE
+                    </span>
                   </div>
-                )}
-
-                {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
-                  <div className="space-y-2 text-xs mb-3">
-                    {show.artist_performance && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-20">Performance</span>
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full"
-                            style={{ width: `${(show.artist_performance / 5) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {show.sound && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-20">Sound</span>
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full"
-                            style={{ width: `${(show.sound / 5) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {show.lighting && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-20">Lighting</span>
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full"
-                            style={{ width: `${(show.lighting / 5) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {show.crowd && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-20">Crowd</span>
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full"
-                            style={{ width: `${(show.crowd / 5) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {show.venue_vibe && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-20">Vibe</span>
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full"
-                            style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {overlayConfig.showNotes && show.notes && (
-                  <p className="text-sm italic opacity-90 line-clamp-3">
-                    "{show.notes}"
-                  </p>
-                )}
-
-                {/* Scene logo at bottom */}
-                <div className="mt-4 text-center">
-                  <span className="text-xs font-bold tracking-wider opacity-30" style={{ filter: "grayscale(100%)" }}>
-                    SCENE
-                  </span>
                 </div>
-              </div>
+              </Resizable>
             </div>
           </Draggable>
         </div>
