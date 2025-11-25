@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-
 interface StatsData {
   allTimeShows: number;
   showsThisYear: number;
@@ -23,13 +22,12 @@ interface StatsData {
     eloScore: number;
   } | null;
 }
-
 const StatCard = ({
   title,
   value,
   subtitle,
   icon: Icon,
-  gradient,
+  gradient
 }: {
   title: string;
   value: string | number;
@@ -38,26 +36,13 @@ const StatCard = ({
   gradient?: string;
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
-
   const handleShare = () => {
     toast.success("Sharing feature coming soon! 📸");
   };
-
-  return (
-    <div 
-      className="perspective-1000 cursor-pointer"
-      onClick={() => setIsFlipped(!isFlipped)}
-    >
-      <div className={cn(
-        "relative w-full h-48 transition-transform duration-500 transform-style-3d",
-        isFlipped && "rotate-y-180"
-      )}>
+  return <div className="perspective-1000 cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
+      <div className={cn("relative w-full h-48 transition-transform duration-500 transform-style-3d", isFlipped && "rotate-y-180")}>
         {/* Front */}
-        <Card className={cn(
-          "absolute inset-0 backface-hidden border-border/50 overflow-hidden",
-          "hover:shadow-glow transition-all duration-300",
-          gradient || "bg-gradient-to-br from-card via-card to-card/80"
-        )}>
+        <Card className={cn("absolute inset-0 backface-hidden border-border/50 overflow-hidden", "hover:shadow-glow transition-all duration-300", gradient || "bg-gradient-to-br from-card via-card to-card/80")}>
           <CardContent className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
@@ -69,19 +54,12 @@ const StatCard = ({
               <div className="text-3xl sm:text-4xl md:text-5xl font-black bg-gradient-primary bg-clip-text text-transparent mb-2 truncate">
                 {value}
               </div>
-              {subtitle && (
-                <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
-              )}
+              {subtitle && <p className="text-sm text-muted-foreground truncate">{subtitle}</p>}
             </div>
-            <Button 
-              size="icon"
-              variant="ghost" 
-              className="absolute bottom-2 right-2 h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleShare();
-              }}
-            >
+            <Button size="icon" variant="ghost" className="absolute bottom-2 right-2 h-8 w-8" onClick={e => {
+            e.stopPropagation();
+            handleShare();
+          }}>
               <Send className="h-4 w-4" />
             </Button>
           </CardContent>
@@ -94,23 +72,18 @@ const StatCard = ({
             <p className="text-center text-sm text-muted-foreground">
               Share this stat to your story
             </p>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleShare();
-              }}
-              className="w-full shadow-glow"
-            >
+            <Button onClick={e => {
+            e.stopPropagation();
+            handleShare();
+          }} className="w-full shadow-glow">
               <Share2 className="h-4 w-4 mr-2" />
               Share to Instagram
             </Button>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 const Stats = () => {
   const [showSharePreview, setShowSharePreview] = useState(false);
   const [stats, setStats] = useState<StatsData>({
@@ -123,16 +96,18 @@ const Stats = () => {
     mostVisitedVenueCount: 0,
     userPercentile: 0,
     distanceDanced: "0 miles",
-    topRankedShow: null,
+    topRankedShow: null
   });
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: {
+            session
+          }
+        } = await supabase.auth.getSession();
         if (!session?.user) return;
-
         const userId = session.user.id;
         const currentYear = new Date().getFullYear();
         const currentMonth = new Date().getMonth();
@@ -140,11 +115,10 @@ const Stats = () => {
         const yearStart = new Date(currentYear, 0, 1).toISOString().split('T')[0];
 
         // Get all shows for the user
-        const { data: shows, error: showsError } = await supabase
-          .from('shows')
-          .select('id, show_date, venue_name, venue_id')
-          .eq('user_id', userId);
-
+        const {
+          data: shows,
+          error: showsError
+        } = await supabase.from('shows').select('id, show_date, venue_name, venue_id').eq('user_id', userId);
         if (showsError) throw showsError;
 
         // Calculate shows this year
@@ -154,16 +128,13 @@ const Stats = () => {
         const showsThisMonth = shows?.filter(show => show.show_date >= currentMonthStart).length || 0;
 
         // Get most seen artist
-        const { data: artistCounts } = await supabase
-          .from('show_artists')
-          .select('artist_name, show_id')
-          .in('show_id', shows?.map(s => s.id) || []);
-
+        const {
+          data: artistCounts
+        } = await supabase.from('show_artists').select('artist_name, show_id').in('show_id', shows?.map(s => s.id) || []);
         const artistMap = new Map<string, number>();
         artistCounts?.forEach(artist => {
           artistMap.set(artist.artist_name, (artistMap.get(artist.artist_name) || 0) + 1);
         });
-
         let mostSeenArtist = "—";
         let mostSeenArtistCount = 0;
         artistMap.forEach((count, artist) => {
@@ -180,7 +151,6 @@ const Stats = () => {
             venueMap.set(show.venue_name, (venueMap.get(show.venue_name) || 0) + 1);
           }
         });
-
         let mostVisitedVenue = "—";
         let mostVisitedVenueCount = 0;
         venueMap.forEach((count, venue) => {
@@ -196,41 +166,33 @@ const Stats = () => {
 
         // Get top-ranked show from ELO rankings
         let topRankedShow = null;
-        const { data: rankings, error: rankingsError } = await supabase
-          .from('show_rankings')
-          .select('show_id, elo_score, comparisons_count')
-          .eq('user_id', userId)
-          .order('elo_score', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
+        const {
+          data: rankings,
+          error: rankingsError
+        } = await supabase.from('show_rankings').select('show_id, elo_score, comparisons_count').eq('user_id', userId).order('elo_score', {
+          ascending: false
+        }).limit(1).maybeSingle();
         if (!rankingsError && rankings && rankings.comparisons_count > 0) {
           // Fetch the show details
-          const { data: topShow } = await supabase
-            .from('shows')
-            .select('id, venue_name')
-            .eq('id', rankings.show_id)
-            .single();
-
+          const {
+            data: topShow
+          } = await supabase.from('shows').select('id, venue_name').eq('id', rankings.show_id).single();
           if (topShow) {
             // Fetch artists for this show
-            const { data: showArtists } = await supabase
-              .from('show_artists')
-              .select('artist_name')
-              .eq('show_id', topShow.id)
-              .order('is_headliner', { ascending: false });
-
+            const {
+              data: showArtists
+            } = await supabase.from('show_artists').select('artist_name').eq('show_id', topShow.id).order('is_headliner', {
+              ascending: false
+            });
             const artistNames = showArtists?.slice(0, 2).map(a => a.artist_name).join(", ") || "Unknown";
             const remainingCount = (showArtists?.length || 0) - 2;
-            
             topRankedShow = {
               artists: remainingCount > 0 ? `${artistNames} +${remainingCount} more` : artistNames,
               venue: topShow.venue_name,
-              eloScore: rankings.elo_score,
+              eloScore: rankings.elo_score
             };
           }
         }
-
         setStats({
           allTimeShows: totalShows,
           showsThisYear,
@@ -239,9 +201,10 @@ const Stats = () => {
           mostSeenArtistCount,
           mostVisitedVenue,
           mostVisitedVenueCount,
-          userPercentile: totalShows > 10 ? 85 : totalShows > 5 ? 70 : 50, // Simple percentile calc
+          userPercentile: totalShows > 10 ? 85 : totalShows > 5 ? 70 : 50,
+          // Simple percentile calc
           distanceDanced: `${distanceMiles} miles`,
-          topRankedShow,
+          topRankedShow
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -250,12 +213,9 @@ const Stats = () => {
         setIsLoading(false);
       }
     };
-
     fetchStats();
   }, []);
-
-  return (
-    <div className="space-y-8 pb-8">
+  return <div className="space-y-8 pb-8">
       {/* Header */}
       <div>
         <h2 className="text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
@@ -265,8 +225,7 @@ const Stats = () => {
       </div>
 
       {/* Your #1 Show - Celebratory Feature Card */}
-      {stats.topRankedShow && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(45,93%,58%)]/30 via-primary/20 to-[hsl(189,94%,55%)]/30 border-2 border-[hsl(45,93%,58%)]/50 shadow-glow">
+      {stats.topRankedShow && <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(45,93%,58%)]/30 via-primary/20 to-[hsl(189,94%,55%)]/30 border-2 border-[hsl(45,93%,58%)]/50 shadow-glow">
           <div className="absolute inset-0 bg-gradient-to-br from-[hsl(45,93%,58%)]/10 to-transparent animate-pulse" />
           <CardContent className="relative p-6">
             <div className="flex items-start gap-4">
@@ -299,14 +258,13 @@ const Stats = () => {
               </div>
             </div>
           </CardContent>
-        </div>
-      )}
+        </div>}
 
       {/* Activity Rank Badge - Celebratory */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/20 via-primary/20 to-secondary/20 border border-primary/30">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent animate-pulse" />
         <CardContent className="relative p-4 sm:p-6">
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="sm:gap-4 flex-row flex items-center justify-start px-0 mx-0 gap-[30px] rounded-none">
             <div className="relative shrink-0">
               <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-accent animate-bounce" />
               <Sparkles className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 h-4 w-4 sm:h-6 sm:w-6 text-primary animate-pulse" />
@@ -328,45 +286,12 @@ const Stats = () => {
 
       {/* Stat Cards Grid */}
       <div className="grid gap-6 md:grid-cols-2">
-        <StatCard
-          title="All Time Shows"
-          value={isLoading ? "..." : stats.allTimeShows}
-          icon={Trophy}
-          gradient="bg-gradient-to-br from-accent/20 via-primary/10 to-card"
-        />
-        <StatCard
-          title="Shows This Year"
-          value={isLoading ? "..." : stats.showsThisYear}
-          icon={Calendar}
-          gradient="bg-gradient-to-br from-primary/20 via-card to-card"
-        />
-        <StatCard
-          title="Shows This Month"
-          value={isLoading ? "..." : stats.showsThisMonth}
-          icon={Music}
-          gradient="bg-gradient-to-br from-secondary/20 via-card to-card"
-        />
-        <StatCard
-          title="Most Seen Artist"
-          value={isLoading ? "..." : stats.mostSeenArtist}
-          subtitle={stats.mostSeenArtistCount > 0 ? `${stats.mostSeenArtistCount} shows` : undefined}
-          icon={Mic}
-          gradient="bg-gradient-to-br from-accent/20 via-card to-card"
-        />
-        <StatCard
-          title="Favorite Venue"
-          value={isLoading ? "..." : stats.mostVisitedVenue}
-          subtitle={stats.mostVisitedVenueCount > 0 ? `${stats.mostVisitedVenueCount} visits` : undefined}
-          icon={MapPin}
-          gradient="bg-gradient-to-br from-primary/20 via-card to-secondary/10"
-        />
-        <StatCard
-          title="Distance Danced"
-          value={isLoading ? "..." : stats.distanceDanced}
-          subtitle="Estimated from show duration"
-          icon={Activity}
-          gradient="bg-gradient-to-br from-secondary/20 via-card to-accent/10"
-        />
+        <StatCard title="All Time Shows" value={isLoading ? "..." : stats.allTimeShows} icon={Trophy} gradient="bg-gradient-to-br from-accent/20 via-primary/10 to-card" />
+        <StatCard title="Shows This Year" value={isLoading ? "..." : stats.showsThisYear} icon={Calendar} gradient="bg-gradient-to-br from-primary/20 via-card to-card" />
+        <StatCard title="Shows This Month" value={isLoading ? "..." : stats.showsThisMonth} icon={Music} gradient="bg-gradient-to-br from-secondary/20 via-card to-card" />
+        <StatCard title="Most Seen Artist" value={isLoading ? "..." : stats.mostSeenArtist} subtitle={stats.mostSeenArtistCount > 0 ? `${stats.mostSeenArtistCount} shows` : undefined} icon={Mic} gradient="bg-gradient-to-br from-accent/20 via-card to-card" />
+        <StatCard title="Favorite Venue" value={isLoading ? "..." : stats.mostVisitedVenue} subtitle={stats.mostVisitedVenueCount > 0 ? `${stats.mostVisitedVenueCount} visits` : undefined} icon={MapPin} gradient="bg-gradient-to-br from-primary/20 via-card to-secondary/10" />
+        <StatCard title="Distance Danced" value={isLoading ? "..." : stats.distanceDanced} subtitle="Estimated from show duration" icon={Activity} gradient="bg-gradient-to-br from-secondary/20 via-card to-accent/10" />
       </div>
 
       {/* Share All Stats */}
@@ -380,20 +305,15 @@ const Stats = () => {
               Create a stunning visual of your concert journey to share on Instagram
             </p>
           </div>
-          <Button 
-            size="lg" 
-            className="w-full md:w-auto shadow-glow text-lg font-bold"
-            onClick={() => {
-              setShowSharePreview(!showSharePreview);
-              toast.success("Generating your share card! 📸");
-            }}
-          >
+          <Button size="lg" className="w-full md:w-auto shadow-glow text-lg font-bold" onClick={() => {
+          setShowSharePreview(!showSharePreview);
+          toast.success("Generating your share card! 📸");
+        }}>
             <Sparkles className="h-5 w-5 mr-2" />
             Generate Share Card
           </Button>
           
-          {showSharePreview && (
-            <div className="mt-6 p-6 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 animate-scale-in">
+          {showSharePreview && <div className="mt-6 p-6 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 animate-scale-in">
               <p className="text-sm text-muted-foreground mb-3">Preview</p>
               <div className="bg-background/50 backdrop-blur rounded-lg p-6 space-y-3">
                 <div className="text-4xl font-black bg-gradient-primary bg-clip-text text-transparent">
@@ -406,12 +326,9 @@ const Stats = () => {
                   {stats.mostSeenArtist} • {stats.mostVisitedVenue}
                 </div>
               </div>
-            </div>
-          )}
+            </div>}
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default Stats;
