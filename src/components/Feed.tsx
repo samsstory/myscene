@@ -37,7 +37,6 @@ interface Show {
   longitude?: number;
   photo_url?: string | null;
 }
-
 interface ShowRanking {
   show_id: string;
   elo_score: number;
@@ -103,11 +102,10 @@ const Feed = () => {
       if (showsError) throw showsError;
 
       // Fetch rankings for ELO-based sorting
-      const { data: rankingsData, error: rankingsError } = await supabase
-        .from('show_rankings')
-        .select('show_id, elo_score, comparisons_count')
-        .eq('user_id', user.id);
-
+      const {
+        data: rankingsData,
+        error: rankingsError
+      } = await supabase.from('show_rankings').select('show_id, elo_score, comparisons_count').eq('user_id', user.id);
       if (rankingsError) {
         console.error('Error fetching rankings:', rankingsError);
       } else {
@@ -174,16 +172,17 @@ const Feed = () => {
       // Sort by ELO or calculated score
       if (rankingMode === "elo") {
         // Create a map of show_id to ELO score and comparison count
-        const rankingMap = new Map(rankings.map(r => [r.show_id, { elo: r.elo_score, comparisons: r.comparisons_count }]));
-        
+        const rankingMap = new Map(rankings.map(r => [r.show_id, {
+          elo: r.elo_score,
+          comparisons: r.comparisons_count
+        }]));
         return [...filteredShows].sort((a, b) => {
           const rankingA = rankingMap.get(a.id);
           const rankingB = rankingMap.get(b.id);
-          
+
           // Use ELO score if available, otherwise default to 1200
           const eloA = rankingA?.elo || 1200;
           const eloB = rankingB?.elo || 1200;
-          
           if (eloB !== eloA) {
             return eloB - eloA; // Higher ELO first
           }
@@ -209,7 +208,6 @@ const Feed = () => {
   const renderListView = () => {
     const sortedShows = getSortedShows();
     const isHeadToHead = viewMode === "top-rated" && rankingMode === "elo";
-    
     return <div className="flex flex-col gap-4 items-center w-full">
         {sortedShows.map((show, index) => <Card key={show.id} className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative w-full max-w-3xl" onClick={() => {
         setReviewShow(show);
@@ -217,33 +215,24 @@ const Feed = () => {
       }}>
             <CardContent className="p-3 relative overflow-hidden px-[10px]">
               {/* Ranking position badge for Head to Head mode */}
-              {isHeadToHead && (
-                <div className="absolute top-2 left-2 z-10">
-                  <Badge 
-                    variant="secondary" 
-                    className="bg-gradient-to-r from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)] text-background font-black text-lg px-3 py-1 shadow-lg"
-                  >
+              {isHeadToHead && <div className="absolute top-2 left-2 z-10">
+                  <Badge variant="secondary" className="bg-gradient-to-r from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)] text-background font-black text-lg px-3 py-1 shadow-lg">
                     #{index + 1}
                   </Badge>
-                </div>
-              )}
+                </div>}
               
               <div className="flex items-start gap-4">
 
                 {/* Photo thumbnail (only if photo exists) */}
                 {show.photo_url && <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-md border border-border/50">
-                    <img 
-                      src={show.photo_url} 
-                      alt="Show photo" 
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
                   </div>}
 
                 {/* Left section: Artist name */}
                 <div className="flex-1 space-y-4">
                   {/* Artist names */}
                   <div className="flex items-center gap-2">
-                    <Music2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    
                     <div className="flex flex-wrap gap-2">
                       {show.artists.slice(0, 2).map((artist, idx) => <span key={idx} className="text-lg font-bold">
                           {artist.name}
@@ -421,22 +410,13 @@ const Feed = () => {
         </TabsList>
 
         {/* Time period filters and ranking mode toggle for Top Rated view */}
-        {viewMode === "top-rated" && (
-          <div className="space-y-3 mt-4">
+        {viewMode === "top-rated" && <div className="space-y-3 mt-4">
             {/* Ranking mode toggle */}
             <div className="flex justify-center gap-2">
-              <Button 
-                variant={rankingMode === "score" ? "default" : "outline"} 
-                size="sm" 
-                onClick={() => setRankingMode("score")}
-              >
+              <Button variant={rankingMode === "score" ? "default" : "outline"} size="sm" onClick={() => setRankingMode("score")}>
                 By Score
               </Button>
-              <Button 
-                variant={rankingMode === "elo" ? "default" : "outline"} 
-                size="sm" 
-                onClick={() => setRankingMode("elo")}
-              >
+              <Button variant={rankingMode === "elo" ? "default" : "outline"} size="sm" onClick={() => setRankingMode("elo")}>
                 Head to Head
               </Button>
             </div>
@@ -453,8 +433,7 @@ const Feed = () => {
                 This Month
               </Button>
             </div>
-          </div>
-        )}
+          </div>}
 
         {loading ? <Card className="border-border shadow-card mt-6">
             <CardContent className="py-16 text-center">
@@ -484,17 +463,10 @@ const Feed = () => {
 
       <ShareShowSheet show={shareShow} open={shareSheetOpen} onOpenChange={setShareSheetOpen} />
 
-      <ShowReviewSheet 
-        show={reviewShow} 
-        open={reviewSheetOpen} 
-        onOpenChange={setReviewSheetOpen} 
-        onEdit={show => {
-          setEditShow(show);
-          setEditDialogOpen(true);
-        }}
-        allShows={shows}
-        rankings={rankings}
-      />
+      <ShowReviewSheet show={reviewShow} open={reviewSheetOpen} onOpenChange={setReviewSheetOpen} onEdit={show => {
+      setEditShow(show);
+      setEditDialogOpen(true);
+    }} allShows={shows} rankings={rankings} />
 
       <AddShowFlow open={editDialogOpen} onOpenChange={setEditDialogOpen} editShow={editShow ? {
       id: editShow.id,
