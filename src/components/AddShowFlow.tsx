@@ -245,63 +245,7 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         showDate = new Date().toISOString().split('T')[0];
       }
 
-      // Insert or update the show
-      let show;
-      if (isEditing) {
-        const { data: updatedShow, error: showError } = await supabase
-          .from("shows")
-          .update({
-            venue_name: showData.venue,
-            venue_location: showData.venueLocation || null,
-            venue_id: showData.venueId || null,
-            show_date: showDate,
-            date_precision: showData.datePrecision,
-            rating: showData.rating,
-            artist_performance: showData.artistPerformance,
-            sound: showData.sound,
-            lighting: showData.lighting,
-            crowd: showData.crowd,
-            venue_vibe: showData.venueVibe,
-            notes: showData.notes || null,
-          })
-          .eq('id', editShow.id)
-          .select()
-          .single();
-
-        if (showError) throw showError;
-        show = updatedShow;
-
-        // Delete existing artists
-        await supabase
-          .from("show_artists")
-          .delete()
-          .eq('show_id', editShow.id);
-      } else {
-        const { data: newShow, error: showError } = await supabase
-          .from("shows")
-          .insert({
-            user_id: user.id,
-            venue_name: showData.venue,
-            venue_location: showData.venueLocation || null,
-            venue_id: showData.venueId || null,
-            show_date: showDate,
-            date_precision: showData.datePrecision,
-            rating: showData.rating,
-            artist_performance: showData.artistPerformance,
-            sound: showData.sound,
-            lighting: showData.lighting,
-            crowd: showData.crowd,
-            venue_vibe: showData.venueVibe,
-            notes: showData.notes || null,
-          })
-          .select()
-          .single();
-
-        if (showError) throw showError;
-        show = newShow;
-      }
-
-      // Insert or update venue cache
+      // Handle venue BEFORE inserting/updating show
       let venueIdToUse = null;
       
       // Check if venueId is a Google Place ID (not a UUID)
@@ -385,15 +329,64 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         }
       }
 
-      // Update show with venue_id if we have one
-      if (venueIdToUse && !isEditing) {
+      // Insert or update the show (now with proper venue_id)
+      let show;
+      if (isEditing) {
+        const { data: updatedShow, error: showError } = await supabase
+          .from("shows")
+          .update({
+            venue_name: showData.venue,
+            venue_location: showData.venueLocation || null,
+            venue_id: venueIdToUse || null,
+            show_date: showDate,
+            date_precision: showData.datePrecision,
+            rating: showData.rating,
+            artist_performance: showData.artistPerformance,
+            sound: showData.sound,
+            lighting: showData.lighting,
+            crowd: showData.crowd,
+            venue_vibe: showData.venueVibe,
+            notes: showData.notes || null,
+          })
+          .eq('id', editShow.id)
+          .select()
+          .single();
+
+        if (showError) throw showError;
+        show = updatedShow;
+
+        // Delete existing artists
         await supabase
-          .from('shows')
-          .update({ venue_id: venueIdToUse })
-          .eq('id', show.id);
+          .from("show_artists")
+          .delete()
+          .eq('show_id', editShow.id);
+      } else {
+        const { data: newShow, error: showError } = await supabase
+          .from("shows")
+          .insert({
+            user_id: user.id,
+            venue_name: showData.venue,
+            venue_location: showData.venueLocation || null,
+            venue_id: venueIdToUse || null,
+            show_date: showDate,
+            date_precision: showData.datePrecision,
+            rating: showData.rating,
+            artist_performance: showData.artistPerformance,
+            sound: showData.sound,
+            lighting: showData.lighting,
+            crowd: showData.crowd,
+            venue_vibe: showData.venueVibe,
+            notes: showData.notes || null,
+          })
+          .select()
+          .single();
+
+        if (showError) throw showError;
+        show = newShow;
       }
 
-      // Update or create user_venues tracking
+
+      // Update user_venues tracking
       if (venueIdToUse) {
         await supabase
           .from('user_venues')
