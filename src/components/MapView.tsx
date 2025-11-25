@@ -218,16 +218,21 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const removeLayers = () => {
     if (!map.current) return;
     
-    const layersToRemove = ['shows-points', 'shows-heat', 'venue-points'];
+    // Remove all possible layers from all zoom levels
+    const layersToRemove = ['country-dots', 'city-dots', 'venue-dots', 'shows-points', 'shows-heat', 'venue-points'];
     layersToRemove.forEach(layer => {
       if (map.current?.getLayer(layer)) {
         map.current.removeLayer(layer);
       }
     });
 
-    if (map.current.getSource('shows')) {
-      map.current.removeSource('shows');
-    }
+    // Remove all possible sources
+    const sourcesToRemove = ['shows', 'country-data', 'city-data', 'venue-data'];
+    sourcesToRemove.forEach(source => {
+      if (map.current?.getSource(source)) {
+        map.current.removeSource(source);
+      }
+    });
   };
 
   const addWorldLayer = (geojson: any) => {
@@ -236,34 +241,33 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     // Remove all existing layers first
     removeLayers();
 
-    map.current.addSource('shows', {
+    map.current.addSource('country-data', {
       type: 'geojson',
       data: geojson
     });
 
-    // Only add country-level circles - no city data
+    // Only add country-level circles
     map.current.addLayer({
-      id: 'shows-points',
+      id: 'country-dots',
       type: 'circle',
-      source: 'shows',
-      filter: ['==', ['get', 'type'], 'country'],  // Only show country markers
+      source: 'country-data',
       paint: {
         'circle-radius': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 15,    // Min shows = 15px
-          1, 35     // Max shows = 35px
+          0, 15,
+          1, 35
         ],
         'circle-color': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(250, 70%, 50%)',      // Cool purple for low
-          0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
-          1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
+          0, 'hsl(250, 70%, 50%)',
+          0.5, 'hsl(20, 90%, 60%)',
+          1, 'hsl(189, 94%, 65%)'
         ],
         'circle-opacity': 0.85
       }
     });
 
-    map.current.on('click', 'shows-points', (e) => {
+    map.current.on('click', 'country-dots', (e) => {
       if (!e.features || e.features.length === 0) return;
       const feature = e.features[0];
       const country = feature.properties?.name;
@@ -282,22 +286,19 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       }, 1600);
     });
 
-    map.current.on('mouseenter', 'shows-points', (e) => {
+    map.current.on('mouseenter', 'country-dots', (e) => {
       if (map.current) map.current.getCanvas().style.cursor = 'pointer';
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
-        // Only show hover info for country-level features at world view
-        if (feature.properties?.type === 'country') {
-          setHoverInfo({
-            name: feature.properties?.name,
-            cities: feature.properties?.cities,
-            shows: feature.properties?.shows
-          });
-        }
+        setHoverInfo({
+          name: feature.properties?.name,
+          cities: feature.properties?.cities,
+          shows: feature.properties?.shows
+        });
       }
     });
 
-    map.current.on('mouseleave', 'shows-points', () => {
+    map.current.on('mouseleave', 'country-dots', () => {
       if (map.current) map.current.getCanvas().style.cursor = '';
       setHoverInfo(null);
     });
@@ -340,34 +341,33 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       features: cityFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
     };
 
-    map.current.addSource('shows', {
+    map.current.addSource('city-data', {
       type: 'geojson',
       data: cityGeojson
     });
 
     // Only show city-level circles
     map.current.addLayer({
-      id: 'shows-points',
+      id: 'city-dots',
       type: 'circle',
-      source: 'shows',
-      filter: ['==', ['get', 'type'], 'city'],  // Only show city markers
+      source: 'city-data',
       paint: {
         'circle-radius': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 18,    // Min shows = 18px
-          1, 40     // Max shows = 40px
+          0, 18,
+          1, 40
         ],
         'circle-color': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(250, 70%, 50%)',      // Cool purple for low
-          0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
-          1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
+          0, 'hsl(250, 70%, 50%)',
+          0.5, 'hsl(20, 90%, 60%)',
+          1, 'hsl(189, 94%, 65%)'
         ],
         'circle-opacity': 0.85
       }
     });
 
-    map.current.on('click', 'shows-points', (e) => {
+    map.current.on('click', 'city-dots', (e) => {
       if (!e.features || e.features.length === 0) return;
       const feature = e.features[0];
       const city = feature.properties?.name;
@@ -386,22 +386,19 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       }, 1600);
     });
 
-    map.current.on('mouseenter', 'shows-points', (e) => {
+    map.current.on('mouseenter', 'city-dots', (e) => {
       if (map.current) map.current.getCanvas().style.cursor = 'pointer';
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
-        // Only show hover info for city-level features at country view
-        if (feature.properties?.type === 'city') {
-          setHoverInfo({
-            name: expandStateName(feature.properties?.name),
-            venues: feature.properties?.venues,
-            shows: feature.properties?.shows
-          });
-        }
+        setHoverInfo({
+          name: expandStateName(feature.properties?.name),
+          venues: feature.properties?.venues,
+          shows: feature.properties?.shows
+        });
       }
     });
 
-    map.current.on('mouseleave', 'shows-points', () => {
+    map.current.on('mouseleave', 'city-dots', () => {
       if (map.current) map.current.getCanvas().style.cursor = '';
       setHoverInfo(null);
     });
@@ -445,34 +442,33 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       features: venueFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
     };
 
-    map.current.addSource('shows', {
+    map.current.addSource('venue-data', {
       type: 'geojson',
       data: venueGeojson
     });
 
     // Only show venue-level circles
     map.current.addLayer({
-      id: 'shows-points',
+      id: 'venue-dots',
       type: 'circle',
-      source: 'shows',
-      filter: ['==', ['get', 'type'], 'venue'],  // Only show venue markers
+      source: 'venue-data',
       paint: {
         'circle-radius': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 12,    // Min shows = 12px
-          1, 25     // Max shows = 25px
+          0, 12,
+          1, 25
         ],
         'circle-color': [
           'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(250, 70%, 50%)',      // Cool purple for low
-          0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
-          1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
+          0, 'hsl(250, 70%, 50%)',
+          0.5, 'hsl(20, 90%, 60%)',
+          1, 'hsl(189, 94%, 65%)'
         ],
         'circle-opacity': 0.85
       }
     });
 
-    map.current.on('click', 'shows-points', (e) => {
+    map.current.on('click', 'venue-dots', (e) => {
       if (!e.features || e.features.length === 0) return;
       const feature = e.features[0];
       const venueName = feature.properties?.venueName;
@@ -489,21 +485,18 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       });
     });
 
-    map.current.on('mouseenter', 'shows-points', (e) => {
+    map.current.on('mouseenter', 'venue-dots', (e) => {
       if (map.current) map.current.getCanvas().style.cursor = 'pointer';
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
-        // Only show hover info for venue-level features at city view
-        if (feature.properties?.type === 'venue') {
-          setHoverInfo({
-            name: feature.properties?.venueName,
-            shows: feature.properties?.shows
-          });
-        }
+        setHoverInfo({
+          name: feature.properties?.venueName,
+          shows: feature.properties?.shows
+        });
       }
     });
 
-    map.current.on('mouseleave', 'shows-points', () => {
+    map.current.on('mouseleave', 'venue-dots', () => {
       if (map.current) map.current.getCanvas().style.cursor = '';
       setHoverInfo(null);
     });
