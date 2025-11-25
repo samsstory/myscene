@@ -37,6 +37,13 @@ interface CityData {
   shows: Show[];
 }
 
+interface VenueData {
+  name: string;
+  location: string;
+  coordinates: [number, number];
+  shows: Show[];
+}
+
 const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -46,10 +53,13 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const [countryData, setCountryData] = useState<CountryData[]>([]);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [isLocationCardMinimized, setIsLocationCardMinimized] = useState(false);
-  const [viewLevel, setViewLevel] = useState<'country' | 'city'>('country');
+  const [viewLevel, setViewLevel] = useState<'country' | 'city' | 'venue'>('country');
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [cityData, setCityData] = useState<CityData[]>([]);
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
+  const [venueData, setVenueData] = useState<VenueData[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [hoveredVenue, setHoveredVenue] = useState<string | null>(null);
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -174,6 +184,22 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     return null;
   };
 
+  // Geocode venue address to get coordinates
+  const geocodeVenue = async (address: string): Promise<[number, number] | null> => {
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?types=address,poi&access_token=${MAPBOX_TOKEN}`
+      );
+      const data = await response.json();
+      if (data.features?.length > 0) {
+        return data.features[0].center;
+      }
+    } catch (error) {
+      console.error('Error geocoding venue:', error);
+    }
+    return null;
+  };
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -290,12 +316,62 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     setViewLevel('city');
   };
 
-  // Handle back to countries
-  const handleBackToCountries = () => {
-    setViewLevel('country');
-    setSelectedCountry(null);
-    setCityData([]);
-    setHoveredCity(null);
+  // Handle city click - drill down to venues
+  const handleCityClick = async (cityName: string) => {
+    const cityInfo = cityData.find(c => c.name === cityName);
+    if (!cityInfo) return;
+
+    // Group shows by venue
+    const venueMap = new Map<string, Show[]>();
+    cityInfo.shows.forEach(show => {
+      const venueName = show.venue.name;
+      if (!venueMap.has(venueName)) {
+        venueMap.set(venueName, []);
+      }
+      venueMap.get(venueName)!.push(show);
+    });
+
+    // Create venue data with coordinates
+    const venues: VenueData[] = [];
+    for (const [venueName, venueShows] of venueMap.entries()) {
+      // Use show coordinates if available, otherwise geocode the venue address
+      const showWithCoords = venueShows.find(s => s.latitude && s.longitude);
+      let coords: [number, number] | null;
+      
+      if (showWithCoords) {
+        coords = [showWithCoords.longitude!, showWithCoords.latitude!];
+      } else {
+        coords = await geocodeVenue(venueShows[0].venue.location);
+      }
+      
+      if (coords) {
+        venues.push({
+          name: venueName,
+          location: venueShows[0].venue.location,
+          coordinates: coords,
+          shows: venueShows
+        });
+      }
+    }
+
+    setVenueData(venues);
+    setSelectedCity(cityName);
+    setViewLevel('venue');
+  };
+
+  // Handle back navigation
+  const handleBack = () => {
+    if (viewLevel === 'venue') {
+      setViewLevel('city');
+      setVenueData([]);
+      setSelectedCity(null);
+      setHoveredVenue(null);
+    } else if (viewLevel === 'city') {
+      setViewLevel('country');
+      setSelectedCountry(null);
+      setCityData([]);
+      setHoveredCity(null);
+    }
   };
 
   // Add country markers to map
@@ -449,6 +525,16 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
+      // Add click handler
+      map.current.on('click', 'city-dots', (e) => {
+        if (e.features && e.features.length > 0) {
+          const cityName = e.features[0].properties?.name;
+          if (cityName) {
+            handleCityClick(cityName);
+          }
+        }
+      });
+
       // Add hover effect
       map.current.on('mouseenter', 'city-dots', (e) => {
         if (map.current) map.current.getCanvas().style.cursor = 'pointer';
@@ -473,18 +559,126 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     }
   }, [cityData, viewLevel]);
 
+  // Add venue markers to map
+  useEffect(() => {
+    if (!map.current || !venueData.length || viewLevel !== 'venue') return;
+
+    // Wait for map to load
+    if (!map.current.isStyleLoaded()) {
+      map.current.on('load', () => addVenueMarkers());
+      return;
+    }
+
+    addVenueMarkers();
+
+    function addVenueMarkers() {
+      if (!map.current) return;
+
+      // Remove city layers when showing venues
+      if (map.current.getLayer('city-dots')) {
+        map.current.removeLayer('city-dots');
+      }
+      if (map.current.getSource('cities')) {
+        map.current.removeSource('cities');
+      }
+
+      // Remove existing venue layers and sources
+      if (map.current.getLayer('venue-dots')) {
+        map.current.removeLayer('venue-dots');
+      }
+      if (map.current.getSource('venues')) {
+        map.current.removeSource('venues');
+      }
+
+      // Create GeoJSON for venues
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: venueData.map(venue => ({
+          type: 'Feature',
+          properties: {
+            name: venue.name,
+            location: venue.location,
+            showCount: venue.shows.length
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: venue.coordinates
+          }
+        }))
+      };
+
+      // Add source
+      map.current.addSource('venues', {
+        type: 'geojson',
+        data: geojson
+      });
+
+      // Add layer
+      map.current.addLayer({
+        id: 'venue-dots',
+        type: 'circle',
+        source: 'venues',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': 'hsl(35, 90%, 55%)',
+          'circle-opacity': 0.9,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      // Add click handler
+      map.current.on('click', 'venue-dots', (e) => {
+        if (e.features && e.features.length > 0) {
+          const venueName = e.features[0].properties?.name;
+          const venue = venueData.find(v => v.name === venueName);
+          if (venue) {
+            setSelectedVenue({
+              venueName: venue.name,
+              location: venue.location,
+              count: venue.shows.length,
+              shows: venue.shows
+            });
+          }
+        }
+      });
+
+      // Add hover effect
+      map.current.on('mouseenter', 'venue-dots', (e) => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (e.features && e.features.length > 0) {
+          setHoveredVenue(e.features[0].properties?.name);
+        }
+      });
+
+      map.current.on('mouseleave', 'venue-dots', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+        setHoveredVenue(null);
+      });
+
+      // Fit map to show all venues with tighter zoom
+      if (venueData.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        venueData.forEach(venue => {
+          bounds.extend(venue.coordinates);
+        });
+        map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+      }
+    }
+  }, [venueData, viewLevel]);
+
   return (
     <div className="relative w-full h-[600px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
 
-      {/* Back to Countries button */}
-      {viewLevel === 'city' && (
+      {/* Back button */}
+      {viewLevel !== 'country' && (
         <Button
           className="absolute top-4 left-4 z-10"
-          onClick={handleBackToCountries}
+          onClick={handleBack}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Countries
+          {viewLevel === 'venue' ? `Back to ${selectedCity}` : 'Back to Countries'}
         </Button>
       )}
 
@@ -507,6 +701,18 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
             <h3 className="font-semibold">{hoveredCity}</h3>
             <p className="text-sm text-muted-foreground">
               {cityData.find(c => c.name === hoveredCity)?.showCount} shows
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Hover info for venue */}
+      {hoveredVenue && viewLevel === 'venue' && (
+        <Card className="absolute top-4 right-4 z-10">
+          <CardContent className="p-3">
+            <h3 className="font-semibold">{hoveredVenue}</h3>
+            <p className="text-sm text-muted-foreground">
+              {venueData.find(v => v.name === hoveredVenue)?.shows.length} shows
             </p>
           </CardContent>
         </Card>
