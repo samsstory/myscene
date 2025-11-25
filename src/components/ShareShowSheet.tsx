@@ -338,10 +338,9 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
   };
 
   const handleShareToInstagram = () => {
-    handleDownloadImage();
     toast({
-      title: "Image ready!",
-      description: "Open Instagram and upload the downloaded image to your story.",
+      title: "Coming soon.. 🤫",
+      description: "Direct Instagram Story sharing is in development. Use 'Download Image' for now!",
     });
   };
 
