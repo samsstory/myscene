@@ -488,7 +488,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         setHoverInfo({
-          name: feature.properties?.name,
+          name: expandStateName(feature.properties?.name),
           venues: feature.properties?.venues,
           shows: feature.properties?.shows
         });
