@@ -257,13 +257,16 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           const countryData = countryMap.get(country)!;
           countryData.shows.push(show);
           
-          // Update country center to average of all shows in country
-          const allLngs = countryData.shows.map(s => s.longitude!);
-          const allLats = countryData.shows.map(s => s.latitude!);
-          countryData.coords = [
-            allLngs.reduce((a, b) => a + b, 0) / allLngs.length,
-            allLats.reduce((a, b) => a + b, 0) / allLats.length
-          ];
+          // Use geographic center of the country's cities (median point)
+          const allCityCoords = Array.from(countryData.cities.values()).map(c => c.coords);
+          allCityCoords.push([show.longitude!, show.latitude!]);
+          
+          // Calculate median to avoid ocean placement
+          const sortedLngs = allCityCoords.map(c => c[0]).sort((a, b) => a - b);
+          const sortedLats = allCityCoords.map(c => c[1]).sort((a, b) => a - b);
+          const medianLng = sortedLngs[Math.floor(sortedLngs.length / 2)];
+          const medianLat = sortedLats[Math.floor(sortedLats.length / 2)];
+          countryData.coords = [medianLng, medianLat];
           
           // Initialize city within country
           if (!countryData.cities.has(city)) {
@@ -331,10 +334,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       }
     };
 
-    // World view: Show country-level dots
+    // World view: Show country-level dots ONLY
     const addWorldLayer = (geojson: any) => {
       if (!map.current) return;
 
+      // Remove all existing layers first
       removeLayers();
 
       map.current.addSource('shows', {
@@ -342,10 +346,12 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
+      // Only add country-level circles - no city data
       map.current.addLayer({
         id: 'shows-points',
         type: 'circle',
         source: 'shows',
+        filter: ['==', ['get', 'type'], 'country'],  // Only show country markers
         paint: {
           'circle-radius': 25,
           'circle-color': 'hsl(189, 94%, 55%)',
@@ -392,10 +398,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       });
     };
 
-    // Country view: Show city-level dots
+    // Country view: Show city-level dots ONLY
     const addCountryLayer = (country: string, countryData: any) => {
       if (!map.current) return;
 
+      // Remove all existing layers
       removeLayers();
 
       const cityFeatures = Array.from(countryData.cities.entries()).map(([city, data]: [string, any]) => {
@@ -424,10 +431,12 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: cityGeojson
       });
 
+      // Only show city-level circles
       map.current.addLayer({
         id: 'shows-points',
         type: 'circle',
         source: 'shows',
+        filter: ['==', ['get', 'type'], 'city'],  // Only show city markers
         paint: {
           'circle-radius': [
             'interpolate',
@@ -481,10 +490,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       });
     };
 
-    // City view: Show venue-level dots
+    // City view: Show venue-level dots ONLY
     const addCityLayer = (city: string, cityData: any) => {
       if (!map.current) return;
 
+      // Remove all existing layers
       removeLayers();
 
       const venueFeatures = Array.from(cityData.venues.entries()).map(([venueName, venueShows]: [string, Show[]]) => {
@@ -514,10 +524,12 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: venueGeojson
       });
 
+      // Only show venue-level circles
       map.current.addLayer({
         id: 'shows-points',
         type: 'circle',
         source: 'shows',
+        filter: ['==', ['get', 'type'], 'venue'],  // Only show venue markers
         paint: {
           'circle-radius': 15,
           'circle-color': 'hsl(189, 94%, 55%)',
