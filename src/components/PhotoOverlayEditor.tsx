@@ -8,7 +8,6 @@ import { Slider } from "@/components/ui/slider";
 import { Download, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
-import html2canvas from "html2canvas";
 
 interface Artist {
   name: string;
@@ -158,15 +157,12 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
 
     setIsGenerating(true);
     try {
-      // Capture the overlay as it appears on screen
+      // Get overlay element
       const overlayElement = document.getElementById("rating-overlay");
       if (!overlayElement) throw new Error("Overlay element not found");
 
-      const overlayCanvas = await html2canvas(overlayElement, {
-        backgroundColor: null,
-        scale: 2,
-        logging: false,
-      });
+      const canvasContainer = document.getElementById("canvas-container");
+      if (!canvasContainer) throw new Error("Canvas container not found");
 
       // Create final canvas with Instagram Story dimensions
       const canvas = document.createElement("canvas");
@@ -205,14 +201,10 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
 
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-      // Get overlay position from the preview container
-      const canvasContainer = document.getElementById("canvas-container");
-      if (!canvasContainer) throw new Error("Canvas container not found");
-      
+      // Get overlay position and render it
       const containerRect = canvasContainer.getBoundingClientRect();
       const overlayRect = overlayElement.getBoundingClientRect();
 
-      // Calculate overlay position relative to final canvas
       const scaleX = canvas.width / containerRect.width;
       const scaleY = canvas.height / containerRect.height;
 
@@ -221,8 +213,30 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       const overlayWidth = overlayRect.width * scaleX;
       const overlayHeight = overlayRect.height * scaleY;
 
-      // Draw the captured overlay onto the final canvas
-      ctx.drawImage(overlayCanvas, overlayX, overlayY, overlayWidth, overlayHeight);
+      // Convert overlay HTML to SVG foreignObject
+      const overlayHTML = overlayElement.outerHTML;
+      const svgData = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${overlayRect.width}" height="${overlayRect.height}">
+          <foreignObject width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml">
+              ${overlayHTML}
+            </div>
+          </foreignObject>
+        </svg>
+      `;
+
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      const svgImg = new Image();
+      await new Promise((resolve, reject) => {
+        svgImg.onload = resolve;
+        svgImg.onerror = reject;
+        svgImg.src = svgUrl;
+      });
+
+      ctx.drawImage(svgImg, overlayX, overlayY, overlayWidth, overlayHeight);
+      URL.revokeObjectURL(svgUrl);
 
       // Download
       canvas.toBlob((blob) => {
