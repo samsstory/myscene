@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { calculateShowScore } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Show {
   id: string;
@@ -19,11 +20,17 @@ interface Show {
   artists: Array<{ artist_name: string; is_headliner: boolean }>;
 }
 
+interface Comparison {
+  show1_id: string;
+  show2_id: string;
+}
+
 export default function Rank() {
   const [shows, setShows] = useState<Show[]>([]);
   const [showPair, setShowPair] = useState<[Show, Show] | null>(null);
   const [loading, setLoading] = useState(true);
   const [comparing, setComparing] = useState(false);
+  const [comparedPairs, setComparedPairs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchShows();
@@ -41,6 +48,22 @@ export default function Rank() {
         .order("show_date", { ascending: false });
 
       if (showsError) throw showsError;
+
+      // Fetch existing comparisons
+      const { data: comparisonsData, error: comparisonsError } = await supabase
+        .from("show_comparisons")
+        .select("show1_id, show2_id")
+        .eq("user_id", user.id);
+
+      if (comparisonsError) throw comparisonsError;
+
+      // Build a set of compared pairs (normalized)
+      const comparedSet = new Set<string>();
+      comparisonsData?.forEach((comp) => {
+        const [id1, id2] = [comp.show1_id, comp.show2_id].sort();
+        comparedSet.add(`${id1}-${id2}`);
+      });
+      setComparedPairs(comparedSet);
 
       if (!showsData || showsData.length < 2) {
         setLoading(false);
@@ -63,19 +86,45 @@ export default function Rank() {
       );
 
       setShows(showsWithArtists);
-      selectRandomPair(showsWithArtists);
+      selectRandomPair(showsWithArtists, comparedSet);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching shows:", error);
+      toast.error("Failed to load shows");
       setLoading(false);
     }
   };
 
-  const selectRandomPair = (showsList: Show[]) => {
-    if (showsList.length < 2) return;
-    
-    const shuffled = [...showsList].sort(() => Math.random() - 0.5);
-    setShowPair([shuffled[0], shuffled[1]]);
+  const selectRandomPair = (showsList: Show[], comparedSet?: Set<string>) => {
+    if (showsList.length < 2) {
+      setShowPair(null);
+      return;
+    }
+
+    const pairsToUse = comparedSet || comparedPairs;
+
+    // Find all uncompared pairs
+    const uncomparedPairs: [Show, Show][] = [];
+    for (let i = 0; i < showsList.length; i++) {
+      for (let j = i + 1; j < showsList.length; j++) {
+        const [id1, id2] = [showsList[i].id, showsList[j].id].sort();
+        const pairKey = `${id1}-${id2}`;
+        if (!pairsToUse.has(pairKey)) {
+          uncomparedPairs.push([showsList[i], showsList[j]]);
+        }
+      }
+    }
+
+    if (uncomparedPairs.length === 0) {
+      // All pairs have been compared
+      setShowPair(null);
+      toast.success("You've compared all possible show pairs! 🎉");
+      return;
+    }
+
+    // Select a random uncompared pair
+    const randomIndex = Math.floor(Math.random() * uncomparedPairs.length);
+    setShowPair(uncomparedPairs[randomIndex]);
   };
 
   const handleChoice = async (winnerId: string | null) => {
@@ -87,18 +136,33 @@ export default function Rank() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // TODO: Save comparison to database once schema is created
-      console.log("Comparison:", {
-        show1_id: showPair[0].id,
-        show2_id: showPair[1].id,
-        winner_id: winnerId,
-      });
+      // Normalize the pair order (smaller UUID first)
+      const [show1Id, show2Id] = [showPair[0].id, showPair[1].id].sort();
 
-      // Select next random pair
-      selectRandomPair(shows);
+      // Save comparison to database
+      const { error } = await supabase
+        .from("show_comparisons")
+        .insert({
+          user_id: user.id,
+          show1_id: show1Id,
+          show2_id: show2Id,
+          winner_id: winnerId,
+        });
+
+      if (error) throw error;
+
+      // Update the compared pairs set
+      const pairKey = `${show1Id}-${show2Id}`;
+      setComparedPairs(prev => new Set([...prev, pairKey]));
+
+      // Select a new pair
+      setTimeout(() => {
+        selectRandomPair(shows);
+        setComparing(false);
+      }, 300);
     } catch (error) {
       console.error("Error saving comparison:", error);
-    } finally {
+      toast.error("Failed to save comparison");
       setComparing(false);
     }
   };
@@ -191,7 +255,12 @@ export default function Rank() {
   if (!showPair) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground">No shows available to compare.</p>
+        <div className="text-center space-y-2">
+          <p className="text-foreground font-semibold">All shows ranked!</p>
+          <p className="text-muted-foreground text-sm">
+            You've compared all possible show pairs
+          </p>
+        </div>
       </div>
     );
   }
