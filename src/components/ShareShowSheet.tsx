@@ -4,24 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Music2, MapPin, Calendar as CalendarIcon, Download, Link as LinkIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 
 interface Artist {
   name: string;
   isHeadliner: boolean;
+  is_headliner?: boolean;
 }
 
 interface Show {
   id: string;
   artists: Artist[];
   venue: { name: string; location: string };
+  venue_name?: string;
   date: string;
+  show_date?: string;
   rating: number;
   artistPerformance?: number | null;
+  artist_performance?: number | null;
   sound?: number | null;
   lighting?: number | null;
   crowd?: number | null;
   venueVibe?: number | null;
+  venue_vibe?: number | null;
   notes?: string | null;
+  photo_url?: string | null;
 }
 
 interface ShareShowSheetProps {
@@ -37,6 +44,7 @@ const getRatingEmoji = (rating: number) => {
 
 export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showOverlayEditor, setShowOverlayEditor] = useState(false);
 
   if (!show) return null;
 
@@ -344,76 +352,110 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
     });
   };
 
+  // Normalize show data for PhotoOverlayEditor
+  const normalizedShow = {
+    ...show,
+    artists: show.artists.map(a => ({
+      ...a,
+      is_headliner: a.isHeadliner ?? a.is_headliner ?? false,
+    })),
+    venue_name: show.venue?.name || show.venue_name || "",
+    show_date: show.date || show.show_date || "",
+    artist_performance: show.artistPerformance ?? show.artist_performance,
+    venue_vibe: show.venueVibe ?? show.venue_vibe,
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[90vh]">
         <SheetHeader>
-          <SheetTitle>Share Show</SheetTitle>
+          <SheetTitle>
+            {showOverlayEditor && show.photo_url ? "Customize Share Image" : "Share Show"}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 mt-6">
-          {/* Preview Card */}
-          <div className="bg-gradient-to-b from-card to-background p-8 rounded-lg border border-border">
-            <div className="space-y-6 text-center">
-              <div className="text-6xl mb-4">{getRatingEmoji(show.rating)}</div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                  <Music2 className="h-4 w-4" />
-                  <span>Artist{displayArtists.length > 1 ? 's' : ''}</span>
+          {showOverlayEditor && show.photo_url ? (
+            <PhotoOverlayEditor 
+              show={normalizedShow} 
+              onClose={() => setShowOverlayEditor(false)} 
+            />
+          ) : (
+            <>
+              {/* Preview Card */}
+              <div className="bg-gradient-to-b from-card to-background p-8 rounded-lg border border-border">
+                <div className="space-y-6 text-center">
+                  <div className="text-6xl mb-4">{getRatingEmoji(show.rating)}</div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+                      <Music2 className="h-4 w-4" />
+                      <span>Artist{displayArtists.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <h3 className="text-2xl font-bold">
+                      {displayArtists.map(a => a.name).join(", ")}
+                    </h3>
+                    {openers.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        with {openers.map(a => a.name).join(", ")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>{show.venue.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold">
-                  {displayArtists.map(a => a.name).join(", ")}
-                </h3>
-                {openers.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    with {openers.map(a => a.name).join(", ")}
-                  </p>
+              </div>
+
+              {/* Share Options */}
+              <div className="space-y-3">
+                {show.photo_url && (
+                  <Button
+                    onClick={() => setShowOverlayEditor(true)}
+                    className="w-full"
+                  >
+                    Customize & Download Image
+                  </Button>
                 )}
+
+                <Button
+                  onClick={handleDownloadImage}
+                  variant="outline"
+                  className="w-full"
+                  disabled={isGenerating}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Quick Share Image
+                </Button>
+
+                <Button
+                  onClick={handleShareToInstagram}
+                  variant="outline"
+                  className="w-full bg-gradient-to-r from-[#f09433] via-[#e6683c] to-[#bc1888] hover:opacity-90 text-white border-0"
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? "Generating..." : "Share to Instagram Story"}
+                </Button>
+
+                <Button
+                  onClick={handleCopyLink}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  Copy Share Text
+                </Button>
               </div>
-
-              <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>{show.venue.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Share Options */}
-          <div className="space-y-3">
-            <Button
-              onClick={handleShareToInstagram}
-              className="w-full bg-gradient-to-r from-[#f09433] via-[#e6683c] to-[#bc1888] hover:opacity-90 text-white"
-              disabled={isGenerating}
-            >
-              {isGenerating ? "Generating..." : "Share to Instagram Story"}
-            </Button>
-
-            <Button
-              onClick={handleDownloadImage}
-              variant="outline"
-              className="w-full"
-              disabled={isGenerating}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Image
-            </Button>
-
-            <Button
-              onClick={handleCopyLink}
-              variant="outline"
-              className="w-full"
-            >
-              <LinkIcon className="h-4 w-4 mr-2" />
-              Copy Share Text
-            </Button>
-          </div>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>
