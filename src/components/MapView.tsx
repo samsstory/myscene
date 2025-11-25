@@ -79,9 +79,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
       'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
     
-    // Check if any part is a US state
+    // Check if any part is a US state (strip zip codes first)
     for (const part of parts) {
-      if (usStates.includes(part)) {
+      // Remove zip codes and numbers from state abbreviations (e.g., "CA 90028" -> "CA")
+      const cleanedPart = part.replace(/\s*\d+\s*$/, '').trim();
+      if (usStates.includes(cleanedPart)) {
         return 'United States';
       }
     }
@@ -130,9 +132,22 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
   }, [homeCoordinates]);
 
-  // Filter shows without location
+  // Filter shows without location - only flag if we can't determine country from location text
   useEffect(() => {
-    const showsWithout = shows.filter(show => !show.latitude || !show.longitude);
+    const showsWithout = shows.filter(show => {
+      // If we have coordinates, it has a location
+      if (show.latitude && show.longitude) return false;
+      
+      // If we have no location text, it definitely needs location
+      if (!show.venue.location) return true;
+      
+      // Try to determine country from location text
+      const country = getCountryFromLocation(show.venue.location);
+      
+      // If we can determine a country, we have enough location info
+      // Only flag as "without location" if country is indeterminate
+      return !country || country === 'Unknown';
+    });
     setShowsWithoutLocation(showsWithout);
   }, [shows]);
 
