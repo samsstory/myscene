@@ -459,7 +459,7 @@ const Feed = () => {
           </>}
       </Tabs>
 
-      <ShareShowSheet show={shareShow} open={shareSheetOpen} onOpenChange={setShareSheetOpen} />
+      <ShareShowSheet show={shareShow} open={shareSheetOpen} onOpenChange={setShareSheetOpen} allShows={shows} rankings={rankings} />
 
       <ShowReviewSheet show={reviewShow} open={reviewSheetOpen} onOpenChange={setReviewSheetOpen} onEdit={show => {
       setEditShow(show);

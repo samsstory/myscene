@@ -467,7 +467,7 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
       const bottomY = overlayY + overlayHeight - 12 * scaleY;
       
       // Rank on the left
-      if (overlayConfig.showRank && rankData.position > 0) {
+      if (overlayConfig.showRank && rankData.total > 0) {
         ctx.font = `600 ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
         
         const rankGradientColors = (() => {
@@ -483,7 +483,8 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
         
         ctx.fillStyle = gradient;
         ctx.textAlign = "left";
-        const rankText = `#${rankData.position} of ${rankData.total} shows · Top ${Math.round(rankData.percentile)}%`;
+        const timePeriod = rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time';
+        const rankText = `#${rankData.position} of ${rankData.total} shows ${timePeriod}`;
         ctx.fillText(rankText, overlayX + padding, bottomY);
       }
       
@@ -701,11 +702,11 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
                   
                   {/* Scene logo and rank at bottom */}
                   <div className="mt-4 flex items-center justify-between">
-                    {overlayConfig.showRank && rankData.position > 0 ? (
+                    {overlayConfig.showRank && rankData.total > 0 ? (
                       <div 
                         className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent`}
                       >
-                        #{rankData.position} of {rankData.total} shows · Top {Math.round(rankData.percentile)}%
+                        #{rankData.position} of {rankData.total} shows {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time'}
                       </div>
                     ) : (
                       <div />
