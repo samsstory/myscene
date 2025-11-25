@@ -149,6 +149,38 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     return 'United States';
   };
 
+  // Expand US state abbreviations to full names
+  const expandStateName = (location: string): string => {
+    const stateMap: { [key: string]: string } = {
+      'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+      'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+      'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+      'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+      'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+      'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+      'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+      'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+      'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+      'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+    };
+
+    const parts = location.split(',').map(p => p.trim());
+    
+    // Replace state abbreviations with full names
+    const expandedParts = parts.map(part => {
+      // Check if this part is a state abbreviation
+      if (stateMap[part]) {
+        return stateMap[part];
+      }
+      return part;
+    });
+
+    // Remove zip codes (5-digit numbers at the end)
+    const filteredParts = expandedParts.filter(part => !/^\d{5}(-\d{4})?$/.test(part));
+    
+    return filteredParts.join(', ');
+  };
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -482,7 +514,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           // Only show hover info for city-level features at country view
           if (feature.properties?.type === 'city') {
             setHoverInfo({
-              name: feature.properties?.name,
+              name: expandStateName(feature.properties?.name),
               venues: feature.properties?.venues,
               shows: feature.properties?.shows
             });
