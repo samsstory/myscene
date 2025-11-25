@@ -659,26 +659,28 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       const minShows = Math.min(...allShowCounts);
       const maxShows = Math.max(...allShowCounts);
 
-      const countryFeatures = Array.from(showsData.countryMap.entries()).map(([country, data]: [string, any]) => {
-        const normalized = maxShows === minShows
-          ? 0.5  // Default to mid-range if all countries have same show count
-          : (data.shows.length - minShows) / (maxShows - minShows);
-        
-        return {
-          type: 'Feature',
-          properties: { 
-            name: country,
-            cities: data.cities.size,
-            shows: data.shows.length,
-            weight: normalized,
-            type: 'country'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: data.coords
-          }
-        };
-      });
+      const countryFeatures = Array.from(showsData.countryMap.entries())
+        .filter(([country]: [string, any]) => country !== 'United States')
+        .map(([country, data]: [string, any]) => {
+          const normalized = maxShows === minShows
+            ? 0.5  // Default to mid-range if all countries have same show count
+            : (data.shows.length - minShows) / (maxShows - minShows);
+          
+          return {
+            type: 'Feature',
+            properties: { 
+              name: country,
+              cities: data.cities.size,
+              shows: data.shows.length,
+              weight: normalized,
+              type: 'country'
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: data.coords
+            }
+          };
+        });
 
       const countryGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
         type: 'FeatureCollection',
