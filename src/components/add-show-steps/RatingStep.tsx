@@ -17,15 +17,7 @@ interface RatingStepProps {
   onSubmit: () => void;
 }
 
-const ratingEmojis = [
-  { value: 1, emoji: "😞", label: "Terrible" },
-  { value: 2, emoji: "😕", label: "Bad" },
-  { value: 3, emoji: "😐", label: "Okay" },
-  { value: 4, emoji: "😊", label: "Great" },
-  { value: 5, emoji: "🤩", label: "Amazing" },
-];
-
-const RatingStep = ({ 
+const RatingStep = ({
   rating, 
   onRatingChange, 
   artistPerformance,
@@ -47,25 +39,22 @@ const RatingStep = ({
         <Label className="text-base font-semibold">What'd ya think?</Label>
       </div>
 
-      {/* Rating buttons */}
-      <div className="grid grid-cols-5 gap-2">
-        {ratingEmojis.map((item) => (
-          <button
-            key={item.value}
-            onClick={() => onRatingChange(item.value)}
-            className={`
-              flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all
-              ${
-                rating === item.value
-                  ? "border-primary bg-primary/10 scale-105"
-                  : "border-border hover:border-primary/50 hover:bg-accent"
-              }
-            `}
-          >
-            <span className="text-4xl">{item.emoji}</span>
-            <span className="text-xs font-medium text-center">{item.label}</span>
-          </button>
-        ))}
+      {/* Overall Rating Slider */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <Label className="text-sm">Overall Rating</Label>
+          <span className="text-xs text-muted-foreground">
+            {rating ? getRatingLabel(rating) : "Not rated"}
+          </span>
+        </div>
+        <Slider
+          value={[rating || 3]}
+          onValueChange={(value) => onRatingChange(value[0])}
+          min={1}
+          max={5}
+          step={1}
+          className="w-full"
+        />
       </div>
 
       {/* More to Say section */}
@@ -189,7 +178,7 @@ const RatingStep = ({
         disabled={rating === null}
         className="w-full h-12 text-base"
       >
-        Add Show 🎉
+        Add Show
       </Button>
     </div>
   );
