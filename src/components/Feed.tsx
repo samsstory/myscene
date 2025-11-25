@@ -218,12 +218,17 @@ const Feed = () => {
                   <div className="flex items-center gap-2">
                     <Music2 className="h-5 w-5 text-primary flex-shrink-0" />
                     <div className="flex flex-wrap gap-2">
-                      {show.artists.map((artist, idx) => (
+                      {show.artists.slice(0, 2).map((artist, idx) => (
                         <span key={idx} className="text-lg font-bold">
                           {artist.name}
-                          {idx < show.artists.length - 1 && <span className="mx-1">•</span>}
+                          {idx < Math.min(show.artists.length - 1, 1) && <span className="mx-1">•</span>}
                         </span>
                       ))}
+                      {show.artists.length > 2 && (
+                        <span className="text-lg font-bold text-muted-foreground">
+                          + {show.artists.length - 2} more
+                        </span>
+                      )}
                     </div>
                   </div>
 
