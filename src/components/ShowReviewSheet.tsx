@@ -81,9 +81,9 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit, allShows = [
   const [showRankingOpen, setShowRankingOpen] = useState(false);
   const [rankingMethod, setRankingMethod] = useState<"score" | "elo">("score");
   const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   if (!show) return null;
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasDetailedRatings = show.artistPerformance || show.sound || show.lighting || show.crowd || show.venueVibe;
 
