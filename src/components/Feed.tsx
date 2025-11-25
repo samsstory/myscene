@@ -418,7 +418,7 @@ const Feed = () => {
                 size="sm" 
                 onClick={() => setRankingMode("elo")}
               >
-                By Your Ranking
+                Head to Head
               </Button>
             </div>
 
