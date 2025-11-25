@@ -140,6 +140,16 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
 
   const rankData = calculateRankData();
   
+  // Debug logging
+  console.log('PhotoOverlayEditor - Rank Debug:', {
+    showRankEnabled: overlayConfig.showRank,
+    allShowsCount: allShows.length,
+    rankingsCount: rankings.length,
+    rankData,
+    rankingMethod,
+    rankingTimeFilter
+  });
+  
   const getRankGradient = (percentile: number) => {
     if (percentile >= 90) return "from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)]";
     if (percentile >= 75) return "from-[hsl(189,94%,55%)] to-[hsl(260,80%,60%)]";
