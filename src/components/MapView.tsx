@@ -384,11 +384,14 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
-          setHoverInfo({
-            name: feature.properties?.name,
-            cities: feature.properties?.cities,
-            shows: feature.properties?.shows
-          });
+          // Only show hover info for country-level features at world view
+          if (feature.properties?.type === 'country') {
+            setHoverInfo({
+              name: feature.properties?.name,
+              cities: feature.properties?.cities,
+              shows: feature.properties?.shows
+            });
+          }
         }
       });
 
@@ -476,11 +479,14 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
-          setHoverInfo({
-            name: feature.properties?.name,
-            venues: feature.properties?.venues,
-            shows: feature.properties?.shows
-          });
+          // Only show hover info for city-level features at country view
+          if (feature.properties?.type === 'city') {
+            setHoverInfo({
+              name: feature.properties?.name,
+              venues: feature.properties?.venues,
+              shows: feature.properties?.shows
+            });
+          }
         }
       });
 
@@ -560,10 +566,13 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
-          setHoverInfo({
-            name: feature.properties?.venueName,
-            shows: feature.properties?.shows
-          });
+          // Only show hover info for venue-level features at city view
+          if (feature.properties?.type === 'venue') {
+            setHoverInfo({
+              name: feature.properties?.venueName,
+              shows: feature.properties?.shows
+            });
+          }
         }
       });
 
