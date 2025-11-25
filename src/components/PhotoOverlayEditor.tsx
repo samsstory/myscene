@@ -419,7 +419,13 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   {/* Artist name and rating on same row */}
                   <div className="flex items-start justify-between gap-4 mb-2">
                     {overlayConfig.showArtists && (
-                      <h2 className="text-2xl font-bold flex-1" style={{ color: primaryColor }}>
+                      <h2 
+                        className="text-2xl font-bold flex-1" 
+                        style={{ 
+                          color: overlayConfig.showBackground ? primaryColor : "white",
+                          textShadow: overlayConfig.showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
+                        }}
+                      >
                         {headliners.map(a => a.name).join(", ")}
                       </h2>
                     )}
