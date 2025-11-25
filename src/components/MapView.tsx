@@ -149,6 +149,47 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     return 'United States';
   };
 
+  // Extract city name from location string
+  const getCityFromLocation = (location: string): string => {
+    const parts = location.split(',').map(p => p.trim());
+    
+    // Remove zip codes (5-digit numbers at the end)
+    const filteredParts = parts.filter(part => !/^\d{5}(-\d{4})?$/.test(part));
+    
+    // Common US state abbreviations and names
+    const usStates = [
+      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+      'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
+      'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+      'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+      'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island',
+      'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+      'Wisconsin', 'Wyoming'
+    ];
+    
+    // Find the city (typically second-to-last before state, or last if no state)
+    // Format: "Street Address, City, State Zip" or "City, State" or "City, Country"
+    if (filteredParts.length >= 2) {
+      // Check if last part is a state
+      const lastPart = filteredParts[filteredParts.length - 1];
+      if (usStates.includes(lastPart)) {
+        // City is second-to-last
+        return filteredParts[filteredParts.length - 2];
+      } else if (filteredParts.length >= 3 && usStates.includes(filteredParts[filteredParts.length - 2])) {
+        // In case of "City, State, Country" format
+        return filteredParts[filteredParts.length - 3];
+      } else {
+        // For international or simple formats, use second-to-last
+        return filteredParts[filteredParts.length - 2];
+      }
+    }
+    
+    // Fallback to first non-state part
+    return filteredParts[0] || location;
+  };
+
   // Expand US state abbreviations to full names
   const expandStateName = (location: string): string => {
     const stateMap: { [key: string]: string } = {
@@ -488,7 +529,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         setHoverInfo({
-          name: expandStateName(feature.properties?.name),
+          name: feature.properties?.name,
           venues: feature.properties?.venues,
           shows: feature.properties?.shows
         });
@@ -768,7 +809,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       
       showsWithCoords.forEach(show => {
         const country = getCountryFromLocation(show.venue.location);
-        const city = expandStateName(show.venue.location);
+        const city = getCityFromLocation(show.venue.location);
 
         // Initialize country
         if (!countryMap.has(country)) {
