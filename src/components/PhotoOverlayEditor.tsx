@@ -416,11 +416,20 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                     transformOrigin: "top left",
                   }}
                 >
-                  {overlayConfig.showArtists && (
-                    <h2 className="text-2xl font-bold mb-2" style={{ color: primaryColor }}>
-                      {headliners.map(a => a.name).join(", ")}
-                    </h2>
-                  )}
+                  {/* Artist name and rating on same row */}
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    {overlayConfig.showArtists && (
+                      <h2 className="text-2xl font-bold flex-1" style={{ color: primaryColor }}>
+                        {headliners.map(a => a.name).join(", ")}
+                      </h2>
+                    )}
+                    
+                    {overlayConfig.showRating && (
+                      <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none flex-shrink-0`}>
+                        {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
+                      </div>
+                    )}
+                  </div>
                   
                   {overlayConfig.showVenue && (
                     <p className="text-lg mb-1 flex items-center gap-2">
@@ -437,14 +446,6 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                         year: "numeric",
                       })}
                     </p>
-                  )}
-
-                  {overlayConfig.showRating && (
-                    <div className="absolute top-4 right-4 text-right">
-                      <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none`}>
-                        {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
-                      </div>
-                    </div>
                   )}
 
                   {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
