@@ -513,6 +513,13 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                       "{show.notes}"
                     </p>
                   )}
+
+                  {/* Scene logo at bottom */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+                    <span className="text-xs font-bold tracking-wider opacity-30" style={{ filter: "grayscale(100%)" }}>
+                      SCENE
+                    </span>
+                  </div>
                 </div>
               </Resizable>
             </div>
