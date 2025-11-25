@@ -212,7 +212,7 @@ const Feed = () => {
                 </div>
 
                 {/* Right section: Rating */}
-                <div className="flex flex-col items-center gap-3 min-w-[100px] self-start mt-1">
+                <div className="flex flex-col items-start gap-3 min-w-[100px] self-start mt-1">
                   <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe))} bg-clip-text text-transparent`}>
                     {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}
                   </div>
