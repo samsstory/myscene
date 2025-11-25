@@ -39,7 +39,7 @@ const StatCard = ({
   const handleShare = () => {
     toast.success("Sharing feature coming soon! 📸");
   };
-  return <div className="perspective-1000 cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
+  return <div className="perspective-1000 cursor-pointer w-64" onClick={() => setIsFlipped(!isFlipped)}>
       <div className={cn("relative w-full h-48 transition-transform duration-500 transform-style-3d", isFlipped && "rotate-y-180")}>
         {/* Front */}
         <Card className={cn("absolute inset-0 backface-hidden border-border/50 overflow-hidden", "hover:shadow-glow transition-all duration-300", gradient || "bg-gradient-to-br from-card via-card to-card/80")}>
@@ -285,7 +285,7 @@ const Stats = () => {
       </div>
 
       {/* Stat Cards Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="flex flex-wrap gap-6 justify-center">
         <StatCard title="All Time Shows" value={isLoading ? "..." : stats.allTimeShows} icon={Trophy} gradient="bg-gradient-to-br from-accent/20 via-primary/10 to-card" />
         <StatCard title="Shows This Year" value={isLoading ? "..." : stats.showsThisYear} icon={Calendar} gradient="bg-gradient-to-br from-primary/20 via-card to-card" />
         <StatCard title="Shows This Month" value={isLoading ? "..." : stats.showsThisMonth} icon={Music} gradient="bg-gradient-to-br from-secondary/20 via-card to-card" />
