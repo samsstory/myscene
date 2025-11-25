@@ -182,7 +182,7 @@ const Feed = () => {
               }} />
                   </div>}
 
-                {/* Left section: Artist and show details */}
+                {/* Left section: Artist name */}
                 <div className="flex-1 space-y-4">
                   {/* Artist names */}
                   <div className="flex items-center gap-2">
@@ -198,8 +198,8 @@ const Feed = () => {
                     </div>
                   </div>
 
-                  {/* Venue and Date in a clean grid */}
-                  <div className="grid gap-2 text-sm">
+                  {/* Venue and Date - only show here if no photo */}
+                  {!show.photo_url && <div className="grid gap-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="h-4 w-4 flex-shrink-0" />
                       <span>{show.venue.name}</span>
@@ -208,7 +208,7 @@ const Feed = () => {
                       <CalendarIcon className="h-4 w-4 flex-shrink-0" />
                       <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
                     </div>
-                  </div>
+                  </div>}
                 </div>
 
                 {/* Right section: Rating */}
@@ -221,6 +221,18 @@ const Feed = () => {
                     </Badge>}
                 </div>
               </div>
+
+              {/* Venue and Date - horizontal at bottom when photo exists */}
+              {show.photo_url && <div className="flex items-center gap-4 px-[10px] mt-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span>{show.venue.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                    <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
+                  </div>
+                </div>}
 
               {/* Share button - bottom right */}
               <Button 
