@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Compass, BarChart3, Plus, Music } from "lucide-react";
+import { Home, Trophy, BarChart3, Plus, Music } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import Feed from "@/components/Feed";
 import Stats from "@/components/Stats";
 import Profile from "@/components/Profile";
+import Rank from "@/components/Rank";
 import AddShowFlow from "@/components/AddShowFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -61,6 +62,8 @@ const Dashboard = () => {
     switch (activeTab) {
       case "feed":
         return <Feed />;
+      case "rank":
+        return <Rank />;
       case "stats":
         return <Stats />;
       case "profile":
@@ -102,19 +105,16 @@ const Dashboard = () => {
               <Home className="h-6 w-6" />
             </button>
 
-            {/* Compass - Coming Soon */}
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <button
-                  className="flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors flex-1 cursor-default"
-                >
-                  <Compass className="h-6 w-6" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="z-[60] bg-card border-border">
-                <p>Coming soon.. 🤫</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Rank */}
+            <button
+              onClick={() => setActiveTab("rank")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
+                activeTab === "rank" ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <Trophy className="h-6 w-6" />
+            </button>
 
             {/* Add Show Button - Elevated */}
             <div className="flex-1 flex justify-center">
