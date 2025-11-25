@@ -21,39 +21,15 @@ interface MapViewProps {
   onEditShow: (show: Show) => void;
 }
 
-type ViewLevel = 'world' | 'country' | 'city';
-
-interface HoverInfo {
-  name: string;
-  cities?: number;
-  venues?: number;
-  shows: number;
-}
-
 // TODO: Replace with your actual Mapbox public token from https://mapbox.com
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
-
-const getRatingEmoji = (rating: number) => {
-  const emojiMap: { [key: number]: string } = {
-    1: "😴",
-    2: "😐",
-    3: "🙂",
-    4: "😃",
-    5: "🤩",
-  };
-  return emojiMap[rating] || "🎵";
-};
 
 const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<{ venueName: string; location: string; count: number; shows: Show[] } | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
-  const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
-  const [currentView, setCurrentView] = useState<ViewLevel>('world');
-  const [currentCountry, setCurrentCountry] = useState<string | null>(null);
-  const [currentCity, setCurrentCity] = useState<string | null>(null);
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -70,20 +46,6 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
         if (profile?.home_latitude && profile?.home_longitude) {
           setHomeCoordinates([profile.home_longitude, profile.home_latitude]);
-        } else if (profile?.home_city) {
-          // Geocode the home city
-          const coords = await geocodeLocation(profile.home_city);
-          if (coords) {
-            setHomeCoordinates(coords);
-            // Save coordinates to profile
-            await supabase
-              .from('profiles')
-              .update({
-                home_latitude: coords[1],
-                home_longitude: coords[0],
-              })
-              .eq('id', user.id);
-          }
         }
       } catch (error) {
         console.error('Error fetching home coordinates:', error);
@@ -92,135 +54,6 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
     fetchHomeCoordinates();
   }, []);
-
-  // Geocode location using Mapbox Geocoding API
-  const geocodeLocation = async (location: string): Promise<[number, number] | null> => {
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json?access_token=${MAPBOX_TOKEN}`
-      );
-      const data = await response.json();
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        return [lng, lat];
-      }
-    } catch (error) {
-      console.error('Error geocoding location:', error);
-    }
-    return null;
-  };
-
-  // Extract country from location string with better US state handling
-  const getCountryFromLocation = (location: string): string => {
-    const parts = location.split(',').map(p => p.trim());
-    
-    // Common US state abbreviations and names
-    const usStates = [
-      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-      'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
-      'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
-      'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
-      'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island',
-      'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
-      'Wisconsin', 'Wyoming'
-    ];
-    
-    // Check if any part is a US state
-    for (const part of parts) {
-      if (usStates.includes(part)) {
-        return 'United States';
-      }
-    }
-    
-    // Check for USA, US, United States explicitly
-    const lastPart = parts[parts.length - 1];
-    if (['USA', 'US', 'United States', 'U.S.', 'U.S.A.'].includes(lastPart)) {
-      return 'United States';
-    }
-    
-    // If location has multiple parts, assume last is country
-    if (parts.length >= 2) {
-      return lastPart;
-    }
-    
-    // Default to United States if only one part (assuming most users are US-based)
-    return 'United States';
-  };
-
-  // Extract city name from location string
-  const getCityFromLocation = (location: string): string => {
-    const parts = location.split(',').map(p => p.trim());
-    
-    // Remove zip codes (5-digit numbers at the end)
-    const filteredParts = parts.filter(part => !/^\d{5}(-\d{4})?$/.test(part));
-    
-    // Common US state abbreviations and names
-    const usStates = [
-      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-      'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
-      'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
-      'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
-      'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island',
-      'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
-      'Wisconsin', 'Wyoming'
-    ];
-    
-    // Find the city (typically second-to-last before state, or last if no state)
-    // Format: "Street Address, City, State Zip" or "City, State" or "City, Country"
-    if (filteredParts.length >= 2) {
-      // Check if last part is a state
-      const lastPart = filteredParts[filteredParts.length - 1];
-      if (usStates.includes(lastPart)) {
-        // City is second-to-last
-        return filteredParts[filteredParts.length - 2];
-      } else if (filteredParts.length >= 3 && usStates.includes(filteredParts[filteredParts.length - 2])) {
-        // In case of "City, State, Country" format
-        return filteredParts[filteredParts.length - 3];
-      } else {
-        // For international or simple formats, use second-to-last
-        return filteredParts[filteredParts.length - 2];
-      }
-    }
-    
-    // Fallback to first non-state part
-    return filteredParts[0] || location;
-  };
-
-  // Expand US state abbreviations to full names
-  const expandStateName = (location: string): string => {
-    const stateMap: { [key: string]: string } = {
-      'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
-      'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
-      'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
-      'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
-      'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
-      'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
-      'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
-      'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
-      'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
-      'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
-    };
-
-    const parts = location.split(',').map(p => p.trim());
-    
-    // Replace state abbreviations with full names
-    const expandedParts = parts.map(part => {
-      // Check if this part is a state abbreviation
-      if (stateMap[part]) {
-        return stateMap[part];
-      }
-      return part;
-    });
-
-    // Remove zip codes (5-digit numbers at the end)
-    const filteredParts = expandedParts.filter(part => !/^\d{5}(-\d{4})?$/.test(part));
-    
-    return filteredParts.join(', ');
-  };
 
   // Initialize map
   useEffect(() => {
@@ -239,735 +72,47 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-    // Add zoom event listener to track view level
-    map.current.on('zoom', () => {
-      if (!map.current) return;
-      const zoom = map.current.getZoom();
-      
-      if (zoom < 3) {
-        setCurrentView('world');
-      } else if (zoom < 8) {
-        setCurrentView('country');
-      } else {
-        setCurrentView('city');
-      }
-    });
   }, [homeCoordinates]);
 
-  // Helper functions for adding layers (moved outside useEffect for reusability)
-  const removeLayers = () => {
-    if (!map.current) return;
-    
-    // Remove all possible layers from all zoom levels (including glow and ring layers)
-    const layersToRemove = [
-      'country-dots-glow', 'country-dots-ring', 'country-dots',
-      'city-dots-glow', 'city-dots-ring', 'city-dots',
-      'venue-dots-glow', 'venue-dots-ring', 'venue-dots',
-      'shows-points', 'shows-heat', 'venue-points'
-    ];
-    layersToRemove.forEach(layer => {
-      if (map.current?.getLayer(layer)) {
-        map.current.removeLayer(layer);
-      }
-    });
-
-    // Remove all possible sources
-    const sourcesToRemove = ['shows', 'country-data', 'city-data', 'venue-data'];
-    sourcesToRemove.forEach(source => {
-      if (map.current?.getSource(source)) {
-        map.current.removeSource(source);
-      }
-    });
-  };
-
-  const addWorldLayer = (geojson: any) => {
-    if (!map.current) return;
-
-    // Remove all existing layers first
-    removeLayers();
-
-    map.current.addSource('country-data', {
-      type: 'geojson',
-      data: geojson
-    });
-
-    // Outer glow layer (largest, most transparent)
-    map.current.addLayer({
-      id: 'country-dots-glow',
-      type: 'circle',
-      source: 'country-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 14,
-          1, 50
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.2,
-        'circle-blur': 1
-      }
-    });
-
-    // Middle ring layer
-    map.current.addLayer({
-      id: 'country-dots-ring',
-      type: 'circle',
-      source: 'country-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 10,
-          1, 36
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.45
-      }
-    });
-
-    // Core dot layer (smallest, most vibrant)
-    map.current.addLayer({
-      id: 'country-dots',
-      type: 'circle',
-      source: 'country-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 8,
-          1, 28
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.95
-      }
-    });
-
-    map.current.on('click', 'country-dots', (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const feature = e.features[0];
-      const country = feature.properties?.name;
-      const coords = (feature.geometry as any).coordinates;
-      
-      setCurrentCountry(country);
-      map.current?.flyTo({
-        center: coords,
-        zoom: 4.5,
-        duration: 1500
-      });
-
-      setTimeout(() => {
-        const countryData = (window as any).showsData?.countryMap.get(country);
-        if (countryData) addCountryLayer(country, countryData);
-      }, 1600);
-    });
-
-    map.current.on('mouseenter', 'country-dots', (e) => {
-      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-      if (e.features && e.features.length > 0) {
-        const feature = e.features[0];
-        setHoverInfo({
-          name: feature.properties?.name,
-          cities: feature.properties?.cities,
-          shows: feature.properties?.shows
-        });
-      }
-    });
-
-    map.current.on('mouseleave', 'country-dots', () => {
-      if (map.current) map.current.getCanvas().style.cursor = '';
-      setHoverInfo(null);
-    });
-  };
-
-  const addCountryLayer = (country: string, countryData: any) => {
-    if (!map.current) return;
-
-    // Remove all existing layers
-    removeLayers();
-
-    // Calculate normalized weights for cities
-    const cityShowCounts = Array.from(countryData.cities.values()).map((c: any) => c.shows.length);
-    const minCityShows = Math.min(...cityShowCounts);
-    const maxCityShows = Math.max(...cityShowCounts);
-
-    const cityFeatures = Array.from(countryData.cities.entries()).map(([city, data]: [string, any]) => {
-      const normalized = maxCityShows === minCityShows 
-        ? 0.5  // Default to mid-range if all cities have same show count
-        : (data.shows.length - minCityShows) / (maxCityShows - minCityShows);
-      
-      return {
-        type: 'Feature',
-        properties: {
-          name: city,
-          venues: data.venues.size,
-          shows: data.shows.length,
-          weight: normalized,
-          type: 'city'
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: data.coords
-        }
-      };
-    });
-
-    const cityGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
-      type: 'FeatureCollection',
-      features: cityFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
-    };
-
-    map.current.addSource('city-data', {
-      type: 'geojson',
-      data: cityGeojson
-    });
-
-    // Outer glow layer
-    map.current.addLayer({
-      id: 'city-dots-glow',
-      type: 'circle',
-      source: 'city-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 18,
-          1, 58
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.2,
-        'circle-blur': 1
-      }
-    });
-
-    // Middle ring layer
-    map.current.addLayer({
-      id: 'city-dots-ring',
-      type: 'circle',
-      source: 'city-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 13,
-          1, 42
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.45
-      }
-    });
-
-    // Core dot layer
-    map.current.addLayer({
-      id: 'city-dots',
-      type: 'circle',
-      source: 'city-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 10,
-          1, 32
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.95
-      }
-    });
-
-    map.current.on('click', 'city-dots', (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const feature = e.features[0];
-      const city = feature.properties?.name;
-      const coords = (feature.geometry as any).coordinates;
-      
-      setCurrentCity(city);
-      map.current?.flyTo({
-        center: coords,
-        zoom: 12,
-        duration: 1500
-      });
-
-      setTimeout(() => {
-        const cityData = countryData.cities.get(city);
-        if (cityData) addCityLayer(city, cityData);
-      }, 1600);
-    });
-
-    map.current.on('mouseenter', 'city-dots', (e) => {
-      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-      if (e.features && e.features.length > 0) {
-        const feature = e.features[0];
-        setHoverInfo({
-          name: feature.properties?.name,
-          venues: feature.properties?.venues,
-          shows: feature.properties?.shows
-        });
-      }
-    });
-
-    map.current.on('mouseleave', 'city-dots', () => {
-      if (map.current) map.current.getCanvas().style.cursor = '';
-      setHoverInfo(null);
-    });
-  };
-
-  const addCityLayer = (city: string, cityData: any) => {
-    if (!map.current) return;
-
-    // Remove all existing layers
-    removeLayers();
-
-    // Calculate normalized weights for venues
-    const venueShowCounts = Array.from(cityData.venues.values()).map((v: Show[]) => v.length);
-    const minVenueShows = Math.min(...venueShowCounts);
-    const maxVenueShows = Math.max(...venueShowCounts);
-
-    const venueFeatures = Array.from(cityData.venues.entries()).map(([venueName, venueShows]: [string, Show[]]) => {
-      const firstShow = venueShows[0];
-      const normalized = maxVenueShows === minVenueShows
-        ? 0.5  // Default to mid-range if all venues have same show count
-        : (venueShows.length - minVenueShows) / (maxVenueShows - minVenueShows);
-      
-      return {
-        type: 'Feature',
-        properties: {
-          venueName,
-          location: city,
-          shows: venueShows.length,
-          weight: normalized,
-          type: 'venue'
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [firstShow.longitude!, firstShow.latitude!]
-        }
-      };
-    });
-
-    const venueGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
-      type: 'FeatureCollection',
-      features: venueFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
-    };
-
-    map.current.addSource('venue-data', {
-      type: 'geojson',
-      data: venueGeojson
-    });
-
-    // Outer glow layer
-    map.current.addLayer({
-      id: 'venue-dots-glow',
-      type: 'circle',
-      source: 'venue-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 14,
-          1, 36
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.2,
-        'circle-blur': 1
-      }
-    });
-
-    // Middle ring layer
-    map.current.addLayer({
-      id: 'venue-dots-ring',
-      type: 'circle',
-      source: 'venue-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 10,
-          1, 26
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.45
-      }
-    });
-
-    // Core dot layer
-    map.current.addLayer({
-      id: 'venue-dots',
-      type: 'circle',
-      source: 'venue-data',
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 8,
-          1, 20
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'weight'],
-          0, 'hsl(260, 80%, 35%)',
-          0.3, 'hsl(280, 70%, 55%)',
-          0.7, 'hsl(330, 85%, 65%)',
-          1, 'hsl(45, 100%, 60%)'
-        ],
-        'circle-opacity': 0.95
-      }
-    });
-
-    map.current.on('click', 'venue-dots', (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const feature = e.features[0];
-      const venueName = feature.properties?.venueName;
-      const location = feature.properties?.location;
-      const count = feature.properties?.shows;
-      
-      const venueShows = shows.filter(s => s.venue.name === venueName && s.venue.location === location);
-      
-      setSelectedVenue({
-        venueName,
-        location,
-        count,
-        shows: venueShows
-      });
-    });
-
-    map.current.on('mouseenter', 'venue-dots', (e) => {
-      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-      if (e.features && e.features.length > 0) {
-        const feature = e.features[0];
-        setHoverInfo({
-          name: feature.properties?.venueName,
-          shows: feature.properties?.shows
-        });
-      }
-    });
-
-    map.current.on('mouseleave', 'venue-dots', () => {
-      if (map.current) map.current.getCanvas().style.cursor = '';
-      setHoverInfo(null);
-    });
-  };
-
-  // Re-render layers when view level changes (from manual zoom)
+  // Filter shows without location
   useEffect(() => {
-    if (!map.current || !map.current.isStyleLoaded()) return;
-    
-    const showsData = (window as any).showsData;
-    if (!showsData) return;
-
-    // Re-render the appropriate layer based on current view
-    if (currentView === 'world') {
-      // Build country-level GeoJSON with normalized weights
-      const allShowCounts = Array.from(showsData.countryMap.values()).map((d: any) => d.shows.length);
-      const minShows = Math.min(...allShowCounts);
-      const maxShows = Math.max(...allShowCounts);
-
-      const countryFeatures = Array.from(showsData.countryMap.entries())
-        .filter(([country]: [string, any]) => country !== 'United States')
-        .map(([country, data]: [string, any]) => {
-          const normalized = maxShows === minShows
-            ? 0.5  // Default to mid-range if all countries have same show count
-            : (data.shows.length - minShows) / (maxShows - minShows);
-          
-          return {
-            type: 'Feature',
-            properties: { 
-              name: country,
-              cities: data.cities.size,
-              shows: data.shows.length,
-              weight: normalized,
-              type: 'country'
-            },
-            geometry: {
-              type: 'Point',
-              coordinates: data.coords
-            }
-          };
-        });
-
-      const countryGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
-        type: 'FeatureCollection',
-        features: countryFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
-      };
-
-      addWorldLayer(countryGeojson);
-    } else if (currentView === 'country' && currentCountry) {
-      // Re-render country layer with city dots
-      const countryData = showsData.countryMap.get(currentCountry);
-      if (countryData) {
-        addCountryLayer(currentCountry, countryData);
-      }
-    } else if (currentView === 'city' && currentCountry && currentCity) {
-      // Re-render city layer with venue dots
-      const countryData = showsData.countryMap.get(currentCountry);
-      if (countryData) {
-        const cityData = countryData.cities.get(currentCity);
-        if (cityData) {
-          addCityLayer(currentCity, cityData);
-        }
-      }
-    }
-  }, [currentView]);
-
-  // Update heat map when shows change
-  useEffect(() => {
-    if (!map.current) return;
-
-    const processShows = async () => {
-      const showsWithCoords: Show[] = [];
-      const showsWithout: Show[] = [];
-      const showsToGeocode: Show[] = [];
-
-      shows.forEach(show => {
-        if (show.latitude && show.longitude) {
-          showsWithCoords.push(show);
-        } else if (show.venue.location) {
-          showsToGeocode.push(show);
-        } else {
-          showsWithout.push(show);
-        }
-      });
-
-      // Geocode shows with venue location but no coordinates
-      for (const show of showsToGeocode) {
-        const coords = await geocodeLocation(show.venue.location);
-        if (coords) {
-          show.latitude = coords[1];
-          show.longitude = coords[0];
-          showsWithCoords.push(show);
-
-          // Update the venue in database with coordinates
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: venueData } = await supabase
-              .from('shows')
-              .select('venue_id')
-              .eq('id', show.id)
-              .single();
-
-            if (venueData?.venue_id) {
-              await supabase
-                .from('venues')
-                .update({
-                  latitude: coords[1],
-                  longitude: coords[0],
-                })
-                .eq('id', venueData.venue_id);
-            }
-          }
-        } else {
-          showsWithout.push(show);
-        }
-      }
-
-      setShowsWithoutLocation(showsWithout);
-
-      // Aggregate shows by COUNTRY -> CITY -> VENUE
-      const countryMap = new Map<string, { 
-        shows: Show[], 
-        coords: [number, number], 
-        cities: Map<string, { shows: Show[], coords: [number, number], venues: Map<string, Show[]> }> 
-      }>();
-      
-      showsWithCoords.forEach(show => {
-        const country = getCountryFromLocation(show.venue.location);
-        const city = getCityFromLocation(show.venue.location);
-
-        // Initialize country
-        if (!countryMap.has(country)) {
-          countryMap.set(country, { 
-            shows: [show], 
-            coords: [show.longitude!, show.latitude!],
-            cities: new Map([[city, { shows: [show], coords: [show.longitude!, show.latitude!], venues: new Map([[show.venue.name, [show]]]) }]])
-          });
-        } else {
-          const countryData = countryMap.get(country)!;
-          countryData.shows.push(show);
-          
-          // Use geographic center of the country's cities (median point)
-          const allCityCoords = Array.from(countryData.cities.values()).map(c => c.coords);
-          allCityCoords.push([show.longitude!, show.latitude!]);
-          
-          // Calculate median to avoid ocean placement
-          const sortedLngs = allCityCoords.map(c => c[0]).sort((a, b) => a - b);
-          const sortedLats = allCityCoords.map(c => c[1]).sort((a, b) => a - b);
-          const medianLng = sortedLngs[Math.floor(sortedLngs.length / 2)];
-          const medianLat = sortedLats[Math.floor(sortedLats.length / 2)];
-          countryData.coords = [medianLng, medianLat];
-          
-          // Initialize city within country
-          if (!countryData.cities.has(city)) {
-            countryData.cities.set(city, { 
-              shows: [show], 
-              coords: [show.longitude!, show.latitude!],
-              venues: new Map([[show.venue.name, [show]]])
-            });
-          } else {
-            const cityData = countryData.cities.get(city)!;
-            cityData.shows.push(show);
-            
-            // Initialize venue within city
-            if (!cityData.venues.has(show.venue.name)) {
-              cityData.venues.set(show.venue.name, [show]);
-            } else {
-              cityData.venues.get(show.venue.name)!.push(show);
-            }
-          }
-        }
-      });
-
-      // Store all data for progressive zoom
-      (window as any).showsData = {
-        countryMap,
-        showsWithCoords
-      };
-
-      // Build GeoJSON for country-level view (world zoom) with normalized weights
-      const allShowCounts = Array.from(countryMap.values()).map(d => d.shows.length);
-      const minShows = Math.min(...allShowCounts);
-      const maxShows = Math.max(...allShowCounts);
-
-      const countryFeatures = Array.from(countryMap.entries()).map(([country, data]) => {
-        const normalized = maxShows === minShows
-          ? 0.5  // Default to mid-range if all countries have same show count
-          : (data.shows.length - minShows) / (maxShows - minShows);
-        
-        return {
-          type: 'Feature',
-          properties: { 
-            name: country,
-            cities: data.cities.size,
-            shows: data.shows.length,
-            weight: normalized,
-            type: 'country'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: data.coords
-          }
-        };
-      });
-
-      const countryGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
-        type: 'FeatureCollection',
-        features: countryFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
-      };
-
-      // Wait for map to load if needed
-      if (!map.current?.isStyleLoaded()) {
-        map.current?.once('load', () => addWorldLayer(countryGeojson));
-      } else {
-        addWorldLayer(countryGeojson);
-      }
-
-      // Fit bounds to show all countries
-      if (countryFeatures.length > 0) {
-        const bounds = new mapboxgl.LngLatBounds();
-        countryFeatures.forEach(feature => {
-          bounds.extend(feature.geometry.coordinates as [number, number]);
-        });
-        map.current?.fitBounds(bounds, { padding: 80, maxZoom: 2.5 });
-      }
-    };
-
-    processShows();
+    const showsWithout = shows.filter(show => !show.latitude || !show.longitude);
+    setShowsWithoutLocation(showsWithout);
   }, [shows]);
 
   return (
-    <div className="relative w-full h-[calc(100vh-240px)]">
-      <div ref={mapContainer} className="absolute inset-0 rounded-lg overflow-hidden" />
-      
-      {/* Hover tooltip */}
-      {hoverInfo && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-4 py-2 shadow-lg z-10 pointer-events-none">
-          <p className="font-medium">{hoverInfo.name}</p>
-          <div className="text-xs text-muted-foreground space-y-0.5">
-            {hoverInfo.cities !== undefined && (
-              <p>{hoverInfo.cities} {hoverInfo.cities === 1 ? 'city' : 'cities'}</p>
-            )}
-            {hoverInfo.venues !== undefined && (
-              <p>{hoverInfo.venues} {hoverInfo.venues === 1 ? 'venue' : 'venues'}</p>
-            )}
-            <p>{hoverInfo.shows} show{hoverInfo.shows !== 1 ? 's' : ''}</p>
-          </div>
-        </div>
-      )}
-      
-      {/* Selected venue popup */}
-      {selectedVenue && (
-        <Card className="absolute top-4 left-4 w-80 max-h-96 overflow-y-auto z-10 shadow-lg">
+    <div className="relative w-full h-[600px]">
+      <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
+
+      {/* Shows without location list */}
+      {showsWithoutLocation.length > 0 && (
+        <Card className="absolute top-4 left-4 max-w-sm z-10">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="flex-1">
-                <h3 className="font-bold text-xl">{selectedVenue.venueName}</h3>
-                <p className="text-sm text-muted-foreground">{selectedVenue.location}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {selectedVenue.count} show{selectedVenue.count !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedVenue(null)}
-                className="h-6 w-6"
-              >
-                ✕
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {selectedVenue.shows.map(show => (
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Shows without location ({showsWithoutLocation.length})
+            </h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {showsWithoutLocation.map((show) => (
                 <div
                   key={show.id}
-                  className="p-3 bg-muted/50 rounded cursor-pointer hover:bg-muted hover:border-primary/50 transition-colors border border-border/50"
-                  onClick={() => onEditShow(show)}
+                  className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{getRatingEmoji(show.rating)}</span>
-                    <span className="font-medium text-sm">
-                      {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
-                    </span>
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {show.artists.map(a => a.name).join(", ")}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {show.venue.name}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(show.date).toLocaleDateString()}
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onEditShow(show)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -975,38 +120,49 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         </Card>
       )}
 
-      {/* Shows without location sidebar */}
-      {showsWithoutLocation.length > 0 && (
-        <Card className="absolute bottom-4 right-4 w-80 max-h-60 overflow-y-auto z-10 shadow-lg">
+      {/* Selected venue details */}
+      {selectedVenue && (
+        <Card className="absolute bottom-4 left-4 max-w-sm z-10">
           <CardContent className="p-4">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Shows without locations
-            </h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Click to add location and pin to map
+            <h3 className="font-semibold mb-2">{selectedVenue.venueName}</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              {selectedVenue.location}
             </p>
-            <div className="space-y-2">
-              {showsWithoutLocation.map(show => (
+            <p className="text-sm mb-3">
+              {selectedVenue.count} {selectedVenue.count === 1 ? "show" : "shows"}
+            </p>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {selectedVenue.shows.map((show) => (
                 <div
                   key={show.id}
-                  className="text-sm p-3 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors border border-border/50 hover:border-primary/50"
-                  onClick={() => onEditShow(show)}
+                  className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <div className="font-medium mb-1">
-                        {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {show.venue.name} • {new Date(show.date).toLocaleDateString()}
-                      </div>
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {show.artists.map(a => a.name).join(", ")}
                     </div>
-                    <Edit className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(show.date).toLocaleDateString()}
+                    </div>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onEditShow(show)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
                 </div>
               ))}
             </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full mt-3"
+              onClick={() => setSelectedVenue(null)}
+            >
+              Close
+            </Button>
           </CardContent>
         </Card>
       )}
