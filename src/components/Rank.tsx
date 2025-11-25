@@ -274,13 +274,8 @@ export default function Rank() {
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 items-stretch">
+      <div className="flex flex-col md:flex-row gap-6 items-stretch justify-center">
         {renderShowCard(showPair[0], "left")}
-        
-        <div className="flex items-center justify-center">
-          <div className="text-2xl font-bold text-muted-foreground">VS</div>
-        </div>
-        
         {renderShowCard(showPair[1], "right")}
       </div>
 
