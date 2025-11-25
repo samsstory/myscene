@@ -2,7 +2,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, MapPin, Calendar as CalendarIcon, Music2, Upload, X, Image as ImageIcon, Send } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Edit, MapPin, Calendar as CalendarIcon, Music2, Upload, X, Image as ImageIcon, Send, ChevronDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -33,11 +35,19 @@ interface Show {
   photo_url?: string | null;
 }
 
+interface ShowRanking {
+  show_id: string;
+  elo_score: number;
+  comparisons_count: number;
+}
+
 interface ShowReviewSheetProps {
   show: Show | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (show: Show) => void;
+  allShows?: Show[];
+  rankings?: ShowRanking[];
 }
 
 const getRatingLabel = (rating: number) => {
@@ -64,12 +74,15 @@ const RatingBar = ({ label, value }: { label: string; value: number | null | und
   );
 };
 
-export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReviewSheetProps) => {
-  if (!show) return null;
-
+export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit, allShows = [], rankings = [] }: ShowReviewSheetProps) => {
   const [uploading, setUploading] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState(show.photo_url);
+  const [photoUrl, setPhotoUrl] = useState(show?.photo_url || null);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const [showRankingOpen, setShowRankingOpen] = useState(false);
+  const [rankingMethod, setRankingMethod] = useState<"score" | "elo">("score");
+  const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
+  
+  if (!show) return null;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasDetailedRatings = show.artistPerformance || show.sound || show.lighting || show.crowd || show.venueVibe;
@@ -240,6 +253,84 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
     }
   };
 
+  const score = calculateShowScore(
+    show.rating,
+    show.artistPerformance,
+    show.sound,
+    show.lighting,
+    show.crowd,
+    show.venueVibe
+  );
+
+  // Helper: Filter shows by time period
+  const filterShowsByTime = (shows: Show[], timeFilter: string) => {
+    if (timeFilter === "all-time") return shows;
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    return shows.filter(s => {
+      const showDate = parseISO(s.date);
+      
+      if (timeFilter === "this-year") {
+        return showDate.getFullYear() === currentYear;
+      } else if (timeFilter === "this-month") {
+        return showDate.getFullYear() === currentYear && 
+               showDate.getMonth() === currentMonth;
+      }
+      return true;
+    });
+  };
+
+  // Calculate rank data
+  const calculateRankData = () => {
+    const filteredShows = filterShowsByTime(allShows, rankingTimeFilter);
+    
+    if (filteredShows.length === 0) {
+      return { position: 0, total: 0, percentile: 0 };
+    }
+
+    if (rankingMethod === "score") {
+      // Sort by calculated score (descending)
+      const sorted = [...filteredShows].sort((a, b) => {
+        const scoreA = calculateShowScore(a.rating, a.artistPerformance, a.sound, a.lighting, a.crowd, a.venueVibe);
+        const scoreB = calculateShowScore(b.rating, b.artistPerformance, b.sound, b.lighting, b.crowd, b.venueVibe);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+      
+      const position = sorted.findIndex(s => s.id === show.id) + 1;
+      const total = sorted.length;
+      const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
+      
+      return { position, total, percentile };
+    } else {
+      // ELO-based ranking
+      const filteredShowIds = new Set(filteredShows.map(s => s.id));
+      const filteredRankings = rankings.filter(r => filteredShowIds.has(r.show_id));
+      
+      const sorted = [...filteredRankings].sort((a, b) => b.elo_score - a.elo_score);
+      
+      const position = sorted.findIndex(r => r.show_id === show.id) + 1;
+      const total = sorted.length;
+      const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
+      const currentRanking = sorted.find(r => r.show_id === show.id);
+      
+      return { position, total, percentile, elo: currentRanking?.elo_score, comparisons: currentRanking?.comparisons_count };
+    }
+  };
+
+  const rankData = calculateRankData();
+  
+  // Determine gradient based on percentile
+  const getRankGradient = (percentile: number) => {
+    if (percentile >= 90) return "from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)]"; // Gold
+    if (percentile >= 75) return "from-[hsl(189,94%,55%)] to-[hsl(260,80%,60%)]"; // Blue
+    if (percentile >= 50) return "from-[hsl(260,80%,60%)] to-[hsl(330,85%,65%)]"; // Purple
+    return "from-[hsl(330,85%,65%)] to-[hsl(0,84%,60%)]"; // Pink/Red
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
@@ -336,6 +427,84 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
           </div>
 
           <Separator />
+
+          {/* Show Ranking Section */}
+          {allShows.length > 0 && (
+            <>
+              <Collapsible open={showRankingOpen} onOpenChange={setShowRankingOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:opacity-80 transition-opacity">
+                  <h3 className="font-semibold text-lg">Show Ranking</h3>
+                  <ChevronDown className={`h-5 w-5 transition-transform ${showRankingOpen ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="space-y-4 pt-4">
+                  {/* Method Toggle */}
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Ranking Method</p>
+                    <ToggleGroup type="single" value={rankingMethod} onValueChange={(v) => v && setRankingMethod(v as "score" | "elo")} className="justify-start">
+                      <ToggleGroupItem value="score" className="flex-1">By Score</ToggleGroupItem>
+                      <ToggleGroupItem value="elo" className="flex-1">Head to Head</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                  
+                  {/* Time Filter */}
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Time Period</p>
+                    <ToggleGroup 
+                      type="single" 
+                      value={rankingTimeFilter} 
+                      onValueChange={(v) => v && setRankingTimeFilter(v as typeof rankingTimeFilter)}
+                      className="justify-start"
+                    >
+                      <ToggleGroupItem value="all-time" className="flex-1">All Time</ToggleGroupItem>
+                      <ToggleGroupItem value="this-year" className="flex-1">This Year</ToggleGroupItem>
+                      <ToggleGroupItem value="this-month" className="flex-1">This Month</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                  
+                  {/* Rank Display */}
+                  {rankData.position > 0 ? (
+                    <div className="text-center space-y-3 py-4">
+                      <div className={`text-6xl font-black bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent`}>
+                        #{rankData.position}
+                      </div>
+                      <div className="text-muted-foreground text-lg">
+                        of {rankData.total} show{rankData.total !== 1 ? 's' : ''}
+                      </div>
+                      <div className="text-sm font-semibold text-primary">
+                        Top {Math.round(rankData.percentile)}%
+                      </div>
+                      
+                      {/* Visual Progress Bar */}
+                      <div className="w-full max-w-xs mx-auto mt-4">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full bg-gradient-to-r ${getRankGradient(rankData.percentile)} transition-all duration-500`}
+                            style={{ width: `${rankData.percentile}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* ELO details */}
+                      {rankingMethod === "elo" && rankData.elo !== undefined && (
+                        <div className="text-sm text-muted-foreground mt-2">
+                          ELO: {Math.round(rankData.elo)} • {rankData.comparisons || 0} comparison{rankData.comparisons !== 1 ? 's' : ''}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      {rankingMethod === "elo" 
+                        ? "No ranking data yet. Start comparing shows in the Rank tab!"
+                        : "No shows found for this time period"}
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+              
+              <Separator />
+            </>
+          )}
 
           {/* Show Details */}
           <div className="space-y-4">
