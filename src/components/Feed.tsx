@@ -37,6 +37,12 @@ interface Show {
   longitude?: number;
   photo_url?: string | null;
 }
+
+interface ShowRanking {
+  show_id: string;
+  elo_score: number;
+  comparisons_count: number;
+}
 const Feed = () => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +55,8 @@ const Feed = () => {
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
   const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
+  const [rankingMode, setRankingMode] = useState<"score" | "elo">("score");
+  const [rankings, setRankings] = useState<ShowRanking[]>([]);
   useEffect(() => {
     fetchShows();
 
@@ -93,6 +101,18 @@ const Feed = () => {
         ascending: false
       });
       if (showsError) throw showsError;
+
+      // Fetch rankings for ELO-based sorting
+      const { data: rankingsData, error: rankingsError } = await supabase
+        .from('show_rankings')
+        .select('show_id, elo_score, comparisons_count')
+        .eq('user_id', user.id);
+
+      if (rankingsError) {
+        console.error('Error fetching rankings:', rankingsError);
+      } else {
+        setRankings(rankingsData || []);
+      }
 
       // Fetch artists for each show
       const showsWithArtists = await Promise.all((showsData || []).map(async show => {
@@ -151,15 +171,31 @@ const Feed = () => {
         });
       }
 
-      // Sort by calculated score (descending) and then by date (descending)
-      return [...filteredShows].sort((a, b) => {
-        const scoreA = calculateShowScore(a.rating, a.artistPerformance, a.sound, a.lighting, a.crowd, a.venueVibe);
-        const scoreB = calculateShowScore(b.rating, b.artistPerformance, b.sound, b.lighting, b.crowd, b.venueVibe);
-        if (scoreB !== scoreA) {
-          return scoreB - scoreA;
-        }
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      });
+      // Sort by ELO or calculated score
+      if (rankingMode === "elo") {
+        // Create a map of show_id to ELO score
+        const rankingMap = new Map(rankings.map(r => [r.show_id, r.elo_score]));
+        
+        return [...filteredShows].sort((a, b) => {
+          const eloA = rankingMap.get(a.id) || 1200; // Default ELO if not ranked
+          const eloB = rankingMap.get(b.id) || 1200;
+          
+          if (eloB !== eloA) {
+            return eloB - eloA; // Higher ELO first
+          }
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+      } else {
+        // Sort by calculated score (descending) and then by date (descending)
+        return [...filteredShows].sort((a, b) => {
+          const scoreA = calculateShowScore(a.rating, a.artistPerformance, a.sound, a.lighting, a.crowd, a.venueVibe);
+          const scoreB = calculateShowScore(b.rating, b.artistPerformance, b.sound, b.lighting, b.crowd, b.venueVibe);
+          if (scoreB !== scoreA) {
+            return scoreB - scoreA;
+          }
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+      }
     }
     return filteredShows;
   };
@@ -365,18 +401,41 @@ const Feed = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Time period filters for Top Rated view */}
-        {viewMode === "top-rated" && <div className="flex justify-center gap-2 mt-4">
-            <Button variant={topRatedFilter === "all-time" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("all-time")}>
-              All Time
-            </Button>
-            <Button variant={topRatedFilter === "this-year" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("this-year")}>
-              This Year
-            </Button>
-            <Button variant={topRatedFilter === "this-month" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("this-month")}>
-              This Month
-            </Button>
-          </div>}
+        {/* Time period filters and ranking mode toggle for Top Rated view */}
+        {viewMode === "top-rated" && (
+          <div className="space-y-3 mt-4">
+            {/* Ranking mode toggle */}
+            <div className="flex justify-center gap-2">
+              <Button 
+                variant={rankingMode === "score" ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => setRankingMode("score")}
+              >
+                By Score
+              </Button>
+              <Button 
+                variant={rankingMode === "elo" ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => setRankingMode("elo")}
+              >
+                By Your Ranking
+              </Button>
+            </div>
+
+            {/* Time period filters */}
+            <div className="flex justify-center gap-2">
+              <Button variant={topRatedFilter === "all-time" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("all-time")}>
+                All Time
+              </Button>
+              <Button variant={topRatedFilter === "this-year" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("this-year")}>
+                This Year
+              </Button>
+              <Button variant={topRatedFilter === "this-month" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("this-month")}>
+                This Month
+              </Button>
+            </div>
+          </div>
+        )}
 
         {loading ? <Card className="border-border shadow-card mt-6">
             <CardContent className="py-16 text-center">
