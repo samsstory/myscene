@@ -167,7 +167,7 @@ const Feed = () => {
   const renderListView = () => {
     const sortedShows = getSortedShows();
     return <div className={`grid gap-4 ${viewMode === "top-rated" ? "items-center" : ""}`}>
-        {sortedShows.map((show, index) => <Card key={show.id} className={`border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-visible cursor-pointer relative ${viewMode === "top-rated" ? "max-w-3xl mx-auto" : ""}`} onClick={() => {
+        {sortedShows.map((show, index) => <Card key={show.id} className={`border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-visible cursor-pointer relative ${viewMode === "top-rated" ? "max-w-3xl mx-auto w-full" : "w-full"}`} onClick={() => {
         setReviewShow(show);
         setReviewSheetOpen(true);
       }}>
