@@ -176,7 +176,13 @@ const Feed = () => {
         // Create a map of show_id to ELO score
         const rankingMap = new Map(rankings.map(r => [r.show_id, r.elo_score]));
         
-        return [...filteredShows].sort((a, b) => {
+        // Filter to only include shows that have been ranked (have comparisons)
+        const rankedFilteredShows = filteredShows.filter(show => {
+          const ranking = rankings.find(r => r.show_id === show.id);
+          return ranking && ranking.comparisons_count > 0;
+        });
+        
+        return [...rankedFilteredShows].sort((a, b) => {
           const eloA = rankingMap.get(a.id) || 1200; // Default ELO if not ranked
           const eloB = rankingMap.get(b.id) || 1200;
           
