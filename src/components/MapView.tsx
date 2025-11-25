@@ -107,24 +107,25 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     return 'United States';
   };
 
-  // Extract city from location string
-  const getCityFromLocation = (location: string): string | null => {
+  // Extract city from location string - include state for better geocoding accuracy
+  const getCityFromLocation = (location: string): string => {
     const parts = location.split(',').map(p => p.trim());
     
-    // For addresses with numbers at the start (street addresses), city is usually second part
-    // e.g., "8509 Burleson Rd, Austin, TX 78719" -> "Austin"
-    if (parts.length >= 2 && /^\d/.test(parts[0])) {
-      return parts[1];
+    // For addresses with numbers at the start (street addresses)
+    // e.g., "8509 Burleson Rd, Austin, TX 78719" -> "Austin, TX"
+    if (parts.length >= 3 && /^\d/.test(parts[0])) {
+      return `${parts[1]}, ${parts[2].replace(/\s*\d+\s*$/, '').trim()}`;
     }
     
-    // For city, state format, city is first
-    // e.g., "Los Angeles, CA 90028" -> "Los Angeles"
-    // e.g., "Brooklyn, New York, USA" -> "Brooklyn"
+    // For city, state, country format
+    // e.g., "Brooklyn, New York, USA" -> "Brooklyn, New York"
+    // e.g., "Los Angeles, CA 90028" -> "Los Angeles, CA"
     if (parts.length >= 2) {
-      return parts[0];
+      const state = parts[1].replace(/\s*\d+\s*$/, '').trim();
+      return `${parts[0]}, ${state}`;
     }
     
-    return null;
+    return parts[0];
   };
 
   // Geocode country name to get center coordinates
@@ -145,7 +146,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   };
 
   // Geocode city name to get coordinates
-  const geocodeCity = async (cityName: string, countryName: string): Promise<[number, number] | null> => {
+  const geocodeCity = async (cityStateString: string, countryName: string): Promise<[number, number] | null> => {
     try {
       // Get country code for more accurate results
       let countryCode = '';
@@ -153,9 +154,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       else if (countryName === 'Canada') countryCode = 'ca';
       else if (countryName === 'United Kingdom') countryCode = 'gb';
       
+      // Use the full city, state string for more accurate geocoding
+      // e.g., "Brooklyn, New York" or "Los Angeles, CA"
       const query = countryCode 
-        ? `${encodeURIComponent(cityName)}.json?types=place&country=${countryCode}`
-        : `${encodeURIComponent(cityName)}.json?types=place`;
+        ? `${encodeURIComponent(cityStateString)}.json?types=place&country=${countryCode}`
+        : `${encodeURIComponent(cityStateString)}.json?types=place`;
       
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}&access_token=${MAPBOX_TOKEN}`
@@ -254,25 +257,27 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       return false;
     });
 
-    // Group shows by city
+    // Group shows by city (using city, state format for uniqueness and accuracy)
     const cityMap = new Map<string, Show[]>();
     countryShows.forEach(show => {
-      const cityName = getCityFromLocation(show.venue.location);
-      if (cityName) {
-        if (!cityMap.has(cityName)) {
-          cityMap.set(cityName, []);
+      const cityStateString = getCityFromLocation(show.venue.location);
+      if (cityStateString) {
+        if (!cityMap.has(cityStateString)) {
+          cityMap.set(cityStateString, []);
         }
-        cityMap.get(cityName)!.push(show);
+        cityMap.get(cityStateString)!.push(show);
       }
     });
 
     // Geocode each city and create city data
     const data: CityData[] = [];
-    for (const [cityName, cityShows] of cityMap.entries()) {
-      const coords = await geocodeCity(cityName, countryName);
+    for (const [cityStateString, cityShows] of cityMap.entries()) {
+      const coords = await geocodeCity(cityStateString, countryName);
       if (coords) {
+        // Extract just city name for display (first part before comma)
+        const displayName = cityStateString.split(',')[0].trim();
         data.push({
-          name: cityName,
+          name: displayName,
           showCount: cityShows.length,
           coordinates: coords,
           shows: cityShows
