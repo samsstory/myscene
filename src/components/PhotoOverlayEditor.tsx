@@ -362,11 +362,10 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   )}
 
                   {overlayConfig.showRating && (
-                    <div className="absolute top-4 right-4 text-right space-y-1">
+                    <div className="absolute top-4 right-4 text-right">
                       <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none`}>
                         {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
                       </div>
-                      <div className="text-lg font-bold text-white/70">/10</div>
                     </div>
                   )}
 
