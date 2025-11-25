@@ -484,10 +484,17 @@ const Feed = () => {
 
       <ShareShowSheet show={shareShow} open={shareSheetOpen} onOpenChange={setShareSheetOpen} />
 
-      <ShowReviewSheet show={reviewShow} open={reviewSheetOpen} onOpenChange={setReviewSheetOpen} onEdit={show => {
-      setEditShow(show);
-      setEditDialogOpen(true);
-    }} />
+      <ShowReviewSheet 
+        show={reviewShow} 
+        open={reviewSheetOpen} 
+        onOpenChange={setReviewSheetOpen} 
+        onEdit={show => {
+          setEditShow(show);
+          setEditDialogOpen(true);
+        }}
+        allShows={shows}
+        rankings={rankings}
+      />
 
       <AddShowFlow open={editDialogOpen} onOpenChange={setEditDialogOpen} editShow={editShow ? {
       id: editShow.id,
