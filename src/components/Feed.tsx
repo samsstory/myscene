@@ -173,18 +173,16 @@ const Feed = () => {
 
       // Sort by ELO or calculated score
       if (rankingMode === "elo") {
-        // Create a map of show_id to ELO score
-        const rankingMap = new Map(rankings.map(r => [r.show_id, r.elo_score]));
+        // Create a map of show_id to ELO score and comparison count
+        const rankingMap = new Map(rankings.map(r => [r.show_id, { elo: r.elo_score, comparisons: r.comparisons_count }]));
         
-        // Filter to only include shows that have been ranked (have comparisons)
-        const rankedFilteredShows = filteredShows.filter(show => {
-          const ranking = rankings.find(r => r.show_id === show.id);
-          return ranking && ranking.comparisons_count > 0;
-        });
-        
-        return [...rankedFilteredShows].sort((a, b) => {
-          const eloA = rankingMap.get(a.id) || 1200; // Default ELO if not ranked
-          const eloB = rankingMap.get(b.id) || 1200;
+        return [...filteredShows].sort((a, b) => {
+          const rankingA = rankingMap.get(a.id);
+          const rankingB = rankingMap.get(b.id);
+          
+          // Use ELO score if available, otherwise default to 1200
+          const eloA = rankingA?.elo || 1200;
+          const eloB = rankingB?.elo || 1200;
           
           if (eloB !== eloA) {
             return eloB - eloA; // Higher ELO first
