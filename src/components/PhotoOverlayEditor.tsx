@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Download, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 
 interface Artist {
   name: string;
@@ -32,17 +33,6 @@ interface PhotoOverlayEditorProps {
   show: Show;
   onClose: () => void;
 }
-
-const getRatingEmoji = (rating: number): string => {
-  const emojiMap: { [key: number]: string } = {
-    1: "😴",
-    2: "😐",
-    3: "🙂",
-    4: "😊",
-    5: "🤩",
-  };
-  return emojiMap[rating] || "🙂";
-};
 
 const getRatingGradient = (rating: number): string => {
   // Darker, more muted gradients that blend better with photos
@@ -203,11 +193,18 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
         yPos += lineHeight * 1.5;
       }
 
-      // Overall rating
+      // Overall rating - numerical score
       if (overlayConfig.showRating) {
-        const emoji = getRatingEmoji(show.rating);
-        ctx.font = `${64 * overlaySize * scaleX}px system-ui`;
-        ctx.fillText(`${emoji} ${show.rating}/5`, overlayX + padding, yPos);
+        const score = calculateShowScore(
+          show.rating,
+          show.artist_performance,
+          show.sound,
+          show.lighting,
+          show.crowd,
+          show.venue_vibe
+        );
+        ctx.font = `bold ${64 * overlaySize * scaleX}px system-ui`;
+        ctx.fillText(`${score.toFixed(1)}/10`, overlayX + padding, yPos);
         yPos += lineHeight * 2;
       }
 
@@ -357,8 +354,11 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   )}
 
                   {overlayConfig.showRating && (
-                    <div className="absolute top-4 right-4 text-3xl font-bold" style={{ color: getRatingAccent(show.rating) }}>
-                      {getRatingEmoji(show.rating)} {show.rating}/5
+                    <div className="absolute top-4 right-4 text-right space-y-1">
+                      <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none`}>
+                        {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
+                      </div>
+                      <div className="text-lg font-bold text-white/70">/10</div>
                     </div>
                   )}
 

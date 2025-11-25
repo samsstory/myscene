@@ -5,6 +5,7 @@ import { Music2, MapPin, Calendar as CalendarIcon, Download, Link as LinkIcon } 
 import { format, parseISO } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
+import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 
 interface Artist {
   name: string;
@@ -37,10 +38,6 @@ interface ShareShowSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const getRatingEmoji = (rating: number) => {
-  const emojis = ["😞", "😕", "😐", "😊", "🤩"];
-  return emojis[rating - 1] || "😐";
-};
 
 export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,7 +50,8 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
   const displayArtists = headliners.length > 0 ? headliners : show.artists;
 
   const handleCopyLink = () => {
-    const shareText = `I saw ${displayArtists.map(a => a.name).join(", ")} at ${show.venue.name} on ${format(parseISO(show.date), "MMM d, yyyy")} ${getRatingEmoji(show.rating)}`;
+    const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
+    const shareText = `I saw ${displayArtists.map(a => a.name).join(", ")} at ${show.venue.name} on ${format(parseISO(show.date), "MMM d, yyyy")} - ${score.toFixed(1)}/10`;
     navigator.clipboard.writeText(shareText);
     toast({
       title: "Copied to clipboard!",
@@ -71,9 +69,19 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
       
       if (!ctx) throw new Error('Could not get canvas context');
 
-      // Dynamic color scheme based on rating
-      const getRatingColors = (rating: number) => {
-        if (rating >= 4.5) return { 
+      // Calculate score
+      const score = calculateShowScore(
+        show.rating,
+        show.artistPerformance || show.artist_performance,
+        show.sound,
+        show.lighting,
+        show.crowd,
+        show.venueVibe || show.venue_vibe
+      );
+
+      // Dynamic color scheme based on score
+      const getRatingColors = (score: number) => {
+        if (score >= 9.0) return {
           start: 'hsl(222, 47%, 8%)', 
           middle: 'hsl(250, 50%, 15%)', 
           end: 'hsl(222, 47%, 6%)', 
@@ -81,7 +89,7 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
           glow: 'rgba(255, 215, 0, 0.4)',
           barColors: ['hsl(45, 93%, 58%)', 'hsl(39, 100%, 50%)']
         };
-        if (rating >= 3.5) return { 
+        if (score >= 7.0) return { 
           start: 'hsl(222, 47%, 8%)', 
           middle: 'hsl(189, 60%, 20%)', 
           end: 'hsl(222, 47%, 6%)', 
@@ -89,7 +97,7 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
           glow: 'rgba(96, 213, 242, 0.4)',
           barColors: ['hsl(189, 94%, 55%)', 'hsl(217, 91%, 60%)']
         };
-        if (rating >= 2.5) return { 
+        if (score >= 5.0) return { 
           start: 'hsl(222, 47%, 8%)', 
           middle: 'hsl(30, 50%, 20%)', 
           end: 'hsl(222, 47%, 6%)', 
@@ -107,7 +115,7 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
         };
       };
 
-      const colors = getRatingColors(show.rating);
+      const colors = getRatingColors(score);
 
       // Background gradient with dynamic colors
       const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -117,8 +125,8 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Add sparkles for high ratings
-      if (show.rating >= 4.5) {
+      // Add sparkles for high scores
+      if (score >= 9.0) {
         ctx.font = '40px system-ui';
         ctx.fillStyle = colors.accent;
         const sparkles = [[120, 280], [930, 300], [90, 530], [960, 560], [150, 1600], [900, 1650]];
@@ -134,18 +142,19 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
       ctx.fillText('Scene', canvas.width / 2, yPos);
       yPos += 200;
 
-      // Large emoji with glow
+      // Large numerical score with glow
       ctx.shadowColor = colors.glow;
-      ctx.shadowBlur = 60;
-      ctx.font = '200px system-ui';
-      ctx.fillText(getRatingEmoji(show.rating), canvas.width / 2, yPos);
+      ctx.shadowBlur = 80;
+      ctx.fillStyle = colors.accent;
+      ctx.font = 'bold 180px system-ui';
+      ctx.fillText(score.toFixed(1), canvas.width / 2, yPos);
       ctx.shadowBlur = 0;
       yPos += 100;
 
-      // Bold rating score
-      ctx.fillStyle = colors.accent;
-      ctx.font = 'bold 80px system-ui';
-      ctx.fillText(`${show.rating}/5 ⭐`, canvas.width / 2, yPos);
+      // "/10" label
+      ctx.fillStyle = 'hsl(215, 20%, 75%)';
+      ctx.font = 'bold 64px system-ui';
+      ctx.fillText('/10', canvas.width / 2, yPos);
       yPos += 120;
 
       // Artist names with gradient
@@ -385,7 +394,9 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
               {/* Preview Card */}
               <div className="bg-gradient-to-b from-card to-background p-8 rounded-lg border border-border">
                 <div className="space-y-6 text-center">
-                  <div className="text-6xl mb-4">{getRatingEmoji(show.rating)}</div>
+                  <div className={`text-6xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe))} bg-clip-text text-transparent`}>
+                    {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}/10
+                  </div>
                   
                   <div className="space-y-2">
                     <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">

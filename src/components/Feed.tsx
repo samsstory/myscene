@@ -11,6 +11,7 @@ import { ShareShowSheet } from "./ShareShowSheet";
 import { ShowReviewSheet } from "./ShowReviewSheet";
 import MapView from "./MapView";
 import AddShowFlow from "./AddShowFlow";
+import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 interface Artist {
   name: string;
   isHeadliner: boolean;
@@ -36,10 +37,6 @@ interface Show {
   longitude?: number;
   photo_url?: string | null;
 }
-const getRatingEmoji = (rating: number) => {
-  const emojis = ["😞", "😕", "😐", "😊", "🤩"];
-  return emojis[rating - 1] || "😐";
-};
 const Feed = () => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,9 +219,11 @@ const Feed = () => {
 
                 {/* Right section: Rating and Share button */}
                 <div className="flex flex-col items-center gap-3 min-w-[100px]">
-                  <div className="text-4xl">{getRatingEmoji(show.rating)}</div>
+                  <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe))} bg-clip-text text-transparent`}>
+                    {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}
+                  </div>
                   {viewMode === "top-rated" && <Badge variant="outline" className="text-xs">
-                      {show.rating}/5
+                      {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}/10
                     </Badge>}
                   <Button size="sm" variant="default" className="w-full" onClick={e => {
                 e.stopPropagation();
@@ -310,13 +309,27 @@ const Feed = () => {
           const dayShows = getShowsForDate(day);
           const isToday = isSameDay(day, new Date());
           return <div key={day.toISOString()} className={`aspect-square border rounded-lg p-2 flex items-center justify-center ${isToday ? "border-primary bg-primary/10" : "border-border"} ${dayShows.length > 0 ? "bg-card" : "bg-background"}`}>
-                {dayShows.length > 0 ? <div className="flex flex-wrap gap-1 items-center justify-center">
-                    {dayShows.map(show => <button key={show.id} className="text-2xl hover:scale-110 transition-transform cursor-pointer" title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name}`} onClick={() => {
-                setReviewShow(show);
-                setReviewSheetOpen(true);
-              }}>
-                        {getRatingEmoji(show.rating)}
-                      </button>)}
+              {dayShows.length > 0 ? <div className="flex flex-wrap gap-1 items-center justify-center">
+                    {dayShows.map(show => {
+                      const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
+                      const getDotColor = (score: number) => {
+                        if (score >= 9.0) return "bg-[hsl(45,93%,58%)]"; // Gold
+                        if (score >= 7.0) return "bg-[hsl(189,94%,55%)]"; // Blue
+                        if (score >= 5.0) return "bg-[hsl(17,88%,60%)]"; // Coral
+                        return "bg-[hsl(0,84%,60%)]"; // Red
+                      };
+                      return (
+                        <button 
+                          key={show.id} 
+                          className={`w-3 h-3 rounded-full ${getDotColor(score)} hover:scale-125 transition-transform cursor-pointer shadow-lg`}
+                          title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name} (${score.toFixed(1)}/10)`} 
+                          onClick={() => {
+                            setReviewShow(show);
+                            setReviewSheetOpen(true);
+                          }}
+                        />
+                      );
+                    })}
                   </div> : <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />}
               </div>;
         })}

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
+import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 
 interface Artist {
   name: string;
@@ -38,19 +39,8 @@ interface ShowReviewSheetProps {
   onEdit: (show: Show) => void;
 }
 
-const getRatingEmoji = (rating: number) => {
-  const emojiMap: { [key: number]: string } = {
-    1: "😴",
-    2: "😐",
-    3: "🙂",
-    4: "😃",
-    5: "🤩",
-  };
-  return emojiMap[rating] || "🎵";
-};
-
 const getRatingLabel = (rating: number) => {
-  const labels = ["Terrible", "Meh", "Good", "Great", "Amazing"];
+  const labels = ["Terrible", "Bad", "Okay", "Great", "Amazing"];
   return labels[rating - 1] || "Not rated";
 };
 
@@ -237,11 +227,10 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
 
           {/* Overall Rating */}
           <div className="text-center space-y-2">
-            <div className="text-6xl">{getRatingEmoji(show.rating)}</div>
-            <div className="text-2xl font-bold">{getRatingLabel(show.rating)}</div>
-            <Badge variant="secondary" className="text-sm">
-              {show.rating}/5 Overall
-            </Badge>
+            <div className={`text-7xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe))} bg-clip-text text-transparent`}>
+              {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}
+            </div>
+            <div className="text-2xl font-bold text-muted-foreground">/10</div>
           </div>
 
           <Separator />
