@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StatsData {
+  allTimeShows: number;
   showsThisYear: number;
   showsThisMonth: number;
   mostSeenArtist: string;
@@ -108,6 +109,7 @@ const StatCard = ({
 const Stats = () => {
   const [showSharePreview, setShowSharePreview] = useState(false);
   const [stats, setStats] = useState<StatsData>({
+    allTimeShows: 0,
     showsThisYear: 0,
     showsThisMonth: 0,
     mostSeenArtist: "—",
@@ -187,6 +189,7 @@ const Stats = () => {
         const distanceMiles = (totalShows * 3 * 0.2).toFixed(1);
 
         setStats({
+          allTimeShows: totalShows,
           showsThisYear,
           showsThisMonth,
           mostSeenArtist,
@@ -243,6 +246,12 @@ const Stats = () => {
 
       {/* Stat Cards Grid */}
       <div className="grid gap-6 md:grid-cols-2">
+        <StatCard
+          title="All Time Shows"
+          value={isLoading ? "..." : stats.allTimeShows}
+          icon={Trophy}
+          gradient="bg-gradient-to-br from-accent/20 via-primary/10 to-card"
+        />
         <StatCard
           title="Shows This Year"
           value={isLoading ? "..." : stats.showsThisYear}
