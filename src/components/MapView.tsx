@@ -40,6 +40,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<{ venueName: string; location: string; count: number; shows: Show[] } | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
+  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
 
   // Fetch user's home city coordinates
@@ -169,32 +170,38 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
       setShowsWithoutLocation(showsWithout);
 
-      // Aggregate shows by venue (using venue name + location as unique identifier)
-      const venueMap = new Map<string, { shows: Show[], coords: [number, number], venueName: string, location: string }>();
+      // Aggregate shows by CITY for country-level view
+      const cityMap = new Map<string, { shows: Show[], coords: [number, number], venues: Map<string, Show[]> }>();
       
       showsWithCoords.forEach(show => {
-        const venueKey = `${show.venue.name}|${show.venue.location}`;
-        if (!venueMap.has(venueKey)) {
-          venueMap.set(venueKey, { 
+        const city = show.venue.location;
+        if (!cityMap.has(city)) {
+          cityMap.set(city, { 
             shows: [show], 
             coords: [show.longitude!, show.latitude!],
-            venueName: show.venue.name,
-            location: show.venue.location
+            venues: new Map([[show.venue.name, [show]]])
           });
         } else {
-          venueMap.get(venueKey)!.shows.push(show);
+          const cityData = cityMap.get(city)!;
+          cityData.shows.push(show);
+          
+          // Track venues within the city
+          if (!cityData.venues.has(show.venue.name)) {
+            cityData.venues.set(show.venue.name, [show]);
+          } else {
+            cityData.venues.get(show.venue.name)!.push(show);
+          }
         }
       });
 
-      // Calculate normalized weights
-      const venueCounts = Array.from(venueMap.values()).map(v => v.shows.length);
-      const minShows = Math.min(...venueCounts, 1);
-      const maxShows = Math.max(...venueCounts, 1);
+      // Calculate normalized weights for cities
+      const cityCounts = Array.from(cityMap.values()).map(c => c.shows.length);
+      const minShows = Math.min(...cityCounts, 1);
+      const maxShows = Math.max(...cityCounts, 1);
 
-      // Build GeoJSON for heat map with normalized weights
-      const features = Array.from(venueMap.entries()).map(([venueKey, data]) => {
+      // Build GeoJSON for city-level heat map
+      const cityFeatures = Array.from(cityMap.entries()).map(([city, data]) => {
         const count = data.shows.length;
-        // Logarithmic normalization for better visual distribution
         const weight = Math.log(count + 1) / Math.log(maxShows + 1);
         
         return {
@@ -202,8 +209,8 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           properties: { 
             count,
             weight,
-            venueName: data.venueName,
-            location: data.location
+            city,
+            type: 'city'
           },
           geometry: {
             type: 'Point',
@@ -214,27 +221,30 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
       const geojson = {
         type: 'FeatureCollection',
-        features
+        features: cityFeatures
       };
+
+      // Store city data for zoom-in
+      (window as any).cityShowData = cityMap;
 
       // Wait for map to load if needed
       if (!map.current?.isStyleLoaded()) {
-        map.current?.once('load', () => addHeatmapLayer(geojson));
+        map.current?.once('load', () => addCityHeatmapLayer(geojson));
       } else {
-        addHeatmapLayer(geojson);
+        addCityHeatmapLayer(geojson);
       }
 
       // Fit bounds to show all cities
-      if (features.length > 0) {
+      if (cityFeatures.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
-        features.forEach(feature => {
+        cityFeatures.forEach(feature => {
           bounds.extend(feature.geometry.coordinates as [number, number]);
         });
-        map.current?.fitBounds(bounds, { padding: 80, maxZoom: 10 });
+        map.current?.fitBounds(bounds, { padding: 80, maxZoom: 5 });
       }
     };
 
-    const addHeatmapLayer = (geojson: any) => {
+    const addCityHeatmapLayer = (geojson: any) => {
       if (!map.current) return;
 
       // Remove existing layers and sources
@@ -305,37 +315,127 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
-      // Add circle layer for city labels on top
+      // Add large circle layer for city markers (visible at all zoom levels)
       map.current.addLayer({
         id: 'shows-points',
         type: 'circle',
         source: 'shows',
-        minzoom: 8,
         paint: {
+          // Much larger radius for city-level viewing
           'circle-radius': [
             'interpolate',
             ['linear'],
-            ['get', 'count'],
-            1, 8,
-            10, 16,
-            50, 24
+            ['zoom'],
+            0, 15,    // Large at world view
+            5, 30,    // Bigger at country view
+            8, 20,    // Smaller when zooming in
+            12, 10    // Small at city level
           ],
           'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-stroke-width': 2,
+          'circle-stroke-width': 3,
           'circle-stroke-color': '#fff',
-          'circle-opacity': 0.8
+          'circle-opacity': 0.9
         }
       });
 
-      // Add click handler for venues
+      // Add click handler to zoom into city and show venues
       map.current.on('click', 'shows-points', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        const feature = e.features[0];
+        const city = feature.properties?.city;
+        const coords = (feature.geometry as any).coordinates;
+        
+        // Zoom into the city
+        map.current?.flyTo({
+          center: coords,
+          zoom: 12,
+          duration: 1500
+        });
+
+        // Get city data and create venue-level visualization
+        const cityData = (window as any).cityShowData?.get(city);
+        if (cityData && map.current) {
+          setTimeout(() => {
+            addVenueLayerForCity(city, cityData);
+          }, 1600); // Wait for zoom animation
+        }
+      });
+
+      // Add hover handler to show city name
+      map.current.on('mouseenter', 'shows-points', (e) => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (e.features && e.features.length > 0) {
+          setHoveredCity(e.features[0].properties?.city);
+        }
+      });
+      map.current.on('mouseleave', 'shows-points', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+        setHoveredCity(null);
+      });
+    };
+
+    // Add venue-level markers when zoomed into a city
+    const addVenueLayerForCity = (city: string, cityData: any) => {
+      if (!map.current) return;
+
+      // Remove city layers
+      if (map.current.getLayer('shows-heat')) {
+        map.current.removeLayer('shows-heat');
+      }
+      if (map.current.getLayer('shows-points')) {
+        map.current.removeLayer('shows-points');
+      }
+
+      // Build venue-level GeoJSON
+      const venueFeatures = Array.from(cityData.venues.entries()).map(([venueName, venueShows]: [string, Show[]]) => {
+        const firstShow = venueShows[0];
+        return {
+          type: 'Feature',
+          properties: {
+            venueName,
+            location: city,
+            count: venueShows.length,
+            type: 'venue'
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [firstShow.longitude!, firstShow.latitude!]
+          }
+        };
+      });
+
+      const venueGeojson = {
+        type: 'FeatureCollection',
+        features: venueFeatures
+      };
+
+      // Update source with venue data
+      if (map.current.getSource('shows')) {
+        (map.current.getSource('shows') as any).setData(venueGeojson);
+      }
+
+      // Add venue circle layer
+      map.current.addLayer({
+        id: 'venue-points',
+        type: 'circle',
+        source: 'shows',
+        paint: {
+          'circle-radius': 12,
+          'circle-color': 'hsl(189, 94%, 55%)',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff',
+          'circle-opacity': 0.9
+        }
+      });
+
+      // Add venue click handler
+      map.current.on('click', 'venue-points', (e) => {
         if (!e.features || e.features.length === 0) return;
         const feature = e.features[0];
         const venueName = feature.properties?.venueName;
         const location = feature.properties?.location;
         const count = feature.properties?.count;
         
-        // Find all shows for this venue
         const venueShows = shows.filter(s => s.venue.name === venueName && s.venue.location === location);
         
         setSelectedVenue({
@@ -346,11 +446,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         });
       });
 
-      // Change cursor on hover
-      map.current.on('mouseenter', 'shows-points', () => {
+      // Add hover
+      map.current.on('mouseenter', 'venue-points', () => {
         if (map.current) map.current.getCanvas().style.cursor = 'pointer';
       });
-      map.current.on('mouseleave', 'shows-points', () => {
+      map.current.on('mouseleave', 'venue-points', () => {
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
     };
@@ -361,6 +461,13 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   return (
     <div className="relative w-full h-[calc(100vh-240px)]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg overflow-hidden" />
+      
+      {/* City hover tooltip */}
+      {hoveredCity && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-4 py-2 shadow-lg z-10 pointer-events-none">
+          <p className="text-sm font-medium">{hoveredCity}</p>
+        </div>
+      )}
       
       {/* Selected venue popup */}
       {selectedVenue && (
