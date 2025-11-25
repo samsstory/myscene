@@ -157,14 +157,6 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
 
     setIsGenerating(true);
     try {
-      // Get overlay element
-      const overlayElement = document.getElementById("rating-overlay");
-      if (!overlayElement) throw new Error("Overlay element not found");
-
-      const canvasContainer = document.getElementById("canvas-container");
-      if (!canvasContainer) throw new Error("Canvas container not found");
-
-      // Create final canvas with Instagram Story dimensions
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas not supported");
@@ -201,7 +193,11 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
 
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-      // Get overlay position and render it
+      // Get overlay position
+      const overlayElement = document.getElementById("rating-overlay");
+      const canvasContainer = document.getElementById("canvas-container");
+      if (!overlayElement || !canvasContainer) throw new Error("Elements not found");
+      
       const containerRect = canvasContainer.getBoundingClientRect();
       const overlayRect = overlayElement.getBoundingClientRect();
 
@@ -213,30 +209,158 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       const overlayWidth = overlayRect.width * scaleX;
       const overlayHeight = overlayRect.height * scaleY;
 
-      // Convert overlay HTML to SVG foreignObject
-      const overlayHTML = overlayElement.outerHTML;
-      const svgData = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${overlayRect.width}" height="${overlayRect.height}">
-          <foreignObject width="100%" height="100%">
-            <div xmlns="http://www.w3.org/1999/xhtml">
-              ${overlayHTML}
-            </div>
-          </foreignObject>
-        </svg>
-      `;
+      // Draw overlay background if enabled
+      if (overlayConfig.showBackground) {
+        const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
+        const ratingValue = show.rating;
+        
+        if (ratingValue >= 4.5) {
+          gradient.addColorStop(0, "hsl(220, 90%, 56%)");
+          gradient.addColorStop(1, "hsl(280, 70%, 55%)");
+        } else if (ratingValue >= 3.5) {
+          gradient.addColorStop(0, "hsl(45, 100%, 60%)");
+          gradient.addColorStop(1, "hsl(330, 85%, 65%)");
+        } else if (ratingValue >= 2.5) {
+          gradient.addColorStop(0, "hsl(30, 100%, 55%)");
+          gradient.addColorStop(1, "hsl(45, 100%, 60%)");
+        } else {
+          gradient.addColorStop(0, "hsl(0, 70%, 50%)");
+          gradient.addColorStop(1, "hsl(30, 100%, 55%)");
+        }
 
-      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-      const svgUrl = URL.createObjectURL(svgBlob);
+        ctx.globalAlpha = overlayOpacity / 100;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, 24 * scaleX);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
 
-      const svgImg = new Image();
-      await new Promise((resolve, reject) => {
-        svgImg.onload = resolve;
-        svgImg.onerror = reject;
-        svgImg.src = svgUrl;
-      });
+      // Draw text matching screen layout exactly
+      const padding = 24 * scaleX;
+      let yPos = overlayY + padding;
+      
+      ctx.fillStyle = "white";
+      ctx.textAlign = "left";
 
-      ctx.drawImage(svgImg, overlayX, overlayY, overlayWidth, overlayHeight);
-      URL.revokeObjectURL(svgUrl);
+      // Row 1: Artist and Score
+      if (overlayConfig.showArtists || overlayConfig.showRating) {
+        const headliners = show.artists.filter((a) => a.is_headliner);
+        const artistText = headliners.map((a) => a.name).join(", ");
+        const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
+
+        if (overlayConfig.showArtists) {
+          ctx.font = `bold ${24 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+          ctx.fillStyle = overlayConfig.showBackground ? primaryColor : "white";
+          if (!overlayConfig.showBackground) {
+            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+            ctx.shadowBlur = 8 * scaleX;
+            ctx.shadowOffsetY = 2 * scaleY;
+          }
+          ctx.fillText(artistText, overlayX + padding, yPos);
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+        }
+
+        if (overlayConfig.showRating) {
+          ctx.font = `900 ${36 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+          ctx.fillStyle = "white";
+          const scoreText = score.toFixed(1);
+          const scoreWidth = ctx.measureText(scoreText).width;
+          ctx.fillText(scoreText, overlayX + overlayWidth - padding - scoreWidth, yPos);
+        }
+
+        yPos += 40 * scaleY;
+      }
+
+      // Venue
+      if (overlayConfig.showVenue) {
+        ctx.font = `${18 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = "white";
+        ctx.fillText(show.venue_name, overlayX + padding, yPos);
+        yPos += 28 * scaleY;
+      }
+
+      // Date
+      if (overlayConfig.showDate) {
+        ctx.font = `${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        const dateStr = new Date(show.show_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+        ctx.fillText(dateStr, overlayX + padding, yPos);
+        yPos += 36 * scaleY;
+      }
+
+      // Detailed ratings
+      if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
+        const detailedRatings = [
+          { label: "Performance", value: show.artist_performance },
+          { label: "Sound", value: show.sound },
+          { label: "Lighting", value: show.lighting },
+          { label: "Crowd", value: show.crowd },
+          { label: "Vibe", value: show.venue_vibe },
+        ].filter((r) => r.value);
+
+        ctx.font = `${12 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        const labelWidth = 80 * scaleX;
+        const barWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
+        const barHeight = 6 * scaleY;
+
+        detailedRatings.forEach((rating) => {
+          ctx.fillStyle = "white";
+          ctx.fillText(rating.label, overlayX + padding, yPos);
+
+          const barX = overlayX + padding + labelWidth;
+          const barY = yPos - barHeight / 2 - 6 * scaleY;
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+          ctx.beginPath();
+          ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
+          ctx.fill();
+
+          const fillWidth = (rating.value! / 5) * barWidth;
+          ctx.fillStyle = "rgba(255, 255, 255, 1)";
+          ctx.beginPath();
+          ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
+          ctx.fill();
+
+          yPos += 22 * scaleY;
+        });
+        yPos += 12 * scaleY;
+      }
+
+      // Notes
+      if (overlayConfig.showNotes && show.notes) {
+        ctx.font = `italic ${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        const maxWidth = overlayWidth - padding * 2;
+        const words = `"${show.notes}"`.split(" ");
+        let line = "";
+        let lineCount = 0;
+
+        words.forEach((word) => {
+          const testLine = line + word + " ";
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && line !== "") {
+            if (lineCount < 3) {
+              ctx.fillText(line, overlayX + padding, yPos);
+              line = word + " ";
+              yPos += 28 * scaleY;
+              lineCount++;
+            }
+          } else {
+            line = testLine;
+          }
+        });
+        if (lineCount < 3 && line !== "") {
+          ctx.fillText(line, overlayX + padding, yPos);
+        }
+      }
+
+      // Scene logo
+      ctx.font = `bold ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.textAlign = "center";
+      ctx.fillText("SCENE", overlayX + overlayWidth / 2, overlayY + overlayHeight - 12 * scaleY);
 
       // Download
       canvas.toBlob((blob) => {
