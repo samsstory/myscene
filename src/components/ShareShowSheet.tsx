@@ -16,6 +16,12 @@ interface Show {
   venue: { name: string; location: string };
   date: string;
   rating: number;
+  artistPerformance?: number | null;
+  sound?: number | null;
+  lighting?: number | null;
+  crowd?: number | null;
+  venueVibe?: number | null;
+  notes?: string | null;
 }
 
 interface ShareShowSheetProps {
@@ -50,7 +56,6 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
   const handleDownloadImage = async () => {
     setIsGenerating(true);
     try {
-      // Create a canvas to generate the share image
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1920;
@@ -58,31 +63,139 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
       
       if (!ctx) throw new Error('Could not get canvas context');
 
-      // Background gradient
+      // Background gradient (dark theme)
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, 'hsl(222, 47%, 8%)');
-      gradient.addColorStop(1, 'hsl(222, 47%, 6%)');
+      gradient.addColorStop(0.5, 'hsl(222, 47%, 6%)');
+      gradient.addColorStop(1, 'hsl(222, 47%, 8%)');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Artist name
+      let yPos = 180;
+
+      // App branding at top
       ctx.fillStyle = 'hsl(210, 40%, 98%)';
-      ctx.font = 'bold 72px system-ui';
+      ctx.font = 'bold 48px system-ui';
       ctx.textAlign = 'center';
-      const artistNames = displayArtists.map(a => a.name).join(", ");
-      ctx.fillText(artistNames, canvas.width / 2, 960 - 200);
+      ctx.fillText('Scene', canvas.width / 2, yPos);
+      yPos += 100;
+
+      // Rating emoji (large)
+      ctx.font = '280px system-ui';
+      ctx.fillText(getRatingEmoji(show.rating), canvas.width / 2, yPos + 200);
+      yPos += 320;
+
+      // Artist names
+      ctx.fillStyle = 'hsl(210, 40%, 98%)';
+      ctx.font = 'bold 68px system-ui';
+      const artistText = displayArtists.map(a => a.name).join(", ");
+      
+      // Wrap long artist names
+      const maxWidth = 950;
+      const words = artistText.split(' ');
+      let line = '';
+      const lines: string[] = [];
+      
+      for (const word of words) {
+        const testLine = line + word + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && line !== '') {
+          lines.push(line);
+          line = word + ' ';
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line);
+      
+      lines.forEach((line, i) => {
+        ctx.fillText(line.trim(), canvas.width / 2, yPos + (i * 80));
+      });
+      yPos += lines.length * 80 + 40;
 
       // Venue
       ctx.fillStyle = 'hsl(215, 20%, 65%)';
-      ctx.font = '48px system-ui';
-      ctx.fillText(show.venue.name, canvas.width / 2, 960 - 100);
+      ctx.font = '44px system-ui';
+      ctx.fillText(show.venue.name, canvas.width / 2, yPos);
+      yPos += 60;
 
       // Date
-      ctx.fillText(format(parseISO(show.date), "MMM d, yyyy"), canvas.width / 2, 960);
+      ctx.font = '38px system-ui';
+      ctx.fillText(format(parseISO(show.date), "MMMM d, yyyy"), canvas.width / 2, yPos);
+      yPos += 100;
 
-      // Rating emoji
-      ctx.font = '200px system-ui';
-      ctx.fillText(getRatingEmoji(show.rating), canvas.width / 2, 960 + 200);
+      // Detailed ratings (if available)
+      const hasDetailedRatings = show.artistPerformance || show.sound || show.lighting || show.crowd || show.venueVibe;
+      
+      if (hasDetailedRatings) {
+        ctx.font = 'bold 36px system-ui';
+        ctx.fillStyle = 'hsl(210, 40%, 98%)';
+        ctx.fillText('The Details', canvas.width / 2, yPos);
+        yPos += 60;
+
+        const ratingLabels = [
+          { label: 'Artist Performance', value: show.artistPerformance },
+          { label: 'Sound', value: show.sound },
+          { label: 'Lighting', value: show.lighting },
+          { label: 'Crowd', value: show.crowd },
+          { label: 'Venue Vibe', value: show.venueVibe },
+        ];
+
+        ctx.font = '32px system-ui';
+        ctx.textAlign = 'left';
+        
+        ratingLabels.forEach(({ label, value }) => {
+          if (value) {
+            ctx.fillStyle = 'hsl(215, 20%, 65%)';
+            ctx.fillText(label, 140, yPos);
+            
+            // Rating dots
+            const dotStartX = 680;
+            for (let i = 0; i < 5; i++) {
+              ctx.fillStyle = i < value ? 'hsl(221, 83%, 53%)' : 'hsl(215, 20%, 35%)';
+              ctx.beginPath();
+              ctx.arc(dotStartX + (i * 50), yPos - 10, 12, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            
+            yPos += 50;
+          }
+        });
+        
+        yPos += 30;
+      }
+
+      // Notes (if available)
+      if (show.notes && show.notes.trim()) {
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 36px system-ui';
+        ctx.fillStyle = 'hsl(210, 40%, 98%)';
+        ctx.fillText('My Take', canvas.width / 2, yPos);
+        yPos += 60;
+
+        ctx.font = '32px system-ui';
+        ctx.fillStyle = 'hsl(215, 20%, 75%)';
+        
+        // Wrap notes text
+        const notesWords = show.notes.split(' ');
+        let notesLine = '';
+        const notesMaxWidth = 900;
+        
+        notesWords.forEach(word => {
+          const testLine = notesLine + word + ' ';
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > notesMaxWidth && notesLine !== '') {
+            ctx.fillText(notesLine.trim(), canvas.width / 2, yPos);
+            yPos += 45;
+            notesLine = word + ' ';
+          } else {
+            notesLine = testLine;
+          }
+        });
+        if (notesLine) {
+          ctx.fillText(notesLine.trim(), canvas.width / 2, yPos);
+        }
+      }
 
       // Convert to blob and download
       canvas.toBlob((blob) => {
@@ -90,13 +203,13 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `show-${show.id}.png`;
+        a.download = `scene-${artistText.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${format(parseISO(show.date), "yyyy-MM-dd")}.png`;
         a.click();
         URL.revokeObjectURL(url);
         
         toast({
           title: "Image downloaded!",
-          description: "Your show card has been saved.",
+          description: "Your show recap has been saved.",
         });
       });
     } catch (error) {
