@@ -42,6 +42,7 @@ interface ShareShowSheetProps {
 export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showOverlayEditor, setShowOverlayEditor] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<'9:16' | '4:5' | '1:1'>('9:16');
 
   if (!show) return null;
 
@@ -385,10 +386,38 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
 
         <div className="flex-1 overflow-y-auto mt-6">
           {showOverlayEditor && show.photo_url ? (
-            <PhotoOverlayEditor 
-              show={normalizedShow} 
-              onClose={() => setShowOverlayEditor(false)} 
-            />
+            <div className="flex flex-col gap-6">
+              {/* Aspect Ratio Selection */}
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant={aspectRatio === '9:16' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAspectRatio('9:16')}
+                >
+                  Story (9:16)
+                </Button>
+                <Button
+                  variant={aspectRatio === '4:5' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAspectRatio('4:5')}
+                >
+                  Post (4:5)
+                </Button>
+                <Button
+                  variant={aspectRatio === '1:1' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAspectRatio('1:1')}
+                >
+                  Square (1:1)
+                </Button>
+              </div>
+
+              <PhotoOverlayEditor 
+                show={normalizedShow} 
+                onClose={() => setShowOverlayEditor(false)}
+                aspectRatio={aspectRatio}
+              />
+            </div>
           ) : (
             <>
               {/* Preview Card */}
@@ -427,34 +456,28 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
               </div>
 
               {/* Share Options */}
-              <div className="space-y-3">
+              <div className="space-y-3 mt-6">
                 {show.photo_url && (
                   <Button
                     onClick={() => setShowOverlayEditor(true)}
                     className="w-full"
+                    size="lg"
                   >
-                    Customize & Download Image
+                    Edit & Share Photo
                   </Button>
                 )}
 
-                <Button
-                  onClick={handleDownloadImage}
-                  variant="outline"
-                  className="w-full"
-                  disabled={isGenerating}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Quick Share Image
-                </Button>
-
-                <Button
-                  onClick={handleShareToInstagram}
-                  variant="outline"
-                  className="w-full bg-gradient-to-r from-[#f09433] via-[#e6683c] to-[#bc1888] hover:opacity-90 text-white border-0"
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? "Generating..." : "Share to Instagram Story"}
-                </Button>
+                {!show.photo_url && (
+                  <Button
+                    onClick={handleDownloadImage}
+                    variant="default"
+                    className="w-full"
+                    disabled={isGenerating}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {isGenerating ? "Generating..." : "Download Share Image"}
+                  </Button>
+                )}
 
                 <Button
                   onClick={handleCopyLink}
