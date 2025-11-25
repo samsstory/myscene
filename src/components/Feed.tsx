@@ -407,26 +407,31 @@ const Feed = () => {
   return (
     <div className="space-y-4">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold">Your Show History</h2>
+        <h2 className="text-2xl font-bold">
+          {viewMode === "list" && "Recent Shows"}
+          {viewMode === "calendar" && "Show Calendar"}
+          {viewMode === "top-rated" && "Top Shows"}
+          {viewMode === "map" && "Show Globe"}
+        </h2>
       </div>
 
       <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)} className="mb-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="list" className="flex items-center gap-2">
             <List className="h-4 w-4" />
-            <span className="hidden sm:inline">List</span>
+            <span className="hidden sm:inline">Recent Shows</span>
           </TabsTrigger>
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Calendar</span>
+            <span className="hidden sm:inline">Show Calendar</span>
           </TabsTrigger>
           <TabsTrigger value="top-rated" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
-            <span className="hidden sm:inline">Top Rated</span>
+            <span className="hidden sm:inline">Top Shows</span>
           </TabsTrigger>
           <TabsTrigger value="map" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            <span className="hidden sm:inline">Map</span>
+            <span className="hidden sm:inline">Show Globe</span>
           </TabsTrigger>
         </TabsList>
 
