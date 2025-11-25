@@ -208,12 +208,26 @@ const Feed = () => {
   };
   const renderListView = () => {
     const sortedShows = getSortedShows();
+    const isHeadToHead = viewMode === "top-rated" && rankingMode === "elo";
+    
     return <div className="flex flex-col gap-4 items-center w-full">
         {sortedShows.map((show, index) => <Card key={show.id} className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative w-full max-w-3xl" onClick={() => {
         setReviewShow(show);
         setReviewSheetOpen(true);
       }}>
             <CardContent className="p-3 relative overflow-hidden px-[10px]">
+              {/* Ranking position badge for Head to Head mode */}
+              {isHeadToHead && (
+                <div className="absolute top-2 left-2 z-10">
+                  <Badge 
+                    variant="secondary" 
+                    className="bg-gradient-to-r from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)] text-background font-black text-lg px-3 py-1 shadow-lg"
+                  >
+                    #{index + 1}
+                  </Badge>
+                </div>
+              )}
+              
               <div className="flex items-start gap-4">
 
                 {/* Photo thumbnail (only if photo exists) */}
