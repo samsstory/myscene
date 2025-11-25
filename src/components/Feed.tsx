@@ -173,7 +173,7 @@ const Feed = () => {
         setReviewShow(show);
         setReviewSheetOpen(true);
       }}>
-            <CardContent className="p-3 relative overflow-hidden px-0">
+            <CardContent className="p-3 relative overflow-hidden px-[10px]">
               <div className="flex items-start gap-4">
 
                 {/* Photo thumbnail (only if photo exists) */}
