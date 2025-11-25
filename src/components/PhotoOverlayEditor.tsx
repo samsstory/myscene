@@ -325,7 +325,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
               >
                 <div
                   id="rating-overlay"
-                  className="h-full w-full rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10"
+                  className="h-full w-full rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 relative"
                   style={{
                     background: getRatingGradient(show.rating),
                     opacity: overlayOpacity / 100,
@@ -354,7 +354,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   )}
 
                   {overlayConfig.showRating && (
-                    <div className="text-4xl font-bold mb-3" style={{ color: getRatingAccent(show.rating) }}>
+                    <div className="absolute top-4 right-4 text-3xl font-bold" style={{ color: getRatingAccent(show.rating) }}>
                       {getRatingEmoji(show.rating)} {show.rating}/5
                     </div>
                   )}
