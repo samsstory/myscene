@@ -577,7 +577,9 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit, allShows = [
       <ShareShowSheet 
         show={show} 
         open={shareSheetOpen} 
-        onOpenChange={setShareSheetOpen} 
+        onOpenChange={setShareSheetOpen}
+        allShows={allShows}
+        rankings={rankings}
       />
     </Sheet>
   );

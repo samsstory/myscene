@@ -32,14 +32,22 @@ interface Show {
   photo_url?: string | null;
 }
 
+interface ShowRanking {
+  show_id: string;
+  elo_score: number;
+  comparisons_count: number;
+}
+
 interface ShareShowSheetProps {
   show: Show | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  allShows?: Show[];
+  rankings?: ShowRanking[];
 }
 
 
-export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps) => {
+export const ShareShowSheet = ({ show, open, onOpenChange, allShows = [], rankings = [] }: ShareShowSheetProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showOverlayEditor, setShowOverlayEditor] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '4:5' | '1:1'>('9:16');
@@ -416,6 +424,18 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
                 show={normalizedShow} 
                 onClose={() => setShowOverlayEditor(false)}
                 aspectRatio={aspectRatio}
+                allShows={allShows.map(s => ({
+                  ...s,
+                  artists: s.artists.map(a => ({
+                    ...a,
+                    is_headliner: a.isHeadliner ?? a.is_headliner ?? false,
+                  })),
+                  venue_name: s.venue?.name || s.venue_name || "",
+                  show_date: s.date || s.show_date || "",
+                  artist_performance: s.artistPerformance ?? s.artist_performance,
+                  venue_vibe: s.venueVibe ?? s.venue_vibe,
+                }))}
+                rankings={rankings}
               />
             </div>
           ) : (
