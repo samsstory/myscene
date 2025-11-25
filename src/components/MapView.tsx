@@ -38,8 +38,7 @@ const getRatingEmoji = (rating: number) => {
 const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const markers = useRef<mapboxgl.Marker[]>([]);
-  const [selectedShow, setSelectedShow] = useState<Show | null>(null);
+  const [selectedCity, setSelectedCity] = useState<{ city: string; count: number; shows: Show[] } | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
 
@@ -117,15 +116,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
   }, [homeCoordinates]);
 
-  // Update markers when shows change - geocode shows without coordinates
+  // Update heat map when shows change
   useEffect(() => {
     if (!map.current) return;
 
     const processShows = async () => {
-      // Clear existing markers
-      markers.current.forEach(marker => marker.remove());
-      markers.current = [];
-
       const showsWithCoords: Show[] = [];
       const showsWithout: Show[] = [];
       const showsToGeocode: Show[] = [];
@@ -174,47 +169,185 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
       setShowsWithoutLocation(showsWithout);
 
-      // Add markers for shows with coordinates
+      // Aggregate shows by city (using venue.location as city identifier)
+      const cityMap = new Map<string, { shows: Show[], coords: [number, number] }>();
+      
       showsWithCoords.forEach(show => {
-        const el = document.createElement('div');
-        el.className = 'map-marker';
-        el.innerHTML = `
-          <div style="
-            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            font-size: 16px;
-            transition: transform 0.2s;
-          " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
-            ${getRatingEmoji(show.rating)}
-          </div>
-        `;
-
-        el.addEventListener('click', () => {
-          setSelectedShow(show);
-        });
-
-        const marker = new mapboxgl.Marker(el)
-          .setLngLat([show.longitude!, show.latitude!])
-          .addTo(map.current!);
-
-        markers.current.push(marker);
+        const city = show.venue.location;
+        if (!cityMap.has(city)) {
+          cityMap.set(city, { 
+            shows: [show], 
+            coords: [show.longitude!, show.latitude!] 
+          });
+        } else {
+          cityMap.get(city)!.shows.push(show);
+        }
       });
 
-      // Fit bounds to show all markers if there are any
-      if (showsWithCoords.length > 0) {
-        const bounds = new mapboxgl.LngLatBounds();
-        showsWithCoords.forEach(show => {
-          bounds.extend([show.longitude!, show.latitude!]);
-        });
-        map.current?.fitBounds(bounds, { padding: 50, maxZoom: 12 });
+      // Calculate normalized weights
+      const cityCounts = Array.from(cityMap.values()).map(c => c.shows.length);
+      const minShows = Math.min(...cityCounts, 1);
+      const maxShows = Math.max(...cityCounts, 1);
+
+      // Build GeoJSON for heat map with normalized weights
+      const features = Array.from(cityMap.entries()).map(([city, data]) => {
+        const count = data.shows.length;
+        // Logarithmic normalization for better visual distribution
+        const weight = Math.log(count + 1) / Math.log(maxShows + 1);
+        
+        return {
+          type: 'Feature',
+          properties: { 
+            count,
+            weight,
+            city 
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: data.coords
+          }
+        };
+      });
+
+      const geojson = {
+        type: 'FeatureCollection',
+        features
+      };
+
+      // Wait for map to load if needed
+      if (!map.current?.isStyleLoaded()) {
+        map.current?.once('load', () => addHeatmapLayer(geojson));
+      } else {
+        addHeatmapLayer(geojson);
       }
+
+      // Fit bounds to show all cities
+      if (features.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        features.forEach(feature => {
+          bounds.extend(feature.geometry.coordinates as [number, number]);
+        });
+        map.current?.fitBounds(bounds, { padding: 80, maxZoom: 10 });
+      }
+    };
+
+    const addHeatmapLayer = (geojson: any) => {
+      if (!map.current) return;
+
+      // Remove existing layers and sources
+      if (map.current.getLayer('shows-heat')) {
+        map.current.removeLayer('shows-heat');
+      }
+      if (map.current.getLayer('shows-points')) {
+        map.current.removeLayer('shows-points');
+      }
+      if (map.current.getSource('shows')) {
+        map.current.removeSource('shows');
+      }
+
+      // Add source
+      map.current.addSource('shows', {
+        type: 'geojson',
+        data: geojson
+      });
+
+      // Add heatmap layer with app colors
+      map.current.addLayer({
+        id: 'shows-heat',
+        type: 'heatmap',
+        source: 'shows',
+        paint: {
+          // Use weight property for intensity
+          'heatmap-weight': ['get', 'weight'],
+          
+          // Increase intensity as zoom level increases
+          'heatmap-intensity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 1,
+            9, 3
+          ],
+          
+          // Color ramp using app's primary and secondary colors
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0, 'rgba(0, 0, 0, 0)',
+            0.2, 'hsl(189, 94%, 55%)', // primary (cyan)
+            0.4, 'hsl(189, 94%, 65%)',
+            0.6, 'hsl(17, 88%, 60%)',  // secondary (coral)
+            0.8, 'hsl(45, 93%, 58%)',  // accent (gold)
+            1, 'hsl(45, 93%, 68%)'
+          ],
+          
+          // Adjust radius by zoom level
+          'heatmap-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 2,
+            9, 20
+          ],
+          
+          // Transition from heatmap to circle layer
+          'heatmap-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            7, 1,
+            12, 0.5
+          ]
+        }
+      });
+
+      // Add circle layer for city labels on top
+      map.current.addLayer({
+        id: 'shows-points',
+        type: 'circle',
+        source: 'shows',
+        minzoom: 8,
+        paint: {
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['get', 'count'],
+            1, 8,
+            10, 16,
+            50, 24
+          ],
+          'circle-color': 'hsl(189, 94%, 55%)',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff',
+          'circle-opacity': 0.8
+        }
+      });
+
+      // Add click handler for cities
+      map.current.on('click', 'shows-points', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        const feature = e.features[0];
+        const city = feature.properties?.city;
+        const count = feature.properties?.count;
+        
+        // Find all shows for this city
+        const cityShows = shows.filter(s => s.venue.location === city);
+        
+        setSelectedCity({
+          city,
+          count,
+          shows: cityShows
+        });
+      });
+
+      // Change cursor on hover
+      map.current.on('mouseenter', 'shows-points', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', 'shows-points', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
     };
 
     processShows();
@@ -224,52 +357,45 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     <div className="relative w-full h-[calc(100vh-240px)]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg overflow-hidden" />
       
-      {/* Selected show popup */}
-      {selectedShow && (
-        <Card className="absolute top-4 left-4 w-80 z-10 shadow-lg">
+      {/* Selected city popup */}
+      {selectedCity && (
+        <Card className="absolute top-4 left-4 w-80 max-h-96 overflow-y-auto z-10 shadow-lg">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex-1">
-                <div className="text-2xl mb-1">{getRatingEmoji(selectedShow.rating)}</div>
-                <h3 className="font-bold text-lg">
-                  {selectedShow.artists
-                    .filter(a => a.isHeadliner)
-                    .map(a => a.name)
-                    .join(", ")}
-                </h3>
-                {selectedShow.artists.filter(a => !a.isHeadliner).length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    with {selectedShow.artists.filter(a => !a.isHeadliner).map(a => a.name).join(", ")}
-                  </p>
-                )}
+                <h3 className="font-bold text-lg">{selectedCity.city}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedCity.count} show{selectedCity.count !== 1 ? 's' : ''}
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSelectedShow(null)}
+                onClick={() => setSelectedCity(null)}
                 className="h-6 w-6"
               >
                 ✕
               </Button>
             </div>
-            <div className="space-y-1 text-sm mb-3">
-              <p className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                {selectedShow.venue.name}
-              </p>
-              <p className="text-muted-foreground">{selectedShow.venue.location}</p>
-              <p className="text-muted-foreground">
-                {new Date(selectedShow.date).toLocaleDateString()}
-              </p>
+            <div className="space-y-2">
+              {selectedCity.shows.map(show => (
+                <div
+                  key={show.id}
+                  className="p-3 bg-muted/50 rounded border border-border/50 cursor-pointer hover:bg-muted hover:border-primary/50 transition-colors"
+                  onClick={() => onEditShow(show)}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{getRatingEmoji(show.rating)}</span>
+                    <span className="font-medium text-sm">
+                      {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {show.venue.name} • {new Date(show.date).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
             </div>
-            <Button
-              onClick={() => onEditShow(selectedShow)}
-              className="w-full"
-              size="sm"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Show
-            </Button>
           </CardContent>
         </Card>
       )}
