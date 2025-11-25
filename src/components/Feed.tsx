@@ -151,10 +151,12 @@ const Feed = () => {
         });
       }
 
-      // Sort by rating (descending) and then by date (descending)
+      // Sort by calculated score (descending) and then by date (descending)
       return [...filteredShows].sort((a, b) => {
-        if (b.rating !== a.rating) {
-          return b.rating - a.rating;
+        const scoreA = calculateShowScore(a.rating, a.artistPerformance, a.sound, a.lighting, a.crowd, a.venueVibe);
+        const scoreB = calculateShowScore(b.rating, b.artistPerformance, b.sound, b.lighting, b.crowd, b.venueVibe);
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
         }
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
