@@ -302,10 +302,56 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
       }
 
       // Insert or update venue cache
-      let venueIdToUse = showData.venueId;
+      let venueIdToUse = null;
       
-      if (showData.venueId) {
-        // Existing venue - update cache with coordinates
+      // Check if venueId is a Google Place ID (not a UUID)
+      const isGooglePlaceId = showData.venueId && !showData.venueId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+      
+      if (isGooglePlaceId) {
+        // Google Place ID - check if venue exists, otherwise create it
+        const { data: existingVenue } = await supabase
+          .from('venues')
+          .select('id')
+          .eq('metadata->>google_place_id', showData.venueId)
+          .maybeSingle();
+
+        if (existingVenue) {
+          venueIdToUse = existingVenue.id;
+          
+          // Update existing venue with latest coordinates
+          await supabase
+            .from('venues')
+            .update({
+              location: showData.venueLocation || null,
+              latitude: showData.venueLatitude || null,
+              longitude: showData.venueLongitude || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingVenue.id);
+        } else {
+          // Create new venue with Google Place ID in metadata
+          const { data: newVenue, error: venueError } = await supabase
+            .from('venues')
+            .insert({
+              name: showData.venue,
+              location: showData.venueLocation || null,
+              latitude: showData.venueLatitude || null,
+              longitude: showData.venueLongitude || null,
+              metadata: { google_place_id: showData.venueId },
+            })
+            .select('id')
+            .single();
+
+          if (venueError) {
+            console.error('Error creating venue:', venueError);
+          } else if (newVenue) {
+            venueIdToUse = newVenue.id;
+          }
+        }
+      } else if (showData.venueId) {
+        // Already a UUID - existing venue in our database
+        venueIdToUse = showData.venueId;
+        
         const { error: venueError } = await supabase
           .from('venues')
           .update({
@@ -319,25 +365,8 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         if (venueError) {
           console.error('Error updating venue cache:', venueError);
         }
-
-        // Update user_venues tracking
-        const { error: userVenueError } = await supabase
-          .from('user_venues')
-          .upsert({
-            user_id: user.id,
-            venue_id: showData.venueId,
-            show_count: 1,
-            last_show_date: showDate,
-          }, {
-            onConflict: 'user_id,venue_id',
-            ignoreDuplicates: false,
-          });
-
-        if (userVenueError) {
-          console.error('Error updating user venue cache:', userVenueError);
-        }
       } else if (showData.venue) {
-        // New venue - insert into cache with coordinates
+        // New venue without ID - insert into cache
         const { data: newVenue, error: venueError } = await supabase
           .from('venues')
           .insert({
@@ -353,23 +382,30 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
           console.error('Error creating venue cache:', venueError);
         } else if (newVenue) {
           venueIdToUse = newVenue.id;
-          
-          // Also update the show record with the new venue_id
-          await supabase
-            .from('shows')
-            .update({ venue_id: newVenue.id })
-            .eq('id', show.id);
-
-          // Create user_venues entry
-          await supabase
-            .from('user_venues')
-            .insert({
-              user_id: user.id,
-              venue_id: newVenue.id,
-              show_count: 1,
-              last_show_date: showDate,
-            });
         }
+      }
+
+      // Update show with venue_id if we have one
+      if (venueIdToUse && !isEditing) {
+        await supabase
+          .from('shows')
+          .update({ venue_id: venueIdToUse })
+          .eq('id', show.id);
+      }
+
+      // Update or create user_venues tracking
+      if (venueIdToUse) {
+        await supabase
+          .from('user_venues')
+          .upsert({
+            user_id: user.id,
+            venue_id: venueIdToUse,
+            show_count: 1,
+            last_show_date: showDate,
+          }, {
+            onConflict: 'user_id,venue_id',
+            ignoreDuplicates: false,
+          });
       }
 
       // Insert the artists
