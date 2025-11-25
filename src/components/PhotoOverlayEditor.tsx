@@ -32,6 +32,7 @@ interface Show {
 interface PhotoOverlayEditorProps {
   show: Show;
   onClose: () => void;
+  aspectRatio: '9:16' | '4:5' | '1:1';
 }
 
 const getRatingGradient = (rating: number): string => {
@@ -50,7 +51,7 @@ const getRatingAccent = (rating: number): string => {
   return "hsl(0, 84%, 60%)"; // Red
 };
 
-export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) => {
+export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayEditorProps) => {
   const [overlayConfig, setOverlayConfig] = useState({
     showArtists: true,
     showVenue: true,
@@ -161,8 +162,15 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas not supported");
 
-      canvas.width = 1080;
-      canvas.height = 1920;
+      // Set dimensions based on aspect ratio
+      const dimensions = {
+        '9:16': { width: 1080, height: 1920 },
+        '4:5': { width: 1080, height: 1350 },
+        '1:1': { width: 1080, height: 1080 }
+      };
+
+      canvas.width = dimensions[aspectRatio].width;
+      canvas.height = dimensions[aspectRatio].height;
 
       // Load background photo
       const img = new Image();
@@ -371,10 +379,15 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${show.artists[0]?.name || "show"}-review.png`;
+        
+        const artistName = show.artists[0]?.name || "show";
+        const date = new Date(show.show_date).toISOString().split('T')[0];
+        const ratioLabel = aspectRatio.replace(':', 'x');
+        a.download = `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${date}-${ratioLabel}.png`;
+        
         a.click();
         URL.revokeObjectURL(url);
-        toast.success("Image downloaded!");
+        toast.success(`Image downloaded! (${aspectRatio})`);
       }, "image/png");
 
     } catch (error) {
@@ -404,8 +417,8 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
           className="relative bg-black"
           style={{
             width: "100%",
-            maxWidth: "540px",
-            aspectRatio: "9/16",
+            maxWidth: aspectRatio === '1:1' ? "540px" : aspectRatio === '4:5' ? "432px" : "540px",
+            aspectRatio: aspectRatio === '9:16' ? "9/16" : aspectRatio === '4:5' ? "4/5" : "1/1",
           }}
         >
           {/* Background Photo */}
