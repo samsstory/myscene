@@ -246,8 +246,7 @@ serve(async (req) => {
           console.log(`Using proximity: ${profile.home_latitude},${profile.home_longitude}`);
         }
         
-        // Use Google Places Text Search - search broadly for the venue/festival
-        // Don't add extra keywords or type filters that might exclude results
+        // Use Google Places Text Search - no type filter to allow all venue types
         const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchTerm.trim())}${locationBias}&key=${GOOGLE_API_KEY}`;
         console.log(`Calling Google Places API...`);
         
@@ -262,7 +261,35 @@ serve(async (req) => {
           
           if (data.status === 'OK' && data.results && Array.isArray(data.results)) {
             console.log(`Google Places returned ${data.results.length} results`);
-            googlePlaces = data.results.slice(0, 20); // Get more results
+            
+            // Filter results to music/event venues only
+            const relevantTypes = new Set([
+              'night_club', 'bar', 'restaurant', 'tourist_attraction',
+              'point_of_interest', 'establishment', 'casino', 'stadium',
+              'park', 'museum', 'art_gallery', 'performing_arts_theater'
+            ]);
+            
+            const excludeKeywords = [
+              'floral', 'flower', 'wholesale', 'retail', 'shop', 'store',
+              'salon', 'spa', 'hotel', 'motel', 'apartment', 'real estate',
+              'dentist', 'doctor', 'clinic', 'hospital', 'pharmacy',
+              'bank', 'atm', 'insurance', 'lawyer', 'school', 'church'
+            ];
+            
+            googlePlaces = data.results.filter((place: any) => {
+              // Check if it has relevant types
+              const hasRelevantType = place.types?.some((type: string) => relevantTypes.has(type));
+              
+              // Check if name or types contain excluded keywords
+              const nameAndTypes = `${place.name} ${place.types?.join(' ')}`.toLowerCase();
+              const hasExcludedKeyword = excludeKeywords.some(keyword => 
+                nameAndTypes.includes(keyword)
+              );
+              
+              return hasRelevantType && !hasExcludedKeyword;
+            }).slice(0, 20);
+            
+            console.log(`Filtered to ${googlePlaces.length} relevant venues`);
           } else {
             console.log(`Google Places status: ${data.status}`);
           }
