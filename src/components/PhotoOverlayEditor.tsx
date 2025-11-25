@@ -60,12 +60,12 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
     showNotes: true,
   });
 
-  const [overlaySize, setOverlaySize] = useState<number>(1); // 0.6, 1, 1.4
+  const [overlaySize, setOverlaySize] = useState<number>(0.45); // 0.3, 0.45, 0.6
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleSizeChange = (value: number[]) => {
-    const sizeMap = [0.6, 1, 1.4];
+    const sizeMap = [0.3, 0.45, 0.6];
     setOverlaySize(sizeMap[value[0]]);
   };
 
