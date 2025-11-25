@@ -240,43 +240,17 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       }
 
       // Draw overlay text content
-      const padding = 32 * scaleX;
+      const padding = 24 * scaleX;
       let yPos = overlayY + padding;
-      const lineHeight = 40 * scaleY;
+      const lineHeight = 32 * scaleY;
 
       ctx.fillStyle = "white";
       ctx.textAlign = "left";
 
-      // Artist names
-      if (overlayConfig.showArtists) {
+      // Artist name and rating on same row
+      if (overlayConfig.showArtists || overlayConfig.showRating) {
         const headliners = show.artists.filter(a => a.is_headliner);
         const artistText = headliners.map(a => a.name).join(", ");
-        ctx.font = `bold ${48 * overlaySize * scaleX}px system-ui`;
-        ctx.fillText(artistText, overlayX + padding, yPos);
-        yPos += lineHeight * 1.5;
-      }
-
-      // Venue
-      if (overlayConfig.showVenue) {
-        ctx.font = `${32 * overlaySize * scaleX}px system-ui`;
-        ctx.fillText(show.venue_name, overlayX + padding, yPos);
-        yPos += lineHeight;
-      }
-
-      // Date
-      if (overlayConfig.showDate) {
-        ctx.font = `${28 * overlaySize * scaleX}px system-ui`;
-        const dateStr = new Date(show.show_date).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        });
-        ctx.fillText(dateStr, overlayX + padding, yPos);
-        yPos += lineHeight * 1.5;
-      }
-
-      // Overall rating - numerical score
-      if (overlayConfig.showRating) {
         const score = calculateShowScore(
           show.rating,
           show.artist_performance,
@@ -285,25 +259,68 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
           show.crowd,
           show.venue_vibe
         );
-        ctx.font = `bold ${64 * overlaySize * scaleX}px system-ui`;
-        ctx.fillText(`${score.toFixed(1)}/10`, overlayX + padding, yPos);
-        yPos += lineHeight * 2;
+
+        // Draw artist name
+        if (overlayConfig.showArtists) {
+          ctx.font = `bold ${24 * overlaySize * scaleX}px system-ui`;
+          ctx.fillStyle = overlayConfig.showBackground ? primaryColor : "white";
+          if (!overlayConfig.showBackground) {
+            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+            ctx.shadowBlur = 8 * scaleX;
+            ctx.shadowOffsetY = 2 * scaleY;
+          }
+          ctx.fillText(artistText, overlayX + padding, yPos);
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+        }
+
+        // Draw rating score on same line
+        if (overlayConfig.showRating) {
+          ctx.font = `900 ${36 * overlaySize * scaleX}px system-ui`;
+          ctx.fillStyle = "white";
+          const scoreText = score.toFixed(1);
+          const scoreWidth = ctx.measureText(scoreText).width;
+          ctx.fillText(scoreText, overlayX + overlayWidth - padding - scoreWidth, yPos);
+        }
+
+        yPos += lineHeight * 1.3;
+      }
+
+      // Venue
+      if (overlayConfig.showVenue) {
+        ctx.font = `${18 * overlaySize * scaleX}px system-ui`;
+        ctx.fillStyle = "white";
+        ctx.fillText(show.venue_name, overlayX + padding, yPos);
+        yPos += lineHeight * 0.8;
+      }
+
+      // Date
+      if (overlayConfig.showDate) {
+        ctx.font = `${14 * overlaySize * scaleX}px system-ui`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        const dateStr = new Date(show.show_date).toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+        ctx.fillText(dateStr, overlayX + padding, yPos);
+        yPos += lineHeight * 1.2;
       }
 
       // Detailed ratings
       if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
         const detailedRatings = [
-          { label: "🎤 Performance", value: show.artist_performance },
-          { label: "🔊 Sound", value: show.sound },
-          { label: "💡 Lighting", value: show.lighting },
-          { label: "👥 Crowd", value: show.crowd },
-          { label: "✨ Vibe", value: show.venue_vibe },
+          { label: "Performance", value: show.artist_performance },
+          { label: "Sound", value: show.sound },
+          { label: "Lighting", value: show.lighting },
+          { label: "Crowd", value: show.crowd },
+          { label: "Vibe", value: show.venue_vibe },
         ].filter(r => r.value !== undefined && r.value !== null);
 
-        ctx.font = `${24 * overlaySize * scaleX}px system-ui`;
-        const barWidth = overlayWidth - (padding * 3);
+        ctx.font = `${12 * overlaySize * scaleX}px system-ui`;
+        const labelWidth = 80 * scaleX;
+        const barWidth = overlayWidth - (padding * 2) - labelWidth - (8 * scaleX);
         const barHeight = 6 * scaleY;
-        const labelWidth = 150 * scaleX;
         
         detailedRatings.forEach(rating => {
           // Draw label
@@ -312,42 +329,60 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
           
           // Draw background bar
           const barX = overlayX + padding + labelWidth;
-          const barY = yPos - (barHeight / 2) - (12 * scaleY);
+          const barY = yPos - (barHeight / 2) - (6 * scaleY);
           ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-          ctx.roundRect(barX, barY, barWidth - labelWidth, barHeight, barHeight / 2);
+          ctx.beginPath();
+          ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
           ctx.fill();
           
           // Draw filled portion
-          const fillWidth = ((rating.value! / 5) * (barWidth - labelWidth));
+          const fillWidth = ((rating.value! / 5) * barWidth);
           ctx.fillStyle = "rgba(255, 255, 255, 1)";
+          ctx.beginPath();
           ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
           ctx.fill();
           
-          yPos += lineHeight * 0.8;
+          yPos += lineHeight * 0.7;
         });
         yPos += lineHeight * 0.5;
       }
 
       // Notes
       if (overlayConfig.showNotes && show.notes) {
-        ctx.font = `italic ${26 * overlaySize * scaleX}px system-ui`;
+        ctx.font = `italic ${14 * overlaySize * scaleX}px system-ui`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
         const maxWidth = overlayWidth - (padding * 2);
-        const words = show.notes.split(" ");
+        const words = `"${show.notes}"`.split(" ");
         let line = "";
+        let lineCount = 0;
+        const maxLines = 3;
 
         words.forEach(word => {
           const testLine = line + word + " ";
           const metrics = ctx.measureText(testLine);
-          if (metrics.width > maxWidth) {
-            ctx.fillText(line, overlayX + padding, yPos);
-            line = word + " ";
-            yPos += lineHeight * 0.9;
+          if (metrics.width > maxWidth && line !== "") {
+            if (lineCount < maxLines) {
+              ctx.fillText(line, overlayX + padding, yPos);
+              line = word + " ";
+              yPos += lineHeight * 0.9;
+              lineCount++;
+            }
           } else {
             line = testLine;
           }
         });
-        ctx.fillText(line, overlayX + padding, yPos);
+        if (lineCount < maxLines && line !== "") {
+          ctx.fillText(line, overlayX + padding, yPos);
+          yPos += lineHeight * 0.9;
+        }
+        yPos += lineHeight * 0.5;
       }
+
+      // Scene logo at bottom
+      ctx.font = `bold ${10 * overlaySize * scaleX}px system-ui`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.textAlign = "center";
+      ctx.fillText("SCENE", overlayX + (overlayWidth / 2), overlayY + overlayHeight - (12 * scaleY));
 
       // Download
       canvas.toBlob((blob) => {
