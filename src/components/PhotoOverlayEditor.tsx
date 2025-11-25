@@ -172,13 +172,21 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayE
       canvas.width = dimensions[aspectRatio].width;
       canvas.height = dimensions[aspectRatio].height;
 
-      // Load background photo
+      // Load background photo with error handling
       const img = new Image();
       img.crossOrigin = "anonymous";
       
       await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
+        const timeout = setTimeout(() => reject(new Error('Image loading timeout')), 10000);
+        
+        img.onload = () => {
+          clearTimeout(timeout);
+          resolve(null);
+        };
+        img.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('Failed to load image. The photo may have been deleted.'));
+        };
         img.src = show.photo_url!;
       });
 
@@ -400,8 +408,11 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayE
 
   if (!show.photo_url) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">No photo available for this show</p>
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <div className="text-center space-y-2">
+          <p className="text-muted-foreground">No photo available for this show</p>
+          <p className="text-sm text-muted-foreground">Add a photo from the show details to customize and share</p>
+        </div>
       </div>
     );
   }
@@ -426,6 +437,11 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayE
             src={show.photo_url}
             alt="Show"
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            crossOrigin="anonymous"
+            onError={(e) => {
+              // Handle broken image
+              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EPhoto Unavailable%3C/text%3E%3C/svg%3E';
+            }}
           />
 
           {/* Draggable Overlay */}

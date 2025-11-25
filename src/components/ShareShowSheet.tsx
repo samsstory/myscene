@@ -458,13 +458,18 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
               {/* Share Options */}
               <div className="space-y-3 mt-6">
                 {show.photo_url && (
-                  <Button
-                    onClick={() => setShowOverlayEditor(true)}
-                    className="w-full"
-                    size="lg"
-                  >
-                    Edit & Share Photo
-                  </Button>
+                  <>
+                    <Button
+                      onClick={() => setShowOverlayEditor(true)}
+                      className="w-full"
+                      size="lg"
+                    >
+                      Edit & Share Photo
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      or share text-only version below
+                    </p>
+                  </>
                 )}
 
                 {!show.photo_url && (
