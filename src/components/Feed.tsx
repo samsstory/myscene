@@ -171,7 +171,7 @@ const Feed = () => {
         setReviewShow(show);
         setReviewSheetOpen(true);
       }}>
-            <CardContent className="p-6 py-[24px] px-[10px] mx-0 rounded-none">
+            <CardContent className="p-6 py-[24px] mx-0 rounded-none pt-[10px] pr-[10px] pb-[10px] pl-[10px] px-0">
               <div className="flex items-start gap-6">
                 {/* Leaderboard ranking number (only in top-rated view) */}
                 {viewMode === "top-rated" && <div className="absolute -left-4 top-1/2 -translate-y-1/2 text-5xl font-black text-primary z-10" style={{
@@ -311,25 +311,18 @@ const Feed = () => {
           return <div key={day.toISOString()} className={`aspect-square border rounded-lg p-2 flex items-center justify-center ${isToday ? "border-primary bg-primary/10" : "border-border"} ${dayShows.length > 0 ? "bg-card" : "bg-background"}`}>
               {dayShows.length > 0 ? <div className="flex flex-wrap gap-1 items-center justify-center">
                     {dayShows.map(show => {
-                      const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
-                      const getDotColor = (score: number) => {
-                        if (score >= 9.0) return "bg-[hsl(45,93%,58%)]"; // Gold
-                        if (score >= 7.0) return "bg-[hsl(189,94%,55%)]"; // Blue
-                        if (score >= 5.0) return "bg-[hsl(17,88%,60%)]"; // Coral
-                        return "bg-[hsl(0,84%,60%)]"; // Red
-                      };
-                      return (
-                        <button 
-                          key={show.id} 
-                          className={`w-3 h-3 rounded-full ${getDotColor(score)} hover:scale-125 transition-transform cursor-pointer shadow-lg`}
-                          title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name} (${score.toFixed(1)}/10)`} 
-                          onClick={() => {
-                            setReviewShow(show);
-                            setReviewSheetOpen(true);
-                          }}
-                        />
-                      );
-                    })}
+                const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
+                const getDotColor = (score: number) => {
+                  if (score >= 9.0) return "bg-[hsl(45,93%,58%)]"; // Gold
+                  if (score >= 7.0) return "bg-[hsl(189,94%,55%)]"; // Blue
+                  if (score >= 5.0) return "bg-[hsl(17,88%,60%)]"; // Coral
+                  return "bg-[hsl(0,84%,60%)]"; // Red
+                };
+                return <button key={show.id} className={`w-3 h-3 rounded-full ${getDotColor(score)} hover:scale-125 transition-transform cursor-pointer shadow-lg`} title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name} (${score.toFixed(1)}/10)`} onClick={() => {
+                  setReviewShow(show);
+                  setReviewSheetOpen(true);
+                }} />;
+              })}
                   </div> : <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />}
               </div>;
         })}
@@ -346,7 +339,7 @@ const Feed = () => {
         </h2>
       </div>
 
-      <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} className="mb-6">
+      <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} className="mb-6 px-0 mx-0">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="list" className="flex items-center gap-2">
             <List className="h-4 w-4" />
