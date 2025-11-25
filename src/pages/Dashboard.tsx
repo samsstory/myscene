@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Trophy, BarChart3, Plus, Music } from "lucide-react";
+import { Home, Scale, BarChart3, Plus, Music } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Feed from "@/components/Feed";
@@ -113,7 +113,7 @@ const Dashboard = () => {
                 activeTab === "rank" ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Trophy className="h-6 w-6" />
+              <Scale className="h-6 w-6" />
             </button>
 
             {/* Add Show Button - Elevated */}
