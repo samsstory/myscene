@@ -363,7 +363,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex-1">
-                <h3 className="font-bold text-lg">{selectedCity.city}</h3>
+                <h3 className="font-bold text-xl">{selectedCity.city}</h3>
                 <p className="text-sm text-muted-foreground">
                   {selectedCity.count} show{selectedCity.count !== 1 ? 's' : ''}
                 </p>
@@ -377,24 +377,43 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
                 ✕
               </Button>
             </div>
-            <div className="space-y-2">
-              {selectedCity.shows.map(show => (
-                <div
-                  key={show.id}
-                  className="p-3 bg-muted/50 rounded border border-border/50 cursor-pointer hover:bg-muted hover:border-primary/50 transition-colors"
-                  onClick={() => onEditShow(show)}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{getRatingEmoji(show.rating)}</span>
-                    <span className="font-medium text-sm">
-                      {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
-                    </span>
+            <div className="space-y-3">
+              {(() => {
+                // Group shows by venue
+                const venueMap = new Map<string, Show[]>();
+                selectedCity.shows.forEach(show => {
+                  const venueName = show.venue.name;
+                  if (!venueMap.has(venueName)) {
+                    venueMap.set(venueName, []);
+                  }
+                  venueMap.get(venueName)!.push(show);
+                });
+
+                return Array.from(venueMap.entries()).map(([venueName, venueShows]) => (
+                  <div key={venueName} className="border-l-2 border-primary/50 pl-3">
+                    <div className="font-medium mb-2">{venueName}</div>
+                    <div className="space-y-2">
+                      {venueShows.map(show => (
+                        <div
+                          key={show.id}
+                          className="p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted hover:border-primary/50 transition-colors text-sm"
+                          onClick={() => onEditShow(show)}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span>{getRatingEmoji(show.rating)}</span>
+                            <span className="font-medium">
+                              {show.artists.filter(a => a.isHeadliner).map(a => a.name).join(", ")}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(show.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {show.venue.name} • {new Date(show.date).toLocaleDateString()}
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </CardContent>
         </Card>
