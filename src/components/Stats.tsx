@@ -17,6 +17,11 @@ interface StatsData {
   mostVisitedVenueCount: number;
   userPercentile: number;
   distanceDanced: string;
+  topRankedShow: {
+    artists: string;
+    venue: string;
+    eloScore: number;
+  } | null;
 }
 
 const StatCard = ({
@@ -118,6 +123,7 @@ const Stats = () => {
     mostVisitedVenueCount: 0,
     userPercentile: 0,
     distanceDanced: "0 miles",
+    topRankedShow: null,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -188,6 +194,43 @@ const Stats = () => {
         const totalShows = shows?.length || 0;
         const distanceMiles = (totalShows * 3 * 0.2).toFixed(1);
 
+        // Get top-ranked show from ELO rankings
+        let topRankedShow = null;
+        const { data: rankings, error: rankingsError } = await supabase
+          .from('show_rankings')
+          .select('show_id, elo_score, comparisons_count')
+          .eq('user_id', userId)
+          .order('elo_score', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!rankingsError && rankings && rankings.comparisons_count > 0) {
+          // Fetch the show details
+          const { data: topShow } = await supabase
+            .from('shows')
+            .select('id, venue_name')
+            .eq('id', rankings.show_id)
+            .single();
+
+          if (topShow) {
+            // Fetch artists for this show
+            const { data: showArtists } = await supabase
+              .from('show_artists')
+              .select('artist_name')
+              .eq('show_id', topShow.id)
+              .order('is_headliner', { ascending: false });
+
+            const artistNames = showArtists?.slice(0, 2).map(a => a.artist_name).join(", ") || "Unknown";
+            const remainingCount = (showArtists?.length || 0) - 2;
+            
+            topRankedShow = {
+              artists: remainingCount > 0 ? `${artistNames} +${remainingCount} more` : artistNames,
+              venue: topShow.venue_name,
+              eloScore: rankings.elo_score,
+            };
+          }
+        }
+
         setStats({
           allTimeShows: totalShows,
           showsThisYear,
@@ -198,6 +241,7 @@ const Stats = () => {
           mostVisitedVenueCount,
           userPercentile: totalShows > 10 ? 85 : totalShows > 5 ? 70 : 50, // Simple percentile calc
           distanceDanced: `${distanceMiles} miles`,
+          topRankedShow,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -219,6 +263,44 @@ const Stats = () => {
         </h2>
         <p className="text-sm text-muted-foreground mt-1">Your concert journey, by the numbers</p>
       </div>
+
+      {/* Your #1 Show - Celebratory Feature Card */}
+      {stats.topRankedShow && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(45,93%,58%)]/30 via-primary/20 to-[hsl(189,94%,55%)]/30 border-2 border-[hsl(45,93%,58%)]/50 shadow-glow">
+          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(45,93%,58%)]/10 to-transparent animate-pulse" />
+          <CardContent className="relative p-6">
+            <div className="flex items-start gap-4">
+              <div className="relative shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)] flex items-center justify-center shadow-glow">
+                  <Trophy className="h-8 w-8 text-background animate-bounce" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[hsl(45,93%,58%)] flex items-center justify-center text-background font-black text-sm shadow-lg">
+                  #1
+                </div>
+                <Sparkles className="absolute -bottom-1 -left-1 h-6 w-6 text-[hsl(45,93%,58%)] animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                  Your #1 Show (Head to Head)
+                </div>
+                <div className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-[hsl(45,93%,58%)] via-primary to-[hsl(189,94%,55%)] bg-clip-text text-transparent mb-2 line-clamp-2">
+                  {isLoading ? "..." : stats.topRankedShow.artists}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{stats.topRankedShow.venue}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <TrendingUp className="h-4 w-4 flex-shrink-0" />
+                    <span>ELO: {stats.topRankedShow.eloScore}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </div>
+      )}
 
       {/* Activity Rank Badge - Celebratory */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/20 via-primary/20 to-secondary/20 border border-primary/30">
