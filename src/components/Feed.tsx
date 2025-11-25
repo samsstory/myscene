@@ -172,7 +172,7 @@ const Feed = () => {
         setReviewSheetOpen(true);
       }}>
             <CardContent className="p-6 py-[24px] mx-0 rounded-none pt-[10px] pr-[10px] pb-[10px] pl-[10px] px-0">
-              <div className="flex items-start gap-6">
+              <div className="flex items-start gap-6 px-[10px]">
 
                 {/* Photo thumbnail (only if photo exists) */}
                 {show.photo_url && <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
