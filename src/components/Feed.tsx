@@ -166,13 +166,13 @@ const Feed = () => {
   };
   const renderListView = () => {
     const sortedShows = getSortedShows();
-    return <div className={`grid gap-4 ${viewMode === "top-rated" ? "items-center" : ""}`}>
-        {sortedShows.map((show, index) => <Card key={show.id} className={`border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-visible cursor-pointer relative ${viewMode === "top-rated" ? "max-w-3xl mx-auto w-full" : "w-full"}`} onClick={() => {
+    return <div className="flex flex-col gap-4 items-center w-full">
+        {sortedShows.map((show, index) => <Card key={show.id} className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative w-full max-w-3xl" onClick={() => {
         setReviewShow(show);
         setReviewSheetOpen(true);
           }}>
-            <CardContent className="p-6 py-[24px] mx-0 rounded-none pt-[10px] pr-[10px] pb-[10px] pl-[10px] px-0 relative">
-              <div className="flex items-start gap-6 px-[10px]">
+            <CardContent className="p-3 relative overflow-hidden">
+              <div className="flex items-start gap-4">
 
                 {/* Photo thumbnail (only if photo exists) */}
                 {show.photo_url && <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
@@ -220,7 +220,7 @@ const Feed = () => {
               </div>
 
               {/* Venue and Date - horizontal at bottom when photo exists */}
-              {show.photo_url && <div className="flex items-center gap-4 px-[10px] mt-4 text-sm text-muted-foreground">
+              {show.photo_url && <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 flex-shrink-0" />
                     <span>{show.venue.name}</span>
