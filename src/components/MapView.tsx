@@ -3,7 +3,8 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, MapPin, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Edit, MapPin, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Show {
@@ -261,50 +262,64 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
       {/* Shows without location list */}
       {showsWithoutLocation.length > 0 && (
-        <Card className="absolute top-4 left-4 max-w-sm z-10">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Shows without location ({showsWithoutLocation.length})
-              </h3>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => setIsLocationCardMinimized(!isLocationCardMinimized)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            {!isLocationCardMinimized && (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {showsWithoutLocation.map((show) => (
-                  <div
-                    key={show.id}
-                    className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
+        <>
+          {!isLocationCardMinimized ? (
+            <Card className="absolute top-4 left-4 max-w-sm z-10 animate-fade-in">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Shows without location ({showsWithoutLocation.length})
+                  </h3>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => setIsLocationCardMinimized(true)}
                   >
-                    <div className="flex-1">
-                      <div className="font-medium">
-                        {show.artists.map(a => a.name).join(", ")}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {show.venue.name}
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onEditShow(show)}
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {showsWithoutLocation.map((show) => (
+                    <div
+                      key={show.id}
+                      className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
                     >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {show.artists.map(a => a.name).join(", ")}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {show.venue.name}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onEditShow(show)}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Button
+              variant="default"
+              className="absolute bottom-4 right-4 z-10 animate-fade-in relative"
+              onClick={() => setIsLocationCardMinimized(false)}
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Shows need location
+              <Badge className="ml-2 bg-destructive text-destructive-foreground">
+                {showsWithoutLocation.length}
+              </Badge>
+            </Button>
+          )}
+        </>
       )}
 
       {/* Selected venue details */}
