@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Share2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Send, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -170,8 +170,8 @@ const Feed = () => {
         {sortedShows.map((show, index) => <Card key={show.id} className={`border-border shadow-card hover:shadow-glow transition-all duration-300 overflow-visible cursor-pointer relative ${viewMode === "top-rated" ? "max-w-3xl mx-auto w-full" : "w-full"}`} onClick={() => {
         setReviewShow(show);
         setReviewSheetOpen(true);
-      }}>
-            <CardContent className="p-6 py-[24px] mx-0 rounded-none pt-[10px] pr-[10px] pb-[10px] pl-[10px] px-0">
+          }}>
+            <CardContent className="p-6 py-[24px] mx-0 rounded-none pt-[10px] pr-[10px] pb-[10px] pl-[10px] px-0 relative">
               <div className="flex items-start gap-6 px-[10px]">
 
                 {/* Photo thumbnail (only if photo exists) */}
@@ -211,7 +211,7 @@ const Feed = () => {
                   </div>
                 </div>
 
-                {/* Right section: Rating and Share button */}
+                {/* Right section: Rating */}
                 <div className="flex flex-col items-center gap-3 min-w-[100px]">
                   <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe))} bg-clip-text text-transparent`}>
                     {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}
@@ -219,16 +219,22 @@ const Feed = () => {
                   {viewMode === "top-rated" && <Badge variant="outline" className="text-xs">
                       {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}/10
                     </Badge>}
-                  <Button size="sm" variant="default" className="w-full" onClick={e => {
-                e.stopPropagation();
-                setShareShow(show);
-                setShareSheetOpen(true);
-              }}>
-                    <Share2 className="h-4 w-4 mr-1" />
-                    Share
-                  </Button>
                 </div>
               </div>
+
+              {/* Share button - bottom right */}
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="absolute bottom-2 right-2 h-8 w-8" 
+                onClick={e => {
+                  e.stopPropagation();
+                  setShareShow(show);
+                  setShareSheetOpen(true);
+                }}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>)}
       </div>;
