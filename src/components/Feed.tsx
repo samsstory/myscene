@@ -236,10 +236,7 @@ const Feed = () => {
                   <div className="grid gap-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="h-4 w-4 flex-shrink-0" />
-                      <span>
-                        {show.venue.name}
-                        {show.venue.location && ` • ${show.venue.location}`}
-                      </span>
+                      <span>{show.venue.name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <CalendarIcon className="h-4 w-4 flex-shrink-0" />
