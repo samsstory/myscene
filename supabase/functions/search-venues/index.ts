@@ -150,10 +150,17 @@ serve(async (req) => {
       );
     }
 
-    // Use anon key for user queries (respects RLS)
+    // Create client with user's JWT token for RLS-protected queries
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
     );
 
     // Use service role key for caching operations (bypasses RLS)
