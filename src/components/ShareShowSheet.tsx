@@ -117,14 +117,14 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
         sparkles.forEach(([x, y]) => ctx.fillText('✨', x, y));
       }
 
-      let yPos = 180;
+      let yPos = 160;
 
       // App branding
       ctx.fillStyle = colors.accent;
       ctx.font = 'bold 52px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('Scene', canvas.width / 2, yPos);
-      yPos += 120;
+      yPos += 200;
 
       // Large emoji with glow
       ctx.shadowColor = colors.glow;
