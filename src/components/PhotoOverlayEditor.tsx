@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Download, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
+import html2canvas from "html2canvas";
 
 interface Artist {
   name: string;
@@ -157,11 +158,21 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
 
     setIsGenerating(true);
     try {
+      // Capture the overlay as it appears on screen
+      const overlayElement = document.getElementById("rating-overlay");
+      if (!overlayElement) throw new Error("Overlay element not found");
+
+      const overlayCanvas = await html2canvas(overlayElement, {
+        backgroundColor: null,
+        scale: 2,
+        logging: false,
+      });
+
+      // Create final canvas with Instagram Story dimensions
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas not supported");
 
-      // Instagram Story dimensions
       canvas.width = 1080;
       canvas.height = 1920;
 
@@ -194,17 +205,14 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
 
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-      // Get overlay element and its position
-      const overlayElement = document.getElementById("rating-overlay");
-      if (!overlayElement) throw new Error("Overlay element not found");
-
-      const overlayRect = overlayElement.getBoundingClientRect();
+      // Get overlay position from the preview container
       const canvasContainer = document.getElementById("canvas-container");
       if (!canvasContainer) throw new Error("Canvas container not found");
       
       const containerRect = canvasContainer.getBoundingClientRect();
+      const overlayRect = overlayElement.getBoundingClientRect();
 
-      // Calculate overlay position and size relative to canvas
+      // Calculate overlay position relative to final canvas
       const scaleX = canvas.width / containerRect.width;
       const scaleY = canvas.height / containerRect.height;
 
@@ -213,176 +221,8 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       const overlayWidth = overlayRect.width * scaleX;
       const overlayHeight = overlayRect.height * scaleY;
 
-      // Draw overlay background (only if enabled)
-      if (overlayConfig.showBackground) {
-        const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
-        const ratingValue = show.rating;
-        
-        if (ratingValue >= 4.5) {
-          gradient.addColorStop(0, "hsl(220, 90%, 56%)");
-          gradient.addColorStop(1, "hsl(280, 70%, 55%)");
-        } else if (ratingValue >= 3.5) {
-          gradient.addColorStop(0, "hsl(45, 100%, 60%)");
-          gradient.addColorStop(1, "hsl(330, 85%, 65%)");
-        } else if (ratingValue >= 2.5) {
-          gradient.addColorStop(0, "hsl(30, 100%, 55%)");
-          gradient.addColorStop(1, "hsl(45, 100%, 60%)");
-        } else {
-          gradient.addColorStop(0, "hsl(0, 70%, 50%)");
-          gradient.addColorStop(1, "hsl(30, 100%, 55%)");
-        }
-
-        ctx.globalAlpha = overlayOpacity / 100;
-        ctx.fillStyle = gradient;
-        ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, 24);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-
-      // Draw overlay text content
-      const padding = 24 * scaleX;
-      let yPos = overlayY + padding;
-      const lineHeight = 32 * scaleY;
-
-      ctx.fillStyle = "white";
-      ctx.textAlign = "left";
-
-      // Artist name and rating on same row
-      if (overlayConfig.showArtists || overlayConfig.showRating) {
-        const headliners = show.artists.filter(a => a.is_headliner);
-        const artistText = headliners.map(a => a.name).join(", ");
-        const score = calculateShowScore(
-          show.rating,
-          show.artist_performance,
-          show.sound,
-          show.lighting,
-          show.crowd,
-          show.venue_vibe
-        );
-
-        // Draw artist name
-        if (overlayConfig.showArtists) {
-          ctx.font = `bold ${24 * overlaySize * scaleX}px system-ui`;
-          ctx.fillStyle = overlayConfig.showBackground ? primaryColor : "white";
-          if (!overlayConfig.showBackground) {
-            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-            ctx.shadowBlur = 8 * scaleX;
-            ctx.shadowOffsetY = 2 * scaleY;
-          }
-          ctx.fillText(artistText, overlayX + padding, yPos);
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-        }
-
-        // Draw rating score on same line
-        if (overlayConfig.showRating) {
-          ctx.font = `900 ${36 * overlaySize * scaleX}px system-ui`;
-          ctx.fillStyle = "white";
-          const scoreText = score.toFixed(1);
-          const scoreWidth = ctx.measureText(scoreText).width;
-          ctx.fillText(scoreText, overlayX + overlayWidth - padding - scoreWidth, yPos);
-        }
-
-        yPos += lineHeight * 1.3;
-      }
-
-      // Venue
-      if (overlayConfig.showVenue) {
-        ctx.font = `${18 * overlaySize * scaleX}px system-ui`;
-        ctx.fillStyle = "white";
-        ctx.fillText(show.venue_name, overlayX + padding, yPos);
-        yPos += lineHeight * 0.8;
-      }
-
-      // Date
-      if (overlayConfig.showDate) {
-        ctx.font = `${14 * overlaySize * scaleX}px system-ui`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        const dateStr = new Date(show.show_date).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        });
-        ctx.fillText(dateStr, overlayX + padding, yPos);
-        yPos += lineHeight * 1.2;
-      }
-
-      // Detailed ratings
-      if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
-        const detailedRatings = [
-          { label: "Performance", value: show.artist_performance },
-          { label: "Sound", value: show.sound },
-          { label: "Lighting", value: show.lighting },
-          { label: "Crowd", value: show.crowd },
-          { label: "Vibe", value: show.venue_vibe },
-        ].filter(r => r.value !== undefined && r.value !== null);
-
-        ctx.font = `${12 * overlaySize * scaleX}px system-ui`;
-        const labelWidth = 80 * scaleX;
-        const barWidth = overlayWidth - (padding * 2) - labelWidth - (8 * scaleX);
-        const barHeight = 6 * scaleY;
-        
-        detailedRatings.forEach(rating => {
-          // Draw label
-          ctx.fillStyle = "white";
-          ctx.fillText(rating.label, overlayX + padding, yPos);
-          
-          // Draw background bar
-          const barX = overlayX + padding + labelWidth;
-          const barY = yPos - (barHeight / 2) - (6 * scaleY);
-          ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-          ctx.beginPath();
-          ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
-          ctx.fill();
-          
-          // Draw filled portion
-          const fillWidth = ((rating.value! / 5) * barWidth);
-          ctx.fillStyle = "rgba(255, 255, 255, 1)";
-          ctx.beginPath();
-          ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
-          ctx.fill();
-          
-          yPos += lineHeight * 0.7;
-        });
-        yPos += lineHeight * 0.5;
-      }
-
-      // Notes
-      if (overlayConfig.showNotes && show.notes) {
-        ctx.font = `italic ${14 * overlaySize * scaleX}px system-ui`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        const maxWidth = overlayWidth - (padding * 2);
-        const words = `"${show.notes}"`.split(" ");
-        let line = "";
-        let lineCount = 0;
-        const maxLines = 3;
-
-        words.forEach(word => {
-          const testLine = line + word + " ";
-          const metrics = ctx.measureText(testLine);
-          if (metrics.width > maxWidth && line !== "") {
-            if (lineCount < maxLines) {
-              ctx.fillText(line, overlayX + padding, yPos);
-              line = word + " ";
-              yPos += lineHeight * 0.9;
-              lineCount++;
-            }
-          } else {
-            line = testLine;
-          }
-        });
-        if (lineCount < maxLines && line !== "") {
-          ctx.fillText(line, overlayX + padding, yPos);
-          yPos += lineHeight * 0.9;
-        }
-        yPos += lineHeight * 0.5;
-      }
-
-      // Scene logo at bottom
-      ctx.font = `bold ${10 * overlaySize * scaleX}px system-ui`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.textAlign = "center";
-      ctx.fillText("SCENE", overlayX + (overlayWidth / 2), overlayY + overlayHeight - (12 * scaleY));
+      // Draw the captured overlay onto the final canvas
+      ctx.drawImage(overlayCanvas, overlayX, overlayY, overlayWidth, overlayHeight);
 
       // Download
       canvas.toBlob((blob) => {
