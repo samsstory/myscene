@@ -351,21 +351,61 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   )}
 
                   {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
-                    <div className="space-y-1 text-sm mb-3">
+                    <div className="space-y-2 text-xs mb-3">
                       {show.artist_performance && (
-                        <div>🎤 Performance {"█".repeat(show.artist_performance)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">🎤 Performance</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.artist_performance / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
                       )}
                       {show.sound && (
-                        <div>🔊 Sound {"█".repeat(show.sound)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">🔊 Sound</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.sound / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
                       )}
                       {show.lighting && (
-                        <div>💡 Lighting {"█".repeat(show.lighting)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">💡 Lighting</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.lighting / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
                       )}
                       {show.crowd && (
-                        <div>👥 Crowd {"█".repeat(show.crowd)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">👥 Crowd</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.crowd / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
                       )}
                       {show.venue_vibe && (
-                        <div>✨ Vibe {"█".repeat(show.venue_vibe)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-20">✨ Vibe</span>
+                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white rounded-full"
+                              style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
