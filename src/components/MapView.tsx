@@ -248,11 +248,20 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       source: 'shows',
       filter: ['==', ['get', 'type'], 'country'],  // Only show country markers
       paint: {
-        'circle-radius': 25,
-        'circle-color': 'hsl(189, 94%, 55%)',
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 15,    // Min shows = 15px
+          1, 35     // Max shows = 35px
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(250, 70%, 50%)',      // Cool purple for low
+          0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
+          1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
+        ],
         'circle-stroke-width': 3,
         'circle-stroke-color': '#fff',
-        'circle-opacity': 0.9
+        'circle-opacity': 0.85
       }
     });
 
@@ -302,13 +311,23 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     // Remove all existing layers
     removeLayers();
 
+    // Calculate normalized weights for cities
+    const cityShowCounts = Array.from(countryData.cities.values()).map((c: any) => c.shows.length);
+    const minCityShows = Math.min(...cityShowCounts);
+    const maxCityShows = Math.max(...cityShowCounts);
+
     const cityFeatures = Array.from(countryData.cities.entries()).map(([city, data]: [string, any]) => {
+      const normalized = maxCityShows === minCityShows 
+        ? 0.5  // Default to mid-range if all cities have same show count
+        : (data.shows.length - minCityShows) / (maxCityShows - minCityShows);
+      
       return {
         type: 'Feature',
         properties: {
           name: city,
           venues: data.venues.size,
           shows: data.shows.length,
+          weight: normalized,
           type: 'city'
         },
         geometry: {
@@ -336,17 +355,19 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       filter: ['==', ['get', 'type'], 'city'],  // Only show city markers
       paint: {
         'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          3, 20,
-          6, 35,
-          8, 25
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 18,    // Min shows = 18px
+          1, 40     // Max shows = 40px
         ],
-        'circle-color': 'hsl(189, 94%, 55%)',
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(250, 70%, 50%)',      // Cool purple for low
+          0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
+          1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
+        ],
         'circle-stroke-width': 3,
         'circle-stroke-color': '#fff',
-        'circle-opacity': 0.9
+        'circle-opacity': 0.85
       }
     });
 
@@ -396,14 +417,24 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     // Remove all existing layers
     removeLayers();
 
+    // Calculate normalized weights for venues
+    const venueShowCounts = Array.from(cityData.venues.values()).map((v: Show[]) => v.length);
+    const minVenueShows = Math.min(...venueShowCounts);
+    const maxVenueShows = Math.max(...venueShowCounts);
+
     const venueFeatures = Array.from(cityData.venues.entries()).map(([venueName, venueShows]: [string, Show[]]) => {
       const firstShow = venueShows[0];
+      const normalized = maxVenueShows === minVenueShows
+        ? 0.5  // Default to mid-range if all venues have same show count
+        : (venueShows.length - minVenueShows) / (maxVenueShows - minVenueShows);
+      
       return {
         type: 'Feature',
         properties: {
           venueName,
           location: city,
           shows: venueShows.length,
+          weight: normalized,
           type: 'venue'
         },
         geometry: {
@@ -430,11 +461,20 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       source: 'shows',
       filter: ['==', ['get', 'type'], 'venue'],  // Only show venue markers
       paint: {
-        'circle-radius': 15,
-        'circle-color': 'hsl(189, 94%, 55%)',
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 12,    // Min shows = 12px
+          1, 25     // Max shows = 25px
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'weight'],
+          0, 'hsl(250, 70%, 50%)',      // Cool purple for low
+          0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
+          1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
+        ],
         'circle-stroke-width': 2,
         'circle-stroke-color': '#fff',
-        'circle-opacity': 0.9
+        'circle-opacity': 0.85
       }
     });
 
@@ -484,14 +524,23 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
 
     // Re-render the appropriate layer based on current view
     if (currentView === 'world') {
-      // Build country-level GeoJSON
+      // Build country-level GeoJSON with normalized weights
+      const allShowCounts = Array.from(showsData.countryMap.values()).map((d: any) => d.shows.length);
+      const minShows = Math.min(...allShowCounts);
+      const maxShows = Math.max(...allShowCounts);
+
       const countryFeatures = Array.from(showsData.countryMap.entries()).map(([country, data]: [string, any]) => {
+        const normalized = maxShows === minShows
+          ? 0.5  // Default to mid-range if all countries have same show count
+          : (data.shows.length - minShows) / (maxShows - minShows);
+        
         return {
           type: 'Feature',
           properties: { 
             name: country,
             cities: data.cities.size,
             shows: data.shows.length,
+            weight: normalized,
             type: 'country'
           },
           geometry: {
@@ -638,14 +687,23 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         showsWithCoords
       };
 
-      // Build GeoJSON for country-level view (world zoom)
+      // Build GeoJSON for country-level view (world zoom) with normalized weights
+      const allShowCounts = Array.from(countryMap.values()).map(d => d.shows.length);
+      const minShows = Math.min(...allShowCounts);
+      const maxShows = Math.max(...allShowCounts);
+
       const countryFeatures = Array.from(countryMap.entries()).map(([country, data]) => {
+        const normalized = maxShows === minShows
+          ? 0.5  // Default to mid-range if all countries have same show count
+          : (data.shows.length - minShows) / (maxShows - minShows);
+        
         return {
           type: 'Feature',
           properties: { 
             name: country,
             cities: data.cities.size,
             shows: data.shows.length,
+            weight: normalized,
             type: 'country'
           },
           geometry: {
