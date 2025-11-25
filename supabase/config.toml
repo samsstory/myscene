@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.search-venues]
 verify_jwt = true
+
+[functions.backfill-venue-coordinates]
+verify_jwt = true
