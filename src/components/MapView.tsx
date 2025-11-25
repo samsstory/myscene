@@ -307,17 +307,19 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
               </CardContent>
             </Card>
           ) : (
-            <Button
-              variant="default"
-              className="absolute bottom-4 right-4 z-10 animate-fade-in relative"
-              onClick={() => setIsLocationCardMinimized(false)}
-            >
-              <MapPin className="h-4 w-4 mr-2" />
-              Shows need location
-              <Badge className="ml-2 bg-destructive text-destructive-foreground">
-                {showsWithoutLocation.length}
-              </Badge>
-            </Button>
+            <div className="absolute bottom-4 right-4 z-10 animate-fade-in">
+              <Button
+                size="icon"
+                variant="default"
+                className="relative"
+                onClick={() => setIsLocationCardMinimized(false)}
+              >
+                <MapPin className="h-5 w-5" />
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
+                  {showsWithoutLocation.length}
+                </Badge>
+              </Button>
+            </div>
           )}
         </>
       )}
