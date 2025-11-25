@@ -63,7 +63,10 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
       try {
         const { data, error } = await supabase.functions.invoke('search-venues', {
-          body: { searchTerm: searchTerm.trim() }
+          body: { 
+            searchTerm: searchTerm.trim(),
+            showType: showType 
+          }
         });
 
         if (error) throw error;

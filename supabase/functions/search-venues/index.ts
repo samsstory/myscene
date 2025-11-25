@@ -122,7 +122,7 @@ serve(async (req) => {
   }
 
   try {
-    const { searchTerm } = await req.json();
+    const { searchTerm, showType } = await req.json();
 
     if (!searchTerm || searchTerm.trim().length < 2) {
       return new Response(
@@ -246,9 +246,14 @@ serve(async (req) => {
           console.log(`Using proximity: ${profile.home_latitude},${profile.home_longitude}`);
         }
         
-        // Use Google Places Text Search - no type filter to allow all venue types
-        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchTerm.trim())}${locationBias}&key=${GOOGLE_API_KEY}`;
-        console.log(`Calling Google Places API...`);
+        // Build query based on show type
+        let query = searchTerm.trim();
+        if (showType === 'festival') {
+          query = `${searchTerm.trim()} festival`;
+        }
+        
+        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}${locationBias}&key=${GOOGLE_API_KEY}`;
+        console.log(`Calling Google Places API for ${showType}...`);
         
         const googleResponse = await fetch(googleUrl);
         
@@ -262,7 +267,7 @@ serve(async (req) => {
           if (data.status === 'OK' && data.results && Array.isArray(data.results)) {
             console.log(`Google Places returned ${data.results.length} results`);
             
-            // Filter out clearly irrelevant results only
+            // Filter based on show type
             const excludeKeywords = [
               'floral', 'flower', 'wholesale', 'retail', 'shop', 'store',
               'salon', 'spa', 'hotel', 'motel', 'apartment', 'real estate',
@@ -271,16 +276,41 @@ serve(async (req) => {
             ];
             
             googlePlaces = data.results.filter((place: any) => {
-              // Only exclude if name or types contain excluded keywords
               const nameAndTypes = `${place.name} ${place.types?.join(' ')}`.toLowerCase();
+              
+              // Exclude irrelevant results
               const hasExcludedKeyword = excludeKeywords.some(keyword => 
                 nameAndTypes.includes(keyword)
               );
+              if (hasExcludedKeyword) return false;
               
-              return !hasExcludedKeyword;
+              // Apply show type filtering
+              if (showType === 'festival') {
+                // For festivals, prioritize event spaces, parks, fairgrounds
+                const festivalTypes = ['tourist_attraction', 'park', 'event_venue', 'stadium', 'campground', 'point_of_interest'];
+                const festivalKeywords = ['festival', 'fest', 'fairground', 'grounds', 'park', 'amphitheater', 'outdoor'];
+                
+                const hasRelevantType = place.types?.some((type: string) => festivalTypes.includes(type));
+                const hasRelevantKeyword = festivalKeywords.some((keyword: string) => nameAndTypes.includes(keyword));
+                
+                // Must have at least one festival indicator
+                return hasRelevantType || hasRelevantKeyword;
+              } else if (showType === 'venue') {
+                // For venues, prioritize music venues, clubs, bars
+                const venueTypes = ['night_club', 'bar', 'music_venue', 'establishment'];
+                const venueKeywords = ['club', 'venue', 'lounge', 'theater', 'theatre', 'hall', 'stage'];
+                
+                const hasRelevantType = place.types?.some((type: string) => venueTypes.includes(type));
+                const hasRelevantKeyword = venueKeywords.some((keyword: string) => nameAndTypes.includes(keyword));
+                
+                return hasRelevantType || hasRelevantKeyword || true; // Allow all for venue unless excluded
+              }
+              
+              // For 'other', allow anything not excluded
+              return true;
             }).slice(0, 20);
             
-            console.log(`Filtered to ${googlePlaces.length} relevant venues`);
+            console.log(`Filtered to ${googlePlaces.length} ${showType} results`);
           } else {
             console.log(`Google Places status: ${data.status}`);
           }
