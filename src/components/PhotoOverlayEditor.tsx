@@ -463,11 +463,13 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
         yPos += 12 * scaleY;
       }
       
-      // Rank display
+      // Scene logo and rank at bottom
+      const bottomY = overlayY + overlayHeight - 12 * scaleY;
+      
+      // Rank on the left
       if (overlayConfig.showRank && rankData.position > 0) {
-        ctx.font = `600 ${13 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.font = `600 ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
         
-        // Create gradient for rank text
         const rankGradientColors = (() => {
           if (rankData.percentile >= 90) return ["hsl(45, 93%, 58%)", "hsl(189, 94%, 55%)"];
           if (rankData.percentile >= 75) return ["hsl(189, 94%, 55%)", "hsl(260, 80%, 60%)"];
@@ -475,20 +477,21 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
           return ["hsl(330, 85%, 65%)", "hsl(0, 84%, 60%)"];
         })();
         
-        const gradient = ctx.createLinearGradient(overlayX + padding, yPos, overlayX + overlayWidth - padding, yPos);
+        const gradient = ctx.createLinearGradient(overlayX + padding, bottomY, overlayX + overlayWidth - padding, bottomY);
         gradient.addColorStop(0, rankGradientColors[0]);
         gradient.addColorStop(1, rankGradientColors[1]);
         
         ctx.fillStyle = gradient;
+        ctx.textAlign = "left";
         const rankText = `#${rankData.position} of ${rankData.total} shows · Top ${Math.round(rankData.percentile)}%`;
-        ctx.fillText(rankText, overlayX + padding, yPos);
+        ctx.fillText(rankText, overlayX + padding, bottomY);
       }
-
-      // Scene logo
+      
+      // Scene logo on the right
       ctx.font = `bold ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.textAlign = "center";
-      ctx.fillText("SCENE", overlayX + overlayWidth / 2, overlayY + overlayHeight - 12 * scaleY);
+      ctx.textAlign = "right";
+      ctx.fillText("SCENE", overlayX + overlayWidth - padding, bottomY);
 
       // Download
       canvas.toBlob((blob) => {
@@ -696,16 +699,17 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
                     </p>
                   )}
                   
-                  {overlayConfig.showRank && rankData.position > 0 && (
-                    <div 
-                      className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent mt-2`}
-                    >
-                      #{rankData.position} of {rankData.total} shows · Top {Math.round(rankData.percentile)}%
-                    </div>
-                  )}
-
-                  {/* Scene logo at bottom */}
-                  <div className="mt-4 text-center">
+                  {/* Scene logo and rank at bottom */}
+                  <div className="mt-4 flex items-center justify-between">
+                    {overlayConfig.showRank && rankData.position > 0 ? (
+                      <div 
+                        className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent`}
+                      >
+                        #{rankData.position} of {rankData.total} shows · Top {Math.round(rankData.percentile)}%
+                      </div>
+                    ) : (
+                      <div />
+                    )}
                     <span className="text-xs font-bold tracking-wider opacity-30" style={{ filter: "grayscale(100%)" }}>
                       SCENE
                     </span>
