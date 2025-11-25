@@ -164,18 +164,29 @@ serve(async (req) => {
 
     console.log(`Searching venues for: ${searchTerm}`);
 
-    // 1. Search user's own shows
-    const { data: userShows, error: userShowsError } = await supabaseClient
-      .from('shows')
-      .select('venue_name, venue_location')
-      .eq('user_id', userId)
-      .ilike('venue_name', `%${searchTerm.trim()}%`)
-      .order('venue_name');
+    // 1. Search user's own shows - search across all words in the venue name
+    const searchWords = searchTerm.trim().toLowerCase().split(/\s+/);
+    let userShows: any[] = [];
+    
+    try {
+      const { data, error } = await supabaseClient
+        .from('shows')
+        .select('venue_name, venue_location, venue_id')
+        .eq('user_id', userId)
+        .order('venue_name');
 
-    if (userShowsError) {
-      console.error('Error fetching user shows:', userShowsError);
-    } else {
-      console.log(`Found ${userShows?.length || 0} user shows`);
+      if (error) {
+        console.error('Error fetching user shows:', error);
+      } else if (data) {
+        // Filter in memory to match any word in the search term
+        userShows = data.filter((show: any) => {
+          const venueName = show.venue_name.toLowerCase();
+          return searchWords.some((word: string) => venueName.includes(word));
+        });
+        console.log(`Found ${userShows.length} user shows`);
+      }
+    } catch (err) {
+      console.error('Exception fetching user shows:', err);
     }
 
     // 2. Search cached venues
