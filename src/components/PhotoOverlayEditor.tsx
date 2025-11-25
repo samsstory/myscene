@@ -213,29 +213,31 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       const overlayWidth = overlayRect.width * scaleX;
       const overlayHeight = overlayRect.height * scaleY;
 
-      // Draw overlay background
-      const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
-      const ratingValue = show.rating;
-      
-      if (ratingValue >= 4.5) {
-        gradient.addColorStop(0, "hsl(220, 90%, 56%)");
-        gradient.addColorStop(1, "hsl(280, 70%, 55%)");
-      } else if (ratingValue >= 3.5) {
-        gradient.addColorStop(0, "hsl(45, 100%, 60%)");
-        gradient.addColorStop(1, "hsl(330, 85%, 65%)");
-      } else if (ratingValue >= 2.5) {
-        gradient.addColorStop(0, "hsl(30, 100%, 55%)");
-        gradient.addColorStop(1, "hsl(45, 100%, 60%)");
-      } else {
-        gradient.addColorStop(0, "hsl(0, 70%, 50%)");
-        gradient.addColorStop(1, "hsl(30, 100%, 55%)");
-      }
+      // Draw overlay background (only if enabled)
+      if (overlayConfig.showBackground) {
+        const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
+        const ratingValue = show.rating;
+        
+        if (ratingValue >= 4.5) {
+          gradient.addColorStop(0, "hsl(220, 90%, 56%)");
+          gradient.addColorStop(1, "hsl(280, 70%, 55%)");
+        } else if (ratingValue >= 3.5) {
+          gradient.addColorStop(0, "hsl(45, 100%, 60%)");
+          gradient.addColorStop(1, "hsl(330, 85%, 65%)");
+        } else if (ratingValue >= 2.5) {
+          gradient.addColorStop(0, "hsl(30, 100%, 55%)");
+          gradient.addColorStop(1, "hsl(45, 100%, 60%)");
+        } else {
+          gradient.addColorStop(0, "hsl(0, 70%, 50%)");
+          gradient.addColorStop(1, "hsl(30, 100%, 55%)");
+        }
 
-      ctx.globalAlpha = overlayOpacity / 100;
-      ctx.fillStyle = gradient;
-      ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, 24);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+        ctx.globalAlpha = overlayOpacity / 100;
+        ctx.fillStyle = gradient;
+        ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, 24);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
 
       // Draw overlay text content
       const padding = 32 * scaleX;
