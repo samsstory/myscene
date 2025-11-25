@@ -246,8 +246,9 @@ serve(async (req) => {
           console.log(`Using proximity: ${profile.home_latitude},${profile.home_longitude}`);
         }
         
-        // Use Google Places Text Search for venues
-        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchTerm.trim())}+venue+bar+club${locationBias}&type=night_club|bar|restaurant&key=${GOOGLE_API_KEY}`;
+        // Use Google Places Text Search - search broadly for the venue/festival
+        // Don't add extra keywords or type filters that might exclude results
+        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchTerm.trim())}${locationBias}&key=${GOOGLE_API_KEY}`;
         console.log(`Calling Google Places API...`);
         
         const googleResponse = await fetch(googleUrl);
@@ -261,7 +262,7 @@ serve(async (req) => {
           
           if (data.status === 'OK' && data.results && Array.isArray(data.results)) {
             console.log(`Google Places returned ${data.results.length} results`);
-            googlePlaces = data.results.slice(0, 15); // Limit to 15 results
+            googlePlaces = data.results.slice(0, 20); // Get more results
           } else {
             console.log(`Google Places status: ${data.status}`);
           }
