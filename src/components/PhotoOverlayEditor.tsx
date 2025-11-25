@@ -606,7 +606,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
               min={0}
               max={2}
               step={1}
-              value={[overlaySize === 0.6 ? 0 : overlaySize === 1 ? 1 : 2]}
+              value={[overlaySize === 0.25 ? 0 : overlaySize === 0.35 ? 1 : 2]}
               onValueChange={handleSizeChange}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
