@@ -361,12 +361,12 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
   const headliners = show.artists.filter(a => a.is_headliner);
 
   return (
-    <div className="flex flex-col lg:flex-row h-full gap-6">
+    <div className="flex flex-col lg:flex-row min-h-screen overflow-y-auto gap-6 p-4">
       {/* Canvas Preview */}
-      <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden relative">
+      <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg relative pointer-events-none">
         <div
           id="canvas-container"
-          className="relative bg-black overflow-visible"
+          className="relative bg-black"
           style={{
             width: "100%",
             maxWidth: "540px",
@@ -377,20 +377,20 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
           <img
             src={show.photo_url}
             alt="Show"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
 
           {/* Draggable Overlay */}
           <Draggable 
             bounds={{
-              left: -200,
-              top: -200,
-              right: 540,
-              bottom: 960
+              left: -100,
+              top: -100,
+              right: 440,
+              bottom: 860
             }}
             defaultPosition={{ x: 40, y: 100 }}
           >
-            <div style={{ position: "absolute", cursor: "move", zIndex: 10 }}>
+            <div style={{ position: "absolute", cursor: "move", zIndex: 10, pointerEvents: "auto" }}>
               <Resizable
                 defaultSize={{ width: 400, height: "auto" }}
                 minWidth={200}
@@ -534,7 +534,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
       </div>
 
       {/* Controls Panel */}
-      <div className="w-full lg:w-80 space-y-6 overflow-y-auto">
+      <div className="w-full lg:w-80 space-y-6 overflow-y-auto max-h-[80vh] lg:max-h-none pointer-events-auto">
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Customize Overlay</h3>
 
