@@ -452,7 +452,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                     <div className="space-y-2 text-xs mb-3">
                       {show.artist_performance && (
                         <div className="flex items-center gap-2">
-                          <span className="w-20">🎤 Performance</span>
+                          <span className="w-20">Performance</span>
                           <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-white rounded-full"
@@ -463,7 +463,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                       )}
                       {show.sound && (
                         <div className="flex items-center gap-2">
-                          <span className="w-20">🔊 Sound</span>
+                          <span className="w-20">Sound</span>
                           <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-white rounded-full"
@@ -474,7 +474,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                       )}
                       {show.lighting && (
                         <div className="flex items-center gap-2">
-                          <span className="w-20">💡 Lighting</span>
+                          <span className="w-20">Lighting</span>
                           <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-white rounded-full"
@@ -485,7 +485,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                       )}
                       {show.crowd && (
                         <div className="flex items-center gap-2">
-                          <span className="w-20">👥 Crowd</span>
+                          <span className="w-20">Crowd</span>
                           <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-white rounded-full"
@@ -496,7 +496,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                       )}
                       {show.venue_vibe && (
                         <div className="flex items-center gap-2">
-                          <span className="w-20">✨ Vibe</span>
+                          <span className="w-20">Vibe</span>
                           <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-white rounded-full"
