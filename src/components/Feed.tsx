@@ -376,10 +376,9 @@ const Feed = () => {
                         alt="Show" 
                         className="w-8 h-8 rounded object-cover shadow-lg"
                       />
-                      <div className={`absolute inset-0 flex items-center justify-center text-[10px] font-bold bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}
+                      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white"
                         style={{
-                          textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)',
-                          WebkitTextStroke: '0.5px rgba(0,0,0,0.5)'
+                          textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)'
                         }}
                       >
                         {score.toFixed(1)}
