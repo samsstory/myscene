@@ -33,6 +33,7 @@ interface Show {
   venueId?: string | null;
   latitude?: number;
   longitude?: number;
+  photo_url?: string | null;
 }
 
 const getRatingEmoji = (rating: number) => {
@@ -135,6 +136,7 @@ const Feed = () => {
             venueId: show.venue_id,
             latitude: show.venues?.latitude,
             longitude: show.venues?.longitude,
+            photo_url: show.photo_url,
           };
         })
       );
@@ -209,6 +211,21 @@ const Feed = () => {
                     }}
                   >
                     {index + 1}
+                  </div>
+                )}
+
+                {/* Photo thumbnail (if available) */}
+                {show.photo_url && (
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                    <img
+                      src={show.photo_url}
+                      alt="Show photo"
+                      className="w-full h-full object-cover"
+                      style={{
+                        maskImage: 'radial-gradient(circle at center, black 50%, transparent 100%)',
+                        WebkitMaskImage: 'radial-gradient(circle at center, black 50%, transparent 100%)',
+                      }}
+                    />
                   </div>
                 )}
 
