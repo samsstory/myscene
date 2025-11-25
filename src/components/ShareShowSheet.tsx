@@ -376,14 +376,14 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh]">
-        <SheetHeader>
+      <SheetContent side="bottom" className="h-[90vh] overflow-hidden flex flex-col">
+        <SheetHeader className="flex-shrink-0">
           <SheetTitle>
             {showOverlayEditor && show.photo_url ? "Customize Share Image" : "Share Show"}
           </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 mt-6">
+        <div className="flex-1 overflow-y-auto mt-6">
           {showOverlayEditor && show.photo_url ? (
             <PhotoOverlayEditor 
               show={normalizedShow} 
