@@ -113,18 +113,18 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
       if (show.rating >= 4.5) {
         ctx.font = '40px system-ui';
         ctx.fillStyle = colors.accent;
-        const sparkles = [[120, 200], [930, 220], [90, 450], [960, 480], [150, 1500], [900, 1550]];
+        const sparkles = [[120, 280], [930, 300], [90, 530], [960, 560], [150, 1600], [900, 1650]];
         sparkles.forEach(([x, y]) => ctx.fillText('✨', x, y));
       }
 
-      let yPos = 120;
+      let yPos = 180;
 
       // App branding
       ctx.fillStyle = colors.accent;
       ctx.font = 'bold 52px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('Scene', canvas.width / 2, yPos);
-      yPos += 140;
+      yPos += 120;
 
       // Large emoji with glow
       ctx.shadowColor = colors.glow;
