@@ -356,7 +356,7 @@ const Feed = () => {
           {days.map(day => {
           const dayShows = getShowsForDate(day);
           const isToday = isSameDay(day, new Date());
-          return <div key={day.toISOString()} className={`aspect-square border rounded-lg p-2 flex items-center justify-center ${isToday ? "border-primary bg-primary/10" : "border-border"} ${dayShows.length > 0 ? "bg-card" : "bg-background"}`}>
+          return <div key={day.toISOString()} className={`aspect-square p-2 flex items-center justify-center ${dayShows.length > 0 ? "bg-card" : "bg-background"}`}>
               {dayShows.length > 0 ? <div className="flex flex-wrap gap-1 items-center justify-center">
                     {dayShows.map(show => {
                 const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
