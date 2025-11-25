@@ -216,9 +216,7 @@ const Feed = () => {
             <CardContent className="p-3 relative overflow-hidden px-[10px]">
               {/* Ranking position badge for Head to Head mode */}
               {isHeadToHead && <div className="absolute top-2 left-2 z-10">
-                  <Badge variant="secondary" className="bg-gradient-to-r from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)] text-background font-black text-lg px-3 py-1 shadow-lg">
-                    #{index + 1}
-                  </Badge>
+                  
                 </div>}
               
               <div className="flex items-start gap-4">
