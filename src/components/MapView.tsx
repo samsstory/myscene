@@ -488,7 +488,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         setHoverInfo({
-          name: expandStateName(feature.properties?.name),
+          name: feature.properties?.name,
           venues: feature.properties?.venues,
           shows: feature.properties?.shows
         });
@@ -768,7 +768,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       
       showsWithCoords.forEach(show => {
         const country = getCountryFromLocation(show.venue.location);
-        const city = show.venue.location;
+        const city = expandStateName(show.venue.location);
 
         // Initialize country
         if (!countryMap.has(country)) {
