@@ -4,7 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MapPin, Minus } from "lucide-react";
+import { Edit, MapPin, Minus, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Show {
@@ -30,6 +30,13 @@ interface CountryData {
   coordinates: [number, number];
 }
 
+interface CityData {
+  name: string;
+  showCount: number;
+  coordinates: [number, number];
+  shows: Show[];
+}
+
 const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -39,6 +46,10 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const [countryData, setCountryData] = useState<CountryData[]>([]);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [isLocationCardMinimized, setIsLocationCardMinimized] = useState(false);
+  const [viewLevel, setViewLevel] = useState<'country' | 'city'>('country');
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [cityData, setCityData] = useState<CityData[]>([]);
+  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -96,6 +107,26 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     return 'United States';
   };
 
+  // Extract city from location string
+  const getCityFromLocation = (location: string): string | null => {
+    const parts = location.split(',').map(p => p.trim());
+    
+    // For addresses with numbers at the start (street addresses), city is usually second part
+    // e.g., "8509 Burleson Rd, Austin, TX 78719" -> "Austin"
+    if (parts.length >= 2 && /^\d/.test(parts[0])) {
+      return parts[1];
+    }
+    
+    // For city, state format, city is first
+    // e.g., "Los Angeles, CA 90028" -> "Los Angeles"
+    // e.g., "Brooklyn, New York, USA" -> "Brooklyn"
+    if (parts.length >= 2) {
+      return parts[0];
+    }
+    
+    return null;
+  };
+
   // Geocode country name to get center coordinates
   const geocodeCountry = async (countryName: string): Promise<[number, number] | null> => {
     try {
@@ -109,6 +140,33 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       }
     } catch (error) {
       console.error('Error geocoding country:', error);
+    }
+    return null;
+  };
+
+  // Geocode city name to get coordinates
+  const geocodeCity = async (cityName: string, countryName: string): Promise<[number, number] | null> => {
+    try {
+      // Get country code for more accurate results
+      let countryCode = '';
+      if (countryName === 'United States') countryCode = 'us';
+      else if (countryName === 'Canada') countryCode = 'ca';
+      else if (countryName === 'United Kingdom') countryCode = 'gb';
+      
+      const query = countryCode 
+        ? `${encodeURIComponent(cityName)}.json?types=place&country=${countryCode}`
+        : `${encodeURIComponent(cityName)}.json?types=place`;
+      
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}&access_token=${MAPBOX_TOKEN}`
+      );
+      const data = await response.json();
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        return [lng, lat];
+      }
+    } catch (error) {
+      console.error('Error geocoding city:', error);
     }
     return null;
   };
@@ -185,9 +243,59 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     processCountryData();
   }, [shows]);
 
+  // Handle country click - drill down to cities
+  const handleCountryClick = async (countryName: string) => {
+    // Filter shows for this country
+    const countryShows = shows.filter(show => {
+      if (show.venue.location) {
+        const country = getCountryFromLocation(show.venue.location);
+        return country === countryName;
+      }
+      return false;
+    });
+
+    // Group shows by city
+    const cityMap = new Map<string, Show[]>();
+    countryShows.forEach(show => {
+      const cityName = getCityFromLocation(show.venue.location);
+      if (cityName) {
+        if (!cityMap.has(cityName)) {
+          cityMap.set(cityName, []);
+        }
+        cityMap.get(cityName)!.push(show);
+      }
+    });
+
+    // Geocode each city and create city data
+    const data: CityData[] = [];
+    for (const [cityName, cityShows] of cityMap.entries()) {
+      const coords = await geocodeCity(cityName, countryName);
+      if (coords) {
+        data.push({
+          name: cityName,
+          showCount: cityShows.length,
+          coordinates: coords,
+          shows: cityShows
+        });
+      }
+    }
+
+    setCityData(data);
+    setSelectedCountry(countryName);
+    setViewLevel('city');
+  };
+
+  // Handle back to countries
+  const handleBackToCountries = () => {
+    setViewLevel('country');
+    setSelectedCountry(null);
+    setCityData([]);
+    setHoveredCity(null);
+  };
+
   // Add country markers to map
   useEffect(() => {
-    if (!map.current || !countryData.length) return;
+    if (!map.current || !countryData.length || viewLevel !== 'country') return;
 
     // Wait for map to load
     if (!map.current.isStyleLoaded()) {
@@ -244,6 +352,16 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
+      // Add click handler
+      map.current.on('click', 'country-dots', (e) => {
+        if (e.features && e.features.length > 0) {
+          const countryName = e.features[0].properties?.name;
+          if (countryName) {
+            handleCountryClick(countryName);
+          }
+        }
+      });
+
       // Add hover effect
       map.current.on('mouseenter', 'country-dots', (e) => {
         if (map.current) map.current.getCanvas().style.cursor = 'pointer';
@@ -257,19 +375,133 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         setHoveredCountry(null);
       });
     }
-  }, [countryData]);
+  }, [countryData, viewLevel]);
+
+  // Add city markers to map
+  useEffect(() => {
+    if (!map.current || !cityData.length || viewLevel !== 'city') return;
+
+    // Wait for map to load
+    if (!map.current.isStyleLoaded()) {
+      map.current.on('load', () => addCityMarkers());
+      return;
+    }
+
+    addCityMarkers();
+
+    function addCityMarkers() {
+      if (!map.current) return;
+
+      // Remove country layers when showing cities
+      if (map.current.getLayer('country-dots')) {
+        map.current.removeLayer('country-dots');
+      }
+      if (map.current.getSource('countries')) {
+        map.current.removeSource('countries');
+      }
+
+      // Remove existing city layers and sources
+      if (map.current.getLayer('city-dots')) {
+        map.current.removeLayer('city-dots');
+      }
+      if (map.current.getSource('cities')) {
+        map.current.removeSource('cities');
+      }
+
+      // Create GeoJSON for cities
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: cityData.map(city => ({
+          type: 'Feature',
+          properties: {
+            name: city.name,
+            showCount: city.showCount
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: city.coordinates
+          }
+        }))
+      };
+
+      // Add source
+      map.current.addSource('cities', {
+        type: 'geojson',
+        data: geojson
+      });
+
+      // Add layer
+      map.current.addLayer({
+        id: 'city-dots',
+        type: 'circle',
+        source: 'cities',
+        paint: {
+          'circle-radius': 15,
+          'circle-color': 'hsl(189, 94%, 55%)',
+          'circle-opacity': 0.8,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      // Add hover effect
+      map.current.on('mouseenter', 'city-dots', (e) => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (e.features && e.features.length > 0) {
+          setHoveredCity(e.features[0].properties?.name);
+        }
+      });
+
+      map.current.on('mouseleave', 'city-dots', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+        setHoveredCity(null);
+      });
+
+      // Fit map to show all cities
+      if (cityData.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        cityData.forEach(city => {
+          bounds.extend(city.coordinates);
+        });
+        map.current.fitBounds(bounds, { padding: 100, maxZoom: 6 });
+      }
+    }
+  }, [cityData, viewLevel]);
 
   return (
     <div className="relative w-full h-[600px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
 
+      {/* Back to Countries button */}
+      {viewLevel === 'city' && (
+        <Button
+          className="absolute top-4 left-4 z-10"
+          onClick={handleBackToCountries}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Countries
+        </Button>
+      )}
+
       {/* Hover info for country */}
-      {hoveredCountry && (
+      {hoveredCountry && viewLevel === 'country' && (
         <Card className="absolute top-4 right-4 z-10">
           <CardContent className="p-3">
             <h3 className="font-semibold">{hoveredCountry}</h3>
             <p className="text-sm text-muted-foreground">
               {countryData.find(c => c.name === hoveredCountry)?.showCount} shows
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Hover info for city */}
+      {hoveredCity && viewLevel === 'city' && (
+        <Card className="absolute top-4 right-4 z-10">
+          <CardContent className="p-3">
+            <h3 className="font-semibold">{hoveredCity}</h3>
+            <p className="text-sm text-muted-foreground">
+              {cityData.find(c => c.name === hoveredCity)?.showCount} shows
             </p>
           </CardContent>
         </Card>
