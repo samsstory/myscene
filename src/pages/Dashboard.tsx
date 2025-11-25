@@ -103,15 +103,15 @@ const Dashboard = () => {
             </button>
 
             {/* Compass - Coming Soon */}
-            <Tooltip>
+            <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <button
-                  className="flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors flex-1"
+                  className="flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors flex-1 cursor-default"
                 >
                   <Compass className="h-6 w-6" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side="top" className="z-[60] bg-card border-border">
                 <p>Coming soon.. 🤫</p>
               </TooltipContent>
             </Tooltip>
