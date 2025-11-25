@@ -63,34 +63,92 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
       
       if (!ctx) throw new Error('Could not get canvas context');
 
-      // Background gradient (dark theme)
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, 'hsl(222, 47%, 8%)');
-      gradient.addColorStop(0.5, 'hsl(222, 47%, 6%)');
-      gradient.addColorStop(1, 'hsl(222, 47%, 8%)');
-      ctx.fillStyle = gradient;
+      // Dynamic color scheme based on rating
+      const getRatingColors = (rating: number) => {
+        if (rating >= 4.5) return { 
+          start: 'hsl(222, 47%, 8%)', 
+          middle: 'hsl(250, 50%, 15%)', 
+          end: 'hsl(222, 47%, 6%)', 
+          accent: 'hsl(45, 93%, 58%)', // Gold
+          glow: 'rgba(255, 215, 0, 0.4)',
+          barColors: ['hsl(45, 93%, 58%)', 'hsl(39, 100%, 50%)']
+        };
+        if (rating >= 3.5) return { 
+          start: 'hsl(222, 47%, 8%)', 
+          middle: 'hsl(189, 60%, 20%)', 
+          end: 'hsl(222, 47%, 6%)', 
+          accent: 'hsl(189, 94%, 55%)', // Primary blue
+          glow: 'rgba(96, 213, 242, 0.4)',
+          barColors: ['hsl(189, 94%, 55%)', 'hsl(217, 91%, 60%)']
+        };
+        if (rating >= 2.5) return { 
+          start: 'hsl(222, 47%, 8%)', 
+          middle: 'hsl(30, 50%, 20%)', 
+          end: 'hsl(222, 47%, 6%)', 
+          accent: 'hsl(17, 88%, 60%)', // Secondary orange
+          glow: 'rgba(245, 158, 11, 0.4)',
+          barColors: ['hsl(17, 88%, 60%)', 'hsl(25, 95%, 53%)']
+        };
+        return { 
+          start: 'hsl(222, 47%, 8%)', 
+          middle: 'hsl(0, 50%, 15%)', 
+          end: 'hsl(222, 47%, 6%)', 
+          accent: 'hsl(0, 84%, 60%)', // Destructive red
+          glow: 'rgba(239, 68, 68, 0.4)',
+          barColors: ['hsl(0, 84%, 60%)', 'hsl(0, 72%, 51%)']
+        };
+      };
+
+      const colors = getRatingColors(show.rating);
+
+      // Background gradient with dynamic colors
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bgGradient.addColorStop(0, colors.start);
+      bgGradient.addColorStop(0.5, colors.middle);
+      bgGradient.addColorStop(1, colors.end);
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      let yPos = 180;
+      // Add sparkles for high ratings
+      if (show.rating >= 4.5) {
+        ctx.font = '40px system-ui';
+        ctx.fillStyle = colors.accent;
+        const sparkles = [[120, 200], [930, 220], [90, 450], [960, 480], [150, 1500], [900, 1550]];
+        sparkles.forEach(([x, y]) => ctx.fillText('✨', x, y));
+      }
 
-      // App branding at top
-      ctx.fillStyle = 'hsl(210, 40%, 98%)';
-      ctx.font = 'bold 48px system-ui';
+      let yPos = 120;
+
+      // App branding
+      ctx.fillStyle = colors.accent;
+      ctx.font = 'bold 52px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('Scene', canvas.width / 2, yPos);
+      yPos += 140;
+
+      // Large emoji with glow
+      ctx.shadowColor = colors.glow;
+      ctx.shadowBlur = 60;
+      ctx.font = '200px system-ui';
+      ctx.fillText(getRatingEmoji(show.rating), canvas.width / 2, yPos);
+      ctx.shadowBlur = 0;
       yPos += 100;
 
-      // Rating emoji (large)
-      ctx.font = '280px system-ui';
-      ctx.fillText(getRatingEmoji(show.rating), canvas.width / 2, yPos + 200);
-      yPos += 320;
+      // Bold rating score
+      ctx.fillStyle = colors.accent;
+      ctx.font = 'bold 80px system-ui';
+      ctx.fillText(`${show.rating}/5 ⭐`, canvas.width / 2, yPos);
+      yPos += 120;
 
-      // Artist names
-      ctx.fillStyle = 'hsl(210, 40%, 98%)';
-      ctx.font = 'bold 68px system-ui';
+      // Artist names with gradient
       const artistText = displayArtists.map(a => a.name).join(", ");
+      const textGradient = ctx.createLinearGradient(0, yPos - 60, 0, yPos + 60);
+      textGradient.addColorStop(0, 'hsl(210, 40%, 98%)');
+      textGradient.addColorStop(1, colors.accent);
+      ctx.fillStyle = textGradient;
+      ctx.font = 'bold 64px system-ui';
       
-      // Wrap long artist names
+      // Wrap artist names
       const maxWidth = 950;
       const words = artistText.split(' ');
       let line = '';
@@ -108,92 +166,147 @@ export const ShareShowSheet = ({ show, open, onOpenChange }: ShareShowSheetProps
       }
       lines.push(line);
       
-      lines.forEach((line, i) => {
-        ctx.fillText(line.trim(), canvas.width / 2, yPos + (i * 80));
+      lines.forEach((textLine, i) => {
+        ctx.fillText(textLine.trim(), canvas.width / 2, yPos + (i * 75));
       });
-      yPos += lines.length * 80 + 40;
+      yPos += lines.length * 75 + 40;
 
       // Venue
-      ctx.fillStyle = 'hsl(215, 20%, 65%)';
-      ctx.font = '44px system-ui';
+      ctx.fillStyle = 'hsl(215, 20%, 75%)';
+      ctx.font = '42px system-ui';
       ctx.fillText(show.venue.name, canvas.width / 2, yPos);
       yPos += 60;
 
       // Date
-      ctx.font = '38px system-ui';
+      ctx.font = '36px system-ui';
       ctx.fillText(format(parseISO(show.date), "MMMM d, yyyy"), canvas.width / 2, yPos);
-      yPos += 100;
+      yPos += 120;
 
-      // Detailed ratings (if available)
+      // Detailed ratings with progress bars
       const hasDetailedRatings = show.artistPerformance || show.sound || show.lighting || show.crowd || show.venueVibe;
       
       if (hasDetailedRatings) {
-        ctx.font = 'bold 36px system-ui';
-        ctx.fillStyle = 'hsl(210, 40%, 98%)';
-        ctx.fillText('The Details', canvas.width / 2, yPos);
-        yPos += 60;
-
-        const ratingLabels = [
-          { label: 'Artist Performance', value: show.artistPerformance },
-          { label: 'Sound', value: show.sound },
-          { label: 'Lighting', value: show.lighting },
-          { label: 'Crowd', value: show.crowd },
-          { label: 'Venue Vibe', value: show.venueVibe },
+        const ratings = [
+          { label: 'Artist Performance', emoji: '🎤', value: show.artistPerformance },
+          { label: 'Sound', emoji: '🔊', value: show.sound },
+          { label: 'Lighting', emoji: '💡', value: show.lighting },
+          { label: 'Crowd', emoji: '👥', value: show.crowd },
+          { label: 'Venue Vibe', emoji: '✨', value: show.venueVibe },
         ];
 
-        ctx.font = '32px system-ui';
         ctx.textAlign = 'left';
-        
-        ratingLabels.forEach(({ label, value }) => {
+
+        ratings.forEach(({ label, emoji, value }) => {
           if (value) {
-            ctx.fillStyle = 'hsl(215, 20%, 65%)';
-            ctx.fillText(label, 140, yPos);
+            // Emoji
+            ctx.font = '36px system-ui';
+            ctx.fillStyle = 'hsl(210, 40%, 98%)';
+            ctx.fillText(emoji, 100, yPos);
             
-            // Rating dots
-            const dotStartX = 680;
-            for (let i = 0; i < 5; i++) {
-              ctx.fillStyle = i < value ? 'hsl(221, 83%, 53%)' : 'hsl(215, 20%, 35%)';
-              ctx.beginPath();
-              ctx.arc(dotStartX + (i * 50), yPos - 10, 12, 0, Math.PI * 2);
-              ctx.fill();
-            }
+            // Label
+            ctx.font = '32px system-ui';
+            ctx.fillStyle = 'hsl(215, 20%, 75%)';
+            ctx.fillText(label, 160, yPos);
             
-            yPos += 50;
+            // Progress bar background
+            const barX = 520;
+            const barWidth = 400;
+            const barHeight = 28;
+            const barY = yPos - 22;
+            const radius = 14;
+            
+            ctx.fillStyle = 'hsl(222, 47%, 12%)';
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, barWidth, barHeight, radius);
+            ctx.fill();
+            
+            // Progress bar fill with gradient
+            const fillWidth = (value / 5) * barWidth;
+            const barGradient = ctx.createLinearGradient(barX, 0, barX + barWidth, 0);
+            barGradient.addColorStop(0, colors.barColors[0]);
+            barGradient.addColorStop(1, colors.barColors[1]);
+            
+            ctx.fillStyle = barGradient;
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, fillWidth, barHeight, radius);
+            ctx.fill();
+            
+            // Rating score
+            ctx.font = 'bold 32px system-ui';
+            ctx.fillStyle = 'hsl(210, 40%, 98%)';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${value}/5`, 980, yPos);
+            
+            ctx.textAlign = 'left';
+            yPos += 70;
           }
         });
         
-        yPos += 30;
+        yPos += 40;
       }
 
-      // Notes (if available)
+      // "My Take" section with styled card
       if (show.notes && show.notes.trim()) {
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 36px system-ui';
-        ctx.fillStyle = 'hsl(210, 40%, 98%)';
-        ctx.fillText('My Take', canvas.width / 2, yPos);
-        yPos += 60;
-
-        ctx.font = '32px system-ui';
-        ctx.fillStyle = 'hsl(215, 20%, 75%)';
+        const cardX = 80;
+        const cardWidth = canvas.width - 160;
+        const cardPadding = 50;
         
-        // Wrap notes text
+        // Measure text for card height
+        ctx.font = '34px system-ui';
         const notesWords = show.notes.split(' ');
         let notesLine = '';
-        const notesMaxWidth = 900;
+        let lineCount = 0;
         
-        notesWords.forEach(word => {
+        for (const word of notesWords) {
           const testLine = notesLine + word + ' ';
           const metrics = ctx.measureText(testLine);
-          if (metrics.width > notesMaxWidth && notesLine !== '') {
-            ctx.fillText(notesLine.trim(), canvas.width / 2, yPos);
-            yPos += 45;
+          if (metrics.width > cardWidth - (cardPadding * 2) && notesLine !== '') {
+            lineCount++;
             notesLine = word + ' ';
           } else {
             notesLine = testLine;
           }
-        });
+        }
+        if (notesLine) lineCount++;
+        
+        const cardHeight = (lineCount * 50) + (cardPadding * 2) + 80;
+        
+        // Card background with border
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.strokeStyle = colors.accent;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(cardX, yPos - 20, cardWidth, cardHeight, 24);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Header with quotation mark
+        ctx.fillStyle = colors.accent;
+        ctx.font = 'bold 40px system-ui';
+        ctx.textAlign = 'left';
+        ctx.fillText('"My Take"', cardX + cardPadding, yPos + 30);
+        yPos += 90;
+        
+        // Notes text
+        ctx.fillStyle = 'hsl(215, 20%, 85%)';
+        ctx.font = '34px system-ui';
+        
+        notesLine = '';
+        const noteX = cardX + cardPadding;
+        
+        for (const word of notesWords) {
+          const testLine = notesLine + word + ' ';
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > cardWidth - (cardPadding * 2) && notesLine !== '') {
+            ctx.fillText(notesLine.trim(), noteX, yPos);
+            yPos += 50;
+            notesLine = word + ' ';
+          } else {
+            notesLine = testLine;
+          }
+        }
         if (notesLine) {
-          ctx.fillText(notesLine.trim(), canvas.width / 2, yPos);
+          ctx.fillText(notesLine.trim(), noteX, yPos);
         }
       }
 
