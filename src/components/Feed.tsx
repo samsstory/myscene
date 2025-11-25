@@ -214,9 +214,9 @@ const Feed = () => {
                   </div>
                 )}
 
-                {/* Photo thumbnail (if available) */}
-                {show.photo_url && (
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                {/* Photo thumbnail - always reserve space for alignment */}
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                  {show.photo_url && (
                     <img
                       src={show.photo_url}
                       alt="Show photo"
@@ -226,8 +226,8 @@ const Feed = () => {
                         WebkitMaskImage: 'radial-gradient(circle at center, black 50%, transparent 100%)',
                       }}
                     />
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Left section: Artist and show details */}
                 <div className="flex-1 space-y-4">
