@@ -360,16 +360,27 @@ const Feed = () => {
               {dayShows.length > 0 ? <div className="flex flex-wrap gap-1 items-center justify-center">
                     {dayShows.map(show => {
                 const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
-                const getDotColor = (score: number) => {
-                  if (score >= 9.0) return "bg-[hsl(45,93%,58%)]"; // Gold
-                  if (score >= 7.0) return "bg-[hsl(189,94%,55%)]"; // Blue
-                  if (score >= 5.0) return "bg-[hsl(17,88%,60%)]"; // Coral
-                  return "bg-[hsl(0,84%,60%)]"; // Red
-                };
-                return <button key={show.id} className={`w-3 h-3 rounded-full ${getDotColor(score)} hover:scale-125 transition-transform cursor-pointer shadow-lg`} title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name} (${score.toFixed(1)}/10)`} onClick={() => {
-                  setReviewShow(show);
-                  setReviewSheetOpen(true);
-                }} />;
+                return <button 
+                  key={show.id} 
+                  className="hover:scale-110 transition-transform cursor-pointer"
+                  title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name} (${score.toFixed(1)}/10)`} 
+                  onClick={() => {
+                    setReviewShow(show);
+                    setReviewSheetOpen(true);
+                  }}
+                >
+                  {show.photo_url ? (
+                    <img 
+                      src={show.photo_url} 
+                      alt="Show" 
+                      className="w-8 h-8 rounded object-cover shadow-lg"
+                    />
+                  ) : (
+                    <div className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold bg-gradient-to-r ${getScoreGradient(score)} text-white shadow-lg`}>
+                      {score.toFixed(1)}
+                    </div>
+                  )}
+                </button>;
               })}
                   </div> : <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />}
               </div>;
