@@ -63,6 +63,85 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
   const [overlaySize, setOverlaySize] = useState<number>(0.6); // 0.45, 0.6, 0.8
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState<string>("hsl(45, 93%, 58%)");
+
+  // Extract primary color from image
+  const extractPrimaryColor = (imageUrl: string) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Sample colors from the image (every 10th pixel for performance)
+      const colorCounts: { [key: string]: number } = {};
+      for (let i = 0; i < data.length; i += 40) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        
+        // Skip transparent and very dark/light pixels
+        if (a < 128 || (r + g + b) < 50 || (r + g + b) > 700) continue;
+        
+        // Round to nearest 32 for grouping similar colors
+        const key = `${Math.round(r / 32) * 32},${Math.round(g / 32) * 32},${Math.round(b / 32) * 32}`;
+        colorCounts[key] = (colorCounts[key] || 0) + 1;
+      }
+
+      // Find most common color
+      let maxCount = 0;
+      let dominantColor = "255,255,255";
+      for (const [color, count] of Object.entries(colorCounts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          dominantColor = color;
+        }
+      }
+
+      const [r, g, b] = dominantColor.split(",").map(Number);
+      
+      // Convert RGB to HSL for better color matching
+      const rNorm = r / 255;
+      const gNorm = g / 255;
+      const bNorm = b / 255;
+      const max = Math.max(rNorm, gNorm, bNorm);
+      const min = Math.min(rNorm, gNorm, bNorm);
+      let h = 0, s = 0, l = (max + min) / 2;
+
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case rNorm: h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6; break;
+          case gNorm: h = ((bNorm - rNorm) / d + 2) / 6; break;
+          case bNorm: h = ((rNorm - gNorm) / d + 4) / 6; break;
+        }
+      }
+
+      // Boost saturation and adjust lightness for better visibility
+      s = Math.min(s * 1.3, 1);
+      l = Math.max(0.55, Math.min(0.7, l));
+      
+      setPrimaryColor(`hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`);
+    };
+    img.src = imageUrl;
+  };
+
+  // Extract color when component mounts or image changes
+  useState(() => {
+    if (show.photo_url) {
+      extractPrimaryColor(show.photo_url);
+    }
+  });
 
   const handleSizeChange = (value: number[]) => {
     const sizeMap = [0.45, 0.6, 0.8];
@@ -339,7 +418,7 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
                   }}
                 >
                   {overlayConfig.showArtists && (
-                    <h2 className="text-2xl font-bold mb-2" style={{ color: getRatingAccent(show.rating) }}>
+                    <h2 className="text-2xl font-bold mb-2" style={{ color: primaryColor }}>
                       {headliners.map(a => a.name).join(", ")}
                     </h2>
                   )}
