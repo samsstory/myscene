@@ -362,7 +362,7 @@ const Feed = () => {
                 const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
                 return <button 
                   key={show.id} 
-                  className="hover:scale-110 transition-transform cursor-pointer"
+                  className="relative hover:scale-110 transition-transform cursor-pointer"
                   title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name} (${score.toFixed(1)}/10)`} 
                   onClick={() => {
                     setReviewShow(show);
@@ -370,11 +370,21 @@ const Feed = () => {
                   }}
                 >
                   {show.photo_url ? (
-                    <img 
-                      src={show.photo_url} 
-                      alt="Show" 
-                      className="w-8 h-8 rounded object-cover shadow-lg"
-                    />
+                    <div className="relative w-8 h-8">
+                      <img 
+                        src={show.photo_url} 
+                        alt="Show" 
+                        className="w-8 h-8 rounded object-cover shadow-lg"
+                      />
+                      <div className={`absolute inset-0 flex items-center justify-center text-[10px] font-bold bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}
+                        style={{
+                          textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)',
+                          WebkitTextStroke: '0.5px rgba(0,0,0,0.5)'
+                        }}
+                      >
+                        {score.toFixed(1)}
+                      </div>
+                    </div>
                   ) : (
                     <div className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold bg-gradient-to-r ${getScoreGradient(score)} text-white shadow-lg`}>
                       {score.toFixed(1)}
