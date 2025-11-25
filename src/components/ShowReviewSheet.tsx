@@ -74,7 +74,7 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
 
   const hasDetailedRatings = show.artistPerformance || show.sound || show.lighting || show.crowd || show.venueVibe;
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, retryCount = 0) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -85,7 +85,7 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
       return;
     }
 
-    // Validate file size (10MB)
+    // Validate file size (10MB initial limit)
     if (file.size > 10 * 1024 * 1024) {
       toast({ title: "File too large", description: "Please upload an image smaller than 10MB", variant: "destructive" });
       return;
@@ -93,6 +93,9 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
 
     setUploading(true);
     try {
+      // Compress and resize image
+      const compressedFile = await compressImage(file);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -102,7 +105,7 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('show-photos')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, compressedFile, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -123,10 +126,91 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit }: ShowReview
       toast({ title: "Photo uploaded", description: "Your show photo has been saved" });
     } catch (error) {
       console.error('Photo upload error:', error);
-      toast({ title: "Upload failed", description: "Failed to upload photo", variant: "destructive" });
+      
+      // Retry logic (max 3 attempts)
+      if (retryCount < 2) {
+        toast({ 
+          title: "Upload failed, retrying...", 
+          description: `Attempt ${retryCount + 2} of 3`,
+        });
+        setTimeout(() => handlePhotoUpload(e, retryCount + 1), 1000);
+      } else {
+        toast({ 
+          title: "Upload failed", 
+          description: "Failed to upload photo after 3 attempts. Please try again later.", 
+          variant: "destructive" 
+        });
+      }
     } finally {
       setUploading(false);
     }
+  };
+
+  // Image compression and resizing utility
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas not supported'));
+            return;
+          }
+
+          // Calculate new dimensions (max 2000px width)
+          let width = img.width;
+          let height = img.height;
+          const maxWidth = 2000;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Compression failed'));
+                return;
+              }
+              
+              // Check if compressed size is under 2MB
+              if (blob.size > 2 * 1024 * 1024) {
+                // Further compress with lower quality
+                canvas.toBlob(
+                  (smallerBlob) => {
+                    if (!smallerBlob) {
+                      reject(new Error('Compression failed'));
+                      return;
+                    }
+                    resolve(new File([smallerBlob], file.name, { type: 'image/jpeg' }));
+                  },
+                  'image/jpeg',
+                  0.7
+                );
+              } else {
+                resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+    });
   };
 
   const handleRemovePhoto = async () => {
