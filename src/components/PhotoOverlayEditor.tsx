@@ -299,8 +299,28 @@ export const PhotoOverlayEditor = ({ show, onClose }: PhotoOverlayEditorProps) =
         ].filter(r => r.value !== undefined && r.value !== null);
 
         ctx.font = `${24 * overlaySize * scaleX}px system-ui`;
+        const barWidth = overlayWidth - (padding * 3);
+        const barHeight = 6 * scaleY;
+        const labelWidth = 150 * scaleX;
+        
         detailedRatings.forEach(rating => {
-          ctx.fillText(`${rating.label} ${"█".repeat(rating.value!)}`, overlayX + padding, yPos);
+          // Draw label
+          ctx.fillStyle = "white";
+          ctx.fillText(rating.label, overlayX + padding, yPos);
+          
+          // Draw background bar
+          const barX = overlayX + padding + labelWidth;
+          const barY = yPos - (barHeight / 2) - (12 * scaleY);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+          ctx.roundRect(barX, barY, barWidth - labelWidth, barHeight, barHeight / 2);
+          ctx.fill();
+          
+          // Draw filled portion
+          const fillWidth = ((rating.value! / 5) * (barWidth - labelWidth));
+          ctx.fillStyle = "rgba(255, 255, 255, 1)";
+          ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
+          ctx.fill();
+          
           yPos += lineHeight * 0.8;
         });
         yPos += lineHeight * 0.5;
