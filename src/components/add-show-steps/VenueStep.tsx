@@ -183,16 +183,9 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
     setCitySearchTerm("");
   };
 
-  // Filter suggestions by location if filter is set - use smarter matching
-  const filteredSuggestions = locationFilter
-    ? venueSuggestions.filter(s => {
-        const location = s.location.toLowerCase();
-        const filter = locationFilter.toLowerCase();
-        // Check if location contains any part of the filter (city, state, etc.)
-        const filterParts = filter.split(',').map(p => p.trim());
-        return filterParts.some(part => location.includes(part));
-      })
-    : venueSuggestions;
+  // Don't filter on frontend - the edge function already handles location biasing
+  // Filtering here causes issues (e.g., "Brooklyn, NY" doesn't contain "New York")
+  const filteredSuggestions = venueSuggestions;
 
   const getPlaceholder = () => {
     switch (showType) {
