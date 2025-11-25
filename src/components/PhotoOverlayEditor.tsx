@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Download, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
@@ -29,10 +30,18 @@ interface Show {
   photo_url?: string;
 }
 
+interface ShowRanking {
+  show_id: string;
+  elo_score: number;
+  comparisons_count: number;
+}
+
 interface PhotoOverlayEditorProps {
   show: Show;
   onClose: () => void;
   aspectRatio: '9:16' | '4:5' | '1:1';
+  allShows?: Show[];
+  rankings?: ShowRanking[];
 }
 
 const getRatingGradient = (rating: number): string => {
@@ -51,7 +60,7 @@ const getRatingAccent = (rating: number): string => {
   return "hsl(0, 84%, 60%)"; // Red
 };
 
-export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayEditorProps) => {
+export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], rankings = [] }: PhotoOverlayEditorProps) => {
   const [overlayConfig, setOverlayConfig] = useState({
     showArtists: true,
     showVenue: true,
@@ -60,12 +69,83 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayE
     showDetailedRatings: true,
     showNotes: true,
     showBackground: true,
+    showRank: false,
   });
+  
+  const [rankingMethod, setRankingMethod] = useState<"score" | "elo">("score");
+  const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
 
   const [overlaySize, setOverlaySize] = useState<number>(0.35); // 0.25, 0.35, 0.45
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(45, 93%, 58%)");
+  
+  // Helper: Filter shows by time period
+  const filterShowsByTime = (shows: Show[], timeFilter: string) => {
+    if (timeFilter === "all-time") return shows;
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    return shows.filter(s => {
+      const showDate = new Date(s.show_date);
+      
+      if (timeFilter === "this-year") {
+        return showDate.getFullYear() === currentYear;
+      } else if (timeFilter === "this-month") {
+        return showDate.getFullYear() === currentYear && 
+               showDate.getMonth() === currentMonth;
+      }
+      return true;
+    });
+  };
+
+  // Calculate rank data
+  const calculateRankData = () => {
+    const filteredShows = filterShowsByTime(allShows, rankingTimeFilter);
+    
+    if (filteredShows.length === 0) {
+      return { position: 0, total: 0, percentile: 0 };
+    }
+
+    if (rankingMethod === "score") {
+      // Sort by calculated score (descending)
+      const sorted = [...filteredShows].sort((a, b) => {
+        const scoreA = calculateShowScore(a.rating, a.artist_performance, a.sound, a.lighting, a.crowd, a.venue_vibe);
+        const scoreB = calculateShowScore(b.rating, b.artist_performance, b.sound, b.lighting, b.crowd, b.venue_vibe);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return new Date(b.show_date).getTime() - new Date(a.show_date).getTime();
+      });
+      
+      const position = sorted.findIndex(s => s.id === show.id) + 1;
+      const total = sorted.length;
+      const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
+      
+      return { position, total, percentile };
+    } else {
+      // ELO-based ranking
+      const filteredShowIds = new Set(filteredShows.map(s => s.id));
+      const filteredRankings = rankings.filter(r => filteredShowIds.has(r.show_id));
+      
+      const sorted = [...filteredRankings].sort((a, b) => b.elo_score - a.elo_score);
+      
+      const position = sorted.findIndex(r => r.show_id === show.id) + 1;
+      const total = sorted.length;
+      const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
+      
+      return { position, total, percentile };
+    }
+  };
+
+  const rankData = calculateRankData();
+  
+  const getRankGradient = (percentile: number) => {
+    if (percentile >= 90) return "from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)]";
+    if (percentile >= 75) return "from-[hsl(189,94%,55%)] to-[hsl(260,80%,60%)]";
+    if (percentile >= 50) return "from-[hsl(260,80%,60%)] to-[hsl(330,85%,65%)]";
+    return "from-[hsl(330,85%,65%)] to-[hsl(0,84%,60%)]";
+  };
 
   // Extract primary color from image
   const extractPrimaryColor = (imageUrl: string) => {
@@ -370,6 +450,28 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayE
         if (lineCount < 3 && line !== "") {
           ctx.fillText(line, overlayX + padding, yPos);
         }
+        yPos += 12 * scaleY;
+      }
+      
+      // Rank display
+      if (overlayConfig.showRank && rankData.position > 0) {
+        ctx.font = `600 ${13 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        
+        // Create gradient for rank text
+        const rankGradientColors = (() => {
+          if (rankData.percentile >= 90) return ["hsl(45, 93%, 58%)", "hsl(189, 94%, 55%)"];
+          if (rankData.percentile >= 75) return ["hsl(189, 94%, 55%)", "hsl(260, 80%, 60%)"];
+          if (rankData.percentile >= 50) return ["hsl(260, 80%, 60%)", "hsl(330, 85%, 65%)"];
+          return ["hsl(330, 85%, 65%)", "hsl(0, 84%, 60%)"];
+        })();
+        
+        const gradient = ctx.createLinearGradient(overlayX + padding, yPos, overlayX + overlayWidth - padding, yPos);
+        gradient.addColorStop(0, rankGradientColors[0]);
+        gradient.addColorStop(1, rankGradientColors[1]);
+        
+        ctx.fillStyle = gradient;
+        const rankText = `#${rankData.position} of ${rankData.total} shows · Top ${Math.round(rankData.percentile)}%`;
+        ctx.fillText(rankText, overlayX + padding, yPos);
       }
 
       // Scene logo
@@ -579,9 +681,17 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayE
                   )}
 
                   {overlayConfig.showNotes && show.notes && (
-                    <p className="text-sm italic opacity-90 line-clamp-3">
+                    <p className="text-sm italic opacity-90 line-clamp-3 mb-2">
                       "{show.notes}"
                     </p>
+                  )}
+                  
+                  {overlayConfig.showRank && rankData.position > 0 && (
+                    <div 
+                      className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent mt-2`}
+                    >
+                      #{rankData.position} of {rankData.total} shows · Top {Math.round(rankData.percentile)}%
+                    </div>
                   )}
 
                   {/* Scene logo at bottom */}
@@ -680,7 +790,50 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio }: PhotoOverlayE
                 }
               />
             </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-rank">Show Rank</Label>
+              <Switch
+                id="show-rank"
+                checked={overlayConfig.showRank}
+                onCheckedChange={(checked) => 
+                  setOverlayConfig({ ...overlayConfig, showRank: checked })
+                }
+              />
+            </div>
           </div>
+          
+          {/* Rank Options */}
+          {overlayConfig.showRank && (
+            <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+              <div className="space-y-2">
+                <Label className="text-sm">Ranking Method</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={rankingMethod}
+                  onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="score" className="text-xs">By Score</ToggleGroupItem>
+                  <ToggleGroupItem value="elo" className="text-xs">Head to Head</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Time Period</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={rankingTimeFilter}
+                  onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
+                  className="justify-start flex-wrap"
+                >
+                  <ToggleGroupItem value="all-time" className="text-xs">All Time</ToggleGroupItem>
+                  <ToggleGroupItem value="this-year" className="text-xs">This Year</ToggleGroupItem>
+                  <ToggleGroupItem value="this-month" className="text-xs">This Month</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
+          )}
 
           {/* Size Slider */}
           <div className="space-y-2">
