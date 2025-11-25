@@ -40,7 +40,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<{ venueName: string; location: string; count: number; shows: Show[] } | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
-  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
+  const [hoveredCity, setHoveredCity] = useState<{ name: string; count: number } | null>(null);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
 
   // Fetch user's home city coordinates
@@ -361,11 +361,15 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
-      // Add hover handler to show city name
+      // Add hover handler to show city name and count
       map.current.on('mouseenter', 'shows-points', (e) => {
         if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features.length > 0) {
-          setHoveredCity(e.features[0].properties?.city);
+          const feature = e.features[0];
+          setHoveredCity({
+            name: feature.properties?.city,
+            count: feature.properties?.count
+          });
         }
       });
       map.current.on('mouseleave', 'shows-points', () => {
@@ -465,7 +469,10 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       {/* City hover tooltip */}
       {hoveredCity && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-4 py-2 shadow-lg z-10 pointer-events-none">
-          <p className="text-sm font-medium">{hoveredCity}</p>
+          <p className="font-medium">{hoveredCity.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {hoveredCity.count} show{hoveredCity.count !== 1 ? 's' : ''}
+          </p>
         </div>
       )}
       
