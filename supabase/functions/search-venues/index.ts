@@ -262,13 +262,7 @@ serve(async (req) => {
           if (data.status === 'OK' && data.results && Array.isArray(data.results)) {
             console.log(`Google Places returned ${data.results.length} results`);
             
-            // Filter results to music/event venues only
-            const relevantTypes = new Set([
-              'night_club', 'bar', 'restaurant', 'tourist_attraction',
-              'point_of_interest', 'establishment', 'casino', 'stadium',
-              'park', 'museum', 'art_gallery', 'performing_arts_theater'
-            ]);
-            
+            // Filter out clearly irrelevant results only
             const excludeKeywords = [
               'floral', 'flower', 'wholesale', 'retail', 'shop', 'store',
               'salon', 'spa', 'hotel', 'motel', 'apartment', 'real estate',
@@ -277,16 +271,13 @@ serve(async (req) => {
             ];
             
             googlePlaces = data.results.filter((place: any) => {
-              // Check if it has relevant types
-              const hasRelevantType = place.types?.some((type: string) => relevantTypes.has(type));
-              
-              // Check if name or types contain excluded keywords
+              // Only exclude if name or types contain excluded keywords
               const nameAndTypes = `${place.name} ${place.types?.join(' ')}`.toLowerCase();
               const hasExcludedKeyword = excludeKeywords.some(keyword => 
                 nameAndTypes.includes(keyword)
               );
               
-              return hasRelevantType && !hasExcludedKeyword;
+              return !hasExcludedKeyword;
             }).slice(0, 20);
             
             console.log(`Filtered to ${googlePlaces.length} relevant venues`);
