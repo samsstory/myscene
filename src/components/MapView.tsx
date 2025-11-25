@@ -259,8 +259,6 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
           1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
         ],
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#fff',
         'circle-opacity': 0.85
       }
     });
@@ -365,8 +363,6 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
           1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
         ],
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#fff',
         'circle-opacity': 0.85
       }
     });
@@ -472,8 +468,6 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
           0.5, 'hsl(20, 90%, 60%)',     // Warm coral for medium
           1, 'hsl(189, 94%, 65%)'       // Hot electric blue for high
         ],
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#fff',
         'circle-opacity': 0.85
       }
     });
