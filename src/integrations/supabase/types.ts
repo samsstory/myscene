@@ -100,6 +100,55 @@ export type Database = {
           },
         ]
       }
+      show_comparisons: {
+        Row: {
+          created_at: string
+          id: string
+          show1_id: string
+          show2_id: string
+          user_id: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          show1_id: string
+          show2_id: string
+          user_id: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          show1_id?: string
+          show2_id?: string
+          user_id?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_comparisons_show1_id_fkey"
+            columns: ["show1_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_comparisons_show2_id_fkey"
+            columns: ["show2_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_comparisons_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shows: {
         Row: {
           artist_performance: number | null
