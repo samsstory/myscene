@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Music, MapPin, TrendingUp, Activity, Trophy, Sparkles, Calendar, Mic } from "lucide-react";
+import { Share2, Music, MapPin, TrendingUp, Activity, Trophy, Sparkles, Calendar, Mic, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -74,15 +74,15 @@ const StatCard = ({
               )}
             </div>
             <Button 
-              variant="default" 
-              size="sm" 
-              className="w-full"
+              size="icon"
+              variant="ghost" 
+              className="absolute bottom-2 right-2 h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation();
+                handleShare();
               }}
             >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+              <Send className="h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
