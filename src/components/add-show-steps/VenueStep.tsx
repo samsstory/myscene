@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2, X, Building2, Music2, Sparkles } from "lucide-react";
+import { MapPin, Loader2, X, Building2, Music2, Sparkles, Home, Globe, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -37,6 +37,13 @@ interface CitySuggestion {
   fullLocation: string;
 }
 
+interface AddressSuggestion {
+  name: string;
+  fullAddress: string;
+  type: string;
+  coordinates: [number, number];
+}
+
 const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
@@ -50,6 +57,9 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
   const [venueAddress, setVenueAddress] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [isSearchingAddresses, setIsSearchingAddresses] = useState(false);
+  const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
 
   // Debounced venue search
   useEffect(() => {
@@ -122,6 +132,46 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
     return () => clearTimeout(timer);
   }, [citySearchTerm]);
 
+  // Address autocomplete search
+  useEffect(() => {
+    const searchAddresses = async () => {
+      if (venueAddress.trim().length < 2) {
+        setAddressSuggestions([]);
+        return;
+      }
+
+      setIsSearchingAddresses(true);
+
+      try {
+        const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(venueAddress.trim())}.json?access_token=${MAPBOX_TOKEN}&types=address,poi,place,region,country&limit=8`
+        );
+        const data = await response.json();
+
+        if (data.features?.length > 0) {
+          const suggestions = data.features.map((feature: any) => ({
+            name: feature.text,
+            fullAddress: feature.place_name,
+            type: feature.place_type[0],
+            coordinates: feature.center,
+          }));
+          setAddressSuggestions(suggestions);
+        } else {
+          setAddressSuggestions([]);
+        }
+      } catch (error) {
+        console.error('Error searching addresses:', error);
+        setAddressSuggestions([]);
+      } finally {
+        setIsSearchingAddresses(false);
+      }
+    };
+
+    const timer = setTimeout(searchAddresses, 300);
+    return () => clearTimeout(timer);
+  }, [venueAddress]);
+
   const handleVenueSelect = (suggestion: VenueSuggestion) => {
     onSelect(suggestion.name, suggestion.location, suggestion.id || null);
     setHasChanges(true);
@@ -131,8 +181,16 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
     if (searchTerm.trim()) {
       setPendingVenueName(searchTerm.trim());
       setVenueAddress("");
+      setAddressSuggestions([]);
+      setSelectedCoordinates(null);
       setShowAddressDialog(true);
     }
+  };
+
+  const handleAddressSelect = (suggestion: AddressSuggestion) => {
+    setVenueAddress(suggestion.fullAddress);
+    setAddressSuggestions([]);
+    setSelectedCoordinates(suggestion.coordinates);
   };
 
   const handleAddressSubmit = async (skipAddress: boolean = false) => {
@@ -150,7 +208,15 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       return;
     }
 
-    // Geocode the provided address
+    // If coordinates were pre-selected from dropdown, use them directly
+    if (selectedCoordinates) {
+      onSelect(pendingVenueName, venueAddress, null, selectedCoordinates[1], selectedCoordinates[0]);
+      setHasChanges(true);
+      setShowAddressDialog(false);
+      return;
+    }
+
+    // Fallback to geocoding if user typed custom address
     await geocodeAndSelect(venueAddress, pendingVenueName, venueAddress);
     setShowAddressDialog(false);
   };
@@ -213,6 +279,23 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
         return 'New show';
       default:
         return 'New venue';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'address':
+        return <Home className="h-4 w-4 text-blue-500" />;
+      case 'poi':
+        return <MapPin className="h-4 w-4 text-orange-500" />;
+      case 'place':
+        return <Building2 className="h-4 w-4 text-green-500" />;
+      case 'region':
+        return <Map className="h-4 w-4 text-purple-500" />;
+      case 'country':
+        return <Globe className="h-4 w-4 text-red-500" />;
+      default:
+        return <MapPin className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -418,18 +501,47 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
               <p className="text-sm text-muted-foreground mb-3">
                 Adding an address helps place "{pendingVenueName}" accurately on the map.
               </p>
-              <Input
-                type="text"
-                placeholder="Enter venue address..."
-                value={venueAddress}
-                onChange={(e) => setVenueAddress(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && venueAddress.trim()) {
-                    handleAddressSubmit(false);
-                  }
-                }}
-                autoFocus
-              />
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Enter venue address..."
+                  value={venueAddress}
+                  onChange={(e) => setVenueAddress(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && venueAddress.trim() && addressSuggestions.length === 0) {
+                      handleAddressSubmit(false);
+                    }
+                  }}
+                  autoFocus
+                />
+                {isSearchingAddresses && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+
+              {/* Address Suggestions Dropdown */}
+              {addressSuggestions.length > 0 && (
+                <div className="max-h-[250px] overflow-y-auto border rounded-lg mt-2 bg-background z-50">
+                  {addressSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleAddressSelect(suggestion)}
+                      className="w-full text-left p-3 hover:bg-accent border-b last:border-b-0 transition-colors"
+                    >
+                      <div className="flex items-start gap-2">
+                        {getTypeIcon(suggestion.type)}
+                        <div className="flex-1">
+                          <div className="font-medium">{suggestion.name}</div>
+                          <div className="text-sm text-muted-foreground">{suggestion.fullAddress}</div>
+                          <span className="text-xs text-primary capitalize mt-1 inline-block">
+                            {suggestion.type === 'poi' ? 'Point of Interest' : suggestion.type}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
