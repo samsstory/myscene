@@ -214,6 +214,317 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     });
   }, [homeCoordinates]);
 
+  // Helper functions for adding layers (moved outside useEffect for reusability)
+  const removeLayers = () => {
+    if (!map.current) return;
+    
+    const layersToRemove = ['shows-points', 'shows-heat', 'venue-points'];
+    layersToRemove.forEach(layer => {
+      if (map.current?.getLayer(layer)) {
+        map.current.removeLayer(layer);
+      }
+    });
+
+    if (map.current.getSource('shows')) {
+      map.current.removeSource('shows');
+    }
+  };
+
+  const addWorldLayer = (geojson: any) => {
+    if (!map.current) return;
+
+    // Remove all existing layers first
+    removeLayers();
+
+    map.current.addSource('shows', {
+      type: 'geojson',
+      data: geojson
+    });
+
+    // Only add country-level circles - no city data
+    map.current.addLayer({
+      id: 'shows-points',
+      type: 'circle',
+      source: 'shows',
+      filter: ['==', ['get', 'type'], 'country'],  // Only show country markers
+      paint: {
+        'circle-radius': 25,
+        'circle-color': 'hsl(189, 94%, 55%)',
+        'circle-stroke-width': 3,
+        'circle-stroke-color': '#fff',
+        'circle-opacity': 0.9
+      }
+    });
+
+    map.current.on('click', 'shows-points', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+      const country = feature.properties?.name;
+      const coords = (feature.geometry as any).coordinates;
+      
+      setCurrentCountry(country);
+      map.current?.flyTo({
+        center: coords,
+        zoom: 4.5,
+        duration: 1500
+      });
+
+      setTimeout(() => {
+        const countryData = (window as any).showsData?.countryMap.get(country);
+        if (countryData) addCountryLayer(country, countryData);
+      }, 1600);
+    });
+
+    map.current.on('mouseenter', 'shows-points', (e) => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      if (e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        // Only show hover info for country-level features at world view
+        if (feature.properties?.type === 'country') {
+          setHoverInfo({
+            name: feature.properties?.name,
+            cities: feature.properties?.cities,
+            shows: feature.properties?.shows
+          });
+        }
+      }
+    });
+
+    map.current.on('mouseleave', 'shows-points', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+      setHoverInfo(null);
+    });
+  };
+
+  const addCountryLayer = (country: string, countryData: any) => {
+    if (!map.current) return;
+
+    // Remove all existing layers
+    removeLayers();
+
+    const cityFeatures = Array.from(countryData.cities.entries()).map(([city, data]: [string, any]) => {
+      return {
+        type: 'Feature',
+        properties: {
+          name: city,
+          venues: data.venues.size,
+          shows: data.shows.length,
+          type: 'city'
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: data.coords
+        }
+      };
+    });
+
+    const cityGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
+      type: 'FeatureCollection',
+      features: cityFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
+    };
+
+    map.current.addSource('shows', {
+      type: 'geojson',
+      data: cityGeojson
+    });
+
+    // Only show city-level circles
+    map.current.addLayer({
+      id: 'shows-points',
+      type: 'circle',
+      source: 'shows',
+      filter: ['==', ['get', 'type'], 'city'],  // Only show city markers
+      paint: {
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          3, 20,
+          6, 35,
+          8, 25
+        ],
+        'circle-color': 'hsl(189, 94%, 55%)',
+        'circle-stroke-width': 3,
+        'circle-stroke-color': '#fff',
+        'circle-opacity': 0.9
+      }
+    });
+
+    map.current.on('click', 'shows-points', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+      const city = feature.properties?.name;
+      const coords = (feature.geometry as any).coordinates;
+      
+      setCurrentCity(city);
+      map.current?.flyTo({
+        center: coords,
+        zoom: 12,
+        duration: 1500
+      });
+
+      setTimeout(() => {
+        const cityData = countryData.cities.get(city);
+        if (cityData) addCityLayer(city, cityData);
+      }, 1600);
+    });
+
+    map.current.on('mouseenter', 'shows-points', (e) => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      if (e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        // Only show hover info for city-level features at country view
+        if (feature.properties?.type === 'city') {
+          setHoverInfo({
+            name: expandStateName(feature.properties?.name),
+            venues: feature.properties?.venues,
+            shows: feature.properties?.shows
+          });
+        }
+      }
+    });
+
+    map.current.on('mouseleave', 'shows-points', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+      setHoverInfo(null);
+    });
+  };
+
+  const addCityLayer = (city: string, cityData: any) => {
+    if (!map.current) return;
+
+    // Remove all existing layers
+    removeLayers();
+
+    const venueFeatures = Array.from(cityData.venues.entries()).map(([venueName, venueShows]: [string, Show[]]) => {
+      const firstShow = venueShows[0];
+      return {
+        type: 'Feature',
+        properties: {
+          venueName,
+          location: city,
+          shows: venueShows.length,
+          type: 'venue'
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [firstShow.longitude!, firstShow.latitude!]
+        }
+      };
+    });
+
+    const venueGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
+      type: 'FeatureCollection',
+      features: venueFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
+    };
+
+    map.current.addSource('shows', {
+      type: 'geojson',
+      data: venueGeojson
+    });
+
+    // Only show venue-level circles
+    map.current.addLayer({
+      id: 'shows-points',
+      type: 'circle',
+      source: 'shows',
+      filter: ['==', ['get', 'type'], 'venue'],  // Only show venue markers
+      paint: {
+        'circle-radius': 15,
+        'circle-color': 'hsl(189, 94%, 55%)',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#fff',
+        'circle-opacity': 0.9
+      }
+    });
+
+    map.current.on('click', 'shows-points', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+      const venueName = feature.properties?.venueName;
+      const location = feature.properties?.location;
+      const count = feature.properties?.shows;
+      
+      const venueShows = shows.filter(s => s.venue.name === venueName && s.venue.location === location);
+      
+      setSelectedVenue({
+        venueName,
+        location,
+        count,
+        shows: venueShows
+      });
+    });
+
+    map.current.on('mouseenter', 'shows-points', (e) => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      if (e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        // Only show hover info for venue-level features at city view
+        if (feature.properties?.type === 'venue') {
+          setHoverInfo({
+            name: feature.properties?.venueName,
+            shows: feature.properties?.shows
+          });
+        }
+      }
+    });
+
+    map.current.on('mouseleave', 'shows-points', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+      setHoverInfo(null);
+    });
+  };
+
+  // Re-render layers when view level changes (from manual zoom)
+  useEffect(() => {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+    
+    const showsData = (window as any).showsData;
+    if (!showsData) return;
+
+    // Re-render the appropriate layer based on current view
+    if (currentView === 'world') {
+      // Build country-level GeoJSON
+      const countryFeatures = Array.from(showsData.countryMap.entries()).map(([country, data]: [string, any]) => {
+        return {
+          type: 'Feature',
+          properties: { 
+            name: country,
+            cities: data.cities.size,
+            shows: data.shows.length,
+            type: 'country'
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: data.coords
+          }
+        };
+      });
+
+      const countryGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
+        type: 'FeatureCollection',
+        features: countryFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
+      };
+
+      addWorldLayer(countryGeojson);
+    } else if (currentView === 'country' && currentCountry) {
+      // Re-render country layer with city dots
+      const countryData = showsData.countryMap.get(currentCountry);
+      if (countryData) {
+        addCountryLayer(currentCountry, countryData);
+      }
+    } else if (currentView === 'city' && currentCountry && currentCity) {
+      // Re-render city layer with venue dots
+      const countryData = showsData.countryMap.get(currentCountry);
+      if (countryData) {
+        const cityData = countryData.cities.get(currentCity);
+        if (cityData) {
+          addCityLayer(currentCity, cityData);
+        }
+      }
+    }
+  }, [currentView]);
+
   // Update heat map when shows change
   useEffect(() => {
     if (!map.current) return;
@@ -365,270 +676,6 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         map.current?.fitBounds(bounds, { padding: 80, maxZoom: 2.5 });
       }
     };
-
-    // World view: Show country-level dots ONLY
-    const addWorldLayer = (geojson: any) => {
-      if (!map.current) return;
-
-      // Remove all existing layers first
-      removeLayers();
-
-      map.current.addSource('shows', {
-        type: 'geojson',
-        data: geojson
-      });
-
-      // Only add country-level circles - no city data
-      map.current.addLayer({
-        id: 'shows-points',
-        type: 'circle',
-        source: 'shows',
-        filter: ['==', ['get', 'type'], 'country'],  // Only show country markers
-        paint: {
-          'circle-radius': 25,
-          'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#fff',
-          'circle-opacity': 0.9
-        }
-      });
-
-      map.current.on('click', 'shows-points', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const feature = e.features[0];
-        const country = feature.properties?.name;
-        const coords = (feature.geometry as any).coordinates;
-        
-        setCurrentCountry(country);
-        map.current?.flyTo({
-          center: coords,
-          zoom: 4.5,
-          duration: 1500
-        });
-
-        setTimeout(() => {
-          const countryData = (window as any).showsData?.countryMap.get(country);
-          if (countryData) addCountryLayer(country, countryData);
-        }, 1600);
-      });
-
-      map.current.on('mouseenter', 'shows-points', (e) => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          // Only show hover info for country-level features at world view
-          if (feature.properties?.type === 'country') {
-            setHoverInfo({
-              name: feature.properties?.name,
-              cities: feature.properties?.cities,
-              shows: feature.properties?.shows
-            });
-          }
-        }
-      });
-
-      map.current.on('mouseleave', 'shows-points', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
-        setHoverInfo(null);
-      });
-    };
-
-    // Country view: Show city-level dots ONLY
-    const addCountryLayer = (country: string, countryData: any) => {
-      if (!map.current) return;
-
-      // Remove all existing layers
-      removeLayers();
-
-      const cityFeatures = Array.from(countryData.cities.entries()).map(([city, data]: [string, any]) => {
-        return {
-          type: 'Feature',
-          properties: {
-            name: city,
-            venues: data.venues.size,
-            shows: data.shows.length,
-            type: 'city'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: data.coords
-          }
-        };
-      });
-
-      const cityGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
-        type: 'FeatureCollection',
-        features: cityFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
-      };
-
-      map.current.addSource('shows', {
-        type: 'geojson',
-        data: cityGeojson
-      });
-
-      // Only show city-level circles
-      map.current.addLayer({
-        id: 'shows-points',
-        type: 'circle',
-        source: 'shows',
-        filter: ['==', ['get', 'type'], 'city'],  // Only show city markers
-        paint: {
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            3, 20,
-            6, 35,
-            8, 25
-          ],
-          'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#fff',
-          'circle-opacity': 0.9
-        }
-      });
-
-      map.current.on('click', 'shows-points', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const feature = e.features[0];
-        const city = feature.properties?.name;
-        const coords = (feature.geometry as any).coordinates;
-        
-        setCurrentCity(city);
-        map.current?.flyTo({
-          center: coords,
-          zoom: 12,
-          duration: 1500
-        });
-
-        setTimeout(() => {
-          const cityData = countryData.cities.get(city);
-          if (cityData) addCityLayer(city, cityData);
-        }, 1600);
-      });
-
-      map.current.on('mouseenter', 'shows-points', (e) => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          // Only show hover info for city-level features at country view
-          if (feature.properties?.type === 'city') {
-            setHoverInfo({
-              name: expandStateName(feature.properties?.name),
-              venues: feature.properties?.venues,
-              shows: feature.properties?.shows
-            });
-          }
-        }
-      });
-
-      map.current.on('mouseleave', 'shows-points', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
-        setHoverInfo(null);
-      });
-    };
-
-    // City view: Show venue-level dots ONLY
-    const addCityLayer = (city: string, cityData: any) => {
-      if (!map.current) return;
-
-      // Remove all existing layers
-      removeLayers();
-
-      const venueFeatures = Array.from(cityData.venues.entries()).map(([venueName, venueShows]: [string, Show[]]) => {
-        const firstShow = venueShows[0];
-        return {
-          type: 'Feature',
-          properties: {
-            venueName,
-            location: city,
-            shows: venueShows.length,
-            type: 'venue'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [firstShow.longitude!, firstShow.latitude!]
-          }
-        };
-      });
-
-      const venueGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
-        type: 'FeatureCollection',
-        features: venueFeatures as GeoJSON.Feature<GeoJSON.Geometry>[]
-      };
-
-      map.current.addSource('shows', {
-        type: 'geojson',
-        data: venueGeojson
-      });
-
-      // Only show venue-level circles
-      map.current.addLayer({
-        id: 'shows-points',
-        type: 'circle',
-        source: 'shows',
-        filter: ['==', ['get', 'type'], 'venue'],  // Only show venue markers
-        paint: {
-          'circle-radius': 15,
-          'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff',
-          'circle-opacity': 0.9
-        }
-      });
-
-      map.current.on('click', 'shows-points', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const feature = e.features[0];
-        const venueName = feature.properties?.venueName;
-        const location = feature.properties?.location;
-        const count = feature.properties?.shows;
-        
-        const venueShows = shows.filter(s => s.venue.name === venueName && s.venue.location === location);
-        
-        setSelectedVenue({
-          venueName,
-          location,
-          count,
-          shows: venueShows
-        });
-      });
-
-      map.current.on('mouseenter', 'shows-points', (e) => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          // Only show hover info for venue-level features at city view
-          if (feature.properties?.type === 'venue') {
-            setHoverInfo({
-              name: feature.properties?.venueName,
-              shows: feature.properties?.shows
-            });
-          }
-        }
-      });
-
-      map.current.on('mouseleave', 'shows-points', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
-        setHoverInfo(null);
-      });
-    };
-
-    const removeLayers = () => {
-      if (!map.current) return;
-      
-      const layersToRemove = ['shows-points', 'shows-heat', 'venue-points'];
-      layersToRemove.forEach(layer => {
-        if (map.current?.getLayer(layer)) {
-          map.current.removeLayer(layer);
-        }
-      });
-
-      if (map.current.getSource('shows')) {
-        map.current.removeSource('shows');
-      }
-    };
-
 
     processShows();
   }, [shows]);
