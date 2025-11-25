@@ -149,6 +149,44 @@ export type Database = {
           },
         ]
       }
+      show_rankings: {
+        Row: {
+          comparisons_count: number
+          created_at: string
+          elo_score: number
+          id: string
+          show_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comparisons_count?: number
+          created_at?: string
+          elo_score?: number
+          id?: string
+          show_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comparisons_count?: number
+          created_at?: string
+          elo_score?: number
+          id?: string
+          show_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_rankings_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shows: {
         Row: {
           artist_performance: number | null

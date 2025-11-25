@@ -20,17 +20,25 @@ interface Show {
   artists: Array<{ artist_name: string; is_headliner: boolean }>;
 }
 
-interface Comparison {
-  show1_id: string;
-  show2_id: string;
+interface ShowRanking {
+  id: string;
+  show_id: string;
+  elo_score: number;
+  comparisons_count: number;
 }
 
 export default function Rank() {
   const [shows, setShows] = useState<Show[]>([]);
+  const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [showPair, setShowPair] = useState<[Show, Show] | null>(null);
   const [loading, setLoading] = useState(true);
   const [comparing, setComparing] = useState(false);
   const [comparedPairs, setComparedPairs] = useState<Set<string>>(new Set());
+  const [totalComparisons, setTotalComparisons] = useState(0);
+
+  // ELO calculation constants
+  const K_BASE = 32; // Base K-factor
+  const K_MIN_COMPARISONS = 10; // Minimum comparisons before reducing K-factor
 
   useEffect(() => {
     fetchShows();
@@ -49,6 +57,43 @@ export default function Rank() {
 
       if (showsError) throw showsError;
 
+      // Fetch or initialize rankings for all shows
+      const { data: rankingsData, error: rankingsError } = await supabase
+        .from("show_rankings")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (rankingsError) throw rankingsError;
+
+      // Initialize rankings for shows that don't have them yet
+      const existingRankingIds = new Set(rankingsData?.map(r => r.show_id) || []);
+      const newShows = showsData?.filter(show => !existingRankingIds.has(show.id)) || [];
+      
+      if (newShows.length > 0) {
+        const { error: insertError } = await supabase
+          .from("show_rankings")
+          .insert(
+            newShows.map(show => ({
+              user_id: user.id,
+              show_id: show.id,
+              elo_score: 1200,
+              comparisons_count: 0
+            }))
+          );
+
+        if (insertError) throw insertError;
+
+        // Refetch rankings after insert
+        const { data: updatedRankings } = await supabase
+          .from("show_rankings")
+          .select("*")
+          .eq("user_id", user.id);
+
+        setRankings(updatedRankings || []);
+      } else {
+        setRankings(rankingsData || []);
+      }
+
       // Fetch existing comparisons
       const { data: comparisonsData, error: comparisonsError } = await supabase
         .from("show_comparisons")
@@ -64,6 +109,7 @@ export default function Rank() {
         comparedSet.add(`${id1}-${id2}`);
       });
       setComparedPairs(comparedSet);
+      setTotalComparisons(comparisonsData?.length || 0);
 
       if (!showsData || showsData.length < 2) {
         setLoading(false);
@@ -86,7 +132,16 @@ export default function Rank() {
       );
 
       setShows(showsWithArtists);
-      selectRandomPair(showsWithArtists, comparedSet);
+      
+      const updatedRankingsData = rankingsData?.length ? rankingsData : 
+        newShows.map(show => ({
+          id: '',
+          show_id: show.id,
+          elo_score: 1200,
+          comparisons_count: 0
+        }));
+      
+      selectSmartPair(showsWithArtists, updatedRankingsData || [], comparedSet, comparisonsData?.length || 0);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching shows:", error);
@@ -95,36 +150,103 @@ export default function Rank() {
     }
   };
 
-  const selectRandomPair = (showsList: Show[], comparedSet?: Set<string>) => {
-    if (showsList.length < 2) {
-      setShowPair(null);
-      return;
-    }
+  const calculateElo = (
+    winnerElo: number,
+    loserElo: number,
+    winnerComparisons: number,
+    loserComparisons: number
+  ) => {
+    // Dynamic K-factor: higher for shows with fewer comparisons
+    const winnerK = winnerComparisons < K_MIN_COMPARISONS 
+      ? K_BASE * (1 + (K_MIN_COMPARISONS - winnerComparisons) / K_MIN_COMPARISONS)
+      : K_BASE;
+    const loserK = loserComparisons < K_MIN_COMPARISONS
+      ? K_BASE * (1 + (K_MIN_COMPARISONS - loserComparisons) / K_MIN_COMPARISONS)
+      : K_BASE;
 
-    const pairsToUse = comparedSet || comparedPairs;
+    // Expected scores
+    const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+    const expectedLoser = 1 / (1 + Math.pow(10, (winnerElo - loserElo) / 400));
 
-    // Find all uncompared pairs
-    const uncomparedPairs: [Show, Show][] = [];
-    for (let i = 0; i < showsList.length; i++) {
-      for (let j = i + 1; j < showsList.length; j++) {
-        const [id1, id2] = [showsList[i].id, showsList[j].id].sort();
-        const pairKey = `${id1}-${id2}`;
-        if (!pairsToUse.has(pairKey)) {
-          uncomparedPairs.push([showsList[i], showsList[j]]);
-        }
+    // New ratings
+    const newWinnerElo = Math.round(winnerElo + winnerK * (1 - expectedWinner));
+    const newLoserElo = Math.round(loserElo + loserK * (0 - expectedLoser));
+
+    return { newWinnerElo, newLoserElo };
+  };
+
+  const selectSmartPair = (
+    allShows: Show[], 
+    allRankings: ShowRanking[], 
+    pairsSet: Set<string>,
+    currentTotalComparisons: number
+  ) => {
+    // Minimum comparisons threshold - stop after user has made enough comparisons
+    const MIN_TOTAL_COMPARISONS = Math.max(15, allShows.length * 2);
+    
+    if (currentTotalComparisons >= MIN_TOTAL_COMPARISONS) {
+      const avgComparisons = currentTotalComparisons / allShows.length;
+      if (avgComparisons >= 3) {
+        setShowPair(null);
+        toast.success("That's all for now! Your rankings are up to date");
+        return;
       }
     }
 
-    if (uncomparedPairs.length === 0) {
-      // All pairs have been compared
+    // Create a map of show rankings
+    const rankingMap = new Map(allRankings.map(r => [r.show_id, r]));
+
+    // Score each possible pair based on "value" of comparison
+    const pairScores: { pair: [Show, Show]; score: number }[] = [];
+
+    for (let i = 0; i < allShows.length; i++) {
+      for (let j = i + 1; j < allShows.length; j++) {
+        const [id1, id2] = [allShows[i].id, allShows[j].id].sort();
+        const pairKey = `${id1}-${id2}`;
+        
+        // Skip already compared pairs
+        if (pairsSet.has(pairKey)) continue;
+
+        const show1Ranking = rankingMap.get(allShows[i].id);
+        const show2Ranking = rankingMap.get(allShows[j].id);
+
+        if (!show1Ranking || !show2Ranking) continue;
+
+        // Calculate "value score" for this comparison
+        // Higher score = more valuable comparison
+        
+        // 1. ELO proximity (closer ELOs = more informative comparison)
+        const eloDiff = Math.abs(show1Ranking.elo_score - show2Ranking.elo_score);
+        const proximityScore = Math.max(0, 400 - eloDiff) / 400; // 0-1 scale
+
+        // 2. Uncertainty (fewer comparisons = higher uncertainty = more valuable)
+        const avgComparisons = (show1Ranking.comparisons_count + show2Ranking.comparisons_count) / 2;
+        const uncertaintyScore = Math.max(0, (K_MIN_COMPARISONS - avgComparisons) / K_MIN_COMPARISONS);
+
+        // Combined score (weighted average)
+        const combinedScore = proximityScore * 0.6 + uncertaintyScore * 0.4;
+
+        pairScores.push({
+          pair: [allShows[i], allShows[j]],
+          score: combinedScore
+        });
+      }
+    }
+
+    if (pairScores.length === 0) {
       setShowPair(null);
       toast.success("That's all for now! Your rankings are up to date");
       return;
     }
 
-    // Select a random uncompared pair
-    const randomIndex = Math.floor(Math.random() * uncomparedPairs.length);
-    setShowPair(uncomparedPairs[randomIndex]);
+    // Sort by score and select from top candidates with some randomness
+    pairScores.sort((a, b) => b.score - a.score);
+    
+    // Select from top 5 candidates to add variety
+    const topCandidates = pairScores.slice(0, Math.min(5, pairScores.length));
+    const randomIndex = Math.floor(Math.random() * topCandidates.length);
+    
+    setShowPair(topCandidates[randomIndex].pair);
   };
 
   const handleChoice = async (winnerId: string | null) => {
@@ -151,13 +273,104 @@ export default function Rank() {
 
       if (error) throw error;
 
+      // Update ELO scores if there's a winner (not "Can't Compare")
+      if (winnerId) {
+        const show1Ranking = rankings.find(r => r.show_id === showPair[0].id);
+        const show2Ranking = rankings.find(r => r.show_id === showPair[1].id);
+
+        if (show1Ranking && show2Ranking) {
+          const isShow1Winner = winnerId === showPair[0].id;
+          const winnerRanking = isShow1Winner ? show1Ranking : show2Ranking;
+          const loserRanking = isShow1Winner ? show2Ranking : show1Ranking;
+
+          const { newWinnerElo, newLoserElo } = calculateElo(
+            winnerRanking.elo_score,
+            loserRanking.elo_score,
+            winnerRanking.comparisons_count,
+            loserRanking.comparisons_count
+          );
+
+          // Update both rankings
+          const { error: updateError } = await supabase
+            .from("show_rankings")
+            .upsert([
+              {
+                id: winnerRanking.id,
+                user_id: user.id,
+                show_id: winnerRanking.show_id,
+                elo_score: newWinnerElo,
+                comparisons_count: winnerRanking.comparisons_count + 1,
+              },
+              {
+                id: loserRanking.id,
+                user_id: user.id,
+                show_id: loserRanking.show_id,
+                elo_score: newLoserElo,
+                comparisons_count: loserRanking.comparisons_count + 1,
+              }
+            ]);
+
+          if (updateError) throw updateError;
+
+          // Update local rankings state
+          const updatedRankings = rankings.map(r => {
+            if (r.show_id === winnerRanking.show_id) {
+              return { ...r, elo_score: newWinnerElo, comparisons_count: r.comparisons_count + 1 };
+            }
+            if (r.show_id === loserRanking.show_id) {
+              return { ...r, elo_score: newLoserElo, comparisons_count: r.comparisons_count + 1 };
+            }
+            return r;
+          });
+          setRankings(updatedRankings);
+        }
+      } else {
+        // "Can't Compare" - still increment comparison counts without changing ELO
+        const show1Ranking = rankings.find(r => r.show_id === showPair[0].id);
+        const show2Ranking = rankings.find(r => r.show_id === showPair[1].id);
+
+        if (show1Ranking && show2Ranking) {
+          const { error: updateError } = await supabase
+            .from("show_rankings")
+            .upsert([
+              {
+                id: show1Ranking.id,
+                user_id: user.id,
+                show_id: show1Ranking.show_id,
+                elo_score: show1Ranking.elo_score,
+                comparisons_count: show1Ranking.comparisons_count + 1,
+              },
+              {
+                id: show2Ranking.id,
+                user_id: user.id,
+                show_id: show2Ranking.show_id,
+                elo_score: show2Ranking.elo_score,
+                comparisons_count: show2Ranking.comparisons_count + 1,
+              }
+            ]);
+
+          if (updateError) throw updateError;
+
+          const updatedRankings = rankings.map(r => {
+            if (r.show_id === showPair[0].id || r.show_id === showPair[1].id) {
+              return { ...r, comparisons_count: r.comparisons_count + 1 };
+            }
+            return r;
+          });
+          setRankings(updatedRankings);
+        }
+      }
+
       // Update the compared pairs set
       const pairKey = `${show1Id}-${show2Id}`;
-      setComparedPairs(prev => new Set([...prev, pairKey]));
+      const newComparedPairs = new Set([...comparedPairs, pairKey]);
+      setComparedPairs(newComparedPairs);
+      const newTotalComparisons = totalComparisons + 1;
+      setTotalComparisons(newTotalComparisons);
 
-      // Select a new pair
+      // Select a new smart pair
       setTimeout(() => {
-        selectRandomPair(shows);
+        selectSmartPair(shows, rankings, newComparedPairs, newTotalComparisons);
         setComparing(false);
       }, 300);
     } catch (error) {
