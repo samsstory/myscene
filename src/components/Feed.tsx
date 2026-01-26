@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Instagram, ChevronLeft, ChevronRight, Map as MapIcon } from "lucide-react";
+import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Instagram, ChevronLeft, ChevronRight, Map as MapIcon, ArrowUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -53,7 +53,8 @@ const Feed = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
-  const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
+  const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "last-year" | "this-month">("all-time");
+  const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   useEffect(() => {
     fetchShows();
@@ -155,16 +156,23 @@ const Feed = () => {
     if (viewMode === "top-rated") {
       const now = new Date();
       const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
+      const currentMonthNum = now.getMonth();
+      
       if (topRatedFilter === "this-year") {
         filteredShows = shows.filter(show => {
           const showDate = parseISO(show.date);
           return showDate.getFullYear() === currentYear;
         });
+      } else if (topRatedFilter === "last-year") {
+        const lastYear = currentYear - 1;
+        filteredShows = shows.filter(show => {
+          const showDate = parseISO(show.date);
+          return showDate.getFullYear() === lastYear;
+        });
       } else if (topRatedFilter === "this-month") {
         filteredShows = shows.filter(show => {
           const showDate = parseISO(show.date);
-          return showDate.getFullYear() === currentYear && showDate.getMonth() === currentMonth;
+          return showDate.getFullYear() === currentYear && showDate.getMonth() === currentMonthNum;
         });
       }
 
@@ -173,7 +181,7 @@ const Feed = () => {
         elo: r.elo_score,
         comparisons: r.comparisons_count
       }]));
-      return [...filteredShows].sort((a, b) => {
+      const sorted = [...filteredShows].sort((a, b) => {
         const rankingA = rankingMap.get(a.id);
         const rankingB = rankingMap.get(b.id);
 
@@ -185,6 +193,13 @@ const Feed = () => {
         }
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
+      
+      // Reverse if viewing worst-first
+      if (sortDirection === "worst-first") {
+        sorted.reverse();
+      }
+      
+      return sorted;
     }
     return filteredShows;
   };
@@ -453,21 +468,34 @@ const Feed = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Time period filters for Top Rated view */}
-        {viewMode === "top-rated" && <div className="mt-4">
-            {/* Time period filters */}
-            <div className="flex justify-center gap-2">
-              <Button variant={topRatedFilter === "all-time" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("all-time")}>
-                All Time
-              </Button>
-              <Button variant={topRatedFilter === "this-year" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("this-year")}>
-                This Year
-              </Button>
-              <Button variant={topRatedFilter === "this-month" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("this-month")}>
-                This Month
-              </Button>
-            </div>
-          </div>}
+        {/* Filter bar for Top Rated view */}
+        {viewMode === "top-rated" && (
+          <div className="mt-4 flex items-center justify-between gap-4">
+            {/* Left: Time period dropdown */}
+            <Select value={topRatedFilter} onValueChange={(value) => setTopRatedFilter(value as typeof topRatedFilter)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-time">All Time</SelectItem>
+                <SelectItem value="this-year">This Year</SelectItem>
+                <SelectItem value="last-year">Last Year</SelectItem>
+                <SelectItem value="this-month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Right: Sort direction toggle */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortDirection(prev => prev === "best-first" ? "worst-first" : "best-first")}
+              className="flex items-center gap-2"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              <span>{sortDirection === "best-first" ? "Best First" : "Worst First"}</span>
+            </Button>
+          </div>
+        )}
 
         {loading ? <Card className="border-border shadow-card mt-6">
             <CardContent className="py-16 text-center">
