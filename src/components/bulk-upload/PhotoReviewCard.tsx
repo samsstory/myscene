@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Music, MapPin, AlertCircle, Check, Pencil } from "lucide-react";
+import { Calendar, Music, MapPin, AlertCircle, Check, Pencil, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoWithExif, extractExifData } from "@/lib/exif-utils";
@@ -25,6 +25,7 @@ interface PhotoReviewCardProps {
   total: number;
   onUpdate: (data: ReviewedShow) => void;
   onPhotoReplace: (photoId: string, newPhoto: PhotoWithExif) => void;
+  onDelete: (photoId: string) => void;
   initialData?: ReviewedShow;
 }
 
@@ -36,7 +37,7 @@ interface SearchResult {
   location?: string;
 }
 
-const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, initialData }: PhotoReviewCardProps) => {
+const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDelete, initialData }: PhotoReviewCardProps) => {
   const [artist, setArtist] = useState(initialData?.artist || "");
   const [venue, setVenue] = useState(initialData?.venue || "");
   const [venueId, setVenueId] = useState<string | null>(initialData?.venueId || null);
@@ -208,17 +209,26 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, initia
         <span className="text-sm text-muted-foreground">
           Show {index + 1} of {total}
         </span>
-        {isValid ? (
-          <div className="flex items-center gap-1 text-primary text-sm">
-            <Check className="h-4 w-4" />
-            Ready
-          </div>
-        ) : (
-          <div className="flex items-center gap-1 text-amber-500 text-sm">
-            <AlertCircle className="h-4 w-4" />
-            Add artist
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {isValid ? (
+            <div className="flex items-center gap-1 text-primary text-sm">
+              <Check className="h-4 w-4" />
+              Ready
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 text-amber-500 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              Add artist
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => onDelete(photo.id)}
+            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Photo thumbnail with edit button */}

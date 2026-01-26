@@ -56,6 +56,23 @@ const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
     setPhotos(prev => prev.map(p => p.id === photoId ? newPhoto : p));
   };
 
+  const handlePhotoDelete = (photoId: string) => {
+    setPhotos(prev => {
+      const photoToDelete = prev.find(p => p.id === photoId);
+      if (photoToDelete) {
+        URL.revokeObjectURL(photoToDelete.previewUrl);
+      }
+      const remaining = prev.filter(p => p.id !== photoId);
+      
+      // If no photos left, go back to select step
+      if (remaining.length === 0) {
+        setStep('select');
+      }
+      
+      return remaining;
+    });
+  };
+
   const handleBack = () => {
     if (step === 'review') {
       setStep('select');
@@ -106,6 +123,7 @@ const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
             photos={photos}
             onComplete={handleReviewComplete}
             onPhotoReplace={handlePhotoReplace}
+            onPhotoDelete={handlePhotoDelete}
             isSubmitting={isUploading}
           />
         )}

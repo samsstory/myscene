@@ -8,10 +8,11 @@ interface BulkReviewStepProps {
   photos: PhotoWithExif[];
   onComplete: (shows: ReviewedShow[]) => void;
   onPhotoReplace: (photoId: string, newPhoto: PhotoWithExif) => void;
+  onPhotoDelete: (photoId: string) => void;
   isSubmitting: boolean;
 }
 
-const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, isSubmitting }: BulkReviewStepProps) => {
+const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, onPhotoDelete, isSubmitting }: BulkReviewStepProps) => {
   const [reviewedShows, setReviewedShows] = useState<Map<string, ReviewedShow>>(new Map());
 
   const handleUpdate = useCallback((data: ReviewedShow) => {
@@ -57,6 +58,7 @@ const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, isSubmitting }: Bu
             total={photos.length}
             onUpdate={handleUpdate}
             onPhotoReplace={onPhotoReplace}
+            onDelete={onPhotoDelete}
             initialData={reviewedShows.get(photo.id)}
           />
         ))}
