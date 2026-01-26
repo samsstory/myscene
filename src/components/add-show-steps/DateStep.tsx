@@ -70,7 +70,7 @@ const DateStep = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
         <Label className="text-base font-semibold">When was the show?</Label>
       </div>
@@ -82,7 +82,7 @@ const DateStep = ({
           size="sm"
           onClick={() => handleQuickSelect(0)}
           className={cn(
-            "text-xs",
+            "text-xs h-8",
             date && new Date().toDateString() === date.toDateString() && "bg-accent"
           )}
         >
@@ -92,7 +92,7 @@ const DateStep = ({
           variant="outline"
           size="sm"
           onClick={() => handleQuickSelect(1)}
-          className="text-xs"
+          className="text-xs h-8"
         >
           Last night
         </Button>
@@ -100,7 +100,7 @@ const DateStep = ({
           variant="outline"
           size="sm"
           onClick={() => handleQuickSelect(2)}
-          className="text-xs"
+          className="text-xs h-8"
         >
           2 days ago
         </Button>
@@ -114,7 +114,7 @@ const DateStep = ({
             const daysToSaturday = dayOfWeek === 0 ? 1 : dayOfWeek + 1;
             handleQuickSelect(daysToSaturday);
           }}
-          className="text-xs"
+          className="text-xs h-8"
         >
           Last weekend
         </Button>
@@ -127,7 +127,7 @@ const DateStep = ({
           selected={date}
           onSelect={handleDateSelect}
           disabled={(d) => d > new Date()}
-          className="rounded-md border"
+          className="rounded-md border [&_.rdp]:p-2 [&_.rdp-cell]:h-8 [&_.rdp-cell]:w-8 [&_.rdp-head_cell]:w-8 [&_.rdp-button]:h-8 [&_.rdp-button]:w-8"
         />
       </div>
 
