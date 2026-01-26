@@ -57,7 +57,7 @@ const PhotoSelectStep = ({ onPhotosSelected, isProcessing }: PhotoSelectStepProp
         </div>
         <h2 className="text-xl font-semibold">Add Shows from Photos</h2>
         <p className="text-xs text-muted-foreground">
-          We'll try to detect the date from your photos automatically.
+          Photos will become the cover image for shows
         </p>
       </div>
 
