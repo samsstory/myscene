@@ -272,7 +272,7 @@ const Feed = () => {
                     {/* Date */}
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                       <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span>{format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy")}</span>
+                      <span>{format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM yyyy")}</span>
                     </div>
                   </div>
                 </div>
