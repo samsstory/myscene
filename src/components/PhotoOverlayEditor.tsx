@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Draggable from "react-draggable";
 import { Resizable } from "re-resizable";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,6 @@ interface ShowRanking {
 interface PhotoOverlayEditorProps {
   show: Show;
   onClose: () => void;
-  aspectRatio: '9:16' | '4:5' | '1:1';
   allShows?: Show[];
   rankings?: ShowRanking[];
 }
@@ -60,7 +59,7 @@ const getRatingAccent = (rating: number): string => {
   return "hsl(0, 84%, 60%)"; // Red
 };
 
-export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], rankings = [] }: PhotoOverlayEditorProps) => {
+export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = [] }: PhotoOverlayEditorProps) => {
   const [overlayConfig, setOverlayConfig] = useState({
     showArtists: true,
     showVenue: true,
@@ -79,7 +78,19 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(45, 93%, 58%)");
-  
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  // Detect image dimensions on mount
+  useEffect(() => {
+    if (show.photo_url) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        setImageDimensions({ width: img.width, height: img.height });
+      };
+      img.src = show.photo_url;
+    }
+  }, [show.photo_url]);
   // Helper: Filter shows by time period
   const filterShowsByTime = (shows: Show[], timeFilter: string) => {
     if (timeFilter === "all-time") return shows;
@@ -250,16 +261,6 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas not supported");
 
-    // Set dimensions based on aspect ratio
-    const dimensions = {
-      '9:16': { width: 1080, height: 1920 },
-      '4:5': { width: 1080, height: 1350 },
-      '1:1': { width: 1080, height: 1080 }
-    };
-
-    canvas.width = dimensions[aspectRatio].width;
-    canvas.height = dimensions[aspectRatio].height;
-
     // Load background photo with error handling
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -278,24 +279,14 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
       img.src = show.photo_url!;
     });
 
-    // Draw photo (cover fit)
-    const imgAspect = img.width / img.height;
-    const canvasAspect = canvas.width / canvas.height;
-    
-    let drawWidth, drawHeight, offsetX, offsetY;
-    if (imgAspect > canvasAspect) {
-      drawHeight = canvas.height;
-      drawWidth = img.width * (canvas.height / img.height);
-      offsetX = (canvas.width - drawWidth) / 2;
-      offsetY = 0;
-    } else {
-      drawWidth = canvas.width;
-      drawHeight = img.height * (canvas.width / img.width);
-      offsetX = 0;
-      offsetY = (canvas.height - drawHeight) / 2;
-    }
+    // Use the image's natural dimensions, scaled to max 1920px on longest side
+    const maxDimension = 1920;
+    const scale = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
 
-    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    // Draw photo at full canvas size (native aspect ratio)
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
     // Get overlay position
     const overlayElement = document.getElementById("rating-overlay");
@@ -517,12 +508,11 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
         
         const artistName = show.artists[0]?.name || "show";
         const date = new Date(show.show_date).toISOString().split('T')[0];
-        const ratioLabel = aspectRatio.replace(':', 'x');
-        a.download = `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${date}-${ratioLabel}.png`;
+        a.download = `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${date}.png`;
         
         a.click();
         URL.revokeObjectURL(url);
-        toast.success(`Image downloaded! (${aspectRatio})`);
+        toast.success("Image downloaded!");
       }, "image/png");
 
     } catch (error) {
@@ -593,11 +583,10 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
     const a = document.createElement("a");
     a.href = url;
     const date = new Date(show.show_date).toISOString().split('T')[0];
-    const ratioLabel = aspectRatio.replace(':', 'x');
-    a.download = `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${date}-${ratioLabel}.png`;
+    a.download = `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${date}.png`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Image downloaded! (${aspectRatio})`);
+    toast.success("Image downloaded!");
   };
 
   if (!show.photo_url) {
@@ -619,11 +608,15 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
       <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg relative pointer-events-none min-h-[400px]">
         <div
           id="canvas-container"
-          className="relative bg-black"
+          className="relative bg-black overflow-hidden"
           style={{
             width: "100%",
-            maxWidth: aspectRatio === '1:1' ? "540px" : aspectRatio === '4:5' ? "432px" : "540px",
-            aspectRatio: aspectRatio === '9:16' ? "9/16" : aspectRatio === '4:5' ? "4/5" : "1/1",
+            maxWidth: imageDimensions 
+              ? (imageDimensions.width >= imageDimensions.height ? "540px" : "400px")
+              : "540px",
+            aspectRatio: imageDimensions 
+              ? `${imageDimensions.width}/${imageDimensions.height}` 
+              : "9/16",
           }}
         >
           {/* Background Photo */}
