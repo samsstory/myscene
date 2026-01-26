@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { calculateShowScore } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { SwipeCard } from "./rank/SwipeCard";
+import { SwipeInstructions } from "./rank/SwipeInstructions";
 
 interface Show {
   id: string;
@@ -380,68 +380,24 @@ export default function Rank() {
     }
   };
 
-  const renderShowCard = (show: Show, position: "left" | "right") => {
-    const score = calculateShowScore(
-      show.rating,
-      show.artist_performance,
-      show.sound,
-      show.lighting,
-      show.crowd,
-      show.venue_vibe
-    );
+  const handleSwipe = (direction: "left" | "right" | "down") => {
+    if (!showPair || comparing) return;
 
-    const headliners = show.artists.filter((a) => a.is_headliner);
-    const openers = show.artists.filter((a) => !a.is_headliner);
-    const displayArtists = [...headliners, ...openers].slice(0, 2);
-    const remainingCount = show.artists.length - displayArtists.length;
+    if (direction === "right") {
+      // Swipe right = top card (showPair[0]) wins
+      handleChoice(showPair[0].id);
+    } else if (direction === "left") {
+      // Swipe left = other card (showPair[1]) wins
+      handleChoice(showPair[1].id);
+    } else {
+      // Swipe down = can't compare
+      handleChoice(null);
+    }
+  };
 
-    return (
-      <Card 
-        className="flex-1 cursor-pointer transition-all hover:scale-105 hover:border-primary"
-        onClick={() => !comparing && handleChoice(show.id)}
-      >
-        <CardContent className="p-6 space-y-4">
-          {show.photo_url && (
-            <div className="w-full h-48 rounded-lg overflow-hidden">
-              <img
-                src={show.photo_url}
-                alt="Show photo"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold text-primary">{score}</div>
-            </div>
-            
-            <div className="space-y-1">
-              <div className="font-semibold text-lg">
-                {displayArtists.map((a) => a.artist_name).join(", ")}
-                {remainingCount > 0 && (
-                  <span className="text-muted-foreground text-sm ml-1">
-                    +{remainingCount} more
-                  </span>
-                )}
-              </div>
-              
-              <div className="text-sm text-muted-foreground">
-                {show.venue_name}
-              </div>
-              
-              <div className="text-xs text-muted-foreground">
-                {new Date(show.show_date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  const getArtistName = (show: Show) => {
+    const headliner = show.artists.find(a => a.is_headliner);
+    return headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
   };
 
   if (loading) {
@@ -479,34 +435,32 @@ export default function Rank() {
   }
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8 space-y-8">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold">Which show was better?</h2>
-        <p className="text-muted-foreground">
-          Help us understand your preferences by comparing shows
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 space-y-6">
+      <div className="text-center space-y-1">
+        <h2 className="text-xl font-bold">Which was better?</h2>
+        <p className="text-muted-foreground text-sm">
+          Swipe to choose
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 items-stretch justify-center">
-        {renderShowCard(showPair[0], "left")}
-        {renderShowCard(showPair[1], "right")}
-      </div>
+      <SwipeCard
+        show={showPair[0]}
+        otherShow={showPair[1]}
+        onSwipe={handleSwipe}
+        disabled={comparing}
+      />
 
-      <div className="flex justify-center">
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={() => handleChoice(null)}
-          disabled={comparing}
-          className="min-w-[200px]"
-        >
-          {comparing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            "Can't Compare"
-          )}
-        </Button>
-      </div>
+      <SwipeInstructions
+        topShowName={getArtistName(showPair[0])}
+        bottomShowName={getArtistName(showPair[1])}
+      />
+
+      {comparing && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Updating rankings...</span>
+        </div>
+      )}
     </div>
   );
 }
