@@ -1,125 +1,84 @@
 
-
-# Add Rating Step to Single Show Flow
+# Plan: Add Flexible Date Selection to Bulk Upload Cards
 
 ## Overview
-Insert the optional Rating step into the "Add Show" flow so users can rate specific aspects (Artist Performance, Sound, Lighting, Crowd, Venue Vibe) and add notes **before** the show is saved and the Success screen appears.
+Replace the basic native date input in bulk upload `PhotoReviewCard` with a compact, flexible date selection UI that matches the single-show flow's capability - allowing users to specify exact dates, month+year, or year-only when EXIF metadata is missing.
 
-## Current Flow
-```text
-Step 1: Search (Artist or Venue)
-Step 2: Venue (if artist-first) or Date (if venue-first)
-Step 3: Date (if artist-first) or Artists (if venue-first)
-         ↓ handleSubmit() called immediately
-Step 5: Success Screen
-Step 6: Quick Compare (optional)
+## Technical Approach
+
+### Design for Compact Cards
+Since bulk upload cards need to stay compact (unlike the full DateStep which takes a whole screen), we'll use a **segmented approach**:
+
+1. **Default state**: Show a compact date display or "Add date" button
+2. **Tapping expands**: Reveal inline date selection options
+3. **Three precision modes**:
+   - **Exact date**: Native date picker (quick for photos with known dates)
+   - **Month + Year**: Two dropdowns for approximate dates
+   - **Year only**: Single dropdown for very old shows
+
+### UI Components
+
+```
+┌─────────────────────────────────────────┐
+│ Date (optional)                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ [Exact] [Month/Year] [Year Only]    │ │  ← Segmented toggle
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ (Based on selection, show either:)      │
+│  - Native date input (exact)            │
+│  - Month + Year dropdowns (approximate) │
+│  - Year dropdown only (unknown)         │
+└─────────────────────────────────────────┘
 ```
 
-## Proposed Flow
-```text
-Step 1: Search (Artist or Venue)
-Step 2: Venue (if artist-first) or Date (if venue-first)
-Step 3: Date (if artist-first) or Artists (if venue-first)
-Step 4: Rating/Details (NEW - optional step)
-         ↓ handleSubmit() called
-Step 5: Success Screen
-Step 6: Quick Compare (optional)
-```
+### State Changes
 
-## Implementation Details
+**PhotoReviewCard.tsx updates:**
+- Add `datePrecision` state: `'exact' | 'approximate' | 'unknown'`
+- Add `selectedMonth` and `selectedYear` states for approximate modes
+- Replace single date input with precision-aware UI
+- Auto-detect mode: If photo has EXIF date → exact, otherwise → show picker
 
-### 1. Update Step Navigation Logic
+**ReviewedShow interface updates:**
+- Add `datePrecision: string` field (already has `isApproximate` but need full precision)
+- Add `selectedMonth?: string` and `selectedYear?: string` for approximate dates
 
-**File: `src/components/AddShowFlow.tsx`**
+**useBulkShowUpload.ts updates:**
+- Construct `show_date` based on precision:
+  - `exact`: Use the full date
+  - `approximate`: Set to 1st of selected month/year
+  - `unknown`: Set to January 1st of selected year
+- Pass correct `date_precision` value to database
 
-- Modify `handleDateSelect()` and `handleArtistsComplete()` to navigate to Step 4 instead of calling `handleSubmit()` directly
-- The Rating Step will have a "Save Show" button that calls `handleSubmit()` and a "Skip" option that also calls `handleSubmit()` (submitting without ratings)
+### Implementation Details
 
-### 2. Add Step 4 Rendering for New Shows
+1. **CompactDateSelector** component (new internal component):
+   - Three-segment toggle for precision mode
+   - Renders appropriate inputs based on mode
+   - Stays compact (single row for toggle, single row for input)
 
-Currently, Step 4 only renders `RatingStep` when `showStepSelector` is true (edit mode). Update to also render for new shows:
+2. **Auto-detection logic**:
+   - If photo has EXIF date: Pre-fill exact date, show in exact mode
+   - If no EXIF date: Default to approximate mode with current year pre-selected
 
-```typescript
-// In renderStepContent(), after step 3 handling:
-if (step === 4) {
-  return (
-    <RatingStep
-      rating={showData.rating}
-      onRatingChange={(rating) => updateShowData({ rating })}
-      artistPerformance={showData.artistPerformance}
-      sound={showData.sound}
-      lighting={showData.lighting}
-      crowd={showData.crowd}
-      venueVibe={showData.venueVibe}
-      notes={showData.notes}
-      onDetailChange={(field, value) => updateShowData({ [field]: value })}
-      onSubmit={handleSubmit}
-      isEditMode={showStepSelector}
-    />
-  );
-}
-```
+3. **Date construction for database**:
+   ```typescript
+   // Exact: use selected date
+   // Approximate: first of month (e.g., "2024-06-01")
+   // Unknown: January 1st of year (e.g., "2024-01-01")
+   ```
 
-### 3. Update RatingStep Component
-
-**File: `src/components/add-show-steps/RatingStep.tsx`**
-
-Add a "Skip" option for new shows:
-- Primary button: "Save Show" or "Done" 
-- Secondary/Ghost button: "Skip for now" → also triggers submit without ratings
-
-Updated props and UI:
-```typescript
-interface RatingStepProps {
-  // ... existing props
-  onSkip?: () => void;  // New: for skipping ratings
-}
-```
-
-New button layout:
-```text
-+----------------------------------+
-| Add Details (Optional)           |
-| Rate specific aspects...         |
-|                                  |
-| [Artist Performance: 1 2 3 4 5]  |
-| [Sound: 1 2 3 4 5]               |
-| [Lighting: 1 2 3 4 5]            |
-| [Crowd: 1 2 3 4 5]               |
-| [Venue Vibe: 1 2 3 4 5]          |
-|                                  |
-| My Take: [textarea]              |
-|                                  |
-| [    Save Show    ] (primary)    |
-| [  Skip for now   ] (ghost)      |
-+----------------------------------+
-```
-
-### 4. Update Progress Indicator
-
-Update `getTotalSteps()` to return 4 instead of 3, and update the progress bar to show 4 segments.
-
-### 5. Update Back Navigation
-
-Add Step 4 to the `handleBack()` logic so users can go back from Rating to the previous step.
-
-## Summary of File Changes
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/AddShowFlow.tsx` | Update navigation to go to Step 4 before submit; render RatingStep for new shows; update progress to 4 steps; update back navigation |
-| `src/components/add-show-steps/RatingStep.tsx` | Add `onSkip` prop; add "Skip for now" button for non-edit mode |
+| `src/components/bulk-upload/PhotoReviewCard.tsx` | Replace date input with CompactDateSelector, add precision states |
+| `src/hooks/useBulkShowUpload.ts` | Update date construction logic for different precisions |
 
 ## User Experience
 
-1. User searches and selects artist/venue
-2. User completes venue and date steps
-3. User sees Rating step with clear "Optional" messaging
-4. User can:
-   - Rate aspects and add notes, then tap "Save Show"
-   - Or tap "Skip for now" to save without ratings
-5. Success screen appears with completed data
-6. User can then add photo, share, or rank the show
-
-This approach keeps ratings optional while giving users the opportunity to capture their thoughts while the experience is fresh.
-
+1. **Photo with EXIF data**: Date auto-fills, user sees exact date displayed
+2. **Photo without EXIF data**: Shows "Add date" with approximate mode ready
+3. **User wants to change**: Tap to expand, select precision mode, pick date/month/year
+4. **Optional field**: Users can skip entirely if they don't remember at all
