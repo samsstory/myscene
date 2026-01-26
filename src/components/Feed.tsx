@@ -250,7 +250,7 @@ const Feed = () => {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <CalendarIcon className="h-4 w-4 flex-shrink-0" />
-                      <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
+                      <span>{format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy")}</span>
                     </div>
                   </div>}
                 </div>
@@ -271,7 +271,7 @@ const Feed = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 flex-shrink-0" />
-                    <span>{format(parseISO(show.date), "MMM d, yyyy")}</span>
+                    <span>{format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy")}</span>
                   </div>
                 </div>}
 
