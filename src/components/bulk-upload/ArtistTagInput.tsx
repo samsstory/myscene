@@ -164,6 +164,13 @@ const ArtistTagInput = ({
         )}
       </div>
 
+      {/* Helper hint when typing */}
+      {inputValue.trim().length > 0 && (
+        <p className="text-xs text-muted-foreground mt-1 px-1">
+          Press <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">Enter</kbd> to add "{inputValue}"
+        </p>
+      )}
+
       {/* Search results dropdown */}
       {showResults && searchResults.length > 0 && (
         <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
@@ -181,21 +188,6 @@ const ArtistTagInput = ({
               )}
             </button>
           ))}
-        </div>
-      )}
-
-      {/* Manual add hint when typing with no results */}
-      {showResults && inputValue.trim() && searchResults.length === 0 && !isSearching && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg">
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => addArtist(inputValue)}
-            className="w-full text-left px-3 py-2 hover:bg-accent text-sm flex items-center justify-between"
-          >
-            <span>Add "<span className="font-medium">{inputValue}</span>"</span>
-            <span className="text-xs text-muted-foreground">↵ Enter</span>
-          </button>
         </div>
       )}
     </div>
