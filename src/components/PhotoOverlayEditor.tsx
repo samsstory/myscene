@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react";
-import Draggable from "react-draggable";
-import { Resizable } from "re-resizable";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Download, MapPin, Instagram } from "lucide-react";
+import { Download, MapPin, Instagram, Move } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
-
+import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
 interface Artist {
   name: string;
   is_headliner: boolean;
@@ -74,11 +72,33 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   const [rankingMethod, setRankingMethod] = useState<"score" | "elo">("score");
   const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
 
-  const [overlaySize, setOverlaySize] = useState<number>(0.35); // 0.25, 0.35, 0.45
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(45, 93%, 58%)");
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  
+  // Multi-touch transform for Instagram-style overlay manipulation
+  const { transform, handlers, handleWheel } = useMultiTouchTransform({
+    initialTransform: { x: 20, y: 100, scale: 0.8, rotation: 0 },
+    minScale: 0.3,
+    maxScale: 1.5,
+  });
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Attach wheel handler for desktop zoom
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const wheelHandler = (e: WheelEvent) => {
+      e.preventDefault();
+      handleWheel(e);
+    };
+    
+    container.addEventListener('wheel', wheelHandler, { passive: false });
+    return () => container.removeEventListener('wheel', wheelHandler);
+  }, [handleWheel]);
 
   // Detect image dimensions on mount
   useEffect(() => {
@@ -246,10 +266,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     }
   });
 
-  const handleSizeChange = (value: number[]) => {
-    const sizeMap = [0.25, 0.35, 0.45];
-    setOverlaySize(sizeMap[value[0]]);
-  };
+  // Use transform.scale for canvas generation
+  const overlayScale = transform.scale;
 
   // Reusable canvas generation function
   const generateCanvas = async (): Promise<HTMLCanvasElement> => {
@@ -345,7 +363,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
 
       if (overlayConfig.showArtists) {
-        ctx.font = `bold ${24 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.font = `bold ${24 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
         ctx.fillStyle = overlayConfig.showBackground ? primaryColor : "white";
         if (!overlayConfig.showBackground) {
           ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
@@ -358,7 +376,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       }
 
       if (overlayConfig.showRating) {
-        ctx.font = `900 ${36 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.font = `900 ${36 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
         ctx.fillStyle = "white";
         const scoreText = score.toFixed(1);
         const scoreWidth = ctx.measureText(scoreText).width;
@@ -370,7 +388,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
     // Venue
     if (overlayConfig.showVenue) {
-      ctx.font = `${18 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.font = `${18 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "white";
       ctx.fillText(show.venue_name, overlayX + padding, yPos);
       yPos += 28 * scaleY;
@@ -378,7 +396,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
     // Date
     if (overlayConfig.showDate) {
-      ctx.font = `${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.font = `${14 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
       const dateStr = new Date(show.show_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
       ctx.fillText(dateStr, overlayX + padding, yPos);
@@ -395,7 +413,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
         { label: "Vibe", value: show.venue_vibe },
       ].filter((r) => r.value);
 
-      ctx.font = `${12 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.font = `${12 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       const labelWidth = 80 * scaleX;
       const barWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
       const barHeight = 6 * scaleY;
@@ -425,7 +443,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
     // Notes
     if (overlayConfig.showNotes && show.notes) {
-      ctx.font = `italic ${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.font = `italic ${14 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
       const maxWidth = overlayWidth - padding * 2;
       const words = `"${show.notes}"`.split(" ");
@@ -457,7 +475,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     
     // Rank on the left
     if (overlayConfig.showRank && rankData.total > 0) {
-      ctx.font = `600 ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.font = `600 ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       
       const rankGradientColors = (() => {
         if (rankData.percentile >= 90) return ["hsl(45, 93%, 58%)", "hsl(189, 94%, 55%)"];
@@ -478,7 +496,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     }
     
     // Scene logo on the right
-    ctx.font = `bold ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `bold ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
     ctx.textAlign = "right";
     ctx.fillText("SCENE", overlayX + overlayWidth - padding, bottomY);
@@ -604,11 +622,12 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 pb-6">
-      {/* Canvas Preview */}
-      <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg relative pointer-events-none min-h-[400px]">
+      {/* Canvas Preview with touch gestures */}
+      <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg relative min-h-[400px]">
         <div
+          ref={containerRef}
           id="canvas-container"
-          className="relative bg-black overflow-hidden"
+          className="relative bg-black overflow-hidden touch-none"
           style={{
             width: "100%",
             maxWidth: imageDimensions 
@@ -618,6 +637,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               ? `${imageDimensions.width}/${imageDimensions.height}` 
               : "9/16",
           }}
+          {...handlers}
         >
           {/* Background Photo */}
           <img
@@ -626,170 +646,151 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             crossOrigin="anonymous"
             onError={(e) => {
-              // Handle broken image
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EPhoto Unavailable%3C/text%3E%3C/svg%3E';
             }}
           />
 
-          {/* Draggable Overlay */}
-          <Draggable 
-            bounds={{
-              left: -100,
-              top: -100,
-              right: 440,
-              bottom: 860
+          {/* Touch-controlled Overlay */}
+          <div
+            id="rating-overlay"
+            className="absolute rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 cursor-move select-none"
+            style={{
+              left: transform.x,
+              top: transform.y,
+              transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
+              transformOrigin: "top left",
+              background: overlayConfig.showBackground ? getRatingGradient(show.rating) : "transparent",
+              opacity: overlayOpacity / 100,
+              width: 280,
+              touchAction: "none",
             }}
-            defaultPosition={{ x: 40, y: 100 }}
           >
-            <div style={{ position: "absolute", cursor: "move", zIndex: 10, pointerEvents: "auto" }}>
-              <Resizable
-                defaultSize={{ width: 400, height: "auto" }}
-                minWidth={200}
-                maxWidth={500}
-                enable={{
-                  top: false,
-                  right: true,
-                  bottom: false,
-                  left: false,
-                  topRight: false,
-                  bottomRight: false,
-                  bottomLeft: false,
-                  topLeft: false,
-                }}
-              >
-                <div
-                  id="rating-overlay"
-                  className="rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 relative"
-                  style={{
-                    background: overlayConfig.showBackground ? getRatingGradient(show.rating) : "transparent",
-                    opacity: overlayOpacity / 100,
-                    transform: `scale(${overlaySize})`,
-                    transformOrigin: "top left",
+            {/* Artist name and rating on same row */}
+            <div className="flex items-start justify-between gap-4 mb-2">
+              {overlayConfig.showArtists && (
+                <h2 
+                  className="text-2xl font-bold flex-1" 
+                  style={{ 
+                    color: overlayConfig.showBackground ? primaryColor : "white",
+                    textShadow: overlayConfig.showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
                   }}
                 >
-                  {/* Artist name and rating on same row */}
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    {overlayConfig.showArtists && (
-                      <h2 
-                        className="text-2xl font-bold flex-1" 
-                        style={{ 
-                          color: overlayConfig.showBackground ? primaryColor : "white",
-                          textShadow: overlayConfig.showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
-                        }}
-                      >
-                        {headliners.map(a => a.name).join(", ")}
-                      </h2>
-                    )}
-                    
-                    {overlayConfig.showRating && (
-                      <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none flex-shrink-0`}>
-                        {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {overlayConfig.showVenue && (
-                    <p className="text-lg mb-1 flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      {show.venue_name}
-                    </p>
-                  )}
-                  
-                  {overlayConfig.showDate && (
-                    <p className="text-sm opacity-90 mb-3">
-                      {new Date(show.show_date).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  )}
-
-                  {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
-                    <div className="space-y-2 text-xs mb-3">
-                      {show.artist_performance && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-20">Performance</span>
-                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-white rounded-full"
-                              style={{ width: `${(show.artist_performance / 5) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {show.sound && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-20">Sound</span>
-                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-white rounded-full"
-                              style={{ width: `${(show.sound / 5) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {show.lighting && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-20">Lighting</span>
-                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-white rounded-full"
-                              style={{ width: `${(show.lighting / 5) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {show.crowd && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-20">Crowd</span>
-                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-white rounded-full"
-                              style={{ width: `${(show.crowd / 5) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {show.venue_vibe && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-20">Vibe</span>
-                          <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-white rounded-full"
-                              style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {overlayConfig.showNotes && show.notes && (
-                    <p className="text-sm italic opacity-90 line-clamp-3 mb-2">
-                      "{show.notes}"
-                    </p>
-                  )}
-                  
-                  {/* Scene logo and rank at bottom */}
-                  <div className="mt-4 flex items-center justify-between">
-                    {overlayConfig.showRank && rankData.total > 0 ? (
-                      <div 
-                        className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent`}
-                      >
-                        #{rankData.position} of {rankData.total} shows {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time'}
-                      </div>
-                    ) : (
-                      <div />
-                    )}
-                    <span className="text-xs font-bold tracking-wider opacity-30" style={{ filter: "grayscale(100%)" }}>
-                      SCENE
-                    </span>
-                  </div>
+                  {headliners.map(a => a.name).join(", ")}
+                </h2>
+              )}
+              
+              {overlayConfig.showRating && (
+                <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none flex-shrink-0`}>
+                  {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
                 </div>
-              </Resizable>
+              )}
             </div>
-          </Draggable>
+            
+            {overlayConfig.showVenue && (
+              <p className="text-lg mb-1 flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                {show.venue_name}
+              </p>
+            )}
+            
+            {overlayConfig.showDate && (
+              <p className="text-sm opacity-90 mb-3">
+                {new Date(show.show_date).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            )}
+
+            {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
+              <div className="space-y-2 text-xs mb-3">
+                {show.artist_performance && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-20">Performance</span>
+                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white rounded-full"
+                        style={{ width: `${(show.artist_performance / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {show.sound && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-20">Sound</span>
+                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white rounded-full"
+                        style={{ width: `${(show.sound / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {show.lighting && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-20">Lighting</span>
+                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white rounded-full"
+                        style={{ width: `${(show.lighting / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {show.crowd && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-20">Crowd</span>
+                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white rounded-full"
+                        style={{ width: `${(show.crowd / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {show.venue_vibe && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-20">Vibe</span>
+                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white rounded-full"
+                        style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {overlayConfig.showNotes && show.notes && (
+              <p className="text-sm italic opacity-90 line-clamp-3 mb-2">
+                "{show.notes}"
+              </p>
+            )}
+            
+            {/* Scene logo and rank at bottom */}
+            <div className="mt-4 flex items-center justify-between">
+              {overlayConfig.showRank && rankData.total > 0 ? (
+                <div 
+                  className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent`}
+                >
+                  #{rankData.position} of {rankData.total} shows {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time'}
+                </div>
+              ) : (
+                <div />
+              )}
+              <span className="text-xs font-bold tracking-wider opacity-30" style={{ filter: "grayscale(100%)" }}>
+                SCENE
+              </span>
+            </div>
+          </div>
+          
+          {/* Gesture hint */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-white/60 bg-black/40 px-2 py-1 rounded-full pointer-events-none">
+            <Move className="h-3 w-3" />
+            <span>Drag • Pinch to resize • Rotate</span>
+          </div>
         </div>
       </div>
 
@@ -921,21 +922,14 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             </div>
           )}
 
-          {/* Size Slider */}
-          <div className="space-y-2">
-            <Label>Overlay Size</Label>
-            <Slider
-              min={0}
-              max={2}
-              step={1}
-              value={[overlaySize === 0.25 ? 0 : overlaySize === 0.35 ? 1 : 2]}
-              onValueChange={handleSizeChange}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Small</span>
-              <span>Medium</span>
-              <span>Large</span>
-            </div>
+          {/* Gesture controls hint (replaces old size slider) */}
+          <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+            <p className="text-xs text-muted-foreground text-center">
+              <strong>Touch gestures:</strong> Drag to move • Pinch to resize • Two fingers to rotate
+            </p>
+            <p className="text-xs text-muted-foreground text-center mt-1">
+              <strong>Desktop:</strong> Drag to move • Scroll to zoom
+            </p>
           </div>
 
           {/* Opacity Slider */}
