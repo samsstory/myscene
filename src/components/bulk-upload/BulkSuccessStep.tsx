@@ -24,7 +24,7 @@ const BulkSuccessStep = ({ addedCount, onAddMore, onDone }: BulkSuccessStepProps
           {addedCount} show{addedCount !== 1 ? 's' : ''} added!
         </h2>
         <p className="text-muted-foreground">
-          Your concert memories have been saved to your collection.
+          Don't forget to share your memories and review on Instagram.
         </p>
       </div>
 
