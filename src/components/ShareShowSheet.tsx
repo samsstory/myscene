@@ -448,10 +448,6 @@ export const ShareShowSheet = ({ show, open, onOpenChange, allShows = [], rankin
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                      <Music2 className="h-4 w-4" />
-                      <span>Artist{displayArtists.length > 1 ? 's' : ''}</span>
-                    </div>
                     <h3 className="text-2xl font-bold">
                       {displayArtists.map(a => a.name).join(", ")}
                     </h3>
