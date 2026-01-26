@@ -138,8 +138,15 @@ export function useBulkShowUpload() {
               venue_id: venueIdToUse,
               show_date: showDate,
               date_precision: show.isApproximate ? 'approximate' : 'exact',
-              rating: 3, // Default neutral rating
+              rating: null, // No default rating - use ELO system
               photo_url: publicUrl,
+              // Optional ratings from bulk upload
+              artist_performance: show.artistPerformance,
+              sound: show.sound,
+              lighting: show.lighting,
+              crowd: show.crowd,
+              venue_vibe: show.venueVibe,
+              notes: show.notes || null,
             })
             .select('id')
             .single();

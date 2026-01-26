@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Pencil, X, MapPin, ChevronDown, Loader2 } from "lucide-react";
+import { Pencil, X, MapPin, ChevronDown, Loader2, Plus, Minus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PhotoWithExif, VenueSuggestion, extractExifData } from "@/lib/exif-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import ArtistTagInput from "./ArtistTagInput";
 
 interface Artist {
@@ -25,6 +27,13 @@ export interface ReviewedShow {
   date: Date | null;
   isApproximate: boolean;
   isValid: boolean;
+  // Optional rating fields
+  artistPerformance: number | null;
+  sound: number | null;
+  lighting: number | null;
+  crowd: number | null;
+  venueVibe: number | null;
+  notes: string;
 }
 
 interface PhotoReviewCardProps {
@@ -38,6 +47,41 @@ interface PhotoReviewCardProps {
   isExpanded: boolean;
   onToggle: () => void;
 }
+
+// Compact rating pills for bulk upload
+const CompactRatingPills = ({ 
+  value, 
+  onChange,
+  label 
+}: { 
+  value: number | null; 
+  onChange: (val: number | null) => void;
+  label: string;
+}) => (
+  <div className="flex items-center justify-between gap-2">
+    <Label className="text-xs text-muted-foreground whitespace-nowrap">{label}</Label>
+    <div className="flex gap-1.5">
+      {[1, 2, 3, 4, 5].map((num) => (
+        <button
+          key={num}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange(value === num ? null : num);
+          }}
+          className={cn(
+            "w-7 h-7 rounded-full text-xs font-medium transition-all duration-150",
+            value === num
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          )}
+        >
+          {num}
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 interface SearchResult {
   type: 'artist' | 'venue';
@@ -76,7 +120,19 @@ const PhotoReviewCard = ({
   const [showVenueResults, setShowVenueResults] = useState(false);
   const [isSearchingVenue, setIsSearchingVenue] = useState(false);
 
+  // Rating & notes state
+  const [showRatings, setShowRatings] = useState(false);
+  const [artistPerformance, setArtistPerformance] = useState<number | null>(initialData?.artistPerformance ?? null);
+  const [sound, setSound] = useState<number | null>(initialData?.sound ?? null);
+  const [lighting, setLighting] = useState<number | null>(initialData?.lighting ?? null);
+  const [crowd, setCrowd] = useState<number | null>(initialData?.crowd ?? null);
+  const [venueVibe, setVenueVibe] = useState<number | null>(initialData?.venueVibe ?? null);
+  const [notes, setNotes] = useState(initialData?.notes ?? "");
+
   const isValid = artists.length > 0;
+  
+  // Check if any ratings have been added
+  const hasRatings = artistPerformance !== null || sound !== null || lighting !== null || crowd !== null || venueVibe !== null || notes.trim().length > 0;
 
   // Update venue when photo's suggested venue changes
   useEffect(() => {
@@ -139,8 +195,14 @@ const PhotoReviewCard = ({
       date,
       isApproximate,
       isValid,
+      artistPerformance,
+      sound,
+      lighting,
+      crowd,
+      venueVibe,
+      notes,
     });
-  }, [artists, venue, venueId, venueLocation, date, isApproximate, isValid]);
+  }, [artists, venue, venueId, venueLocation, date, isApproximate, isValid, artistPerformance, sound, lighting, crowd, venueVibe, notes]);
 
   // Search venues (only when manual search is active)
   useEffect(() => {
@@ -426,6 +488,72 @@ const PhotoReviewCard = ({
                 </span>
               )}
             </div>
+
+            {/* Add rating & notes toggle */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowRatings(!showRatings);
+              }}
+              className={cn(
+                "flex items-center gap-1.5 text-sm transition-colors",
+                hasRatings ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {showRatings ? (
+                <Minus className="h-3.5 w-3.5" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              {hasRatings ? "Edit rating & notes" : "Add rating & notes"}
+            </button>
+
+            {/* Inline rating section */}
+            {showRatings && (
+              <div className="space-y-4 pt-2 border-t border-border/50">
+                <CompactRatingPills
+                  label="Performance"
+                  value={artistPerformance}
+                  onChange={setArtistPerformance}
+                />
+                <CompactRatingPills
+                  label="Sound"
+                  value={sound}
+                  onChange={setSound}
+                />
+                <CompactRatingPills
+                  label="Lighting"
+                  value={lighting}
+                  onChange={setLighting}
+                />
+                <CompactRatingPills
+                  label="Crowd"
+                  value={crowd}
+                  onChange={setCrowd}
+                />
+                <CompactRatingPills
+                  label="Venue Vibe"
+                  value={venueVibe}
+                  onChange={setVenueVibe}
+                />
+                
+                {/* Notes */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">My Take</Label>
+                  <Textarea
+                    placeholder="Add your thoughts..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    maxLength={500}
+                    className="min-h-[60px] resize-none text-sm bg-muted/30 border-border"
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {notes.length}/500
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Hidden file input for photo replacement */}
             <input
