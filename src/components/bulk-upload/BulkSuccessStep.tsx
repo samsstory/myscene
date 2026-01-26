@@ -32,7 +32,7 @@ const BulkSuccessStep = ({ addedCount, onAddMore, onDone }: BulkSuccessStepProps
       <div className="flex flex-col gap-3 pt-4">
         <Button onClick={onAddMore} variant="outline" className="w-full">
           <Plus className="h-4 w-4 mr-2" />
-          Add More Photos
+          Add More Shows
         </Button>
         <Button onClick={onDone} className="w-full">
           Done
