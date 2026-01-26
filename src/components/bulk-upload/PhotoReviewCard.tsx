@@ -269,7 +269,7 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
               />
               {!date && (
                 <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                  Date
+                  Date (optional)
                 </span>
               )}
             </div>
