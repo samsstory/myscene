@@ -1,4 +1,4 @@
-import { CheckCircle2, PartyPopper, Plus, Instagram, Trophy } from "lucide-react";
+import { CheckCircle2, PartyPopper, Plus, Instagram, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -54,7 +54,7 @@ const BulkSuccessStep = ({ addedCount, onAddMore, onDone, onViewFeed, onRank }: 
         >
           <CardContent className="flex items-center gap-4 p-4">
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Trophy className="h-6 w-6 text-primary" />
+              <Scale className="h-6 w-6 text-primary" />
             </div>
             <div className="text-left">
               <h3 className="font-semibold">Rank Your Shows</h3>
