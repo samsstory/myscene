@@ -196,7 +196,7 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
             <div className="relative">
               <Music className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Artist name *"
+                placeholder="Artist*"
                 value={artist}
                 onChange={(e) => handleArtistInputChange(e.target.value)}
                 onFocus={() => setShowArtistResults(true)}
@@ -224,7 +224,7 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Venue (optional)"
+                placeholder="Venue"
                 value={venue}
                 onChange={(e) => handleVenueInputChange(e.target.value)}
                 onFocus={() => setShowVenueResults(true)}
@@ -269,7 +269,7 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
               />
               {!date && (
                 <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                  Date (optional)
+                  Date
                 </span>
               )}
             </div>
