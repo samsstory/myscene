@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Send, ChevronLeft, ChevronRight } from "lucide-react";
+import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Instagram, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -281,7 +281,7 @@ const Feed = () => {
             setShareShow(show);
             setShareSheetOpen(true);
           }}>
-                <Send className="h-4 w-4" />
+                <Instagram className="h-4 w-4" />
               </Button>
             </CardContent>
           </Card>)}
