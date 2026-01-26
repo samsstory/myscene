@@ -96,6 +96,34 @@ type ExifTag = {
 function parseGpsCoordinate(tag: ExifTag | undefined): number | null {
   if (!tag) return null;
 
+  const toNumber = (v: unknown): number | null => {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+    // ExifReader sometimes returns rationals like { numerator, denominator }
+    if (
+      v &&
+      typeof v === 'object' &&
+      'numerator' in v &&
+      'denominator' in v
+    ) {
+      const num = (v as any).numerator;
+      const den = (v as any).denominator;
+      if (typeof num === 'number' && typeof den === 'number' && Number.isFinite(num) && Number.isFinite(den) && den !== 0) {
+        return num / den;
+      }
+    }
+    // Some variants are tuples like [num, den]
+    if (Array.isArray(v) && v.length === 2) {
+      const num = toNumber(v[0]);
+      const den = toNumber(v[1]);
+      if (num != null && den != null && den !== 0) return num / den;
+    }
+    return null;
+  };
+
   // Prefer description (ExifReader provides a human-friendly string)
   const desc = tag.description;
   if (typeof desc === 'string' && desc.trim()) {
@@ -115,8 +143,23 @@ function parseGpsCoordinate(tag: ExifTag | undefined): number | null {
     }
   }
 
-  // Fallback: attempt to parse from value if it's numeric-ish
-  if (typeof tag.value === 'number' && Number.isFinite(tag.value)) return tag.value;
+  // Fallback: value may be decimal or DMS array of rationals
+  const v = tag.value;
+
+  // Decimal-ish
+  const asNum = toNumber(v);
+  if (asNum != null) return asNum;
+
+  // DMS array (common on iOS): [deg, min, sec]
+  if (Array.isArray(v) && v.length >= 3) {
+    const deg = toNumber(v[0]);
+    const min = toNumber(v[1]);
+    const sec = toNumber(v[2]);
+    if ([deg, min, sec].every(n => typeof n === 'number' && Number.isFinite(n))) {
+      return (deg as number) + (min as number) / 60 + (sec as number) / 3600;
+    }
+  }
+
   return null;
 }
 
