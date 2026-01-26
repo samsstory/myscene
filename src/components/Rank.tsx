@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import { calculateShowScore } from "@/lib/utils";
-import { Loader2, MapPin, CalendarDays, Check } from "lucide-react";
+import { Loader2, MapPin, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 
 interface Show {
@@ -454,39 +454,29 @@ export default function Rank() {
       {/* VS Battle Cards */}
       <div className="relative flex gap-3 items-stretch">
         {/* Left Card */}
-        <div className="flex-1 flex flex-col gap-2">
+        <button
+          onClick={() => handleChoice(showPair[0].id)}
+          disabled={comparing}
+          className="flex-1 text-left cursor-pointer transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        >
           {renderCompactCard(showPair[0])}
-          <Button 
-            onClick={() => handleChoice(showPair[0].id)}
-            disabled={comparing}
-            variant="ghost"
-            size="icon"
-            className="w-full h-10"
-          >
-            <Check className="h-5 w-5" />
-          </Button>
-        </div>
+        </button>
 
         {/* VS Badge */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(50%+20px)] z-10">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
           <div className="bg-primary text-primary-foreground font-bold text-sm px-3 py-1.5 rounded-full shadow-lg">
             VS
           </div>
         </div>
 
         {/* Right Card */}
-        <div className="flex-1 flex flex-col gap-2">
+        <button
+          onClick={() => handleChoice(showPair[1].id)}
+          disabled={comparing}
+          className="flex-1 text-left cursor-pointer transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        >
           {renderCompactCard(showPair[1])}
-          <Button 
-            onClick={() => handleChoice(showPair[1].id)}
-            disabled={comparing}
-            variant="ghost"
-            size="icon"
-            className="w-full h-10"
-          >
-            <Check className="h-5 w-5" />
-          </Button>
-        </div>
+        </button>
       </div>
 
       {/* Can't Compare - subtle link */}
