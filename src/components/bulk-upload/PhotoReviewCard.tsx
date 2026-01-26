@@ -323,10 +323,7 @@ const PhotoReviewCard = ({
                             </div>
                             {venueLocation && (
                               <p className="text-xs text-muted-foreground truncate mt-0.5 ml-5">
-                                {photo.suggestedVenue?.distanceMeters 
-                                  ? `${photo.suggestedVenue.distanceMeters}m away`
-                                  : venueLocation
-                                }
+                                {venueLocation}
                               </p>
                             )}
                           </>
@@ -347,9 +344,11 @@ const PhotoReviewCard = ({
                         <MapPin className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{suggestion.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {suggestion.distanceMeters}m away
-                          </p>
+                          {suggestion.address && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {suggestion.address}
+                            </p>
+                          )}
                         </div>
                         {venue === suggestion.name && (
                           <span className="text-xs text-primary">✓</span>
