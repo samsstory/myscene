@@ -12,11 +12,13 @@ import { useBulkShowUpload } from "@/hooks/useBulkShowUpload";
 interface BulkUploadFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onNavigateToFeed?: () => void;
+  onNavigateToRank?: () => void;
 }
 
 type Step = 'select' | 'review' | 'success';
 
-const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
+const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
   const [photos, setPhotos] = useState<PhotoWithExif[]>([]);
   const [addedCount, setAddedCount] = useState(0);
@@ -134,6 +136,14 @@ const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
             addedCount={addedCount}
             onAddMore={handleAddMore}
             onDone={handleClose}
+            onViewFeed={() => {
+              handleClose();
+              onNavigateToFeed?.();
+            }}
+            onRank={() => {
+              handleClose();
+              onNavigateToRank?.();
+            }}
           />
         )}
       </DialogContent>
