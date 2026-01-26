@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Music, MapPin, Pencil, X, ChevronDown, CheckCircle, Circle } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PhotoWithExif, extractExifData } from "@/lib/exif-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -208,12 +208,6 @@ const PhotoReviewCard = ({
     setShowVenueResults(true);
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete(photo.id);
-  };
-
-  const headerInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -225,13 +219,40 @@ const PhotoReviewCard = ({
         <CollapsibleTrigger asChild>
           <button 
             type="button" 
-            className="w-full flex items-center gap-3 p-3 rounded-t-xl transition-colors hover:bg-muted/50 active:bg-muted/70"
+            className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-muted/50 active:bg-muted/70"
           >
-            <img 
-              src={previewUrl} 
-              alt="Show photo" 
-              className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
-            />
+            {/* Thumbnail with edit/delete overlay */}
+            <div className="relative flex-shrink-0 group">
+              <img 
+                src={previewUrl} 
+                alt="Show photo" 
+                className="w-12 h-12 object-cover rounded-lg"
+              />
+              {isExpanded && (
+                <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="p-1 rounded-full bg-black/50 hover:bg-black/70"
+                  >
+                    <Pencil className="h-3 w-3 text-white" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(photo.id);
+                    }}
+                    className="p-1 rounded-full bg-black/50 hover:bg-destructive"
+                  >
+                    <X className="h-3 w-3 text-white" />
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="flex-1 min-w-0 text-left">
               <p className={cn(
                 "text-sm truncate",
@@ -243,68 +264,22 @@ const PhotoReviewCard = ({
                 <p className="text-xs text-muted-foreground truncate">{venue}</p>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {isValid ? (
-                <CheckCircle className="h-4 w-4 text-primary" />
-              ) : (
-                <Circle className="h-4 w-4 text-orange-400" />
-              )}
-              <ChevronDown className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                isExpanded && "rotate-180"
-              )} />
-            </div>
           </button>
         </CollapsibleTrigger>
 
         {/* Expanded content */}
         <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
           <div className="px-3 pb-3 space-y-3 border-t border-border/50">
-            {/* Photo preview with actions */}
-            <div className="relative mt-3">
-              <img
-                src={previewUrl}
-                alt="Show photo"
-                className="w-full max-h-40 object-contain rounded-lg bg-muted/30"
-              />
-              <div className="absolute top-2 right-2 flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-1.5 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
-                >
-                  <Pencil className="h-3.5 w-3.5 text-white" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="p-1.5 rounded-full bg-black/50 hover:bg-destructive transition-colors"
-                >
-                  <X className="h-3.5 w-3.5 text-white" />
-                </button>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
             {/* Artist input */}
-            <div className="relative">
-              <div className="relative">
-                <Music className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Artist*"
-                  value={artist}
-                  onChange={(e) => handleArtistInputChange(e.target.value)}
-                  onFocus={() => setShowArtistResults(true)}
-                  onBlur={() => setTimeout(() => setShowArtistResults(false), 200)}
-                  className={cn("pl-9", artist.trim() && "border-primary/40")}
-                />
-              </div>
+            <div className="relative mt-3">
+              <Input
+                placeholder="Artist*"
+                value={artist}
+                onChange={(e) => handleArtistInputChange(e.target.value)}
+                onFocus={() => setShowArtistResults(true)}
+                onBlur={() => setTimeout(() => setShowArtistResults(false), 200)}
+                className={cn(artist.trim() && "border-primary/40")}
+              />
               {showArtistResults && artistResults.length > 0 && (
                 <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
                   {artistResults.map((result) => (
@@ -322,17 +297,13 @@ const PhotoReviewCard = ({
 
             {/* Venue input */}
             <div className="relative">
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Venue"
-                  value={venue}
-                  onChange={(e) => handleVenueInputChange(e.target.value)}
-                  onFocus={() => setShowVenueResults(true)}
-                  onBlur={() => setTimeout(() => setShowVenueResults(false), 200)}
-                  className="pl-9"
-                />
-              </div>
+              <Input
+                placeholder="Venue"
+                value={venue}
+                onChange={(e) => handleVenueInputChange(e.target.value)}
+                onFocus={() => setShowVenueResults(true)}
+                onBlur={() => setTimeout(() => setShowVenueResults(false), 200)}
+              />
               {showVenueResults && venueResults.length > 0 && (
                 <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
                   {venueResults.map((result) => (
@@ -353,7 +324,6 @@ const PhotoReviewCard = ({
 
             {/* Date */}
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="date"
                 value={date ? format(date, "yyyy-MM-dd") : ""}
@@ -362,17 +332,26 @@ const PhotoReviewCard = ({
                   setDate(val ? new Date(val + "T12:00:00") : null);
                 }}
                 className={cn(
-                  "w-full h-10 pl-9 pr-3 text-sm rounded-md border border-input bg-background",
+                  "w-full h-10 px-3 text-sm rounded-md border border-input bg-background",
                   !date && "[color:transparent]"
                 )}
                 max={format(new Date(), "yyyy-MM-dd")}
               />
               {!date && (
-                <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                  Date
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  Date (optional)
                 </span>
               )}
             </div>
+
+            {/* Hidden file input for photo replacement */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
         </CollapsibleContent>
       </div>
