@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Download, MapPin } from "lucide-react";
+import { Download, MapPin, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 
@@ -240,6 +240,261 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
     setOverlaySize(sizeMap[value[0]]);
   };
 
+  // Reusable canvas generation function
+  const generateCanvas = async (): Promise<HTMLCanvasElement> => {
+    if (!show.photo_url) {
+      throw new Error("No photo available");
+    }
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not supported");
+
+    // Set dimensions based on aspect ratio
+    const dimensions = {
+      '9:16': { width: 1080, height: 1920 },
+      '4:5': { width: 1080, height: 1350 },
+      '1:1': { width: 1080, height: 1080 }
+    };
+
+    canvas.width = dimensions[aspectRatio].width;
+    canvas.height = dimensions[aspectRatio].height;
+
+    // Load background photo with error handling
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Image loading timeout')), 10000);
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        resolve(null);
+      };
+      img.onerror = () => {
+        clearTimeout(timeout);
+        reject(new Error('Failed to load image. The photo may have been deleted.'));
+      };
+      img.src = show.photo_url!;
+    });
+
+    // Draw photo (cover fit)
+    const imgAspect = img.width / img.height;
+    const canvasAspect = canvas.width / canvas.height;
+    
+    let drawWidth, drawHeight, offsetX, offsetY;
+    if (imgAspect > canvasAspect) {
+      drawHeight = canvas.height;
+      drawWidth = img.width * (canvas.height / img.height);
+      offsetX = (canvas.width - drawWidth) / 2;
+      offsetY = 0;
+    } else {
+      drawWidth = canvas.width;
+      drawHeight = img.height * (canvas.width / img.width);
+      offsetX = 0;
+      offsetY = (canvas.height - drawHeight) / 2;
+    }
+
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+    // Get overlay position
+    const overlayElement = document.getElementById("rating-overlay");
+    const canvasContainer = document.getElementById("canvas-container");
+    if (!overlayElement || !canvasContainer) throw new Error("Elements not found");
+    
+    const containerRect = canvasContainer.getBoundingClientRect();
+    const overlayRect = overlayElement.getBoundingClientRect();
+
+    const scaleX = canvas.width / containerRect.width;
+    const scaleY = canvas.height / containerRect.height;
+
+    const overlayX = (overlayRect.left - containerRect.left) * scaleX;
+    const overlayY = (overlayRect.top - containerRect.top) * scaleY;
+    const overlayWidth = overlayRect.width * scaleX;
+    const overlayHeight = overlayRect.height * scaleY;
+
+    // Draw overlay background if enabled
+    if (overlayConfig.showBackground) {
+      const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
+      const ratingValue = show.rating;
+      
+      if (ratingValue >= 4.5) {
+        gradient.addColorStop(0, "hsl(220, 90%, 56%)");
+        gradient.addColorStop(1, "hsl(280, 70%, 55%)");
+      } else if (ratingValue >= 3.5) {
+        gradient.addColorStop(0, "hsl(45, 100%, 60%)");
+        gradient.addColorStop(1, "hsl(330, 85%, 65%)");
+      } else if (ratingValue >= 2.5) {
+        gradient.addColorStop(0, "hsl(30, 100%, 55%)");
+        gradient.addColorStop(1, "hsl(45, 100%, 60%)");
+      } else {
+        gradient.addColorStop(0, "hsl(0, 70%, 50%)");
+        gradient.addColorStop(1, "hsl(30, 100%, 55%)");
+      }
+
+      ctx.globalAlpha = overlayOpacity / 100;
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, 24 * scaleX);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Draw text matching screen layout exactly
+    const padding = 24 * scaleX;
+    let yPos = overlayY + padding;
+    
+    ctx.fillStyle = "white";
+    ctx.textAlign = "left";
+
+    // Row 1: Artist and Score
+    if (overlayConfig.showArtists || overlayConfig.showRating) {
+      const headliners = show.artists.filter((a) => a.is_headliner);
+      const artistText = headliners.map((a) => a.name).join(", ");
+      const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
+
+      if (overlayConfig.showArtists) {
+        ctx.font = `bold ${24 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = overlayConfig.showBackground ? primaryColor : "white";
+        if (!overlayConfig.showBackground) {
+          ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+          ctx.shadowBlur = 8 * scaleX;
+          ctx.shadowOffsetY = 2 * scaleY;
+        }
+        ctx.fillText(artistText, overlayX + padding, yPos);
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+      }
+
+      if (overlayConfig.showRating) {
+        ctx.font = `900 ${36 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = "white";
+        const scoreText = score.toFixed(1);
+        const scoreWidth = ctx.measureText(scoreText).width;
+        ctx.fillText(scoreText, overlayX + overlayWidth - padding - scoreWidth, yPos);
+      }
+
+      yPos += 40 * scaleY;
+    }
+
+    // Venue
+    if (overlayConfig.showVenue) {
+      ctx.font = `${18 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "white";
+      ctx.fillText(show.venue_name, overlayX + padding, yPos);
+      yPos += 28 * scaleY;
+    }
+
+    // Date
+    if (overlayConfig.showDate) {
+      ctx.font = `${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      const dateStr = new Date(show.show_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+      ctx.fillText(dateStr, overlayX + padding, yPos);
+      yPos += 36 * scaleY;
+    }
+
+    // Detailed ratings
+    if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
+      const detailedRatings = [
+        { label: "Performance", value: show.artist_performance },
+        { label: "Sound", value: show.sound },
+        { label: "Lighting", value: show.lighting },
+        { label: "Crowd", value: show.crowd },
+        { label: "Vibe", value: show.venue_vibe },
+      ].filter((r) => r.value);
+
+      ctx.font = `${12 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      const labelWidth = 80 * scaleX;
+      const barWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
+      const barHeight = 6 * scaleY;
+
+      detailedRatings.forEach((rating) => {
+        ctx.fillStyle = "white";
+        ctx.fillText(rating.label, overlayX + padding, yPos);
+
+        const barX = overlayX + padding + labelWidth;
+        const barY = yPos - barHeight / 2 - 6 * scaleY;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
+        ctx.fill();
+
+        const fillWidth = (rating.value! / 5) * barWidth;
+        ctx.fillStyle = "rgba(255, 255, 255, 1)";
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
+        ctx.fill();
+
+        yPos += 22 * scaleY;
+      });
+      yPos += 12 * scaleY;
+    }
+
+    // Notes
+    if (overlayConfig.showNotes && show.notes) {
+      ctx.font = `italic ${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      const maxWidth = overlayWidth - padding * 2;
+      const words = `"${show.notes}"`.split(" ");
+      let line = "";
+      let lineCount = 0;
+
+      words.forEach((word) => {
+        const testLine = line + word + " ";
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && line !== "") {
+          if (lineCount < 3) {
+            ctx.fillText(line, overlayX + padding, yPos);
+            line = word + " ";
+            yPos += 28 * scaleY;
+            lineCount++;
+          }
+        } else {
+          line = testLine;
+        }
+      });
+      if (lineCount < 3 && line !== "") {
+        ctx.fillText(line, overlayX + padding, yPos);
+      }
+      yPos += 12 * scaleY;
+    }
+    
+    // Scene logo and rank at bottom
+    const bottomY = overlayY + overlayHeight - 12 * scaleY;
+    
+    // Rank on the left
+    if (overlayConfig.showRank && rankData.total > 0) {
+      ctx.font = `600 ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+      
+      const rankGradientColors = (() => {
+        if (rankData.percentile >= 90) return ["hsl(45, 93%, 58%)", "hsl(189, 94%, 55%)"];
+        if (rankData.percentile >= 75) return ["hsl(189, 94%, 55%)", "hsl(260, 80%, 60%)"];
+        if (rankData.percentile >= 50) return ["hsl(260, 80%, 60%)", "hsl(330, 85%, 65%)"];
+        return ["hsl(330, 85%, 65%)", "hsl(0, 84%, 60%)"];
+      })();
+      
+      const gradient = ctx.createLinearGradient(overlayX + padding, bottomY, overlayX + overlayWidth - padding, bottomY);
+      gradient.addColorStop(0, rankGradientColors[0]);
+      gradient.addColorStop(1, rankGradientColors[1]);
+      
+      ctx.fillStyle = gradient;
+      ctx.textAlign = "left";
+      const timePeriod = rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time';
+      const rankText = `#${rankData.position} of ${rankData.total} shows ${timePeriod}`;
+      ctx.fillText(rankText, overlayX + padding, bottomY);
+    }
+    
+    // Scene logo on the right
+    ctx.font = `bold ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.textAlign = "right";
+    ctx.fillText("SCENE", overlayX + overlayWidth - padding, bottomY);
+
+    return canvas;
+  };
+
   const handleDownloadImage = async () => {
     if (!show.photo_url) {
       toast.error("No photo available");
@@ -248,252 +503,8 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
 
     setIsGenerating(true);
     try {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas not supported");
-
-      // Set dimensions based on aspect ratio
-      const dimensions = {
-        '9:16': { width: 1080, height: 1920 },
-        '4:5': { width: 1080, height: 1350 },
-        '1:1': { width: 1080, height: 1080 }
-      };
-
-      canvas.width = dimensions[aspectRatio].width;
-      canvas.height = dimensions[aspectRatio].height;
-
-      // Load background photo with error handling
-      const img = new Image();
-      img.crossOrigin = "anonymous";
+      const canvas = await generateCanvas();
       
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Image loading timeout')), 10000);
-        
-        img.onload = () => {
-          clearTimeout(timeout);
-          resolve(null);
-        };
-        img.onerror = () => {
-          clearTimeout(timeout);
-          reject(new Error('Failed to load image. The photo may have been deleted.'));
-        };
-        img.src = show.photo_url!;
-      });
-
-      // Draw photo (cover fit)
-      const imgAspect = img.width / img.height;
-      const canvasAspect = canvas.width / canvas.height;
-      
-      let drawWidth, drawHeight, offsetX, offsetY;
-      if (imgAspect > canvasAspect) {
-        drawHeight = canvas.height;
-        drawWidth = img.width * (canvas.height / img.height);
-        offsetX = (canvas.width - drawWidth) / 2;
-        offsetY = 0;
-      } else {
-        drawWidth = canvas.width;
-        drawHeight = img.height * (canvas.width / img.width);
-        offsetX = 0;
-        offsetY = (canvas.height - drawHeight) / 2;
-      }
-
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-
-      // Get overlay position
-      const overlayElement = document.getElementById("rating-overlay");
-      const canvasContainer = document.getElementById("canvas-container");
-      if (!overlayElement || !canvasContainer) throw new Error("Elements not found");
-      
-      const containerRect = canvasContainer.getBoundingClientRect();
-      const overlayRect = overlayElement.getBoundingClientRect();
-
-      const scaleX = canvas.width / containerRect.width;
-      const scaleY = canvas.height / containerRect.height;
-
-      const overlayX = (overlayRect.left - containerRect.left) * scaleX;
-      const overlayY = (overlayRect.top - containerRect.top) * scaleY;
-      const overlayWidth = overlayRect.width * scaleX;
-      const overlayHeight = overlayRect.height * scaleY;
-
-      // Draw overlay background if enabled
-      if (overlayConfig.showBackground) {
-        const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
-        const ratingValue = show.rating;
-        
-        if (ratingValue >= 4.5) {
-          gradient.addColorStop(0, "hsl(220, 90%, 56%)");
-          gradient.addColorStop(1, "hsl(280, 70%, 55%)");
-        } else if (ratingValue >= 3.5) {
-          gradient.addColorStop(0, "hsl(45, 100%, 60%)");
-          gradient.addColorStop(1, "hsl(330, 85%, 65%)");
-        } else if (ratingValue >= 2.5) {
-          gradient.addColorStop(0, "hsl(30, 100%, 55%)");
-          gradient.addColorStop(1, "hsl(45, 100%, 60%)");
-        } else {
-          gradient.addColorStop(0, "hsl(0, 70%, 50%)");
-          gradient.addColorStop(1, "hsl(30, 100%, 55%)");
-        }
-
-        ctx.globalAlpha = overlayOpacity / 100;
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, 24 * scaleX);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-
-      // Draw text matching screen layout exactly
-      const padding = 24 * scaleX;
-      let yPos = overlayY + padding;
-      
-      ctx.fillStyle = "white";
-      ctx.textAlign = "left";
-
-      // Row 1: Artist and Score
-      if (overlayConfig.showArtists || overlayConfig.showRating) {
-        const headliners = show.artists.filter((a) => a.is_headliner);
-        const artistText = headliners.map((a) => a.name).join(", ");
-        const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
-
-        if (overlayConfig.showArtists) {
-          ctx.font = `bold ${24 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-          ctx.fillStyle = overlayConfig.showBackground ? primaryColor : "white";
-          if (!overlayConfig.showBackground) {
-            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-            ctx.shadowBlur = 8 * scaleX;
-            ctx.shadowOffsetY = 2 * scaleY;
-          }
-          ctx.fillText(artistText, overlayX + padding, yPos);
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-        }
-
-        if (overlayConfig.showRating) {
-          ctx.font = `900 ${36 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-          ctx.fillStyle = "white";
-          const scoreText = score.toFixed(1);
-          const scoreWidth = ctx.measureText(scoreText).width;
-          ctx.fillText(scoreText, overlayX + overlayWidth - padding - scoreWidth, yPos);
-        }
-
-        yPos += 40 * scaleY;
-      }
-
-      // Venue
-      if (overlayConfig.showVenue) {
-        ctx.font = `${18 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-        ctx.fillStyle = "white";
-        ctx.fillText(show.venue_name, overlayX + padding, yPos);
-        yPos += 28 * scaleY;
-      }
-
-      // Date
-      if (overlayConfig.showDate) {
-        ctx.font = `${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        const dateStr = new Date(show.show_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-        ctx.fillText(dateStr, overlayX + padding, yPos);
-        yPos += 36 * scaleY;
-      }
-
-      // Detailed ratings
-      if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
-        const detailedRatings = [
-          { label: "Performance", value: show.artist_performance },
-          { label: "Sound", value: show.sound },
-          { label: "Lighting", value: show.lighting },
-          { label: "Crowd", value: show.crowd },
-          { label: "Vibe", value: show.venue_vibe },
-        ].filter((r) => r.value);
-
-        ctx.font = `${12 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-        const labelWidth = 80 * scaleX;
-        const barWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
-        const barHeight = 6 * scaleY;
-
-        detailedRatings.forEach((rating) => {
-          ctx.fillStyle = "white";
-          ctx.fillText(rating.label, overlayX + padding, yPos);
-
-          const barX = overlayX + padding + labelWidth;
-          const barY = yPos - barHeight / 2 - 6 * scaleY;
-
-          ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-          ctx.beginPath();
-          ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
-          ctx.fill();
-
-          const fillWidth = (rating.value! / 5) * barWidth;
-          ctx.fillStyle = "rgba(255, 255, 255, 1)";
-          ctx.beginPath();
-          ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
-          ctx.fill();
-
-          yPos += 22 * scaleY;
-        });
-        yPos += 12 * scaleY;
-      }
-
-      // Notes
-      if (overlayConfig.showNotes && show.notes) {
-        ctx.font = `italic ${14 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        const maxWidth = overlayWidth - padding * 2;
-        const words = `"${show.notes}"`.split(" ");
-        let line = "";
-        let lineCount = 0;
-
-        words.forEach((word) => {
-          const testLine = line + word + " ";
-          const metrics = ctx.measureText(testLine);
-          if (metrics.width > maxWidth && line !== "") {
-            if (lineCount < 3) {
-              ctx.fillText(line, overlayX + padding, yPos);
-              line = word + " ";
-              yPos += 28 * scaleY;
-              lineCount++;
-            }
-          } else {
-            line = testLine;
-          }
-        });
-        if (lineCount < 3 && line !== "") {
-          ctx.fillText(line, overlayX + padding, yPos);
-        }
-        yPos += 12 * scaleY;
-      }
-      
-      // Scene logo and rank at bottom
-      const bottomY = overlayY + overlayHeight - 12 * scaleY;
-      
-      // Rank on the left
-      if (overlayConfig.showRank && rankData.total > 0) {
-        ctx.font = `600 ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-        
-        const rankGradientColors = (() => {
-          if (rankData.percentile >= 90) return ["hsl(45, 93%, 58%)", "hsl(189, 94%, 55%)"];
-          if (rankData.percentile >= 75) return ["hsl(189, 94%, 55%)", "hsl(260, 80%, 60%)"];
-          if (rankData.percentile >= 50) return ["hsl(260, 80%, 60%)", "hsl(330, 85%, 65%)"];
-          return ["hsl(330, 85%, 65%)", "hsl(0, 84%, 60%)"];
-        })();
-        
-        const gradient = ctx.createLinearGradient(overlayX + padding, bottomY, overlayX + overlayWidth - padding, bottomY);
-        gradient.addColorStop(0, rankGradientColors[0]);
-        gradient.addColorStop(1, rankGradientColors[1]);
-        
-        ctx.fillStyle = gradient;
-        ctx.textAlign = "left";
-        const timePeriod = rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time';
-        const rankText = `#${rankData.position} of ${rankData.total} shows ${timePeriod}`;
-        ctx.fillText(rankText, overlayX + padding, bottomY);
-      }
-      
-      // Scene logo on the right
-      ctx.font = `bold ${10 * overlaySize * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.textAlign = "right";
-      ctx.fillText("SCENE", overlayX + overlayWidth - padding, bottomY);
-
       // Download
       canvas.toBlob((blob) => {
         if (!blob) {
@@ -520,6 +531,73 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleShareToInstagram = async () => {
+    if (!show.photo_url) {
+      toast.error("No photo available");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const canvas = await generateCanvas();
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error("Failed to generate image");
+          setIsGenerating(false);
+          return;
+        }
+        
+        const artistName = show.artists[0]?.name || "show";
+        const file = new File([blob], `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`, { 
+          type: 'image/png' 
+        });
+        
+        // Check if Web Share API with files is supported
+        if (navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'My Show on Scene',
+            });
+            toast.success("Shared successfully!");
+          } catch (err) {
+            // User cancelled share - not an error
+            if ((err as Error).name !== 'AbortError') {
+              console.error("Share failed:", err);
+              toast.error("Share failed. Downloading instead...");
+              // Fallback to download
+              downloadBlob(blob, artistName);
+            }
+          }
+        } else {
+          // Fallback for browsers that don't support sharing files
+          toast.info("Share not supported on this device. Downloading instead...");
+          downloadBlob(blob, artistName);
+        }
+        
+        setIsGenerating(false);
+      }, "image/png");
+
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.error("Failed to generate image");
+      setIsGenerating(false);
+    }
+  };
+
+  const downloadBlob = (blob: Blob, artistName: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const date = new Date(show.show_date).toISOString().split('T')[0];
+    const ratioLabel = aspectRatio.replace(':', 'x');
+    a.download = `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${date}-${ratioLabel}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Image downloaded! (${aspectRatio})`);
   };
 
   if (!show.photo_url) {
@@ -886,14 +964,23 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
         {/* Action Buttons */}
         <div className="space-y-2 pt-4 border-t">
           <Button
-            onClick={handleDownloadImage}
+            onClick={handleShareToInstagram}
             disabled={isGenerating}
             className="w-full"
           >
-            <Download className="mr-2 h-4 w-4" />
-            {isGenerating ? "Generating..." : "Download Image"}
+            <Share2 className="mr-2 h-4 w-4" />
+            {isGenerating ? "Generating..." : "Share to Instagram"}
           </Button>
-          <Button variant="outline" onClick={onClose} className="w-full">
+          <Button
+            onClick={handleDownloadImage}
+            disabled={isGenerating}
+            variant="outline"
+            className="w-full"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download Image
+          </Button>
+          <Button variant="ghost" onClick={onClose} className="w-full">
             Close
           </Button>
         </div>
