@@ -263,14 +263,13 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
                 }}
                 className={cn(
                   "w-full h-10 pl-9 pr-3 text-sm rounded-md border border-input bg-background",
-                  !date && "text-muted-foreground"
+                  !date && "[color:transparent]"
                 )}
                 max={format(new Date(), "yyyy-MM-dd")}
-                placeholder="Date (Optional)"
               />
               {!date && (
                 <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                  Date (Optional)
+                  Date
                 </span>
               )}
             </div>
