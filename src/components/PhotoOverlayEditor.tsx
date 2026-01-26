@@ -7,7 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
   Download, MapPin, Instagram, Move, Eye, EyeOff,
   Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, 
-  Layers, Trophy, RotateCcw
+  Layers, Trophy, RotateCcw, SunDim
 } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
@@ -83,6 +83,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showRankOptions, setShowRankOptions] = useState(false);
+  const [showOpacitySlider, setShowOpacitySlider] = useState(false);
   
   // Multi-touch transform for Instagram-style overlay manipulation
   const { transform, setTransform, handlers, handleWheel } = useMultiTouchTransform({
@@ -873,6 +874,53 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 
                 <div className="w-px h-5 bg-white/20 mx-1" />
                 
+                {/* Opacity control */}
+                <div className="relative">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowOpacitySlider(!showOpacitySlider); }}
+                        className={`p-2 rounded-full transition-all ${
+                          showOpacitySlider 
+                            ? "bg-white/20 text-white" 
+                            : "text-white/40 hover:text-white/70 hover:bg-white/10"
+                        }`}
+                      >
+                        <SunDim className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      Opacity
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  {/* Vertical opacity slider popup */}
+                  {showOpacitySlider && (
+                    <div 
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black/80 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg animate-scale-in"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="h-24 flex flex-col items-center gap-2">
+                        <span className="text-xs text-white/70">{overlayOpacity}%</span>
+                        <input
+                          type="range"
+                          min={50}
+                          max={100}
+                          step={5}
+                          value={overlayOpacity}
+                          onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                          className="w-24 h-1 accent-white/80 cursor-pointer rotate-[-90deg] origin-center"
+                          style={{ 
+                            WebkitAppearance: 'none',
+                            background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(overlayOpacity - 50) * 2}%, rgba(255,255,255,0.2) ${(overlayOpacity - 50) * 2}%)`,
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 {/* Reset position */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -892,7 +940,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); }}
+                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowOpacitySlider(false); setShowRankOptions(false); }}
                       className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/10 transition-all"
                     >
                       <Eye className="h-4 w-4" />
@@ -960,21 +1008,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           <p className="text-xs text-muted-foreground text-center mt-3">
             Drag • Pinch to resize • Two fingers to rotate • Tap elements to toggle
           </p>
-        </div>
-
-        {/* Opacity Slider */}
-        <div className="space-y-2 px-1">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">Overlay Opacity</Label>
-            <span className="text-xs text-muted-foreground">{overlayOpacity}%</span>
-          </div>
-          <Slider
-            min={50}
-            max={100}
-            step={5}
-            value={[overlayOpacity]}
-            onValueChange={(value) => setOverlayOpacity(value[0])}
-          />
         </div>
 
         {/* Action Buttons */}
