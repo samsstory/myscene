@@ -744,7 +744,7 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
 
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative">
+      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[85vh] flex flex-col">
         {/* Back button - absolute positioned */}
         {step > 1 && (
           <Button
@@ -758,18 +758,20 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         )}
 
         {/* Step content - scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6 min-h-0">
           <div className="flex flex-col items-center">
             <h2 className="text-2xl font-bold text-center mb-4">
               {editShow ? "Edit Show" : "Add a Show"}
             </h2>
-            {renderStepContent()}
+            <div className="w-full">
+              {renderStepContent()}
+            </div>
           </div>
         </div>
 
         {/* Progress indicator - hide for step selector */}
         {step > 0 && !showStepSelector && (
-          <div className="flex gap-1 px-6 pb-4">
+          <div className="flex gap-1 px-6 pb-4 pt-2 border-t border-border/50 bg-background">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
