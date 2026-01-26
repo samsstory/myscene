@@ -11,7 +11,7 @@ import { ShareShowSheet } from "./ShareShowSheet";
 import { ShowReviewSheet } from "./ShowReviewSheet";
 import MapView from "./MapView";
 import AddShowFlow from "./AddShowFlow";
-import { calculateShowScore, getScoreGradient } from "@/lib/utils";
+import { ShowRankBadge } from "./feed/ShowRankBadge";
 interface Artist {
   name: string;
   isHeadliner: boolean;
@@ -54,7 +54,6 @@ const Feed = () => {
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
   const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
-  const [rankingMode, setRankingMode] = useState<"score" | "elo">("score");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   useEffect(() => {
     fetchShows();
@@ -169,48 +168,54 @@ const Feed = () => {
         });
       }
 
-      // Sort by ELO or calculated score
-      if (rankingMode === "elo") {
-        // Create a map of show_id to ELO score and comparison count
-        const rankingMap = new Map(rankings.map(r => [r.show_id, {
-          elo: r.elo_score,
-          comparisons: r.comparisons_count
-        }]));
-        return [...filteredShows].sort((a, b) => {
-          const rankingA = rankingMap.get(a.id);
-          const rankingB = rankingMap.get(b.id);
+      // Always sort by ELO (head-to-head is the primary ranking system now)
+      const rankingMap = new Map(rankings.map(r => [r.show_id, {
+        elo: r.elo_score,
+        comparisons: r.comparisons_count
+      }]));
+      return [...filteredShows].sort((a, b) => {
+        const rankingA = rankingMap.get(a.id);
+        const rankingB = rankingMap.get(b.id);
 
-          // Use ELO score if available, otherwise default to 1200
-          const eloA = rankingA?.elo || 1200;
-          const eloB = rankingB?.elo || 1200;
-          if (eloB !== eloA) {
-            return eloB - eloA; // Higher ELO first
-          }
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-      } else {
-        // Sort by calculated score (descending) and then by date (descending)
-        return [...filteredShows].sort((a, b) => {
-          const scoreA = calculateShowScore(a.rating, a.artistPerformance, a.sound, a.lighting, a.crowd, a.venueVibe);
-          const scoreB = calculateShowScore(b.rating, b.artistPerformance, b.sound, b.lighting, b.crowd, b.venueVibe);
-          if (scoreB !== scoreA) {
-            return scoreB - scoreA;
-          }
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-      }
+        // Use ELO score if available, otherwise default to 1200
+        const eloA = rankingA?.elo || 1200;
+        const eloB = rankingB?.elo || 1200;
+        if (eloB !== eloA) {
+          return eloB - eloA; // Higher ELO first
+        }
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
     }
     return filteredShows;
+  };
+  
+  // Helper to get rank info for a show
+  const getShowRankInfo = (showId: string) => {
+    const rankingMap = new Map(rankings.map(r => [r.show_id, r]));
+    const ranking = rankingMap.get(showId);
+    
+    if (!ranking || ranking.comparisons_count === 0) {
+      return { position: null, total: shows.length, comparisonsCount: 0 };
+    }
+    
+    // Calculate position based on ELO
+    const sortedRankings = [...rankings].sort((a, b) => b.elo_score - a.elo_score);
+    const position = sortedRankings.findIndex(r => r.show_id === showId) + 1;
+    
+    return { 
+      position, 
+      total: sortedRankings.length, 
+      comparisonsCount: ranking.comparisons_count 
+    };
   };
   const getShowsForDate = (date: Date) => {
     return shows.filter(show => isSameDay(parseISO(show.date), date));
   };
   const renderListView = () => {
     const sortedShows = getSortedShows();
-    const isHeadToHead = viewMode === "top-rated" && rankingMode === "elo";
     return <div className="flex flex-col gap-3 items-center w-full">
         {sortedShows.map((show, index) => {
-          const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
+          const rankInfo = getShowRankInfo(show.id);
           return (
             <Card 
               key={show.id} 
@@ -277,11 +282,13 @@ const Feed = () => {
                   </div>
                 </div>
 
-                {/* Rating - bottom right */}
+                {/* Rank badge - bottom right */}
                 <div className="absolute bottom-3 right-3">
-                  <div className={`text-3xl font-black bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}>
-                    {score.toFixed(1)}
-                  </div>
+                  <ShowRankBadge 
+                    position={rankInfo.position} 
+                    total={rankInfo.total} 
+                    comparisonsCount={rankInfo.comparisonsCount}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -361,11 +368,12 @@ const Feed = () => {
           return <div key={day.toISOString()} className={`aspect-square p-2 flex items-center justify-center ${dayShows.length > 0 ? "bg-card" : "bg-background"}`}>
               {dayShows.length > 0 ? <div className="flex flex-wrap gap-1 items-center justify-center">
                     {dayShows.map(show => {
-                const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
+                const rankInfo = getShowRankInfo(show.id);
+                const rankDisplay = rankInfo.position ? `#${rankInfo.position}` : "New";
                 return <button 
                   key={show.id} 
                   className="relative hover:scale-110 transition-transform cursor-pointer"
-                  title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name} (${score.toFixed(1)}/10)`} 
+                  title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name}`} 
                   onClick={() => {
                     setReviewShow(show);
                     setReviewSheetOpen(true);
@@ -383,12 +391,12 @@ const Feed = () => {
                           textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)'
                         }}
                       >
-                        {score.toFixed(1)}
+                        {rankDisplay}
                       </div>
                     </div>
                   ) : (
-                    <div className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold bg-gradient-to-r ${getScoreGradient(score)} text-white shadow-lg`}>
-                      {score.toFixed(1)}
+                    <div className="w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold bg-primary text-primary-foreground shadow-lg">
+                      {rankDisplay}
                     </div>
                   )}
                 </button>;
@@ -429,18 +437,8 @@ const Feed = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Time period filters and ranking mode toggle for Top Rated view */}
-        {viewMode === "top-rated" && <div className="space-y-3 mt-4">
-            {/* Ranking mode toggle */}
-            <div className="flex justify-center gap-2">
-              <Button variant={rankingMode === "score" ? "default" : "outline"} size="sm" onClick={() => setRankingMode("score")}>
-                By Score
-              </Button>
-              <Button variant={rankingMode === "elo" ? "default" : "outline"} size="sm" onClick={() => setRankingMode("elo")}>
-                Head to Head
-              </Button>
-            </div>
-
+        {/* Time period filters for Top Rated view */}
+        {viewMode === "top-rated" && <div className="mt-4">
             {/* Time period filters */}
             <div className="flex justify-center gap-2">
               <Button variant={topRatedFilter === "all-time" ? "default" : "outline"} size="sm" onClick={() => setTopRatedFilter("all-time")}>
