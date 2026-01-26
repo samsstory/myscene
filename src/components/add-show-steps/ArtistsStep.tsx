@@ -78,7 +78,7 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
   return (
     <div className="space-y-6">
       <div>
-        <Label className="text-base font-semibold">Who performed?</Label>
+        <Label className="text-base font-semibold">Who'd you see?</Label>
         <p className="text-sm text-muted-foreground mt-1">
           Add headliners and openers
         </p>
