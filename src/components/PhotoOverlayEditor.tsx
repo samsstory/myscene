@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Download, MapPin, Share2 } from "lucide-react";
+import { Download, MapPin, Instagram } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 
@@ -966,21 +966,22 @@ export const PhotoOverlayEditor = ({ show, onClose, aspectRatio, allShows = [], 
           <Button
             onClick={handleShareToInstagram}
             disabled={isGenerating}
-            className="w-full"
+            variant="outline"
+            className="w-full border-primary/50 hover:bg-primary/10"
           >
-            <Share2 className="mr-2 h-4 w-4" />
+            <Instagram className="mr-2 h-4 w-4 text-primary" />
             {isGenerating ? "Generating..." : "Share to Instagram"}
           </Button>
           <Button
             onClick={handleDownloadImage}
             disabled={isGenerating}
-            variant="outline"
+            variant="ghost"
             className="w-full"
           >
             <Download className="mr-2 h-4 w-4" />
             Download Image
           </Button>
-          <Button variant="ghost" onClick={onClose} className="w-full">
+          <Button variant="ghost" onClick={onClose} className="w-full text-muted-foreground">
             Close
           </Button>
         </div>
