@@ -236,7 +236,7 @@ const PhotoReviewCard = ({
             <div className="relative">
               <Input
                 ref={headerInputRef}
-                placeholder="Add artist"
+                placeholder="add artist"
                 value={artist}
                 onChange={(e) => handleArtistInputChange(e.target.value)}
                 onFocus={() => {
