@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Music, Star, Instagram, CheckCircle2, Download, X } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Music, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
 import VenueStep from "./add-show-steps/VenueStep";
@@ -8,6 +8,7 @@ import DateStep from "./add-show-steps/DateStep";
 import ArtistsStep from "./add-show-steps/ArtistsStep";
 import RatingStep from "./add-show-steps/RatingStep";
 import QuickCompareStep from "./add-show-steps/QuickCompareStep";
+import SuccessStep from "./add-show-steps/SuccessStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -497,7 +498,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
         toast.success("Show updated successfully! 🎉");
         resetAndClose();
       } else {
-        // For new shows, go to quick compare step
+        // For new shows, go to success step
         const newShowData: AddedShowData = {
           id: show.id,
           artists: showData.artists,
@@ -511,12 +512,45 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           venueVibe: showData.venueVibe,
         };
         setAddedShow(newShowData);
-        setStep(4); // Quick compare step
+        setStep(5); // Success step
       }
     } catch (error) {
       console.error("Error adding show:", error);
       toast.error("Failed to add show. Please try again.");
     }
+  };
+
+  // Handle photo upload for the success step
+  const handlePhotoUpload = async (file: File) => {
+    if (!addedShow) return;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) throw new Error("Not authenticated");
+    
+    // Compress and upload
+    const ext = file.type.split('/')[1] || 'jpg';
+    const fileName = `${session.user.id}/${addedShow.id}-${Date.now()}.${ext}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('show-photos')
+      .upload(fileName, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+    
+    if (uploadError) throw uploadError;
+    
+    // Get public URL and update show record
+    const { data: { publicUrl } } = supabase.storage
+      .from('show-photos')
+      .getPublicUrl(fileName);
+    
+    const { error: updateError } = await supabase
+      .from('shows')
+      .update({ photo_url: publicUrl })
+      .eq('id', addedShow.id);
+    
+    if (updateError) throw updateError;
   };
 
   const resetAndClose = () => {
@@ -727,7 +761,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           />
         );
       }
-      if (step === 4) {
+      if (step === 4 && showStepSelector) {
+        // Only show RatingStep in edit mode
         return (
           <RatingStep
             rating={showData.rating}
@@ -797,7 +832,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           />
         );
       }
-      if (step === 4) {
+      if (step === 4 && showStepSelector) {
+        // Only show RatingStep in edit mode
         return (
           <RatingStep
             rating={showData.rating}
@@ -815,8 +851,27 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
       }
     }
 
-    // Quick compare step (step 4 for new shows)
-    if (step === 4 && !showStepSelector) {
+    // Success step (step 5 for new shows)
+    if (step === 5 && addedShow) {
+      return (
+        <SuccessStep
+          show={addedShow}
+          onAddPhoto={handlePhotoUpload}
+          onShare={handleShareShow}
+          onRank={() => setStep(6)}
+          onDone={() => {
+            toast.success("Show added! 🎉");
+            if (onShowAdded) {
+              onShowAdded(addedShow);
+            }
+            resetAndClose();
+          }}
+        />
+      );
+    }
+
+    // Quick compare step (step 6 for new shows)
+    if (step === 6 && addedShow) {
       return renderQuickCompareStep();
     }
 
@@ -826,8 +881,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[70vh] sm:max-h-[85vh] flex flex-col fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
-        {/* Back button - absolute positioned (hide on quick compare step) */}
-        {step > 1 && step < 4 && (
+        {/* Back button - absolute positioned (hide on success/quick compare steps) */}
+        {step > 1 && step < 5 && (
           <Button
             variant="ghost"
             size="icon"
@@ -852,8 +907,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           </div>
         </div>
 
-        {/* Progress indicator - hide for step selector and quick compare step */}
-        {step > 0 && step < 4 && !showStepSelector && (
+        {/* Progress indicator - hide for step selector and success/quick compare steps */}
+        {step > 0 && step < 5 && !showStepSelector && (
           <div className="flex gap-1 px-6 pb-4 pt-2 border-t border-border/50 bg-background">
             {[1, 2, 3].map((i) => (
               <div
