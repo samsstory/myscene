@@ -14,6 +14,7 @@ interface RatingStepProps {
   notes: string;
   onDetailChange: (field: string, value: number | string) => void;
   onSubmit: () => void;
+  onSkip?: () => void;
   isEditMode?: boolean;
 }
 
@@ -60,6 +61,7 @@ const RatingStep = ({
   notes,
   onDetailChange,
   onSubmit,
+  onSkip,
   isEditMode = false
 }: RatingStepProps) => {
   return (
@@ -118,13 +120,24 @@ const RatingStep = ({
         </div>
       </div>
 
-      {/* Submit button */}
-      <Button
-        onClick={onSubmit}
-        className="w-full h-12 text-base"
-      >
-        {isEditMode ? "Save Changes" : "Done"}
-      </Button>
+      {/* Submit buttons */}
+      <div className="space-y-2">
+        <Button
+          onClick={onSubmit}
+          className="w-full h-12 text-base"
+        >
+          {isEditMode ? "Save Changes" : "Save Show"}
+        </Button>
+        {!isEditMode && onSkip && (
+          <Button
+            onClick={onSkip}
+            variant="ghost"
+            className="w-full h-10 text-base text-muted-foreground"
+          >
+            Skip for now
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
