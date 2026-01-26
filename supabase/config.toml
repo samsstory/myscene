@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.backfill-venue-coordinates]
 verify_jwt = true
+
+[functions.unified-search]
+verify_jwt = false
