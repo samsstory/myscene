@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2, Home, Globe, Map, Building2, Sparkles } from "lucide-react";
+import { MapPin, Loader2, Home, Globe, Map, Building2, Sparkles, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -59,6 +60,55 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingAddresses, setIsSearchingAddresses] = useState(false);
   const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
+  const [recentVenues, setRecentVenues] = useState<VenueSuggestion[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  // Fetch user's recent venues on mount
+  useEffect(() => {
+    const fetchRecentVenues = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setIsLoadingHistory(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('user_venues')
+          .select(`
+            venue_id,
+            show_count,
+            last_show_date,
+            venues (id, name, location, city)
+          `)
+          .eq('user_id', user.id)
+          .order('last_show_date', { ascending: false, nullsFirst: false })
+          .limit(5);
+
+        if (!error && data) {
+          const venues = data.map(item => {
+            const venueData = item.venues as { id: string; name: string; location: string | null; city: string | null } | null;
+            return {
+              id: venueData?.id,
+              name: venueData?.name || '',
+              location: venueData?.location || venueData?.city || '',
+              scene_users_count: 0,
+              user_show_count: item.show_count
+            };
+          }).filter(v => v.name);
+          
+          setRecentVenues(venues);
+        }
+      } catch (error) {
+        console.error('Error fetching recent venues:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchRecentVenues();
+  }, []);
 
   // Debounced venue search
   useEffect(() => {
@@ -381,6 +431,47 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
           <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
         )}
       </div>
+
+      {/* Recent Venues - shown when not searching */}
+      {!searchTerm.trim() && isLoadingHistory && (
+        <div className="space-y-2">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      )}
+
+      {!searchTerm.trim() && !isLoadingHistory && recentVenues.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <History className="h-4 w-4" />
+            <span>Recent venues</span>
+          </div>
+          {recentVenues.map((venue, index) => (
+            <button
+              key={venue.id || index}
+              onClick={() => handleVenueSelect(venue)}
+              className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-semibold">{venue.name}</span>
+                    {venue.location && (
+                      <span className="text-xs text-muted-foreground">
+                        {venue.location}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-primary">
+                    {venue.user_show_count} show{venue.user_show_count !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Venue suggestions */}
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
