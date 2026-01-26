@@ -763,12 +763,12 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         )}
 
         {/* Step content - scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 pt-8 pb-6 min-h-0">
+        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4 min-h-0">
           <div className="flex flex-col items-center">
-            <h2 className="text-2xl font-bold text-center mb-6">
+            <h2 className="text-xl font-bold text-center mb-4">
               {editShow ? "Edit Show" : "Add a Show"}
             </h2>
-            <div className="w-full pb-2">
+            <div className="w-full">
               {renderStepContent()}
             </div>
           </div>

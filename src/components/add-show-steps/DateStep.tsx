@@ -70,9 +70,9 @@ const DateStep = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
-        <Label className="text-base font-semibold">When was the show?</Label>
+        <Label className="text-sm font-semibold">When was the show?</Label>
       </div>
 
       {/* Quick select buttons */}
@@ -140,7 +140,7 @@ const DateStep = ({
         />
         <label
           htmlFor="approximate"
-          className="text-sm text-muted-foreground cursor-pointer"
+          className="text-xs text-muted-foreground cursor-pointer"
         >
           I don't remember the exact date
         </label>
@@ -151,7 +151,7 @@ const DateStep = ({
         <Button
           onClick={onSave}
           disabled={!isValid()}
-          className="w-full h-12 text-base"
+          className="w-full h-10 text-sm"
         >
           Save Changes
         </Button>
@@ -159,7 +159,7 @@ const DateStep = ({
         <Button
           onClick={onContinue}
           disabled={!isValid()}
-          className="w-full h-12 text-base"
+          className="w-full h-10 text-sm"
         >
           Continue
         </Button>
