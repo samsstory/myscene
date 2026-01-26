@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Calendar, Music, MapPin, AlertCircle, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { PhotoWithExif } from "@/lib/exif-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -251,31 +250,30 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
             )}
           </div>
 
-          {/* Date - simple input */}
-          <div className="space-y-2">
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+          {/* Date - compact inline */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <input
                 type="date"
                 value={date ? format(date, "yyyy-MM-dd") : ""}
                 onChange={(e) => {
                   const val = e.target.value;
                   setDate(val ? new Date(val + "T12:00:00") : null);
                 }}
-                className="pl-9"
+                className="text-sm bg-transparent border-none outline-none w-[130px] text-foreground"
                 max={format(new Date(), "yyyy-MM-dd")}
               />
             </div>
-            <div className="flex items-center gap-1.5">
+            <label className="flex items-center gap-1.5 cursor-pointer">
               <Checkbox
                 id={`approx-${photo.id}`}
                 checked={isApproximate}
                 onCheckedChange={(checked) => setIsApproximate(!!checked)}
+                className="h-3.5 w-3.5"
               />
-              <Label htmlFor={`approx-${photo.id}`} className="text-xs text-muted-foreground">
-                I don't remember the exact date
-              </Label>
-            </div>
+              <span className="text-xs text-muted-foreground">Approx</span>
+            </label>
           </div>
         </div>
       </div>
