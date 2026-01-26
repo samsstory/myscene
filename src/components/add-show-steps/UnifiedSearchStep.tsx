@@ -81,13 +81,10 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
   };
 
   return (
-    <div className="space-y-4 flex flex-col items-center justify-center min-h-[400px]">
-      <div className="text-center space-y-2">
-        <h3 className="text-lg font-semibold">What do you remember?</h3>
-        <p className="text-sm text-muted-foreground">
-          Search for an artist, venue, or festival
-        </p>
-      </div>
+    <div className="space-y-4 w-full">
+      <p className="text-sm text-muted-foreground text-center">
+        Search for an artist, venue, or festival
+      </p>
 
       {/* Search input */}
       <div className="relative">

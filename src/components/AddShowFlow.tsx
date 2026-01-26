@@ -744,27 +744,27 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
 
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background">
-        {/* Header with back button */}
-        <div className="flex flex-col items-center p-6 pb-4">
-          {step > 1 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="h-8 w-8 absolute left-4 top-4"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          )}
-          <h2 className="text-2xl font-bold text-center">
-            {editShow ? "Edit Show" : "Add a Show"}
-          </h2>
-        </div>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative">
+        {/* Back button - absolute positioned */}
+        {step > 1 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="h-8 w-8 absolute left-4 top-4 z-10"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
 
         {/* Step content - scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
-          {renderStepContent()}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="flex flex-col items-center">
+            <h2 className="text-2xl font-bold text-center mb-4">
+              {editShow ? "Edit Show" : "Add a Show"}
+            </h2>
+            {renderStepContent()}
+          </div>
         </div>
 
         {/* Progress indicator - hide for step selector */}
