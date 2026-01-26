@@ -50,7 +50,7 @@ interface ShareShowSheetProps {
 export const ShareShowSheet = ({ show, open, onOpenChange, allShows = [], rankings = [] }: ShareShowSheetProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showOverlayEditor, setShowOverlayEditor] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<'9:16' | '4:5' | '1:1'>('9:16');
+  // aspectRatio removed - now auto-detected from image
 
   if (!show) return null;
 
@@ -394,50 +394,22 @@ export const ShareShowSheet = ({ show, open, onOpenChange, allShows = [], rankin
 
         <div className="flex-1 overflow-y-auto mt-6">
           {showOverlayEditor && show.photo_url ? (
-            <div className="flex flex-col gap-6">
-              {/* Aspect Ratio Selection */}
-              <div className="flex gap-2 justify-center">
-                <Button
-                  variant={aspectRatio === '9:16' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setAspectRatio('9:16')}
-                >
-                  Story (9:16)
-                </Button>
-                <Button
-                  variant={aspectRatio === '4:5' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setAspectRatio('4:5')}
-                >
-                  Post (4:5)
-                </Button>
-                <Button
-                  variant={aspectRatio === '1:1' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setAspectRatio('1:1')}
-                >
-                  Square (1:1)
-                </Button>
-              </div>
-
-              <PhotoOverlayEditor 
-                show={normalizedShow} 
-                onClose={() => setShowOverlayEditor(false)}
-                aspectRatio={aspectRatio}
-                allShows={allShows.map(s => ({
-                  ...s,
-                  artists: s.artists.map(a => ({
-                    ...a,
-                    is_headliner: a.isHeadliner ?? a.is_headliner ?? false,
-                  })),
-                  venue_name: s.venue?.name || s.venue_name || "",
-                  show_date: s.date || s.show_date || "",
-                  artist_performance: s.artistPerformance ?? s.artist_performance,
-                  venue_vibe: s.venueVibe ?? s.venue_vibe,
-                }))}
-                rankings={rankings}
-              />
-            </div>
+            <PhotoOverlayEditor 
+              show={normalizedShow} 
+              onClose={() => setShowOverlayEditor(false)}
+              allShows={allShows.map(s => ({
+                ...s,
+                artists: s.artists.map(a => ({
+                  ...a,
+                  is_headliner: a.isHeadliner ?? a.is_headliner ?? false,
+                })),
+                venue_name: s.venue?.name || s.venue_name || "",
+                show_date: s.date || s.show_date || "",
+                artist_performance: s.artistPerformance ?? s.artist_performance,
+                venue_vibe: s.venueVibe ?? s.venue_vibe,
+              }))}
+              rankings={rankings}
+            />
           ) : (
             <>
               {/* Preview Card */}
