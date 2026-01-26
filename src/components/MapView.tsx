@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MapPin, Minus, ArrowLeft } from "lucide-react";
+import { Edit, MapPin, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import MapBreadcrumb from "./map/MapBreadcrumb";
+import MapStatsCard from "./map/MapStatsCard";
+import MapHoverCard from "./map/MapHoverCard";
 
 interface Show {
   id: string;
@@ -435,20 +438,45 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     setViewLevel('venue');
   };
 
-  // Handle back navigation
-  const handleBack = () => {
-    if (viewLevel === 'venue') {
+  // Handle breadcrumb navigation
+  const handleBreadcrumbNavigate = (level: 'country' | 'city') => {
+    if (level === 'country') {
+      setViewLevel('country');
+      setSelectedCountry(null);
+      setSelectedCity(null);
+      setCityData([]);
+      setVenueData([]);
+      setHoveredCity(null);
+      setHoveredVenue(null);
+    } else if (level === 'city' && viewLevel === 'venue') {
       setViewLevel('city');
       setVenueData([]);
       setSelectedCity(null);
       setHoveredVenue(null);
-    } else if (viewLevel === 'city') {
-      setViewLevel('country');
-      setSelectedCountry(null);
-      setCityData([]);
-      setHoveredCity(null);
     }
   };
+
+  // Calculate stats
+  const mapStats = useMemo(() => {
+    const countries = new Set<string>();
+    const cities = new Set<string>();
+    const venues = new Set<string>();
+
+    shows.forEach(show => {
+      if (show.venue.location) {
+        countries.add(getCountryFromLocation(show.venue.location));
+        cities.add(getCityFromLocation(show.venue.location));
+      }
+      venues.add(show.venue.name);
+    });
+
+    return {
+      totalShows: shows.length,
+      totalCountries: countries.size,
+      totalCities: cities.size,
+      totalVenues: venues.size,
+    };
+  }, [shows]);
 
   // Add country markers to map
   useEffect(() => {
@@ -495,17 +523,61 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer
+      // Add layer with size based on show count
       map.current.addLayer({
         id: 'country-dots',
         type: 'circle',
         source: 'countries',
         paint: {
-          'circle-radius': 20,
+          'circle-radius': [
+            'interpolate', ['linear'], ['get', 'showCount'],
+            1, 18,
+            5, 24,
+            10, 30,
+            50, 40
+          ],
           'circle-color': 'hsl(280, 70%, 55%)',
-          'circle-opacity': 0.8,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+          'circle-blur': 0.1
+        }
+      });
+
+      // Add glow layer behind main dots
+      map.current.addLayer({
+        id: 'country-dots-glow',
+        type: 'circle',
+        source: 'countries',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['get', 'showCount'],
+            1, 28,
+            5, 38,
+            10, 48,
+            50, 60
+          ],
+          'circle-color': 'hsl(280, 70%, 55%)',
+          'circle-opacity': 0.3,
+          'circle-blur': 1
+        }
+      }, 'country-dots');
+
+      // Add count labels
+      map.current.addLayer({
+        id: 'country-labels',
+        type: 'symbol',
+        source: 'countries',
+        layout: {
+          'text-field': ['to-string', ['get', 'showCount']],
+          'text-size': 14,
+          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+          'text-allow-overlap': true
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(0, 0, 0, 0.3)',
+          'text-halo-width': 1
         }
       });
 
@@ -550,16 +622,28 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       if (!map.current) return;
 
       // Remove country layers when showing cities
+      if (map.current.getLayer('country-labels')) {
+        map.current.removeLayer('country-labels');
+      }
       if (map.current.getLayer('country-dots')) {
         map.current.removeLayer('country-dots');
+      }
+      if (map.current.getLayer('country-dots-glow')) {
+        map.current.removeLayer('country-dots-glow');
       }
       if (map.current.getSource('countries')) {
         map.current.removeSource('countries');
       }
 
       // Remove existing city layers and sources
+      if (map.current.getLayer('city-labels')) {
+        map.current.removeLayer('city-labels');
+      }
       if (map.current.getLayer('city-dots')) {
         map.current.removeLayer('city-dots');
+      }
+      if (map.current.getLayer('city-dots-glow')) {
+        map.current.removeLayer('city-dots-glow');
       }
       if (map.current.getSource('cities')) {
         map.current.removeSource('cities');
@@ -587,17 +671,61 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer
+      // Add layer with size based on show count
       map.current.addLayer({
         id: 'city-dots',
         type: 'circle',
         source: 'cities',
         paint: {
-          'circle-radius': 15,
+          'circle-radius': [
+            'interpolate', ['linear'], ['get', 'showCount'],
+            1, 14,
+            5, 20,
+            10, 26,
+            25, 32
+          ],
           'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-opacity': 0.8,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+          'circle-blur': 0.1
+        }
+      });
+
+      // Add glow layer behind main dots
+      map.current.addLayer({
+        id: 'city-dots-glow',
+        type: 'circle',
+        source: 'cities',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['get', 'showCount'],
+            1, 24,
+            5, 34,
+            10, 44,
+            25, 52
+          ],
+          'circle-color': 'hsl(189, 94%, 55%)',
+          'circle-opacity': 0.3,
+          'circle-blur': 1
+        }
+      }, 'city-dots');
+
+      // Add count labels
+      map.current.addLayer({
+        id: 'city-labels',
+        type: 'symbol',
+        source: 'cities',
+        layout: {
+          'text-field': ['to-string', ['get', 'showCount']],
+          'text-size': 12,
+          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+          'text-allow-overlap': true
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(0, 0, 0, 0.3)',
+          'text-halo-width': 1
         }
       });
 
@@ -651,16 +779,28 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       if (!map.current) return;
 
       // Remove city layers when showing venues
+      if (map.current.getLayer('city-labels')) {
+        map.current.removeLayer('city-labels');
+      }
       if (map.current.getLayer('city-dots')) {
         map.current.removeLayer('city-dots');
+      }
+      if (map.current.getLayer('city-dots-glow')) {
+        map.current.removeLayer('city-dots-glow');
       }
       if (map.current.getSource('cities')) {
         map.current.removeSource('cities');
       }
 
       // Remove existing venue layers and sources
+      if (map.current.getLayer('venue-labels')) {
+        map.current.removeLayer('venue-labels');
+      }
       if (map.current.getLayer('venue-dots')) {
         map.current.removeLayer('venue-dots');
+      }
+      if (map.current.getLayer('venue-dots-glow')) {
+        map.current.removeLayer('venue-dots-glow');
       }
       if (map.current.getSource('venues')) {
         map.current.removeSource('venues');
@@ -689,17 +829,61 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer
+      // Add layer with size based on show count
       map.current.addLayer({
         id: 'venue-dots',
         type: 'circle',
         source: 'venues',
         paint: {
-          'circle-radius': 10,
+          'circle-radius': [
+            'interpolate', ['linear'], ['get', 'showCount'],
+            1, 12,
+            3, 16,
+            5, 20,
+            10, 26
+          ],
           'circle-color': 'hsl(35, 90%, 55%)',
           'circle-opacity': 0.9,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
+          'circle-stroke-width': 3,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+          'circle-blur': 0.05
+        }
+      });
+
+      // Add glow layer behind main dots
+      map.current.addLayer({
+        id: 'venue-dots-glow',
+        type: 'circle',
+        source: 'venues',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['get', 'showCount'],
+            1, 20,
+            3, 28,
+            5, 36,
+            10, 44
+          ],
+          'circle-color': 'hsl(35, 90%, 55%)',
+          'circle-opacity': 0.3,
+          'circle-blur': 1
+        }
+      }, 'venue-dots');
+
+      // Add count labels
+      map.current.addLayer({
+        id: 'venue-labels',
+        type: 'symbol',
+        source: 'venues',
+        layout: {
+          'text-field': ['to-string', ['get', 'showCount']],
+          'text-size': 11,
+          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+          'text-allow-overlap': true
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(0, 0, 0, 0.3)',
+          'text-halo-width': 1
         }
       });
 
@@ -747,51 +931,51 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     <div className="relative w-full h-[600px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
 
-      {/* Back button */}
-      {viewLevel !== 'country' && (
-        <Button
-          className="absolute top-4 left-4 z-10"
-          onClick={handleBack}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          {viewLevel === 'venue' ? `Back to ${selectedCity}` : 'Back to Countries'}
-        </Button>
-      )}
+      {/* Breadcrumb navigation */}
+      <div className="absolute top-4 left-4 z-10">
+        <div className="backdrop-blur-xl bg-black/40 border border-white/10 rounded-xl px-3 py-2 shadow-lg">
+          <MapBreadcrumb
+            viewLevel={viewLevel}
+            selectedCountry={selectedCountry}
+            selectedCity={selectedCity}
+            onNavigate={handleBreadcrumbNavigate}
+          />
+        </div>
+      </div>
+
+      {/* Stats card */}
+      <MapStatsCard
+        totalShows={mapStats.totalShows}
+        totalCountries={mapStats.totalCountries}
+        totalCities={mapStats.totalCities}
+        totalVenues={mapStats.totalVenues}
+      />
 
       {/* Hover info for country */}
       {hoveredCountry && viewLevel === 'country' && (
-        <Card className="absolute top-4 right-4 z-10">
-          <CardContent className="p-3">
-            <h3 className="font-semibold">{hoveredCountry}</h3>
-            <p className="text-sm text-muted-foreground">
-              {countryData.find(c => c.name === hoveredCountry)?.showCount} shows
-            </p>
-          </CardContent>
-        </Card>
+        <MapHoverCard
+          title={hoveredCountry}
+          subtitle={`${countryData.find(c => c.name === hoveredCountry)?.showCount} shows`}
+          className="absolute top-20 left-4 z-10"
+        />
       )}
 
       {/* Hover info for city */}
       {hoveredCity && viewLevel === 'city' && (
-        <Card className="absolute top-4 right-4 z-10">
-          <CardContent className="p-3">
-            <h3 className="font-semibold">{hoveredCity}</h3>
-            <p className="text-sm text-muted-foreground">
-              {cityData.find(c => c.name === hoveredCity)?.showCount} shows
-            </p>
-          </CardContent>
-        </Card>
+        <MapHoverCard
+          title={hoveredCity}
+          subtitle={`${cityData.find(c => c.name === hoveredCity)?.showCount} shows`}
+          className="absolute top-20 left-4 z-10"
+        />
       )}
 
       {/* Hover info for venue */}
       {hoveredVenue && viewLevel === 'venue' && (
-        <Card className="absolute top-4 right-4 z-10">
-          <CardContent className="p-3">
-            <h3 className="font-semibold">{hoveredVenue}</h3>
-            <p className="text-sm text-muted-foreground">
-              {venueData.find(v => v.name === hoveredVenue)?.shows.length} shows
-            </p>
-          </CardContent>
-        </Card>
+        <MapHoverCard
+          title={hoveredVenue}
+          subtitle={`${venueData.find(v => v.name === hoveredVenue)?.shows.length} shows`}
+          className="absolute top-20 left-4 z-10"
+        />
       )}
 
       {/* Shows without location list */}
