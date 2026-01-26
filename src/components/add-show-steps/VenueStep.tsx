@@ -410,19 +410,6 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
         </div>
 
 
-        {locationFilter && !isLoadingDefaultCity && (
-          <button
-            type="button"
-            onClick={() => setShowCityDialog(true)}
-            className="flex items-center gap-2 text-sm text-muted-foreground px-1 hover:text-foreground transition-colors"
-          >
-            <MapPin className="h-3 w-3 text-primary" />
-            <span>
-              Searching near <span className="text-primary font-medium">{locationFilter}</span>
-            </span>
-            <span className="text-xs ml-auto">Click to change</span>
-          </button>
-        )}
       </div>
 
       {/* Venue suggestions */}
