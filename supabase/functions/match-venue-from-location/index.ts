@@ -44,7 +44,6 @@ const MUSIC_VENUE_TYPES = [
   'performing_arts_theater',
   'concert_hall',
   'event_venue',
-  'live_music_venue',
   'park',
   'amusement_park',
   'casino',
