@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Pencil, X, MapPin, ChevronDown, Loader2, Plus, Minus } from "lucide-react";
+import { Pencil, X, MapPin, ChevronDown, Loader2, Plus, Minus, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PhotoWithExif, VenueSuggestion, extractExifData } from "@/lib/exif-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import ArtistTagInput from "./ArtistTagInput";
 import CompactDateSelector from "./CompactDateSelector";
 
@@ -144,6 +145,15 @@ const PhotoReviewCard = ({
 
   const isValid = artists.length > 0;
   
+  // Build venue suggestions list (moved up for use in useEffect)
+  const allVenueSuggestions = [
+    photo.suggestedVenue,
+    ...(photo.alternativeVenues || [])
+  ].filter(Boolean) as VenueSuggestion[];
+  
+  const hasVenueSuggestions = allVenueSuggestions.length > 0;
+  const isVenueMatching = photo.venueMatchStatus === 'pending';
+  
   // Check if any ratings have been added
   const hasRatings = artistPerformance !== null || sound !== null || lighting !== null || crowd !== null || venueVibe !== null || notes.trim().length > 0;
 
@@ -221,9 +231,11 @@ const PhotoReviewCard = ({
     });
   }, [artists, venue, venueId, venueLocation, date, datePrecision, selectedMonth, selectedYear, isValid, artistPerformance, sound, lighting, crowd, venueVibe, notes]);
 
-  // Search venues (only when manual search is active)
+  // Search venues when manual search is active OR when there are no GPS suggestions
   useEffect(() => {
-    if (!showManualSearch) return;
+    // Enable search when either manually searching OR no GPS suggestions available
+    const shouldSearch = showManualSearch || !hasVenueSuggestions;
+    if (!shouldSearch) return;
     
     const search = async () => {
       if (venueSearch.trim().length < 2) {
@@ -249,7 +261,7 @@ const PhotoReviewCard = ({
 
     const timer = setTimeout(search, 300);
     return () => clearTimeout(timer);
-  }, [venueSearch, showManualSearch]);
+  }, [venueSearch, showManualSearch, hasVenueSuggestions]);
 
   const handleVenueSelect = (result: SearchResult) => {
     setVenue(result.name);
@@ -290,16 +302,7 @@ const PhotoReviewCard = ({
   // Get display text for collapsed header
   const headerArtistText = artists.length > 0 
     ? artists.map(a => a.name).join(", ")
-    : "Add Artist";
-
-  // Build venue suggestions list
-  const allVenueSuggestions = [
-    photo.suggestedVenue,
-    ...(photo.alternativeVenues || [])
-  ].filter(Boolean) as VenueSuggestion[];
-
-  const hasVenueSuggestions = allVenueSuggestions.length > 0;
-  const isVenueMatching = photo.venueMatchStatus === 'pending';
+    : "Add Info";
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -367,6 +370,9 @@ const PhotoReviewCard = ({
           <div className="px-3 pb-3 space-y-3 border-t border-border/50">
             {/* Artist tag input */}
             <div className="mt-3">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                Artist <span className="text-destructive">*</span>
+              </Label>
               <ArtistTagInput
                 artists={artists}
                 onArtistsChange={setArtists}
@@ -554,12 +560,27 @@ const PhotoReviewCard = ({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     maxLength={500}
+                    rows={3}
                     className="min-h-[60px] resize-none text-sm bg-muted/30 border-border"
                   />
                   <p className="text-xs text-muted-foreground text-right">
                     {notes.length}/500
                   </p>
                 </div>
+
+                {/* Done button to confirm and close ratings */}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRatings(false);
+                  }}
+                  className="w-full mt-2"
+                >
+                  <Check className="h-4 w-4 mr-1.5" />
+                  Done
+                </Button>
               </div>
             )}
 
