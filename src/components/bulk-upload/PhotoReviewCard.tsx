@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Music, MapPin, AlertCircle, Check, Pencil, X } from "lucide-react";
+import { Calendar, Music, MapPin, Pencil, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoWithExif, extractExifData } from "@/lib/exif-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -202,7 +201,7 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
   return (
     <div className={cn(
       "rounded-xl border bg-card p-4 space-y-4 transition-all",
-      isValid ? "border-primary/50" : "border-border"
+      isValid ? "border-primary/50" : "border-border border-dashed"
     )}>
       {/* Header with progress */}
       <div className="flex items-center justify-between gap-2">
@@ -254,7 +253,7 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
                 onChange={(e) => handleArtistInputChange(e.target.value)}
                 onFocus={() => setShowArtistResults(true)}
                 onBlur={() => setTimeout(() => setShowArtistResults(false), 200)}
-                className="pl-9"
+                className={cn("pl-9", artist.trim() && "border-primary/40")}
               />
             </div>
             {showArtistResults && artistResults.length > 0 && (
@@ -303,52 +302,28 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
             )}
           </div>
 
-          {/* Date - compact inline */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="date"
-                value={date ? format(date, "yyyy-MM-dd") : ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDate(val ? new Date(val + "T12:00:00") : null);
-                }}
-                className={cn(
-                  "w-full h-10 pl-9 pr-3 text-sm rounded-md border border-input bg-background",
-                  !date && "[color:transparent]"
-                )}
-                max={format(new Date(), "yyyy-MM-dd")}
-              />
-              {!date && (
-                <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                  Date
-                </span>
+          {/* Date */}
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="date"
+              value={date ? format(date, "yyyy-MM-dd") : ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDate(val ? new Date(val + "T12:00:00") : null);
+              }}
+              className={cn(
+                "w-full h-10 pl-9 pr-3 text-sm rounded-md border border-input bg-background",
+                !date && "[color:transparent]"
               )}
-            </div>
-            <label className="flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-              <Checkbox
-                id={`approx-${photo.id}`}
-                checked={isApproximate}
-                onCheckedChange={(checked) => setIsApproximate(!!checked)}
-                className="h-3.5 w-3.5"
-              />
-              <span className="text-xs text-muted-foreground">Approx</span>
-            </label>
+              max={format(new Date(), "yyyy-MM-dd")}
+            />
+            {!date && (
+              <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                Date
+              </span>
+            )}
           </div>
-
-          {/* Status indicator */}
-          {isValid ? (
-            <div className="flex items-center gap-1 text-primary text-sm">
-              <Check className="h-4 w-4" />
-              Ready
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 text-amber-500 text-sm">
-              <AlertCircle className="h-4 w-4" />
-              Add artist
-            </div>
-          )}
         </div>
       </div>
     </div>
