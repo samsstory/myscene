@@ -80,7 +80,7 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
       <div>
         <Label className="text-base font-semibold">Who'd you see?</Label>
         <p className="text-sm text-muted-foreground mt-1">
-          Add headliners and openers
+          Add the artists from this show
         </p>
       </div>
 
@@ -95,9 +95,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
               <div className="flex items-center gap-2">
                 <Music className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">{artist.name}</span>
-                <Badge variant={artist.isHeadliner ? "default" : "secondary"} className="text-xs">
-                  {artist.isHeadliner ? "Headliner" : "Opener"}
-                </Badge>
               </div>
               <Button
                 variant="ghost"
@@ -146,48 +143,29 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
                     <div className="text-xs text-muted-foreground">{suggestion.country}</div>
                   )}
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => addArtist(suggestion.name, true)}
-                    className="text-xs h-7 px-2"
-                  >
-                    Headliner
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => addArtist(suggestion.name, false)}
-                    className="text-xs h-7 px-2"
-                  >
-                    Opener
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => addArtist(suggestion.name, true)}
+                  className="text-xs h-7 px-2"
+                >
+                  Add
+                </Button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Manual add buttons */}
+      {/* Manual add button */}
       {currentArtist.trim() && artistSuggestions.length === 0 && !isSearching && (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => handleManualAdd(true)}
-            className="flex-1"
-          >
-            Add "{currentArtist}" as Headliner
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleManualAdd(false)}
-            className="flex-1"
-          >
-            Add as Opener
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={() => handleManualAdd(true)}
+          className="w-full"
+        >
+          Add "{currentArtist}"
+        </Button>
       )}
 
       {/* Continue/Save button */}
