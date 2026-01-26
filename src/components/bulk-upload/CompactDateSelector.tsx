@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -8,6 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export type DatePrecision = "exact" | "approximate" | "unknown";
 
@@ -56,7 +64,7 @@ const CompactDateSelector = ({
   onMonthChange,
   onYearChange,
 }: CompactDateSelectorProps) => {
-  // If we have EXIF date and haven't changed precision, show exact mode
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const effectivePrecision = precision;
 
   const handlePrecisionClick = (newPrecision: DatePrecision) => {
@@ -77,6 +85,11 @@ const CompactDateSelector = ({
         onYearChange(String(currentYear));
       }
     }
+  };
+
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    onDateChange(selectedDate || null);
+    setCalendarOpen(false);
   };
 
   return (
@@ -123,27 +136,30 @@ const CompactDateSelector = ({
 
       {/* Input based on precision */}
       {effectivePrecision === "exact" && (
-        <div className="relative group">
-          <input
-            type="date"
-            value={date ? format(date, "yyyy-MM-dd") : ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              onDateChange(val ? new Date(val + "T12:00:00") : null);
-            }}
-            className={cn(
-              "w-full h-10 px-3 text-sm rounded-md border border-input bg-background",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-              !date && "text-transparent focus:text-foreground"
-            )}
-            max={format(new Date(), "yyyy-MM-dd")}
-          />
-          {!date && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none group-focus-within:hidden">
-              Select date
-            </span>
-          )}
-        </div>
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full h-10 justify-start text-left font-normal",
+                !date && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP") : "Select date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={date || undefined}
+              onSelect={handleDateSelect}
+              disabled={(d) => d > new Date()}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       )}
 
       {effectivePrecision === "approximate" && (
@@ -169,7 +185,8 @@ const CompactDateSelector = ({
                 <SelectItem key={year.value} value={year.value}>
                   {year.label}
                 </SelectItem>
-              ))}</SelectContent>
+              ))}
+            </SelectContent>
           </Select>
         </div>
       )}
@@ -184,7 +201,8 @@ const CompactDateSelector = ({
               <SelectItem key={year.value} value={year.value}>
                 {year.label}
               </SelectItem>
-            ))}</SelectContent>
+            ))}
+          </SelectContent>
         </Select>
       )}
     </div>
