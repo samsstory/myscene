@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Scale, BarChart3, Plus, Music } from "lucide-react";
+import { Home, Scale, BarChart3, Plus, Music, Camera, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Feed from "@/components/Feed";
@@ -8,6 +8,7 @@ import Stats from "@/components/Stats";
 import Profile from "@/components/Profile";
 import Rank from "@/components/Rank";
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
+import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { ShareShowSheet } from "@/components/ShareShowSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -16,6 +17,8 @@ import { cn } from "@/lib/utils";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showFabMenu, setShowFabMenu] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("feed");
@@ -119,13 +122,59 @@ const Dashboard = () => {
               <Scale className="h-6 w-6" />
             </button>
 
-            {/* Add Show Button - Elevated */}
-            <div className="flex-1 flex justify-center">
+            {/* Add Show Button - Elevated with Menu */}
+            <div className="flex-1 flex justify-center relative">
+              {/* FAB Menu Options */}
+              {showFabMenu && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 bg-black/40 z-40"
+                    onClick={() => setShowFabMenu(false)}
+                  />
+                  
+                  {/* Menu Options */}
+                  <div className="absolute bottom-20 z-50 flex flex-col gap-3 items-center">
+                    {/* Add from Photos */}
+                    <button
+                      onClick={() => {
+                        setShowFabMenu(false);
+                        setShowBulkUpload(true);
+                      }}
+                      className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Camera className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="font-medium whitespace-nowrap">Add from Photos</span>
+                    </button>
+                    
+                    {/* Add Single Show */}
+                    <button
+                      onClick={() => {
+                        setShowFabMenu(false);
+                        setShowAddDialog(true);
+                      }}
+                      className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Music className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="font-medium whitespace-nowrap">Add Single Show</span>
+                    </button>
+                  </div>
+                </>
+              )}
+              
+              {/* Main FAB */}
               <button
-                onClick={() => setShowAddDialog(true)}
-                className="bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-transform hover:scale-105 active:scale-95 -mt-8"
+                onClick={() => setShowFabMenu(!showFabMenu)}
+                className={cn(
+                  "bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-all hover:scale-105 active:scale-95 -mt-8 z-50",
+                  showFabMenu && "rotate-45"
+                )}
               >
-                <Plus className="h-8 w-8" />
+                {showFabMenu ? <X className="h-8 w-8" /> : <Plus className="h-8 w-8" />}
               </button>
             </div>
 
@@ -167,6 +216,11 @@ const Dashboard = () => {
           setShareShow(show);
           setShareSheetOpen(true);
         }}
+      />
+
+      <BulkUploadFlow
+        open={showBulkUpload}
+        onOpenChange={setShowBulkUpload}
       />
 
       {shareShow && (
