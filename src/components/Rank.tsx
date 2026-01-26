@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { calculateShowScore } from "@/lib/utils";
+import { Loader2, MapPin, CalendarDays, Trophy } from "lucide-react";
 import { toast } from "sonner";
-import { SwipeCard } from "./rank/SwipeCard";
-import { SwipeInstructions } from "./rank/SwipeInstructions";
 
 interface Show {
   id: string;
@@ -36,9 +36,8 @@ export default function Rank() {
   const [comparedPairs, setComparedPairs] = useState<Set<string>>(new Set());
   const [totalComparisons, setTotalComparisons] = useState(0);
 
-  // ELO calculation constants
-  const K_BASE = 32; // Base K-factor
-  const K_MIN_COMPARISONS = 10; // Minimum comparisons before reducing K-factor
+  const K_BASE = 32;
+  const K_MIN_COMPARISONS = 10;
 
   useEffect(() => {
     fetchShows();
@@ -57,7 +56,6 @@ export default function Rank() {
 
       if (showsError) throw showsError;
 
-      // Fetch or initialize rankings for all shows
       const { data: rankingsData, error: rankingsError } = await supabase
         .from("show_rankings")
         .select("*")
@@ -65,7 +63,6 @@ export default function Rank() {
 
       if (rankingsError) throw rankingsError;
 
-      // Initialize rankings for shows that don't have them yet
       const existingRankingIds = new Set(rankingsData?.map(r => r.show_id) || []);
       const newShows = showsData?.filter(show => !existingRankingIds.has(show.id)) || [];
       
@@ -83,7 +80,6 @@ export default function Rank() {
 
         if (insertError) throw insertError;
 
-        // Refetch rankings after insert
         const { data: updatedRankings } = await supabase
           .from("show_rankings")
           .select("*")
@@ -94,7 +90,6 @@ export default function Rank() {
         setRankings(rankingsData || []);
       }
 
-      // Fetch existing comparisons
       const { data: comparisonsData, error: comparisonsError } = await supabase
         .from("show_comparisons")
         .select("show1_id, show2_id")
@@ -102,7 +97,6 @@ export default function Rank() {
 
       if (comparisonsError) throw comparisonsError;
 
-      // Build a set of compared pairs (normalized)
       const comparedSet = new Set<string>();
       comparisonsData?.forEach((comp) => {
         const [id1, id2] = [comp.show1_id, comp.show2_id].sort();
@@ -156,7 +150,6 @@ export default function Rank() {
     winnerComparisons: number,
     loserComparisons: number
   ) => {
-    // Dynamic K-factor: higher for shows with fewer comparisons
     const winnerK = winnerComparisons < K_MIN_COMPARISONS 
       ? K_BASE * (1 + (K_MIN_COMPARISONS - winnerComparisons) / K_MIN_COMPARISONS)
       : K_BASE;
@@ -164,11 +157,9 @@ export default function Rank() {
       ? K_BASE * (1 + (K_MIN_COMPARISONS - loserComparisons) / K_MIN_COMPARISONS)
       : K_BASE;
 
-    // Expected scores
     const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
     const expectedLoser = 1 / (1 + Math.pow(10, (winnerElo - loserElo) / 400));
 
-    // New ratings
     const newWinnerElo = Math.round(winnerElo + winnerK * (1 - expectedWinner));
     const newLoserElo = Math.round(loserElo + loserK * (0 - expectedLoser));
 
@@ -181,7 +172,6 @@ export default function Rank() {
     pairsSet: Set<string>,
     currentTotalComparisons: number
   ) => {
-    // Minimum comparisons threshold - stop after user has made enough comparisons
     const MIN_TOTAL_COMPARISONS = Math.max(15, allShows.length * 2);
     
     if (currentTotalComparisons >= MIN_TOTAL_COMPARISONS) {
@@ -193,10 +183,7 @@ export default function Rank() {
       }
     }
 
-    // Create a map of show rankings
     const rankingMap = new Map(allRankings.map(r => [r.show_id, r]));
-
-    // Score each possible pair based on "value" of comparison
     const pairScores: { pair: [Show, Show]; score: number }[] = [];
 
     for (let i = 0; i < allShows.length; i++) {
@@ -204,7 +191,6 @@ export default function Rank() {
         const [id1, id2] = [allShows[i].id, allShows[j].id].sort();
         const pairKey = `${id1}-${id2}`;
         
-        // Skip already compared pairs
         if (pairsSet.has(pairKey)) continue;
 
         const show1Ranking = rankingMap.get(allShows[i].id);
@@ -212,18 +198,12 @@ export default function Rank() {
 
         if (!show1Ranking || !show2Ranking) continue;
 
-        // Calculate "value score" for this comparison
-        // Higher score = more valuable comparison
-        
-        // 1. ELO proximity (closer ELOs = more informative comparison)
         const eloDiff = Math.abs(show1Ranking.elo_score - show2Ranking.elo_score);
-        const proximityScore = Math.max(0, 400 - eloDiff) / 400; // 0-1 scale
+        const proximityScore = Math.max(0, 400 - eloDiff) / 400;
 
-        // 2. Uncertainty (fewer comparisons = higher uncertainty = more valuable)
         const avgComparisons = (show1Ranking.comparisons_count + show2Ranking.comparisons_count) / 2;
         const uncertaintyScore = Math.max(0, (K_MIN_COMPARISONS - avgComparisons) / K_MIN_COMPARISONS);
 
-        // Combined score (weighted average)
         const combinedScore = proximityScore * 0.6 + uncertaintyScore * 0.4;
 
         pairScores.push({
@@ -239,10 +219,7 @@ export default function Rank() {
       return;
     }
 
-    // Sort by score and select from top candidates with some randomness
     pairScores.sort((a, b) => b.score - a.score);
-    
-    // Select from top 5 candidates to add variety
     const topCandidates = pairScores.slice(0, Math.min(5, pairScores.length));
     const randomIndex = Math.floor(Math.random() * topCandidates.length);
     
@@ -258,10 +235,8 @@ export default function Rank() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Normalize the pair order (smaller UUID first)
       const [show1Id, show2Id] = [showPair[0].id, showPair[1].id].sort();
 
-      // Save comparison to database
       const { error } = await supabase
         .from("show_comparisons")
         .insert({
@@ -273,7 +248,6 @@ export default function Rank() {
 
       if (error) throw error;
 
-      // Update ELO scores if there's a winner (not "Can't Compare")
       if (winnerId) {
         const show1Ranking = rankings.find(r => r.show_id === showPair[0].id);
         const show2Ranking = rankings.find(r => r.show_id === showPair[1].id);
@@ -290,7 +264,6 @@ export default function Rank() {
             loserRanking.comparisons_count
           );
 
-          // Update both rankings
           const { error: updateError } = await supabase
             .from("show_rankings")
             .upsert([
@@ -312,7 +285,6 @@ export default function Rank() {
 
           if (updateError) throw updateError;
 
-          // Update local rankings state
           const updatedRankings = rankings.map(r => {
             if (r.show_id === winnerRanking.show_id) {
               return { ...r, elo_score: newWinnerElo, comparisons_count: r.comparisons_count + 1 };
@@ -325,7 +297,6 @@ export default function Rank() {
           setRankings(updatedRankings);
         }
       } else {
-        // "Can't Compare" - still increment comparison counts without changing ELO
         const show1Ranking = rankings.find(r => r.show_id === showPair[0].id);
         const show2Ranking = rankings.find(r => r.show_id === showPair[1].id);
 
@@ -361,14 +332,12 @@ export default function Rank() {
         }
       }
 
-      // Update the compared pairs set
       const pairKey = `${show1Id}-${show2Id}`;
       const newComparedPairs = new Set([...comparedPairs, pairKey]);
       setComparedPairs(newComparedPairs);
       const newTotalComparisons = totalComparisons + 1;
       setTotalComparisons(newTotalComparisons);
 
-      // Select a new smart pair
       setTimeout(() => {
         selectSmartPair(shows, rankings, newComparedPairs, newTotalComparisons);
         setComparing(false);
@@ -380,24 +349,65 @@ export default function Rank() {
     }
   };
 
-  const handleSwipe = (direction: "left" | "right" | "down") => {
-    if (!showPair || comparing) return;
+  const renderCompactCard = (show: Show) => {
+    const score = calculateShowScore(
+      show.rating,
+      show.artist_performance,
+      show.sound,
+      show.lighting,
+      show.crowd,
+      show.venue_vibe
+    );
 
-    if (direction === "right") {
-      // Swipe right = top card (showPair[0]) wins
-      handleChoice(showPair[0].id);
-    } else if (direction === "left") {
-      // Swipe left = other card (showPair[1]) wins
-      handleChoice(showPair[1].id);
-    } else {
-      // Swipe down = can't compare
-      handleChoice(null);
-    }
-  };
-
-  const getArtistName = (show: Show) => {
     const headliner = show.artists.find(a => a.is_headliner);
-    return headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
+    const artistName = headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
+
+    return (
+      <Card className="flex-1 overflow-hidden">
+        <CardContent className="p-0">
+          {/* Photo or Score Display */}
+          {show.photo_url ? (
+            <div className="w-full aspect-square overflow-hidden">
+              <img
+                src={show.photo_url}
+                alt="Show photo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-full aspect-square bg-muted flex items-center justify-center">
+              <span className="text-4xl font-bold text-primary">{score}</span>
+            </div>
+          )}
+          
+          {/* Info */}
+          <div className="p-3 space-y-1">
+            <div className="font-semibold text-sm leading-tight truncate">
+              {artistName}
+            </div>
+            
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{show.venue_name}</span>
+            </div>
+            
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <CalendarDays className="h-3 w-3 flex-shrink-0" />
+              <span>
+                {new Date(show.show_date).toLocaleDateString("en-US", {
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+
+            {show.photo_url && (
+              <div className="text-lg font-bold text-primary">{score}</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   if (loading) {
@@ -435,32 +445,67 @@ export default function Rank() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 space-y-6">
-      <div className="text-center space-y-1">
+    <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="text-center">
         <h2 className="text-xl font-bold">Which was better?</h2>
-        <p className="text-muted-foreground text-sm">
-          Swipe to choose
-        </p>
       </div>
 
-      <SwipeCard
-        show={showPair[0]}
-        otherShow={showPair[1]}
-        onSwipe={handleSwipe}
-        disabled={comparing}
-      />
-
-      <SwipeInstructions
-        topShowName={getArtistName(showPair[0])}
-        bottomShowName={getArtistName(showPair[1])}
-      />
-
-      {comparing && (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm">Updating rankings...</span>
+      {/* VS Battle Cards */}
+      <div className="relative flex gap-3 items-stretch">
+        {/* Left Card */}
+        <div className="flex-1 flex flex-col gap-2">
+          {renderCompactCard(showPair[0])}
+          <Button 
+            onClick={() => handleChoice(showPair[0].id)}
+            disabled={comparing}
+            className="w-full"
+            size="sm"
+          >
+            <Trophy className="h-4 w-4 mr-1" />
+            This One
+          </Button>
         </div>
-      )}
+
+        {/* VS Badge */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(50%+20px)] z-10">
+          <div className="bg-primary text-primary-foreground font-bold text-sm px-3 py-1.5 rounded-full shadow-lg">
+            VS
+          </div>
+        </div>
+
+        {/* Right Card */}
+        <div className="flex-1 flex flex-col gap-2">
+          {renderCompactCard(showPair[1])}
+          <Button 
+            onClick={() => handleChoice(showPair[1].id)}
+            disabled={comparing}
+            className="w-full"
+            size="sm"
+          >
+            <Trophy className="h-4 w-4 mr-1" />
+            This One
+          </Button>
+        </div>
+      </div>
+
+      {/* Can't Compare - subtle link */}
+      <div className="text-center">
+        <button
+          onClick={() => handleChoice(null)}
+          disabled={comparing}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+        >
+          {comparing ? (
+            <span className="flex items-center gap-2 justify-center">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Updating...
+            </span>
+          ) : (
+            "Can't decide? Skip this one"
+          )}
+        </button>
+      </div>
     </div>
   );
 }
