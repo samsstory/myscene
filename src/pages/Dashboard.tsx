@@ -7,7 +7,8 @@ import Feed from "@/components/Feed";
 import Stats from "@/components/Stats";
 import Profile from "@/components/Profile";
 import Rank from "@/components/Rank";
-import AddShowFlow from "@/components/AddShowFlow";
+import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
+import { ShareShowSheet } from "@/components/ShareShowSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("feed");
+  const [shareShow, setShareShow] = useState<AddedShowData | null>(null);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -157,7 +160,33 @@ const Dashboard = () => {
         </nav>
       </TooltipProvider>
 
-      <AddShowFlow open={showAddDialog} onOpenChange={setShowAddDialog} />
+      <AddShowFlow 
+        open={showAddDialog} 
+        onOpenChange={setShowAddDialog} 
+        onShowAdded={(show) => {
+          setShareShow(show);
+          setShareSheetOpen(true);
+        }}
+      />
+
+      {shareShow && (
+        <ShareShowSheet
+          open={shareSheetOpen}
+          onOpenChange={setShareSheetOpen}
+          show={{
+            id: shareShow.id,
+            artists: shareShow.artists,
+            venue: shareShow.venue,
+            date: shareShow.date,
+            rating: shareShow.rating,
+            artistPerformance: shareShow.artistPerformance,
+            sound: shareShow.sound,
+            lighting: shareShow.lighting,
+            crowd: shareShow.crowd,
+            venueVibe: shareShow.venueVibe,
+          }}
+        />
+      )}
     </div>
   );
 };
