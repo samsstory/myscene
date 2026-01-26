@@ -252,8 +252,8 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
 
           {/* Date - compact inline */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 flex-1">
-              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="relative flex-1">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="date"
                 value={date ? format(date, "yyyy-MM-dd") : ""}
@@ -261,11 +261,20 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
                   const val = e.target.value;
                   setDate(val ? new Date(val + "T12:00:00") : null);
                 }}
-                className="text-sm bg-transparent border-none outline-none w-[130px] text-foreground"
+                className={cn(
+                  "w-full h-10 pl-9 pr-3 text-sm rounded-md border border-input bg-background",
+                  !date && "text-muted-foreground"
+                )}
                 max={format(new Date(), "yyyy-MM-dd")}
+                placeholder="Date (Optional)"
               />
+              {!date && (
+                <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  Date (Optional)
+                </span>
+              )}
             </div>
-            <label className="flex items-center gap-1.5 cursor-pointer">
+            <label className="flex items-center gap-1.5 cursor-pointer flex-shrink-0">
               <Checkbox
                 id={`approx-${photo.id}`}
                 checked={isApproximate}
