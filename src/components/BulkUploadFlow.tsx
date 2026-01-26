@@ -84,7 +84,7 @@ const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
       case 'select':
         return 'Add from Photos';
       case 'review':
-        return 'Review Shows';
+        return 'Add Shows';
       case 'success':
         return 'Success!';
       default:
