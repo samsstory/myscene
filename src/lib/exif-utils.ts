@@ -86,11 +86,23 @@ function parseExifDate(dateString: string): Date | null {
   return null;
 }
 
+export interface VenueSuggestion {
+  id?: string;
+  externalPlaceId?: string;
+  name: string;
+  address: string;
+  city?: string;
+  distanceMeters: number;
+}
+
 export interface PhotoWithExif {
   file: File;
   previewUrl: string;
   exifData: ExifData;
   id: string;
+  suggestedVenue?: VenueSuggestion;
+  alternativeVenues?: VenueSuggestion[];
+  venueMatchStatus?: 'pending' | 'found' | 'not_found' | 'no_gps';
 }
 
 export async function processPhotosWithExif(files: File[]): Promise<PhotoWithExif[]> {
