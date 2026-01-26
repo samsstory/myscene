@@ -222,54 +222,40 @@ const PhotoReviewCard = ({
         isValid ? "border-primary/50" : "border-border border-dashed"
       )}>
         {/* Header - always visible */}
-        <div className="flex items-center gap-3 p-3">
-          <CollapsibleTrigger asChild>
-            <button type="button" className="flex-shrink-0">
-              <img 
-                src={previewUrl} 
-                alt="Show photo" 
-                className="w-12 h-12 object-cover rounded-lg"
-              />
-            </button>
-          </CollapsibleTrigger>
-          <div className="flex-1 min-w-0">
-            <div className="relative">
-              <Input
-                ref={headerInputRef}
-                placeholder="add artist"
-                value={artist}
-                onChange={(e) => handleArtistInputChange(e.target.value)}
-                onFocus={() => {
-                  setShowArtistResults(true);
-                  if (!isExpanded) onToggle();
-                }}
-                onBlur={() => setTimeout(() => setShowArtistResults(false), 200)}
-                className={cn(
-                  "h-8 text-sm border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0",
-                  artist ? "font-medium" : "text-muted-foreground"
-                )}
-              />
+        <CollapsibleTrigger asChild>
+          <button 
+            type="button" 
+            className="w-full flex items-center gap-3 p-3 rounded-t-xl transition-colors hover:bg-muted/50 active:bg-muted/70"
+          >
+            <img 
+              src={previewUrl} 
+              alt="Show photo" 
+              className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0 text-left">
+              <p className={cn(
+                "text-sm truncate",
+                artist ? "font-medium" : "text-orange-400"
+              )}>
+                {artist || "Add Artist"}
+              </p>
+              {venue && (
+                <p className="text-xs text-muted-foreground truncate">{venue}</p>
+              )}
             </div>
-            {venue && (
-              <p className="text-xs text-muted-foreground truncate">{venue}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {isValid ? (
-              <CheckCircle className="h-4 w-4 text-primary" />
-            ) : (
-              <Circle className="h-4 w-4 text-orange-400" />
-            )}
-            <CollapsibleTrigger asChild>
-              <button type="button" className="p-1">
-                <ChevronDown className={cn(
-                  "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )} />
-              </button>
-            </CollapsibleTrigger>
-          </div>
-        </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {isValid ? (
+                <CheckCircle className="h-4 w-4 text-primary" />
+              ) : (
+                <Circle className="h-4 w-4 text-orange-400" />
+              )}
+              <ChevronDown className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                isExpanded && "rotate-180"
+              )} />
+            </div>
+          </button>
+        </CollapsibleTrigger>
 
         {/* Expanded content */}
         <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
