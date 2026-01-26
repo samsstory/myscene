@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { PhotoWithExif } from "@/lib/exif-utils";
 import PhotoReviewCard, { ReviewedShow } from "./PhotoReviewCard";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BulkReviewStepProps {
   photos: PhotoWithExif[];
@@ -47,20 +48,17 @@ const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, onPhotoDelete, isS
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="text-center space-y-1">
-        <h2 className="text-lg font-semibold">Review Your Shows</h2>
+      {/* Instruction + Progress */}
+      <div className="text-center space-y-2">
         <p className="text-sm text-muted-foreground">
-          Add artist info for each photo. Venue is optional.
+          Add artist for each photo. Venue and date are optional.
         </p>
-      </div>
-
-      {/* Progress indicator */}
-      <div className="flex items-center justify-center gap-2 text-sm">
-        <CheckCircle2 className={validShows.length > 0 ? "h-4 w-4 text-primary" : "h-4 w-4 text-muted-foreground"} />
-        <span className={validShows.length > 0 ? "text-primary font-medium" : "text-muted-foreground"}>
-          {validShows.length} of {photos.length} ready to add
-        </span>
+        <p className={cn(
+          "text-sm font-medium",
+          validShows.length > 0 ? "text-primary" : "text-muted-foreground"
+        )}>
+          {validShows.length} of {photos.length} ready
+        </p>
       </div>
 
       {/* Review cards */}
