@@ -339,8 +339,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     const overlayWidth = overlayRect.width * scaleX;
     const overlayHeight = overlayRect.height * scaleY;
 
-    // Draw overlay background if enabled
-    if (overlayConfig.showBackground) {
+    // Draw overlay background if opacity > 0
+    if (overlayOpacity > 0) {
       const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
       const ratingValue = show.rating;
       
@@ -381,8 +381,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
       if (overlayConfig.showArtists) {
         ctx.font = `bold ${24 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-        ctx.fillStyle = overlayConfig.showBackground ? primaryColor : "white";
-        if (!overlayConfig.showBackground) {
+        ctx.fillStyle = overlayOpacity > 0 ? primaryColor : "white";
+        if (overlayOpacity === 0) {
           ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
           ctx.shadowBlur = 8 * scaleX;
           ctx.shadowOffsetY = 2 * scaleY;
@@ -637,7 +637,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
   const headliners = show.artists.filter(a => a.is_headliner);
 
-  // Toolbar toggle items configuration
+  // Toolbar toggle items configuration (removed Background - now controlled by opacity slider)
   const toggleItems = [
     { key: "showArtists" as const, icon: Mic2, label: "Artist", active: overlayConfig.showArtists },
     { key: "showVenue" as const, icon: Building2, label: "Venue", active: overlayConfig.showVenue },
@@ -645,9 +645,11 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     { key: "showRating" as const, icon: Star, label: "Score", active: overlayConfig.showRating },
     { key: "showDetailedRatings" as const, icon: BarChart3, label: "Details", active: overlayConfig.showDetailedRatings },
     { key: "showNotes" as const, icon: MessageSquareQuote, label: "Notes", active: overlayConfig.showNotes, disabled: !show.notes },
-    { key: "showBackground" as const, icon: Layers, label: "Background", active: overlayConfig.showBackground },
     { key: "showRank" as const, icon: Trophy, label: "Rank", active: overlayConfig.showRank },
   ];
+  
+  // Determine if background should show based on opacity (0 = no background)
+  const showBackground = overlayOpacity > 0;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -690,8 +692,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 top: transform.y,
                 transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
                 transformOrigin: "top left",
-                background: overlayConfig.showBackground ? getRatingGradient(show.rating) : "transparent",
-                opacity: overlayOpacity / 100,
+                background: showBackground ? getRatingGradient(show.rating) : "transparent",
+                opacity: showBackground ? overlayOpacity / 100 : 1,
                 width: 280,
                 touchAction: "none",
               }}
@@ -702,8 +704,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                   <h2 
                     className="text-2xl font-bold flex-1 cursor-pointer transition-opacity hover:opacity-70" 
                     style={{ 
-                      color: overlayConfig.showBackground ? primaryColor : "white",
-                      textShadow: overlayConfig.showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
+                      color: showBackground ? primaryColor : "white",
+                      textShadow: showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
                     }}
                     onClick={(e) => { e.stopPropagation(); toggleConfig("showArtists"); }}
                   >
@@ -829,9 +831,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                   <div />
                 )}
                 <span 
-                  className="text-xs font-bold tracking-wider opacity-30 cursor-pointer transition-opacity hover:opacity-50" 
+                  className="text-xs font-bold tracking-wider opacity-30" 
                   style={{ filter: "grayscale(100%)" }}
-                  onClick={(e) => { e.stopPropagation(); toggleConfig("showBackground"); }}
                 >
                   SCENE
                 </span>
@@ -966,7 +967,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 <div className="relative h-20 w-4 flex items-center justify-center">
                   <input
                     type="range"
-                    min={50}
+                    min={0}
                     max={100}
                     step={5}
                     value={overlayOpacity}
@@ -976,7 +977,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                       transform: 'rotate(-90deg)',
                       WebkitAppearance: 'none',
                       appearance: 'none',
-                      background: `linear-gradient(to right, rgba(255,255,255,0.9) ${(overlayOpacity - 50) * 2}%, rgba(255,255,255,0.2) ${(overlayOpacity - 50) * 2}%)`,
+                      background: `linear-gradient(to right, rgba(255,255,255,0.9) ${overlayOpacity}%, rgba(255,255,255,0.2) ${overlayOpacity}%)`,
                       borderRadius: '4px'
                     }}
                   />
