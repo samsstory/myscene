@@ -52,6 +52,10 @@ const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
     setStep('select');
   };
 
+  const handlePhotoReplace = (photoId: string, newPhoto: PhotoWithExif) => {
+    setPhotos(prev => prev.map(p => p.id === photoId ? newPhoto : p));
+  };
+
   const handleBack = () => {
     if (step === 'review') {
       setStep('select');
@@ -101,6 +105,7 @@ const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
           <BulkReviewStep
             photos={photos}
             onComplete={handleReviewComplete}
+            onPhotoReplace={handlePhotoReplace}
             isSubmitting={isUploading}
           />
         )}

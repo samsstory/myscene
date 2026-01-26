@@ -7,10 +7,11 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 interface BulkReviewStepProps {
   photos: PhotoWithExif[];
   onComplete: (shows: ReviewedShow[]) => void;
+  onPhotoReplace: (photoId: string, newPhoto: PhotoWithExif) => void;
   isSubmitting: boolean;
 }
 
-const BulkReviewStep = ({ photos, onComplete, isSubmitting }: BulkReviewStepProps) => {
+const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, isSubmitting }: BulkReviewStepProps) => {
   const [reviewedShows, setReviewedShows] = useState<Map<string, ReviewedShow>>(new Map());
 
   const handleUpdate = useCallback((data: ReviewedShow) => {
@@ -55,6 +56,7 @@ const BulkReviewStep = ({ photos, onComplete, isSubmitting }: BulkReviewStepProp
             index={index}
             total={photos.length}
             onUpdate={handleUpdate}
+            onPhotoReplace={onPhotoReplace}
             initialData={reviewedShows.get(photo.id)}
           />
         ))}

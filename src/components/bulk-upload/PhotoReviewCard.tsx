@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
-import { Calendar, Music, MapPin, AlertCircle, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Calendar, Music, MapPin, AlertCircle, Check, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PhotoWithExif } from "@/lib/exif-utils";
+import { PhotoWithExif, extractExifData } from "@/lib/exif-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-
 export interface ReviewedShow {
   photoId: string;
   file: File;
@@ -25,6 +24,7 @@ interface PhotoReviewCardProps {
   index: number;
   total: number;
   onUpdate: (data: ReviewedShow) => void;
+  onPhotoReplace: (photoId: string, newPhoto: PhotoWithExif) => void;
   initialData?: ReviewedShow;
 }
 
@@ -36,13 +36,15 @@ interface SearchResult {
   location?: string;
 }
 
-const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoReviewCardProps) => {
+const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, initialData }: PhotoReviewCardProps) => {
   const [artist, setArtist] = useState(initialData?.artist || "");
   const [venue, setVenue] = useState(initialData?.venue || "");
   const [venueId, setVenueId] = useState<string | null>(initialData?.venueId || null);
   const [venueLocation, setVenueLocation] = useState(initialData?.venueLocation || "");
   const [date, setDate] = useState<Date | null>(initialData?.date || photo.exifData.date);
   const [isApproximate, setIsApproximate] = useState(initialData?.isApproximate || !photo.exifData.hasExif);
+  const [previewUrl, setPreviewUrl] = useState(photo.previewUrl);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [artistSearch, setArtistSearch] = useState("");
   const [venueSearch, setVenueSearch] = useState("");
@@ -54,6 +56,47 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
   const [isSearchingVenue, setIsSearchingVenue] = useState(false);
 
   const isValid = artist.trim().length > 0;
+
+  // Update preview URL when photo changes
+  useEffect(() => {
+    setPreviewUrl(photo.previewUrl);
+  }, [photo.previewUrl]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Extract EXIF data from new file
+    const exifData = await extractExifData(file);
+    const newPreviewUrl = URL.createObjectURL(file);
+    
+    // Revoke old URL to prevent memory leaks
+    if (previewUrl !== photo.previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    
+    const newPhoto: PhotoWithExif = {
+      id: photo.id,
+      file,
+      previewUrl: newPreviewUrl,
+      exifData
+    };
+    
+    setPreviewUrl(newPreviewUrl);
+    
+    // Update date if new photo has EXIF data
+    if (exifData.date) {
+      setDate(exifData.date);
+      setIsApproximate(false);
+    }
+    
+    onPhotoReplace(photo.id, newPhoto);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // Update parent whenever data changes
   useEffect(() => {
@@ -178,14 +221,27 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
         )}
       </div>
 
-      {/* Photo and form */}
+      {/* Photo thumbnail with edit button */}
       <div className="flex gap-4">
-        {/* Photo thumbnail */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 relative group">
           <img
-            src={photo.previewUrl}
+            src={previewUrl}
             alt="Show photo"
             className="w-24 h-24 object-cover rounded-lg"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+          >
+            <Pencil className="h-5 w-5 text-white" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
           />
         </div>
 
