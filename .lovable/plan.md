@@ -1,73 +1,110 @@
 
-# Fix: Top Shows Tab Ranking Order
+# Improve Top Shows Filter Design
 
-## Problem Identified
+## Current State
 
-The "Top Shows" tab displays shows in the wrong visual order. For example, you see #2 before #1 because:
+The Top Shows tab displays 3 horizontal buttons for time period filtering:
+- All Time | This Year | This Month
 
-1. **The list is sorted correctly** by ELO score (highest first)
-2. **But the rank badges are calculated globally** against ALL rankings, not scoped to the current filter
+You want to add:
+1. **Last Year** as a time period option
+2. **Sort direction toggle** (Best to Worst / Worst to Best)
 
-This creates a mismatch where a show might be #1 in "This Year" filter but displays as #3 because that's its global all-time rank.
+The concern is that adding more buttons makes the UI feel cluttered.
 
-## Solution
+## Proposed Solution: Compact Two-Row Filter Bar
 
-Update the `getShowRankInfo` function to respect the current time filter and recalculate positions within the filtered context.
+Instead of adding more horizontal buttons, I'll create a cleaner layout with two distinct controls:
+
+```text
++------------------------------------------+
+|  [All Time ▼]              [Best ▲▼ Worst]  |
++------------------------------------------+
+```
+
+**Left side**: Dropdown select for time period (compact, expandable)
+**Right side**: Sort direction toggle with up/down arrows
+
+This approach:
+- Reduces visual clutter by hiding time options in a dropdown
+- Makes room for the sort toggle without adding a third row
+- Scales better if you add more time filters later (e.g., "Last 6 Months")
+
+## Filter Options
+
+**Time Period Dropdown:**
+| Option | Filter Logic |
+|--------|--------------|
+| All Time | No date filter |
+| This Month | Current month of current year |
+| This Year | Shows from 2026 |
+| Last Year | Shows from 2025 |
+
+**Sort Direction Toggle:**
+| Option | Display |
+|--------|---------|
+| Best First | Shows ranked #1, #2, #3... (default) |
+| Worst First | Shows ranked from worst to best |
+
+## Visual Design
+
+The filter bar will be a single row with flexbox layout:
+- Time dropdown on the left with subtle styling
+- Sort toggle on the right using a button pair or single toggle button
+- Icons: `ArrowUp` / `ArrowDown` from lucide-react to indicate direction
+- Consistent with the dark theme and existing component styling
 
 ## Implementation Steps
 
-### Step 1: Update getShowRankInfo to Accept Filter Context
+### Step 1: Update State Variables
 
-Modify the function to accept the current filter and filtered shows list:
-
-```text
-getShowRankInfo(showId, filteredShowIds) 
-  → Only consider rankings for shows in the current view
-  → Recalculate position within that subset
+Add new state for sort direction:
+```typescript
+const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
 ```
 
-### Step 2: Pass Filter Context to Rank Calculation
-
-In `renderListView()`, pass the sorted/filtered show IDs to `getShowRankInfo`:
-
-```text
-const sortedShows = getSortedShows();
-const filteredShowIds = sortedShows.map(s => s.id);
-
-// When rendering each show:
-const rankInfo = getShowRankInfo(show.id, filteredShowIds);
+Update the time filter type to include "last-year":
+```typescript
+const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "last-year" | "this-month">("all-time");
 ```
 
-### Step 3: Recalculate Position Within Filtered Set
+### Step 2: Update getSortedShows Logic
 
-Update the position calculation to only consider shows in the current filter:
+Add the "last-year" filter case and reverse sort when direction is "worst-first":
+```typescript
+if (topRatedFilter === "last-year") {
+  const lastYear = currentYear - 1;
+  filteredShows = shows.filter(show => {
+    const showDate = parseISO(show.date);
+    return showDate.getFullYear() === lastYear;
+  });
+}
 
-```text
-// Filter rankings to only include shows in current view
-const filteredRankings = rankings.filter(r => 
-  filteredShowIds.includes(r.show_id)
-);
-
-// Sort and find position within filtered set
-const sortedRankings = [...filteredRankings].sort((a, b) => 
-  b.elo_score - a.elo_score
-);
-const position = sortedRankings.findIndex(r => r.show_id === showId) + 1;
+// After ELO sort, reverse if worst-first
+if (sortDirection === "worst-first") {
+  sortedShows.reverse();
+}
 ```
 
-## Technical Details
+### Step 3: Replace Button Row with New Filter Bar
 
-| File | Change |
-|------|--------|
-| `src/components/Feed.tsx` | Update `getShowRankInfo` signature to accept `filteredShowIds?: string[]` parameter |
-| `src/components/Feed.tsx` | Update `renderListView` to compute and pass filtered show IDs |
-| `src/components/Feed.tsx` | Update `total` in rank info to reflect filtered count, not global count |
+Replace the current 3-button row with a flex container:
+- Left: `<Select>` dropdown with time period options
+- Right: Toggle button for sort direction with arrow icon
+
+### Step 4: Update Rank Display for Reversed Order
+
+When sorting worst-first, the rank badges should still show the true rank position (not reversed), so users understand where shows actually stand in their rankings.
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/Feed.tsx` | Add `sortDirection` state, update filter type, modify `getSortedShows`, replace filter UI |
 
 ## Expected Result
 
-After this fix:
-- **All Time**: Shows display as #1, #2, #3... in correct order
-- **This Year**: Shows are re-ranked within just 2026 shows (#1 of year, #2 of year, etc.)
-- **This Month**: Shows are re-ranked within just January 2026 shows
-
-The rank badge will always match the show's position in the currently displayed list.
+- Cleaner, more professional filter UI
+- Easy one-tap access to switch between best/worst ordering
+- Time period options neatly tucked into a dropdown
+- Scalable design for future filter additions
