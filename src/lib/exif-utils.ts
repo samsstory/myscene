@@ -36,15 +36,24 @@ export async function extractExifData(file: File): Promise<ExifData> {
 
     const rawLat = tags['GPSLatitude'];
     const rawLng = tags['GPSLongitude'];
-    const latRef = tags['GPSLatitudeRef']?.description; // 'N' | 'S'
-    const lngRef = tags['GPSLongitudeRef']?.description; // 'E' | 'W'
+    const latRef = parseGpsRef(tags['GPSLatitudeRef']); // 'N' | 'S' | null
+    const lngRef = parseGpsRef(tags['GPSLongitudeRef']); // 'E' | 'W' | null
 
     const lat = parseGpsCoordinate(rawLat);
     const lng = parseGpsCoordinate(rawLng);
 
     if (lat != null && lng != null) {
-      const signedLat = latRef === 'S' ? -Math.abs(lat) : Math.abs(lat);
-      const signedLng = lngRef === 'W' ? -Math.abs(lng) : Math.abs(lng);
+      // If ref is missing, keep whatever sign the coordinate already has.
+      // If ref exists, enforce sign accordingly.
+      let signedLat = lat;
+      let signedLng = lng;
+
+      if (latRef === 'S') signedLat = -Math.abs(lat);
+      else if (latRef === 'N') signedLat = Math.abs(lat);
+
+      if (lngRef === 'W') signedLng = -Math.abs(lng);
+      else if (lngRef === 'E') signedLng = Math.abs(lng);
+
       gps = { latitude: signedLat, longitude: signedLng };
     }
     
@@ -92,6 +101,38 @@ type ExifTag = {
   description?: string;
   value?: unknown;
 };
+
+function parseGpsRef(tag: ExifTag | undefined): 'N' | 'S' | 'E' | 'W' | null {
+  if (!tag) return null;
+
+  const candidates: unknown[] = [tag.description, tag.value];
+  for (const raw of candidates) {
+    if (typeof raw === 'string') {
+      const c = raw.trim().toUpperCase()[0];
+      if (c === 'N' || c === 'S' || c === 'E' || c === 'W') return c;
+    }
+
+    // Some EXIF libs expose the ref as a single-char array or char code
+    if (Array.isArray(raw) && raw.length > 0) {
+      const first = raw[0];
+      if (typeof first === 'string') {
+        const c = first.trim().toUpperCase()[0];
+        if (c === 'N' || c === 'S' || c === 'E' || c === 'W') return c;
+      }
+      if (typeof first === 'number') {
+        const c = String.fromCharCode(first).toUpperCase();
+        if (c === 'N' || c === 'S' || c === 'E' || c === 'W') return c;
+      }
+    }
+
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      const c = String.fromCharCode(raw).toUpperCase();
+      if (c === 'N' || c === 'S' || c === 'E' || c === 'W') return c;
+    }
+  }
+
+  return null;
+}
 
 function parseGpsCoordinate(tag: ExifTag | undefined): number | null {
   if (!tag) return null;
