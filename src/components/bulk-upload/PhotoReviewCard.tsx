@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { Calendar, Music, MapPin, AlertCircle, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { PhotoWithExif } from "@/lib/exif-utils";
@@ -254,25 +251,21 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
             )}
           </div>
 
-          {/* Date picker */}
-          <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1 justify-start">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {date ? format(date, "MMM d, yyyy") : "Select date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={date || undefined}
-                  onSelect={(d) => setDate(d || null)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            
+          {/* Date - simple input */}
+          <div className="space-y-2">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={date ? format(date, "yyyy-MM-dd") : ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDate(val ? new Date(val + "T12:00:00") : null);
+                }}
+                className="pl-9"
+                max={format(new Date(), "yyyy-MM-dd")}
+              />
+            </div>
             <div className="flex items-center gap-1.5">
               <Checkbox
                 id={`approx-${photo.id}`}
@@ -280,7 +273,7 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, initialData }: PhotoRe
                 onCheckedChange={(checked) => setIsApproximate(!!checked)}
               />
               <Label htmlFor={`approx-${photo.id}`} className="text-xs text-muted-foreground">
-                Approx
+                I don't remember the exact date
               </Label>
             </div>
           </div>
