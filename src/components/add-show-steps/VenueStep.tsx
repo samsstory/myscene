@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2, X, Building2, Music2, Sparkles, Home, Globe, Map } from "lucide-react";
+import { MapPin, Loader2, Home, Globe, Map, Building2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Dialog,
   DialogContent,
@@ -364,52 +363,23 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <ToggleGroup 
-          type="single" 
-          value={showType} 
-          onValueChange={(value) => {
-            if (value) {
-              onShowTypeChange(value as 'venue' | 'festival' | 'other');
-              setHasChanges(true);
+      <div className="relative">
+        <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+        <Input
+          placeholder="Search for venue, festival, or other..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && searchTerm.trim() && filteredSuggestions.length === 0) {
+              handleManualEntry();
             }
           }}
-          className="justify-start w-full"
-        >
-          <ToggleGroupItem value="venue" className="flex items-center gap-2 flex-1">
-            <Building2 className="h-4 w-4" />
-            Venue
-          </ToggleGroupItem>
-          <ToggleGroupItem value="festival" className="flex items-center gap-2 flex-1">
-            <Music2 className="h-4 w-4" />
-            Festival
-          </ToggleGroupItem>
-          <ToggleGroupItem value="other" className="flex items-center gap-2 flex-1">
-            <Sparkles className="h-4 w-4" />
-            Other
-          </ToggleGroupItem>
-        </ToggleGroup>
-
-        <div className="relative">
-          <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-          <Input
-            placeholder={getPlaceholder()}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && searchTerm.trim() && filteredSuggestions.length === 0) {
-                handleManualEntry();
-              }
-            }}
-            className="pl-10 pr-10 h-12 text-base"
-            autoFocus
-          />
-          {isSearching && (
-            <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
-          )}
-        </div>
-
-
+          className="pl-10 pr-10 h-12 text-base"
+          autoFocus
+        />
+        {isSearching && (
+          <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
+        )}
       </div>
 
       {/* Venue suggestions */}
