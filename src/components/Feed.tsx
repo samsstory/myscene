@@ -221,9 +221,22 @@ const Feed = () => {
               }}
             >
               <CardContent className="p-4 relative">
-                {/* Main content grid - consistent 3-column layout */}
-                <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
-                  
+                {/* Instagram share button - top right */}
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-foreground" 
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShareShow(show);
+                    setShareSheetOpen(true);
+                  }}
+                >
+                  <Instagram className="h-4 w-4" />
+                </Button>
+
+                {/* Main content - 2 column layout */}
+                <div className="flex gap-4 pr-8">
                   {/* Left: Optional photo thumbnail */}
                   {show.photo_url ? (
                     <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-md border border-border/50">
@@ -235,8 +248,8 @@ const Feed = () => {
                     </div>
                   )}
 
-                  {/* Center: Show info - always same structure */}
-                  <div className="min-w-0 space-y-1">
+                  {/* Center: Show info */}
+                  <div className="min-w-0 flex-1 space-y-1">
                     {/* Artist names */}
                     <div className="font-bold text-base leading-tight truncate">
                       {show.artists.slice(0, 2).map((artist, idx) => (
@@ -262,29 +275,14 @@ const Feed = () => {
                       <span>{format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy")}</span>
                     </div>
                   </div>
-
-                  {/* Right: Score - fixed width for alignment */}
-                  <div className="flex flex-col items-center justify-center w-16">
-                    <div className={`text-3xl font-black bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}>
-                      {score.toFixed(1)}
-                    </div>
-                  </div>
                 </div>
 
-                {/* Share button - visible with label */}
-                <Button 
-                  size="sm" 
-                  variant="secondary" 
-                  className="absolute bottom-3 right-3 h-8 gap-1.5 text-xs font-medium" 
-                  onClick={e => {
-                    e.stopPropagation();
-                    setShareShow(show);
-                    setShareSheetOpen(true);
-                  }}
-                >
-                  <Instagram className="h-3.5 w-3.5" />
-                  Share
-                </Button>
+                {/* Rating - bottom right */}
+                <div className="absolute bottom-3 right-3">
+                  <div className={`text-3xl font-black bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}>
+                    {score.toFixed(1)}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           );
