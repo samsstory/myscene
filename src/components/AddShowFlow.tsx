@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Music, Star } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Music, Star, Instagram, CheckCircle2, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
 import VenueStep from "./add-show-steps/VenueStep";
@@ -9,10 +9,12 @@ import ArtistsStep from "./add-show-steps/ArtistsStep";
 import RatingStep from "./add-show-steps/RatingStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 
 interface AddShowFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onShowAdded?: (show: AddedShowData) => void;
   editShow?: {
     id: string;
     venue: { name: string; location: string };
@@ -28,6 +30,19 @@ interface AddShowFlowProps {
     notes?: string | null;
     venueId?: string | null;
   } | null;
+}
+
+export interface AddedShowData {
+  id: string;
+  artists: Array<{ name: string; isHeadliner: boolean }>;
+  venue: { name: string; location: string };
+  date: string;
+  rating: number;
+  artistPerformance?: number | null;
+  sound?: number | null;
+  lighting?: number | null;
+  crowd?: number | null;
+  venueVibe?: number | null;
 }
 
 export interface ShowData {
@@ -54,11 +69,12 @@ export interface ShowData {
 
 type EntryPoint = 'artist' | 'venue' | null;
 
-const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
+const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowProps) => {
   const [step, setStep] = useState(1);
   const [entryPoint, setEntryPoint] = useState<EntryPoint>(null);
   const [showStepSelector, setShowStepSelector] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [addedShow, setAddedShow] = useState<AddedShowData | null>(null);
   const [showData, setShowData] = useState<ShowData>({
     venue: "",
     venueLocation: "",
@@ -475,9 +491,26 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
 
       if (artistsError) throw artistsError;
 
-      toast.success(isEditing ? "Show updated successfully! 🎉" : "Show added successfully! 🎉");
-      
-      resetAndClose();
+      if (isEditing) {
+        toast.success("Show updated successfully! 🎉");
+        resetAndClose();
+      } else {
+        // For new shows, show success step with share prompt
+        const newShowData: AddedShowData = {
+          id: show.id,
+          artists: showData.artists,
+          venue: { name: showData.venue, location: showData.venueLocation },
+          date: showDate,
+          rating: showData.rating!,
+          artistPerformance: showData.artistPerformance,
+          sound: showData.sound,
+          lighting: showData.lighting,
+          crowd: showData.crowd,
+          venueVibe: showData.venueVibe,
+        };
+        setAddedShow(newShowData);
+        setStep(5); // Success step
+      }
     } catch (error) {
       console.error("Error adding show:", error);
       toast.error("Failed to add show. Please try again.");
@@ -508,7 +541,71 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
     setEntryPoint(null);
     setShowStepSelector(false);
     setHasUnsavedChanges(false);
+    setAddedShow(null);
     onOpenChange(false);
+  };
+
+  const handleShareShow = () => {
+    if (addedShow && onShowAdded) {
+      onShowAdded(addedShow);
+    }
+    resetAndClose();
+  };
+
+  // Render success step with share prompt
+  const renderSuccessStep = () => {
+    if (!addedShow) return null;
+    
+    const score = calculateShowScore(
+      addedShow.rating,
+      addedShow.artistPerformance,
+      addedShow.sound,
+      addedShow.lighting,
+      addedShow.crowd,
+      addedShow.venueVibe
+    );
+
+    return (
+      <div className="flex flex-col items-center text-center space-y-6 py-4">
+        {/* Success icon */}
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <CheckCircle2 className="h-8 w-8 text-primary" />
+        </div>
+
+        {/* Title */}
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold">Show Added!</h3>
+          <p className="text-muted-foreground text-sm">
+            {addedShow.artists.slice(0, 2).map(a => a.name).join(" & ")}
+            {addedShow.artists.length > 2 && ` +${addedShow.artists.length - 2}`}
+          </p>
+        </div>
+
+        {/* Score display */}
+        <div className={`text-5xl font-black bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}>
+          {score.toFixed(1)}
+        </div>
+
+        {/* Share CTA */}
+        <div className="w-full space-y-3 pt-4">
+          <Button 
+            onClick={handleShareShow}
+            className="w-full h-12 gap-2 text-base"
+          >
+            <Instagram className="h-5 w-5" />
+            Share to Instagram
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            onClick={resetAndClose}
+            className="w-full text-muted-foreground"
+          >
+            Maybe later
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   // Render step content based on entry point and current step
@@ -744,14 +841,19 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
       }
     }
 
+    // Success step (step 5)
+    if (step === 5) {
+      return renderSuccessStep();
+    }
+
     return null;
   };
 
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[70vh] sm:max-h-[85vh] flex flex-col fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
-        {/* Back button - absolute positioned */}
-        {step > 1 && (
+        {/* Back button - absolute positioned (hide on success step) */}
+        {step > 1 && step < 5 && (
           <Button
             variant="ghost"
             size="icon"
@@ -765,17 +867,19 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
         {/* Step content - scrollable */}
         <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4 min-h-0">
           <div className="flex flex-col items-center">
-            <h2 className="text-xl font-bold text-center mb-4">
-              {editShow ? "Edit Show" : "Add a Show"}
-            </h2>
+            {step !== 5 && (
+              <h2 className="text-xl font-bold text-center mb-4">
+                {editShow ? "Edit Show" : "Add a Show"}
+              </h2>
+            )}
             <div className="w-full">
               {renderStepContent()}
             </div>
           </div>
         </div>
 
-        {/* Progress indicator - hide for step selector */}
-        {step > 0 && !showStepSelector && (
+        {/* Progress indicator - hide for step selector and success step */}
+        {step > 0 && step < 5 && !showStepSelector && (
           <div className="flex gap-1 px-6 pb-4 pt-2 border-t border-border/50 bg-background">
             {[1, 2, 3, 4].map((i) => (
               <div

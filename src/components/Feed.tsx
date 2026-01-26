@@ -271,11 +271,11 @@ const Feed = () => {
                   </div>
                 </div>
 
-                {/* Share button - absolute bottom right */}
+                {/* Share button - visible with label */}
                 <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="absolute bottom-2 right-2 h-7 w-7 opacity-60 hover:opacity-100" 
+                  size="sm" 
+                  variant="secondary" 
+                  className="absolute bottom-3 right-3 h-8 gap-1.5 text-xs font-medium" 
                   onClick={e => {
                     e.stopPropagation();
                     setShareShow(show);
@@ -283,6 +283,7 @@ const Feed = () => {
                   }}
                 >
                   <Instagram className="h-3.5 w-3.5" />
+                  Share
                 </Button>
               </CardContent>
             </Card>
