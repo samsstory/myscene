@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Instagram, ChevronLeft, ChevronRight, Map as MapIcon, ArrowUpDown } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Instagram, ChevronLeft, ChevronRight, Map as MapIcon, ArrowUpDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -12,6 +13,7 @@ import { ShowReviewSheet } from "./ShowReviewSheet";
 import MapView from "./MapView";
 import AddShowFlow from "./AddShowFlow";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
+import { toast } from "sonner";
 interface Artist {
   name: string;
   isHeadliner: boolean;
@@ -56,6 +58,8 @@ const Feed = () => {
   const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "last-year" | "this-month">("all-time");
   const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
+  const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   useEffect(() => {
     fetchShows();
 
@@ -74,6 +78,46 @@ const Feed = () => {
   const handleEditShow = (show: Show) => {
     setEditShow(show);
     setEditDialogOpen(true);
+  };
+
+  const handleDeleteShow = async () => {
+    if (!deleteConfirmShow) return;
+    
+    setIsDeleting(true);
+    try {
+      // Delete related records first (artists, rankings, comparisons)
+      await supabase
+        .from('show_artists')
+        .delete()
+        .eq('show_id', deleteConfirmShow.id);
+      
+      await supabase
+        .from('show_rankings')
+        .delete()
+        .eq('show_id', deleteConfirmShow.id);
+      
+      await supabase
+        .from('show_comparisons')
+        .delete()
+        .or(`show1_id.eq.${deleteConfirmShow.id},show2_id.eq.${deleteConfirmShow.id}`);
+      
+      // Delete the show itself
+      const { error } = await supabase
+        .from('shows')
+        .delete()
+        .eq('id', deleteConfirmShow.id);
+      
+      if (error) throw error;
+      
+      toast.success('Show deleted');
+      setShows(prev => prev.filter(s => s.id !== deleteConfirmShow.id));
+    } catch (error) {
+      console.error('Error deleting show:', error);
+      toast.error('Failed to delete show');
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmShow(null);
+    }
   };
   const fetchShows = async () => {
     try {
@@ -257,19 +301,32 @@ const Feed = () => {
               }}
             >
               <CardContent className="p-4 relative">
-                {/* Instagram share button - top right */}
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-foreground" 
-                  onClick={e => {
-                    e.stopPropagation();
-                    setShareShow(show);
-                    setShareSheetOpen(true);
-                  }}
-                >
-                  <Instagram className="h-4 w-4" />
-                </Button>
+                {/* Top right action buttons */}
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground" 
+                    onClick={e => {
+                      e.stopPropagation();
+                      setShareShow(show);
+                      setShareSheetOpen(true);
+                    }}
+                  >
+                    <Instagram className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-7 w-7 text-muted-foreground/50 hover:text-destructive" 
+                    onClick={e => {
+                      e.stopPropagation();
+                      setDeleteConfirmShow(show);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
 
                 {/* Main content - 2 column layout */}
                 <div className="flex gap-4 pr-8">
@@ -545,6 +602,33 @@ const Feed = () => {
       notes: editShow.notes,
       venueId: editShow.venueId
     } : null} />
+
+    {/* Delete confirmation dialog */}
+    <AlertDialog open={!!deleteConfirmShow} onOpenChange={(open) => !open && setDeleteConfirmShow(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this show?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {deleteConfirmShow && (
+              <>
+                This will permanently delete <strong>{deleteConfirmShow.artists.map(a => a.name).join(', ')}</strong> at {deleteConfirmShow.venue.name}.
+                This action cannot be undone.
+              </>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleDeleteShow}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </div>;
 };
 export default Feed;
