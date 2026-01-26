@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Instagram, ChevronLeft, ChevronRight } from "lucide-react";
+import { Music2, MapPin, Calendar as CalendarIcon, List, Trophy, Instagram, ChevronLeft, ChevronRight, Map as MapIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -424,7 +424,7 @@ const Feed = () => {
             <span className="hidden sm:inline">Top Shows</span>
           </TabsTrigger>
           <TabsTrigger value="map" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
+            <MapIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Show Globe</span>
           </TabsTrigger>
         </TabsList>
