@@ -746,18 +746,18 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background">
         {/* Header with back button */}
-        <div className="flex items-center gap-4 p-6 pb-4">
+        <div className="flex flex-col items-center p-6 pb-4">
           {step > 1 && (
             <Button
               variant="ghost"
               size="icon"
               onClick={handleBack}
-              className="h-8 w-8 -ml-2"
+              className="h-8 w-8 absolute left-4 top-4"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-2xl font-bold text-center">
             {editShow ? "Edit Show" : "Add a Show"}
           </h2>
         </div>
