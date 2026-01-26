@@ -124,6 +124,7 @@ const BulkUploadFlow = ({ open, onOpenChange }: BulkUploadFlowProps) => {
             onComplete={handleReviewComplete}
             onPhotoReplace={handlePhotoReplace}
             onPhotoDelete={handlePhotoDelete}
+            onPhotosUpdate={setPhotos}
             isSubmitting={isUploading}
           />
         )}
