@@ -7,7 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
   Download, MapPin, Instagram, Move, Eye, EyeOff,
   Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, 
-  Layers, Trophy, RotateCcw, SunDim
+  Trophy, RotateCcw, SunDim, MessageCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
@@ -624,6 +624,63 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     toast.success("Image downloaded!");
   };
 
+  const handleShareWithFriends = async () => {
+    if (!show.photo_url) {
+      toast.error("No photo available");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const canvas = await generateCanvas();
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error("Failed to generate image");
+          setIsGenerating(false);
+          return;
+        }
+        
+        const artistName = show.artists[0]?.name || "show";
+        const headliners = show.artists.filter(a => a.is_headliner);
+        const artistNames = headliners.map(a => a.name).join(", ");
+        const file = new File([blob], `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`, { 
+          type: 'image/png' 
+        });
+        
+        // Check if Web Share API with files is supported
+        if (navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `${artistNames} at ${show.venue_name}`,
+              text: `Check out my show: ${artistNames} at ${show.venue_name}! 🎵`,
+            });
+            toast.success("Shared successfully!");
+          } catch (err) {
+            // User cancelled share - not an error
+            if ((err as Error).name !== 'AbortError') {
+              console.error("Share failed:", err);
+              toast.error("Share failed. Downloading instead...");
+              downloadBlob(blob, artistName);
+            }
+          }
+        } else {
+          // Fallback for browsers that don't support sharing files
+          toast.info("Share not supported on this device. Downloading instead...");
+          downloadBlob(blob, artistName);
+        }
+        
+        setIsGenerating(false);
+      }, "image/png");
+
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.error("Failed to generate image");
+      setIsGenerating(false);
+    }
+  };
+
   if (!show.photo_url) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
@@ -994,23 +1051,32 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
         </p>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex flex-col gap-2 pt-2">
           <Button
             onClick={handleShareToInstagram}
             disabled={isGenerating}
-            className="flex-1"
+            className="w-full"
           >
             <Instagram className="mr-2 h-4 w-4" />
-            {isGenerating ? "Generating..." : "Share"}
+            {isGenerating ? "Generating..." : "Share to Instagram Story"}
+          </Button>
+          <Button
+            onClick={handleShareWithFriends}
+            disabled={isGenerating}
+            variant="secondary"
+            className="w-full"
+          >
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Share with Friends
           </Button>
           <Button
             onClick={handleDownloadImage}
             disabled={isGenerating}
-            variant="outline"
-            className="flex-1"
+            variant="ghost"
+            className="w-full"
           >
             <Download className="mr-2 h-4 w-4" />
-            Download
+            Download Image
           </Button>
         </div>
       </div>
