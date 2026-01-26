@@ -56,9 +56,6 @@ const PhotoSelectStep = ({ onPhotosSelected, isProcessing }: PhotoSelectStepProp
           <Camera className="h-8 w-8 text-primary" />
         </div>
         <h2 className="text-xl font-semibold">Add Shows from Photos</h2>
-        <p className="text-sm text-muted-foreground">
-          Select photos from your concerts. Each photo will become the <span className="text-primary font-medium">cover image</span> for that show.
-        </p>
         <p className="text-xs text-muted-foreground">
           We'll try to detect the date from your photos automatically.
         </p>
