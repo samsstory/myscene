@@ -468,7 +468,7 @@ const PhotoReviewCard = ({
             </div>
 
             {/* Date */}
-            <div className="relative">
+            <div className="relative group">
               <input
                 type="date"
                 value={date ? format(date, "yyyy-MM-dd") : ""}
@@ -478,12 +478,13 @@ const PhotoReviewCard = ({
                 }}
                 className={cn(
                   "w-full h-10 px-3 text-sm rounded-md border border-input bg-background",
-                  !date && "[color:transparent]"
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                  !date && "text-transparent focus:text-foreground"
                 )}
                 max={format(new Date(), "yyyy-MM-dd")}
               />
               {!date && (
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none group-focus-within:hidden">
                   Date (optional)
                 </span>
               )}
