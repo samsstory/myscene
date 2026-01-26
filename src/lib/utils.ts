@@ -31,8 +31,9 @@ export const calculateShowScore = (
 };
 
 export const getScoreGradient = (score: number): string => {
-  if (score >= 9.0) return "from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)]"; // Gold to blue
-  if (score >= 7.0) return "from-[hsl(17,88%,60%)] to-[hsl(260,80%,60%)]"; // Coral to purple
-  if (score >= 5.0) return "from-[hsl(30,90%,55%)] to-[hsl(330,85%,65%)]"; // Orange to pink
-  return "from-[hsl(0,84%,60%)] to-[hsl(17,88%,60%)]"; // Red to orange
+  if (score >= 9.0) return "from-[hsl(142,76%,45%)] to-[hsl(160,84%,40%)]"; // Bright green to teal - exceptional
+  if (score >= 7.0) return "from-[hsl(85,70%,50%)] to-[hsl(142,70%,45%)]"; // Lime to green - great
+  if (score >= 5.0) return "from-[hsl(45,93%,55%)] to-[hsl(60,80%,50%)]"; // Gold to yellow - good/average
+  if (score >= 3.0) return "from-[hsl(30,90%,55%)] to-[hsl(45,90%,50%)]"; // Orange to gold - below average
+  return "from-[hsl(0,84%,55%)] to-[hsl(20,90%,50%)]"; // Red to orange - poor
 };
