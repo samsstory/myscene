@@ -652,8 +652,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col gap-4 pb-4">
-        {/* Canvas Preview with touch gestures + opacity slider */}
-        <div className="flex-1 flex items-center justify-center gap-3 bg-muted/20 rounded-lg relative min-h-[400px] p-4">
+        {/* Canvas Preview with touch gestures */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 rounded-lg relative min-h-[400px] p-4">
           {/* Main image container */}
           <div
             ref={containerRef}
@@ -955,33 +955,36 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 </button>
               </div>
             )}
-          </div>
-          
-          {/* Vertical Opacity Slider - right side of image, hidden in preview mode */}
-          {!isPreviewMode && (
-            <div className="flex flex-col items-center gap-2 py-4">
-              <SunDim className="h-4 w-4 text-muted-foreground" />
-              <div className="relative h-32 w-6 flex items-center justify-center">
-                <input
-                  type="range"
-                  min={50}
-                  max={100}
-                  step={5}
-                  value={overlayOpacity}
-                  onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-                  className="absolute h-1 w-28 cursor-pointer origin-center"
-                  style={{ 
-                    transform: 'rotate(-90deg)',
-                    WebkitAppearance: 'none',
-                    appearance: 'none',
-                    background: `linear-gradient(to right, hsl(var(--primary)) ${(overlayOpacity - 50) * 2}%, hsl(var(--muted)) ${(overlayOpacity - 50) * 2}%)`,
-                    borderRadius: '4px'
-                  }}
-                />
+            
+            {/* Vertical Opacity Slider - inside image on right edge, hidden in preview mode */}
+            {!isPreviewMode && (
+              <div 
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-3 rounded-full border border-white/10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SunDim className="h-3.5 w-3.5 text-white/60" />
+                <div className="relative h-20 w-4 flex items-center justify-center">
+                  <input
+                    type="range"
+                    min={50}
+                    max={100}
+                    step={5}
+                    value={overlayOpacity}
+                    onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                    className="absolute h-1 w-16 cursor-pointer origin-center"
+                    style={{ 
+                      transform: 'rotate(-90deg)',
+                      WebkitAppearance: 'none',
+                      appearance: 'none',
+                      background: `linear-gradient(to right, rgba(255,255,255,0.9) ${(overlayOpacity - 50) * 2}%, rgba(255,255,255,0.2) ${(overlayOpacity - 50) * 2}%)`,
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-white/60">{overlayOpacity}</span>
               </div>
-              <span className="text-xs text-muted-foreground">{overlayOpacity}%</span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         
         {/* Gesture hint below */}
