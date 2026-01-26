@@ -1,132 +1,155 @@
 
-# Approximate Date Mode with Month/Year Only Selection
+# Fix Done Button + Add Post-Add Success Page with Photo Upload
 
-## Overview
+## Part 1: Fix the Done Button Bug
 
-When "I don't remember the exact date" is checked, the calendar will be replaced with standalone month and year dropdowns. Users can proceed with just a year selected (month is optional).
+### Problem
+For new shows, after the final step calls `handleSubmit()`:
+1. Show is saved to the database
+2. Step is set to 4
+3. `RatingStep` is incorrectly rendered (inside `entryPoint` conditionals) instead of `QuickCompareStep`
+4. Clicking "Done" calls `handleSubmit()` again, attempting to create a duplicate show
 
-## Current State
+### Solution
+Modify the step 4 rendering logic to only show `RatingStep` in edit mode (`showStepSelector === true`). For new shows at step 4, let the code fall through to `renderQuickCompareStep()`.
 
-- Checkbox toggles `isApproximate` state
-- Calendar always visible regardless of checkbox
-- Precision only has "exact" vs "approximate" (both still require a full date)
+### File: `src/components/AddShowFlow.tsx`
 
-## New Behavior
-
-| Checkbox State | UI Shown | Required Fields | Precision Value |
-|----------------|----------|-----------------|-----------------|
-| Unchecked | Quick select buttons + Calendar | Full date | `exact` |
-| Checked | Month dropdown + Year dropdown | Year only (month optional) | `approximate` or `unknown` |
-
-## Technical Implementation
-
-### File: `src/components/add-show-steps/DateStep.tsx`
-
-**1. Add Select component import**
+**Changes to artist-first flow (around line 730):**
 ```tsx
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-```
-
-**2. Update `handleApproximateChange`**
-When toggling to approximate mode:
-- Clear the exact date (`onDateChange(undefined)`)
-- Set precision to `unknown` initially (just year)
-- Default year to current year if not set
-
-**3. Add handlers for month/year selection in approximate mode**
-```tsx
-const handleMonthSelect = (month: string) => {
-  onMonthChange(month);
-  // If month is selected, precision is "approximate"
-  // If month is cleared, precision is "unknown"
-  onPrecisionChange(month ? "approximate" : "unknown");
-};
-
-const handleYearSelect = (year: string) => {
-  onYearChange(year);
-  // Precision depends on whether month is also set
-  onPrecisionChange(selectedMonth ? "approximate" : "unknown");
-};
-```
-
-**4. Update `isValid()` function**
-```tsx
-const isValid = () => {
-  if (isApproximate) {
-    // Only year is required in approximate mode
-    return !!selectedYear;
+if (step === 4) {
+  if (showStepSelector) {
+    // Only show RatingStep in edit mode
+    return (
+      <RatingStep ... />
+    );
   }
-  return !!date;
+  // For new shows, fall through to QuickCompareStep below
+}
+```
+
+**Changes to venue-first flow (around line 800):**
+```tsx
+if (step === 4) {
+  if (showStepSelector) {
+    // Only show RatingStep in edit mode
+    return (
+      <RatingStep ... />
+    );
+  }
+  // For new shows, fall through to QuickCompareStep below
+}
+```
+
+---
+
+## Part 2: Add Post-Add Success Page with Photo Upload
+
+### New User Flow
+```
+Add Show → Save to DB → Success Page
+                        ├── Add a Photo (optional, stored in Supabase Storage)
+                        ├── Share to Instagram
+                        ├── Quick Compare (rank against other shows)
+                        └── Done (close dialog)
+```
+
+### New Component: `src/components/add-show-steps/SuccessStep.tsx`
+
+A celebratory success screen with three action cards:
+
+**UI Structure:**
+- Checkmark icon with "Show Added!" header
+- Show summary (artist, venue, date)
+- Three action cards:
+  1. **Add Photo** - Opens file picker, uploads to `show-photos` bucket
+  2. **Share to Instagram** - Triggers existing share flow
+  3. **Rank It** - Goes to Quick Compare step
+- "Done" button at bottom to close
+
+**Props:**
+```tsx
+interface SuccessStepProps {
+  show: AddedShowData;
+  onAddPhoto: (file: File) => Promise<void>;
+  onShare: () => void;
+  onRank: () => void;
+  onDone: () => void;
+}
+```
+
+### Database Changes
+
+**Storage Bucket** (if not already exists):
+- Bucket name: `show-photos`
+- Public: `true` (for easy display)
+- RLS: Users can only upload/delete their own show photos
+
+**Shows Table Update:**
+- Add column: `photo_url TEXT` (nullable) - stores the public URL of the uploaded photo
+
+### Changes to `src/components/AddShowFlow.tsx`
+
+1. **Import SuccessStep**
+2. **Add step 5 for Success page**
+3. **Update `handleSubmit()` to go to step 5 (Success) instead of step 4 (QuickCompare)**
+4. **Add photo upload handler:**
+```tsx
+const handlePhotoUpload = async (file: File) => {
+  // Upload to Supabase Storage
+  const fileName = `${addedShow.id}-${Date.now()}.${file.type.split('/')[1]}`;
+  const { data, error } = await supabase.storage
+    .from('show-photos')
+    .upload(fileName, file);
+  
+  if (error) throw error;
+  
+  // Get public URL and update show record
+  const { data: { publicUrl } } = supabase.storage
+    .from('show-photos')
+    .getPublicUrl(fileName);
+  
+  await supabase
+    .from('shows')
+    .update({ photo_url: publicUrl })
+    .eq('id', addedShow.id);
 };
 ```
 
-**5. Conditional rendering in JSX**
-
-When `isApproximate` is false (exact mode):
-- Show quick select buttons
-- Show full calendar
-
-When `isApproximate` is true (approximate mode):
-- Hide quick select buttons
-- Hide calendar
-- Show Month dropdown (with "Don't remember" option)
-- Show Year dropdown (required)
-
-**Month/Year UI:**
+5. **Render SuccessStep at step 5:**
 ```tsx
-{isApproximate && (
-  <div className="space-y-3">
-    <div>
-      <Label className="text-xs text-muted-foreground mb-1.5 block">Year</Label>
-      <Select value={selectedYear} onValueChange={handleYearSelect}>
-        <SelectTrigger>
-          <SelectValue placeholder="Select year" />
-        </SelectTrigger>
-        <SelectContent>
-          {years.map((year) => (
-            <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-    <div>
-      <Label className="text-xs text-muted-foreground mb-1.5 block">Month (optional)</Label>
-      <Select value={selectedMonth || "unknown"} onValueChange={(v) => handleMonthSelect(v === "unknown" ? "" : v)}>
-        <SelectTrigger>
-          <SelectValue placeholder="Select month" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="unknown">Don't remember</SelectItem>
-          {months.map((month) => (
-            <SelectItem key={month} value={month}>{month}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  </div>
-)}
+if (step === 5) {
+  return (
+    <SuccessStep
+      show={addedShow}
+      onAddPhoto={handlePhotoUpload}
+      onShare={handleShareShow}
+      onRank={() => setStep(6)} // QuickCompare moves to step 6
+      onDone={resetAndClose}
+    />
+  );
+}
 ```
 
-## Data Flow Summary
+6. **Move QuickCompare to step 6**
 
-```
-User checks "I don't remember" checkbox
-  → Calendar hides, Year/Month dropdowns appear
-  → Year defaults to current year
-  → Precision set to "unknown"
+### Step Flow Summary
 
-User selects a month
-  → Precision changes to "approximate"
+| Step | New Shows | Edit Mode |
+|------|-----------|-----------|
+| 1 | UnifiedSearch | VenueStep |
+| 2 | Venue/Date | DateStep |
+| 3 | Date/Artists | ArtistsStep |
+| 4 | (reserved) | RatingStep |
+| 5 | SuccessStep | - |
+| 6 | QuickCompareStep | - |
 
-User clears month (selects "Don't remember")
-  → Precision changes back to "unknown"
+---
 
-On save (already implemented in AddShowFlow.tsx):
-  - "exact" → uses full date
-  - "approximate" → creates date as 1st of selected month/year
-  - "unknown" → creates date as Jan 1st of selected year
-```
+## Files to Create/Modify
 
-## Files to Modify
-
-- `src/components/add-show-steps/DateStep.tsx` - All UI and logic changes
+1. **Create:** `src/components/add-show-steps/SuccessStep.tsx` - New success page component
+2. **Modify:** `src/components/AddShowFlow.tsx` - Fix step 4 bug, add step 5/6 flow, add photo upload handler
+3. **Create:** Database migration for:
+   - `show-photos` storage bucket with RLS policies
+   - Add `photo_url` column to `shows` table
