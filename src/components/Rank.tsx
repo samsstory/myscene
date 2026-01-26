@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { calculateShowScore } from "@/lib/utils";
-import { Loader2, MapPin, CalendarDays, Trophy } from "lucide-react";
+import { Loader2, MapPin, CalendarDays, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface Show {
@@ -459,11 +459,11 @@ export default function Rank() {
           <Button 
             onClick={() => handleChoice(showPair[0].id)}
             disabled={comparing}
-            className="w-full"
-            size="sm"
+            variant="ghost"
+            size="icon"
+            className="w-full h-10"
           >
-            <Trophy className="h-4 w-4 mr-1" />
-            This One
+            <Check className="h-5 w-5" />
           </Button>
         </div>
 
@@ -480,11 +480,11 @@ export default function Rank() {
           <Button 
             onClick={() => handleChoice(showPair[1].id)}
             disabled={comparing}
-            className="w-full"
-            size="sm"
+            variant="ghost"
+            size="icon"
+            className="w-full h-10"
           >
-            <Trophy className="h-4 w-4 mr-1" />
-            This One
+            <Check className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -502,7 +502,7 @@ export default function Rank() {
               Updating...
             </span>
           ) : (
-            "Can't decide? Skip this one"
+            "Can't Compare"
           )}
         </button>
       </div>
