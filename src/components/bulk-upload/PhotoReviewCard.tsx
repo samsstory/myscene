@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Music, MapPin, Pencil, X } from "lucide-react";
+import { Calendar, Music, MapPin, Pencil, X, ChevronDown, CheckCircle, Circle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PhotoWithExif, extractExifData } from "@/lib/exif-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 export interface ReviewedShow {
   photoId: string;
   file: File;
@@ -26,6 +28,8 @@ interface PhotoReviewCardProps {
   onPhotoReplace: (photoId: string, newPhoto: PhotoWithExif) => void;
   onDelete: (photoId: string) => void;
   initialData?: ReviewedShow;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
 interface SearchResult {
@@ -36,7 +40,17 @@ interface SearchResult {
   location?: string;
 }
 
-const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDelete, initialData }: PhotoReviewCardProps) => {
+const PhotoReviewCard = ({ 
+  photo, 
+  index, 
+  total, 
+  onUpdate, 
+  onPhotoReplace, 
+  onDelete, 
+  initialData,
+  isExpanded,
+  onToggle
+}: PhotoReviewCardProps) => {
   const [artist, setArtist] = useState(initialData?.artist || "");
   const [venue, setVenue] = useState(initialData?.venue || "");
   const [venueId, setVenueId] = useState<string | null>(initialData?.venueId || null);
@@ -66,11 +80,9 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Extract EXIF data from new file
     const exifData = await extractExifData(file);
     const newPreviewUrl = URL.createObjectURL(file);
     
-    // Revoke old URL to prevent memory leaks
     if (previewUrl !== photo.previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -84,7 +96,6 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
     
     setPreviewUrl(newPreviewUrl);
     
-    // Update date if new photo has EXIF data
     if (exifData.date) {
       setDate(exifData.date);
       setIsApproximate(false);
@@ -92,7 +103,6 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
     
     onPhotoReplace(photo.id, newPhoto);
     
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -198,135 +208,170 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
     setShowVenueResults(true);
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(photo.id);
+  };
+
   return (
-    <div className={cn(
-      "rounded-xl border bg-card p-4 space-y-4 transition-all",
-      isValid ? "border-primary/50" : "border-border border-dashed"
-    )}>
-      {/* Header with progress */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm text-muted-foreground">
-          Show {index + 1} of {total}
-        </span>
-        <button
-          type="button"
-          onClick={() => onDelete(photo.id)}
-          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Photo thumbnail with edit button */}
-      <div className="flex gap-4">
-        <div className="flex-shrink-0 relative group">
-          <img
-            src={previewUrl}
-            alt="Show photo"
-            className="w-24 h-24 object-cover rounded-lg"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
-          >
-            <Pencil className="h-5 w-5 text-white" />
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </div>
-
-        {/* Form fields */}
-        <div className="flex-1 space-y-3 min-w-0">
-          {/* Artist input */}
-          <div className="relative">
-            <div className="relative">
-              <Music className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Artist*"
-                value={artist}
-                onChange={(e) => handleArtistInputChange(e.target.value)}
-                onFocus={() => setShowArtistResults(true)}
-                onBlur={() => setTimeout(() => setShowArtistResults(false), 200)}
-                className={cn("pl-9", artist.trim() && "border-primary/40")}
-              />
-            </div>
-            {showArtistResults && artistResults.length > 0 && (
-              <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                {artistResults.map((result) => (
-                  <button
-                    key={result.id}
-                    onClick={() => handleArtistSelect(result)}
-                    className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
-                  >
-                    {result.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Venue input */}
-          <div className="relative">
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Venue"
-                value={venue}
-                onChange={(e) => handleVenueInputChange(e.target.value)}
-                onFocus={() => setShowVenueResults(true)}
-                onBlur={() => setTimeout(() => setShowVenueResults(false), 200)}
-                className="pl-9"
-              />
-            </div>
-            {showVenueResults && venueResults.length > 0 && (
-              <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                {venueResults.map((result) => (
-                  <button
-                    key={result.id}
-                    onClick={() => handleVenueSelect(result)}
-                    className="w-full text-left px-3 py-2 hover:bg-accent"
-                  >
-                    <div className="text-sm font-medium">{result.name}</div>
-                    {result.location && (
-                      <div className="text-xs text-muted-foreground">{result.location}</div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Date */}
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="date"
-              value={date ? format(date, "yyyy-MM-dd") : ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                setDate(val ? new Date(val + "T12:00:00") : null);
-              }}
-              className={cn(
-                "w-full h-10 pl-9 pr-3 text-sm rounded-md border border-input bg-background",
-                !date && "[color:transparent]"
-              )}
-              max={format(new Date(), "yyyy-MM-dd")}
+    <Collapsible open={isExpanded} onOpenChange={onToggle}>
+      <div className={cn(
+        "rounded-xl border bg-card transition-all",
+        isValid ? "border-primary/50" : "border-border border-dashed"
+      )}>
+        {/* Collapsed trigger - always visible */}
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center gap-3 p-3">
+            <img 
+              src={previewUrl} 
+              alt="Show photo" 
+              className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
             />
-            {!date && (
-              <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                Date
-              </span>
-            )}
+            <div className="flex-1 min-w-0 text-left">
+              <p className={cn(
+                "text-sm truncate",
+                artist ? "font-medium" : "text-muted-foreground"
+              )}>
+                {artist || "Add artist..."}
+              </p>
+              {venue && (
+                <p className="text-xs text-muted-foreground truncate">{venue}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {isValid ? (
+                <CheckCircle className="h-4 w-4 text-primary" />
+              ) : (
+                <Circle className="h-4 w-4 text-orange-400" />
+              )}
+              <ChevronDown className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                isExpanded && "rotate-180"
+              )} />
+            </div>
           </div>
-        </div>
+        </CollapsibleTrigger>
+
+        {/* Expanded content */}
+        <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+          <div className="px-3 pb-3 space-y-3 border-t border-border/50">
+            {/* Photo preview with actions */}
+            <div className="relative mt-3">
+              <img
+                src={previewUrl}
+                alt="Show photo"
+                className="w-full max-h-40 object-contain rounded-lg bg-muted/30"
+              />
+              <div className="absolute top-2 right-2 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1.5 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-white" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="p-1.5 rounded-full bg-black/50 hover:bg-destructive transition-colors"
+                >
+                  <X className="h-3.5 w-3.5 text-white" />
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+
+            {/* Artist input */}
+            <div className="relative">
+              <div className="relative">
+                <Music className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Artist*"
+                  value={artist}
+                  onChange={(e) => handleArtistInputChange(e.target.value)}
+                  onFocus={() => setShowArtistResults(true)}
+                  onBlur={() => setTimeout(() => setShowArtistResults(false), 200)}
+                  className={cn("pl-9", artist.trim() && "border-primary/40")}
+                />
+              </div>
+              {showArtistResults && artistResults.length > 0 && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                  {artistResults.map((result) => (
+                    <button
+                      key={result.id}
+                      onClick={() => handleArtistSelect(result)}
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                    >
+                      {result.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Venue input */}
+            <div className="relative">
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Venue"
+                  value={venue}
+                  onChange={(e) => handleVenueInputChange(e.target.value)}
+                  onFocus={() => setShowVenueResults(true)}
+                  onBlur={() => setTimeout(() => setShowVenueResults(false), 200)}
+                  className="pl-9"
+                />
+              </div>
+              {showVenueResults && venueResults.length > 0 && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                  {venueResults.map((result) => (
+                    <button
+                      key={result.id}
+                      onClick={() => handleVenueSelect(result)}
+                      className="w-full text-left px-3 py-2 hover:bg-accent"
+                    >
+                      <div className="text-sm font-medium">{result.name}</div>
+                      {result.location && (
+                        <div className="text-xs text-muted-foreground">{result.location}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Date */}
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="date"
+                value={date ? format(date, "yyyy-MM-dd") : ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDate(val ? new Date(val + "T12:00:00") : null);
+                }}
+                className={cn(
+                  "w-full h-10 pl-9 pr-3 text-sm rounded-md border border-input bg-background",
+                  !date && "[color:transparent]"
+                )}
+                max={format(new Date(), "yyyy-MM-dd")}
+              />
+              {!date && (
+                <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  Date
+                </span>
+              )}
+            </div>
+          </div>
+        </CollapsibleContent>
       </div>
-    </div>
+    </Collapsible>
   );
 };
 
