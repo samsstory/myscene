@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
   try {
     const { latitude, longitude } = await req.json();
 
+    console.log(`Matching venue for coordinates: ${latitude}, ${longitude}`);
+
     if (!latitude || !longitude) {
       return new Response(
         JSON.stringify({ error: "Missing latitude or longitude" }),
@@ -102,6 +104,8 @@ Deno.serve(async (req) => {
       console.error('Database query error:', dbError);
     }
 
+    console.log(`Found ${localVenues?.length || 0} venues with coordinates in DB`);
+
     const nearbyLocalVenues: VenueSuggestion[] = [];
     
     if (localVenues && localVenues.length > 0) {
@@ -115,6 +119,7 @@ Deno.serve(async (req) => {
           );
           
           if (distance <= 400) {
+            console.log(`Found nearby venue: ${venue.name} at ${distance.toFixed(0)}m`);
             nearbyLocalVenues.push({
               id: venue.id,
               externalPlaceId: venue.metadata?.google_place_id,
@@ -130,6 +135,8 @@ Deno.serve(async (req) => {
       // Sort by distance
       nearbyLocalVenues.sort((a, b) => a.distanceMeters - b.distanceMeters);
     }
+
+    console.log(`Found ${nearbyLocalVenues.length} venues within 400m from DB`);
 
     // If we found local matches, return them
     if (nearbyLocalVenues.length > 0) {
