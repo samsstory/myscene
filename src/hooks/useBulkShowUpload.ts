@@ -10,6 +10,12 @@ export interface AddedShowData {
   date: string;
   rating: number;
   photo_url: string | null;
+  artistPerformance?: number | null;
+  sound?: number | null;
+  lighting?: number | null;
+  crowd?: number | null;
+  venueVibe?: number | null;
+  notes?: string | null;
 }
 
 interface UploadResult {
@@ -195,6 +201,12 @@ export function useBulkShowUpload() {
             date: showDate,
             rating: 3,
             photo_url: publicUrl,
+            artistPerformance: show.artistPerformance,
+            sound: show.sound,
+            lighting: show.lighting,
+            crowd: show.crowd,
+            venueVibe: show.venueVibe,
+            notes: show.notes,
           });
 
           addedCount++;
