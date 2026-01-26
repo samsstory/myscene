@@ -489,7 +489,7 @@ export default function Rank() {
           {comparing ? (
             <span className="flex items-center gap-2 justify-center">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Updating...
+              Got it
             </span>
           ) : (
             "Can't Compare"
