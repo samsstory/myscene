@@ -198,7 +198,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
 
   // Get step count based on entry point
   const getTotalSteps = () => {
-    return 3; // Search -> [Venue/Artists] -> Date (no more Rating step)
+    return 4; // Search -> [Venue/Artists] -> Date -> Rating/Details
   };
 
   // Get current step number for progress indicator
@@ -210,9 +210,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
   // Get step labels for progress
   const getStepLabels = () => {
     if (entryPoint === 'artist') {
-      return ['Search', 'Venue', 'Date'];
+      return ['Search', 'Venue', 'Date', 'Details'];
     }
-    return ['Search', 'Date', 'Artists'];
+    return ['Search', 'Date', 'Artists', 'Details'];
   };
 
   const handleBack = () => {
@@ -289,8 +289,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
     if (showStepSelector) {
       setStep(0);
     } else if (entryPoint === 'artist') {
-      // Artist flow: after date, submit immediately
-      handleSubmit();
+      // Artist flow: after date, go to rating step
+      setStep(4);
     } else {
       setStep(3); // Go to artists
     }
@@ -301,8 +301,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
     if (showStepSelector) {
       setStep(0);
     } else {
-      // After artists step, submit immediately (no rating step)
-      handleSubmit();
+      // After artists step, go to rating step
+      setStep(4);
     }
   };
 
@@ -761,8 +761,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           />
         );
       }
-      if (step === 4 && showStepSelector) {
-        // Only show RatingStep in edit mode
+      if (step === 4) {
+        // Show RatingStep for both new shows and edit mode
         return (
           <RatingStep
             rating={showData.rating}
@@ -775,6 +775,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
             notes={showData.notes}
             onDetailChange={(field, value) => updateShowData({ [field]: value })}
             onSubmit={handleSubmit}
+            onSkip={handleSubmit}
+            isEditMode={showStepSelector}
           />
         );
       }
@@ -832,8 +834,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           />
         );
       }
-      if (step === 4 && showStepSelector) {
-        // Only show RatingStep in edit mode
+      if (step === 4) {
+        // Show RatingStep for both new shows and edit mode
         return (
           <RatingStep
             rating={showData.rating}
@@ -846,6 +848,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
             notes={showData.notes}
             onDetailChange={(field, value) => updateShowData({ [field]: value })}
             onSubmit={handleSubmit}
+            onSkip={handleSubmit}
+            isEditMode={showStepSelector}
           />
         );
       }
@@ -910,7 +914,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
         {/* Progress indicator - hide for step selector and success/quick compare steps */}
         {step > 0 && step < 5 && !showStepSelector && (
           <div className="flex gap-1 px-6 pb-4 pt-2 border-t border-border/50 bg-background">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
                 className={`h-1 flex-1 rounded-full transition-colors ${
