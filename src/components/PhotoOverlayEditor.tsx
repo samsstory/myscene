@@ -83,7 +83,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showRankOptions, setShowRankOptions] = useState(false);
-  const [showOpacitySlider, setShowOpacitySlider] = useState(false);
   
   // Multi-touch transform for Instagram-style overlay manipulation
   const { transform, setTransform, handlers, handleWheel } = useMultiTouchTransform({
@@ -653,8 +652,9 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col gap-4 pb-4">
-        {/* Canvas Preview with touch gestures */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 rounded-lg relative min-h-[400px]">
+        {/* Canvas Preview with touch gestures + opacity slider */}
+        <div className="flex-1 flex items-center justify-center gap-3 bg-muted/20 rounded-lg relative min-h-[400px] p-4">
+          {/* Main image container */}
           <div
             ref={containerRef}
             id="canvas-container"
@@ -874,53 +874,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 
                 <div className="w-px h-5 bg-white/20 mx-1" />
                 
-                {/* Opacity control */}
-                <div className="relative">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowOpacitySlider(!showOpacitySlider); }}
-                        className={`p-2 rounded-full transition-all ${
-                          showOpacitySlider 
-                            ? "bg-white/20 text-white" 
-                            : "text-white/40 hover:text-white/70 hover:bg-white/10"
-                        }`}
-                      >
-                        <SunDim className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
-                      Opacity
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  {/* Vertical opacity slider popup */}
-                  {showOpacitySlider && (
-                    <div 
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black/80 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg animate-scale-in"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="h-24 flex flex-col items-center gap-2">
-                        <span className="text-xs text-white/70">{overlayOpacity}%</span>
-                        <input
-                          type="range"
-                          min={50}
-                          max={100}
-                          step={5}
-                          value={overlayOpacity}
-                          onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-                          className="w-24 h-1 accent-white/80 cursor-pointer rotate-[-90deg] origin-center"
-                          style={{ 
-                            WebkitAppearance: 'none',
-                            background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(overlayOpacity - 50) * 2}%, rgba(255,255,255,0.2) ${(overlayOpacity - 50) * 2}%)`,
-                            borderRadius: '4px'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
                 {/* Reset position */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -940,7 +893,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowOpacitySlider(false); setShowRankOptions(false); }}
+                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowRankOptions(false); }}
                       className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/10 transition-all"
                     >
                       <Eye className="h-4 w-4" />
@@ -1004,11 +957,37 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             )}
           </div>
           
-          {/* Gesture hint below image */}
-          <p className="text-xs text-muted-foreground text-center mt-3">
-            Drag • Pinch to resize • Two fingers to rotate • Tap elements to toggle
-          </p>
+          {/* Vertical Opacity Slider - right side of image, hidden in preview mode */}
+          {!isPreviewMode && (
+            <div className="flex flex-col items-center gap-2 py-4">
+              <SunDim className="h-4 w-4 text-muted-foreground" />
+              <div className="relative h-32 w-6 flex items-center justify-center">
+                <input
+                  type="range"
+                  min={50}
+                  max={100}
+                  step={5}
+                  value={overlayOpacity}
+                  onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                  className="absolute h-1 w-28 cursor-pointer origin-center"
+                  style={{ 
+                    transform: 'rotate(-90deg)',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                    background: `linear-gradient(to right, hsl(var(--primary)) ${(overlayOpacity - 50) * 2}%, hsl(var(--muted)) ${(overlayOpacity - 50) * 2}%)`,
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">{overlayOpacity}%</span>
+            </div>
+          )}
         </div>
+        
+        {/* Gesture hint below */}
+        <p className="text-xs text-muted-foreground text-center">
+          Drag • Pinch to resize • Two fingers to rotate • Tap elements to toggle
+        </p>
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
