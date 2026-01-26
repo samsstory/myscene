@@ -10,11 +10,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import ArtistTagInput from "./ArtistTagInput";
+import CompactDateSelector from "./CompactDateSelector";
 
 interface Artist {
   name: string;
   isHeadliner: boolean;
 }
+
+export type DatePrecision = "exact" | "approximate" | "unknown";
 
 export interface ReviewedShow {
   photoId: string;
@@ -25,7 +28,9 @@ export interface ReviewedShow {
   venueId: string | null;
   venueLocation: string;
   date: Date | null;
-  isApproximate: boolean;
+  datePrecision: DatePrecision;
+  selectedMonth: string;
+  selectedYear: string;
   isValid: boolean;
   // Optional rating fields
   artistPerformance: number | null;
@@ -107,7 +112,15 @@ const PhotoReviewCard = ({
   const [venueId, setVenueId] = useState<string | null>(initialData?.venueId || photo.suggestedVenue?.id || null);
   const [venueLocation, setVenueLocation] = useState(initialData?.venueLocation || photo.suggestedVenue?.address || "");
   const [date, setDate] = useState<Date | null>(initialData?.date || photo.exifData.date);
-  const [isApproximate, setIsApproximate] = useState(initialData?.isApproximate || !photo.exifData.hasExif);
+  const [datePrecision, setDatePrecision] = useState<DatePrecision>(
+    initialData?.datePrecision || (photo.exifData.hasExif ? "exact" : "approximate")
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    initialData?.selectedMonth || (photo.exifData.date ? String(photo.exifData.date.getMonth() + 1).padStart(2, '0') : "")
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    initialData?.selectedYear || (photo.exifData.date ? String(photo.exifData.date.getFullYear()) : String(new Date().getFullYear()))
+  );
   const [previewUrl, setPreviewUrl] = useState(photo.previewUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -172,7 +185,9 @@ const PhotoReviewCard = ({
     
     if (exifData.date) {
       setDate(exifData.date);
-      setIsApproximate(false);
+      setDatePrecision("exact");
+      setSelectedMonth(String(exifData.date.getMonth() + 1).padStart(2, '0'));
+      setSelectedYear(String(exifData.date.getFullYear()));
     }
     
     onPhotoReplace(photo.id, newPhoto);
@@ -193,7 +208,9 @@ const PhotoReviewCard = ({
       venueId,
       venueLocation,
       date,
-      isApproximate,
+      datePrecision,
+      selectedMonth,
+      selectedYear,
       isValid,
       artistPerformance,
       sound,
@@ -202,7 +219,7 @@ const PhotoReviewCard = ({
       venueVibe,
       notes,
     });
-  }, [artists, venue, venueId, venueLocation, date, isApproximate, isValid, artistPerformance, sound, lighting, crowd, venueVibe, notes]);
+  }, [artists, venue, venueId, venueLocation, date, datePrecision, selectedMonth, selectedYear, isValid, artistPerformance, sound, lighting, crowd, venueVibe, notes]);
 
   // Search venues (only when manual search is active)
   useEffect(() => {
@@ -468,27 +485,17 @@ const PhotoReviewCard = ({
             </div>
 
             {/* Date */}
-            <div className="relative group">
-              <input
-                type="date"
-                value={date ? format(date, "yyyy-MM-dd") : ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDate(val ? new Date(val + "T12:00:00") : null);
-                }}
-                className={cn(
-                  "w-full h-10 px-3 text-sm rounded-md border border-input bg-background",
-                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                  !date && "text-transparent focus:text-foreground"
-                )}
-                max={format(new Date(), "yyyy-MM-dd")}
-              />
-              {!date && (
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none group-focus-within:hidden">
-                  Date (optional)
-                </span>
-              )}
-            </div>
+            <CompactDateSelector
+              date={date}
+              precision={datePrecision}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              hasExifDate={photo.exifData.hasExif}
+              onDateChange={setDate}
+              onPrecisionChange={setDatePrecision}
+              onMonthChange={setSelectedMonth}
+              onYearChange={setSelectedYear}
+            />
 
             {/* Add rating & notes toggle */}
             <button

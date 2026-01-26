@@ -132,8 +132,25 @@ export function useBulkShowUpload() {
             .from('show-photos')
             .getPublicUrl(fileName);
 
-          // 3. Create show record
-          const showDate = show.date ? show.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+          // 3. Create show record - construct date based on precision
+          let showDate: string;
+          let dbDatePrecision: string;
+
+          if (show.datePrecision === "exact" && show.date) {
+            showDate = show.date.toISOString().split('T')[0];
+            dbDatePrecision = "exact";
+          } else if (show.datePrecision === "approximate" && show.selectedYear) {
+            const month = show.selectedMonth || "01";
+            showDate = `${show.selectedYear}-${month}-01`;
+            dbDatePrecision = "approximate";
+          } else if (show.datePrecision === "unknown" && show.selectedYear) {
+            showDate = `${show.selectedYear}-01-01`;
+            dbDatePrecision = "unknown";
+          } else {
+            // Fallback to today if nothing specified
+            showDate = new Date().toISOString().split('T')[0];
+            dbDatePrecision = "unknown";
+          }
           
           const { data: newShow, error: showError } = await supabase
             .from('shows')
@@ -143,7 +160,7 @@ export function useBulkShowUpload() {
               venue_location: show.venueLocation || null,
               venue_id: venueIdToUse,
               show_date: showDate,
-              date_precision: show.isApproximate ? 'approximate' : 'exact',
+              date_precision: dbDatePrecision,
               rating: null, // No default rating - use ELO system
               photo_url: publicUrl,
               // Optional ratings from bulk upload
