@@ -3,10 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { ReviewedShow } from "@/components/bulk-upload/PhotoReviewCard";
 import { toast } from "sonner";
 
+export interface AddedShowData {
+  id: string;
+  artists: { name: string; isHeadliner: boolean }[];
+  venue: { name: string; location: string };
+  date: string;
+  rating: number;
+  photo_url: string | null;
+}
+
 interface UploadResult {
   success: boolean;
   addedCount: number;
   failedCount: number;
+  addedShows: AddedShowData[];
 }
 
 // Compress image before upload
@@ -57,6 +67,7 @@ export function useBulkShowUpload() {
 
     let addedCount = 0;
     let failedCount = 0;
+    const addedShows: AddedShowData[] = [];
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -169,6 +180,16 @@ export function useBulkShowUpload() {
               });
           }
 
+          // 6. Track added show data for success screen
+          addedShows.push({
+            id: newShow.id,
+            artists: show.artists.map(a => ({ name: a.name, isHeadliner: a.isHeadliner })),
+            venue: { name: show.venue || 'Unknown Venue', location: show.venueLocation || '' },
+            date: showDate,
+            rating: 3,
+            photo_url: publicUrl,
+          });
+
           addedCount++;
         } catch (error) {
           console.error('Error adding show:', error);
@@ -184,11 +205,11 @@ export function useBulkShowUpload() {
         toast.error(`Failed to add ${failedCount} show${failedCount !== 1 ? 's' : ''}`);
       }
 
-      return { success: addedCount > 0, addedCount, failedCount };
+      return { success: addedCount > 0, addedCount, failedCount, addedShows };
     } catch (error) {
       console.error('Bulk upload error:', error);
       toast.error("Failed to upload shows");
-      return { success: false, addedCount, failedCount: shows.length - addedCount };
+      return { success: false, addedCount, failedCount: shows.length - addedCount, addedShows };
     } finally {
       setIsUploading(false);
       setProgress({ current: 0, total: 0 });

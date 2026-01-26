@@ -7,21 +7,23 @@ import BulkReviewStep from "./bulk-upload/BulkReviewStep";
 import BulkSuccessStep from "./bulk-upload/BulkSuccessStep";
 import { PhotoWithExif, cleanupPhotoUrls } from "@/lib/exif-utils";
 import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
-import { useBulkShowUpload } from "@/hooks/useBulkShowUpload";
+import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
 
 interface BulkUploadFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNavigateToFeed?: () => void;
   onNavigateToRank?: () => void;
+  onShareShow?: (show: AddedShowData) => void;
 }
 
 type Step = 'select' | 'review' | 'success';
 
-const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank }: BulkUploadFlowProps) => {
+const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
   const [photos, setPhotos] = useState<PhotoWithExif[]>([]);
   const [addedCount, setAddedCount] = useState(0);
+  const [addedShows, setAddedShows] = useState<AddedShowData[]>([]);
   const { uploadShows, isUploading } = useBulkShowUpload();
 
   const handleClose = () => {
@@ -31,6 +33,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     setStep('select');
     setPhotos([]);
     setAddedCount(0);
+    setAddedShows([]);
     onOpenChange(false);
   };
 
@@ -43,6 +46,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     const result = await uploadShows(shows);
     if (result.success) {
       setAddedCount(result.addedCount);
+      setAddedShows(result.addedShows);
       setStep('success');
     }
   };
@@ -51,6 +55,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     // Cleanup current photos
     cleanupPhotoUrls(photos);
     setPhotos([]);
+    setAddedShows([]);
     setStep('select');
   };
 
@@ -137,8 +142,14 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             onAddMore={handleAddMore}
             onDone={handleClose}
             onViewFeed={() => {
-              handleClose();
-              onNavigateToFeed?.();
+              // If single show, open share sheet directly; otherwise navigate to feed
+              if (addedShows.length === 1 && onShareShow) {
+                handleClose();
+                onShareShow(addedShows[0]);
+              } else {
+                handleClose();
+                onNavigateToFeed?.();
+              }
             }}
             onRank={() => {
               handleClose();

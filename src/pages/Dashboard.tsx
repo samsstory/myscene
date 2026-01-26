@@ -9,6 +9,7 @@ import Profile from "@/components/Profile";
 import Rank from "@/components/Rank";
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
+import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
 import { ShareShowSheet } from "@/components/ShareShowSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -223,6 +224,16 @@ const Dashboard = () => {
         onOpenChange={setShowBulkUpload}
         onNavigateToFeed={() => setActiveTab("feed")}
         onNavigateToRank={() => setActiveTab("rank")}
+        onShareShow={(show: BulkAddedShowData) => {
+          setShareShow({
+            id: show.id,
+            artists: show.artists,
+            venue: show.venue,
+            date: show.date,
+            rating: show.rating,
+          });
+          setShareSheetOpen(true);
+        }}
       />
 
       {shareShow && (
