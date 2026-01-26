@@ -98,7 +98,7 @@ const ArtistTagInput = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
+    if ((e.key === 'Enter' || e.key === ',') && inputValue.trim()) {
       e.preventDefault();
       addArtist(inputValue);
     } else if (e.key === 'Backspace' && !inputValue && artists.length > 0) {
@@ -184,16 +184,17 @@ const ArtistTagInput = ({
         </div>
       )}
 
-      {/* Manual add option */}
+      {/* Manual add hint when typing with no results */}
       {showResults && inputValue.trim() && searchResults.length === 0 && !isSearching && (
         <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg">
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => addArtist(inputValue)}
-            className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+            className="w-full text-left px-3 py-2 hover:bg-accent text-sm flex items-center justify-between"
           >
-            Add "<span className="font-medium">{inputValue}</span>"
+            <span>Add "<span className="font-medium">{inputValue}</span>"</span>
+            <span className="text-xs text-muted-foreground">↵ Enter</span>
           </button>
         </div>
       )}
