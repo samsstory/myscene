@@ -1,35 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Music, TrendingUp, Users, Sparkles } from "lucide-react";
-
 const Index = () => {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen bg-gradient-accent">
+  return <div className="min-h-screen bg-gradient-accent">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center space-y-6 mb-16">
           <h1 className="text-6xl md:text-8xl font-bold bg-gradient-primary bg-clip-text text-transparent animate-in fade-in duration-1000">
             Scene
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Track every show. Live every moment. Share your music journey.
-          </p>
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">Track and share every scene from your music journey</p>
           <div className="flex gap-4 justify-center pt-8">
-            <Button
-              size="lg"
-              onClick={() => navigate("/auth")}
-              className="shadow-glow text-lg px-8"
-            >
+            <Button size="lg" onClick={() => navigate("/auth")} className="shadow-glow text-lg px-8">
               Get Started
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => navigate("/dashboard")}
-              className="text-lg px-8"
-            >
+            <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")} className="text-lg px-8">
               View Demo
             </Button>
           </div>
@@ -68,8 +54,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
