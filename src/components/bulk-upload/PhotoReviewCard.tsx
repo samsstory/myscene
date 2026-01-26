@@ -6,12 +6,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import ArtistTagInput from "./ArtistTagInput";
+
+interface Artist {
+  name: string;
+  isHeadliner: boolean;
+}
 
 export interface ReviewedShow {
   photoId: string;
   file: File;
   previewUrl: string;
-  artist: string;
+  artists: Artist[];
   venue: string;
   venueId: string | null;
   venueLocation: string;
@@ -51,7 +57,7 @@ const PhotoReviewCard = ({
   isExpanded,
   onToggle
 }: PhotoReviewCardProps) => {
-  const [artist, setArtist] = useState(initialData?.artist || "");
+  const [artists, setArtists] = useState<Artist[]>(initialData?.artists || []);
   const [venue, setVenue] = useState(initialData?.venue || "");
   const [venueId, setVenueId] = useState<string | null>(initialData?.venueId || null);
   const [venueLocation, setVenueLocation] = useState(initialData?.venueLocation || "");
@@ -60,16 +66,12 @@ const PhotoReviewCard = ({
   const [previewUrl, setPreviewUrl] = useState(photo.previewUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [artistSearch, setArtistSearch] = useState("");
   const [venueSearch, setVenueSearch] = useState("");
-  const [artistResults, setArtistResults] = useState<SearchResult[]>([]);
   const [venueResults, setVenueResults] = useState<SearchResult[]>([]);
-  const [showArtistResults, setShowArtistResults] = useState(false);
   const [showVenueResults, setShowVenueResults] = useState(false);
-  const [isSearchingArtist, setIsSearchingArtist] = useState(false);
   const [isSearchingVenue, setIsSearchingVenue] = useState(false);
 
-  const isValid = artist.trim().length > 0;
+  const isValid = artists.length > 0;
 
   // Update preview URL when photo changes
   useEffect(() => {
@@ -114,7 +116,7 @@ const PhotoReviewCard = ({
       photoId: photo.id,
       file: photo.file,
       previewUrl: photo.previewUrl,
-      artist,
+      artists,
       venue,
       venueId,
       venueLocation,
@@ -122,35 +124,7 @@ const PhotoReviewCard = ({
       isApproximate,
       isValid,
     });
-  }, [artist, venue, venueId, venueLocation, date, isApproximate, isValid]);
-
-  // Search artists
-  useEffect(() => {
-    const search = async () => {
-      if (artistSearch.trim().length < 2) {
-        setArtistResults([]);
-        return;
-      }
-
-      setIsSearchingArtist(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('unified-search', {
-          body: { searchTerm: artistSearch.trim() }
-        });
-
-        if (!error && data?.results) {
-          setArtistResults(data.results.filter((r: SearchResult) => r.type === 'artist').slice(0, 5));
-        }
-      } catch (error) {
-        console.error('Artist search error:', error);
-      } finally {
-        setIsSearchingArtist(false);
-      }
-    };
-
-    const timer = setTimeout(search, 300);
-    return () => clearTimeout(timer);
-  }, [artistSearch]);
+  }, [artists, venue, venueId, venueLocation, date, isApproximate, isValid]);
 
   // Search venues
   useEffect(() => {
@@ -180,24 +154,12 @@ const PhotoReviewCard = ({
     return () => clearTimeout(timer);
   }, [venueSearch]);
 
-  const handleArtistSelect = (result: SearchResult) => {
-    setArtist(result.name);
-    setArtistSearch("");
-    setShowArtistResults(false);
-  };
-
   const handleVenueSelect = (result: SearchResult) => {
     setVenue(result.name);
     setVenueId(result.id);
     setVenueLocation(result.location || "");
     setVenueSearch("");
     setShowVenueResults(false);
-  };
-
-  const handleArtistInputChange = (value: string) => {
-    setArtist(value);
-    setArtistSearch(value);
-    setShowArtistResults(true);
   };
 
   const handleVenueInputChange = (value: string) => {
@@ -207,6 +169,11 @@ const PhotoReviewCard = ({
     setVenueLocation("");
     setShowVenueResults(true);
   };
+
+  // Get display text for collapsed header
+  const headerArtistText = artists.length > 0 
+    ? artists.map(a => a.name).join(", ")
+    : "Add Artist";
 
 
   return (
@@ -256,9 +223,9 @@ const PhotoReviewCard = ({
             <div className="flex-1 min-w-0 text-left">
               <p className={cn(
                 "text-sm truncate",
-                artist ? "font-medium" : "text-orange-400"
+                artists.length > 0 ? "font-medium" : "text-orange-400"
               )}>
-                {artist || "Add Artist"}
+                {headerArtistText}
               </p>
               {venue && (
                 <p className="text-xs text-muted-foreground truncate">{venue}</p>
@@ -270,29 +237,14 @@ const PhotoReviewCard = ({
         {/* Expanded content */}
         <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
           <div className="px-3 pb-3 space-y-3 border-t border-border/50">
-            {/* Artist input */}
-            <div className="relative mt-3">
-              <Input
-                placeholder="Artist*"
-                value={artist}
-                onChange={(e) => handleArtistInputChange(e.target.value)}
-                onFocus={() => setShowArtistResults(true)}
-                onBlur={() => setTimeout(() => setShowArtistResults(false), 200)}
-                className={cn(artist.trim() && "border-primary/40")}
+            {/* Artist tag input */}
+            <div className="mt-3">
+              <ArtistTagInput
+                artists={artists}
+                onArtistsChange={setArtists}
+                placeholder="Add artists..."
+                autoFocus={isExpanded && artists.length === 0}
               />
-              {showArtistResults && artistResults.length > 0 && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                  {artistResults.map((result) => (
-                    <button
-                      key={result.id}
-                      onClick={() => handleArtistSelect(result)}
-                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
-                    >
-                      {result.name}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Venue input */}

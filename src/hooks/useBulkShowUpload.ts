@@ -137,17 +137,21 @@ export function useBulkShowUpload() {
             throw showError;
           }
 
-          // 4. Create artist record
-          const { error: artistError } = await supabase
-            .from('show_artists')
-            .insert({
+          // 4. Create artist records for all artists
+          if (show.artists.length > 0) {
+            const artistInserts = show.artists.map(artist => ({
               show_id: newShow.id,
-              artist_name: show.artist,
-              is_headliner: true,
-            });
+              artist_name: artist.name,
+              is_headliner: artist.isHeadliner,
+            }));
 
-          if (artistError) {
-            console.error('Artist insert error:', artistError);
+            const { error: artistError } = await supabase
+              .from('show_artists')
+              .insert(artistInserts);
+
+            if (artistError) {
+              console.error('Artist insert error:', artistError);
+            }
           }
 
           // 5. Update user_venues if venue exists
