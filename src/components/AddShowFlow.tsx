@@ -623,6 +623,10 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
     if (entryPoint === 'artist') {
       // Artist-first flow: Search -> Venue -> Date -> Rating
       if (step === 2) {
+        // Get headliner name for dynamic header
+        const headliner = showData.artists.find(a => a.isHeadliner);
+        const artistName = headliner?.name || showData.artists[0]?.name;
+        
         return (
           <VenueStep
             value={showData.venue}
@@ -633,6 +637,7 @@ const AddShowFlow = ({ open, onOpenChange, editShow }: AddShowFlowProps) => {
             onLocationFilterChange={updateLocationFilter}
             onShowTypeChange={updateShowType}
             isLoadingDefaultCity={isLoadingProfile}
+            selectedArtistName={artistName}
           />
         );
       }

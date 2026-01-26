@@ -22,6 +22,7 @@ interface VenueStepProps {
   isLoadingDefaultCity?: boolean;
   isEditing?: boolean;
   onSave?: () => void;
+  selectedArtistName?: string;
 }
 
 interface VenueSuggestion {
@@ -44,7 +45,7 @@ interface AddressSuggestion {
   coordinates: [number, number];
 }
 
-const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave }: VenueStepProps) => {
+const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave, selectedArtistName }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -413,6 +414,15 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   return (
     <div className="space-y-4">
+      {/* Dynamic header based on selected artist */}
+      {selectedArtistName && (
+        <div className="text-center mb-2">
+          <h3 className="text-lg font-semibold text-foreground">
+            Where'd you see <span className="text-primary">{selectedArtistName}</span>?
+          </h3>
+        </div>
+      )}
+
       <div className="relative">
         <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
         <Input
