@@ -4,10 +4,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Download, MapPin, Instagram, Move } from "lucide-react";
+import { 
+  Download, MapPin, Instagram, Move, Eye, EyeOff,
+  Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, 
+  Layers, Trophy, RotateCcw
+} from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 interface Artist {
   name: string;
   is_headliner: boolean;
@@ -76,15 +81,27 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   const [isGenerating, setIsGenerating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(45, 93%, 58%)");
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [showRankOptions, setShowRankOptions] = useState(false);
   
   // Multi-touch transform for Instagram-style overlay manipulation
-  const { transform, handlers, handleWheel } = useMultiTouchTransform({
+  const { transform, setTransform, handlers, handleWheel } = useMultiTouchTransform({
     initialTransform: { x: 20, y: 100, scale: 0.8, rotation: 0 },
     minScale: 0.3,
     maxScale: 1.5,
   });
   
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Reset overlay position
+  const handleReset = () => {
+    setTransform({ x: 20, y: 100, scale: 0.8, rotation: 0 });
+  };
+  
+  // Toggle helper for tap-to-toggle
+  const toggleConfig = (key: keyof typeof overlayConfig) => {
+    setOverlayConfig(prev => ({ ...prev, [key]: !prev[key] }));
+  };
   
   // Attach wheel handler for desktop zoom
   useEffect(() => {
@@ -620,359 +637,367 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
   const headliners = show.artists.filter(a => a.is_headliner);
 
+  // Toolbar toggle items configuration
+  const toggleItems = [
+    { key: "showArtists" as const, icon: Mic2, label: "Artist", active: overlayConfig.showArtists },
+    { key: "showVenue" as const, icon: Building2, label: "Venue", active: overlayConfig.showVenue },
+    { key: "showDate" as const, icon: Calendar, label: "Date", active: overlayConfig.showDate },
+    { key: "showRating" as const, icon: Star, label: "Score", active: overlayConfig.showRating },
+    { key: "showDetailedRatings" as const, icon: BarChart3, label: "Details", active: overlayConfig.showDetailedRatings },
+    { key: "showNotes" as const, icon: MessageSquareQuote, label: "Notes", active: overlayConfig.showNotes, disabled: !show.notes },
+    { key: "showBackground" as const, icon: Layers, label: "Background", active: overlayConfig.showBackground },
+    { key: "showRank" as const, icon: Trophy, label: "Rank", active: overlayConfig.showRank },
+  ];
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6 pb-6">
-      {/* Canvas Preview with touch gestures */}
-      <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg relative min-h-[400px]">
-        <div
-          ref={containerRef}
-          id="canvas-container"
-          className="relative bg-black overflow-hidden touch-none"
-          style={{
-            width: "100%",
-            maxWidth: imageDimensions 
-              ? (imageDimensions.width >= imageDimensions.height ? "540px" : "400px")
-              : "540px",
-            aspectRatio: imageDimensions 
-              ? `${imageDimensions.width}/${imageDimensions.height}` 
-              : "9/16",
-          }}
-          {...handlers}
-        >
-          {/* Background Photo */}
-          <img
-            src={show.photo_url}
-            alt="Show"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            crossOrigin="anonymous"
-            onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EPhoto Unavailable%3C/text%3E%3C/svg%3E';
-            }}
-          />
-
-          {/* Touch-controlled Overlay */}
+    <TooltipProvider delayDuration={300}>
+      <div className="flex flex-col gap-4 pb-4">
+        {/* Canvas Preview with touch gestures */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 rounded-lg relative min-h-[400px]">
           <div
-            id="rating-overlay"
-            className="absolute rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 cursor-move select-none"
+            ref={containerRef}
+            id="canvas-container"
+            className="relative bg-black overflow-hidden touch-none rounded-lg"
             style={{
-              left: transform.x,
-              top: transform.y,
-              transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
-              transformOrigin: "top left",
-              background: overlayConfig.showBackground ? getRatingGradient(show.rating) : "transparent",
-              opacity: overlayOpacity / 100,
-              width: 280,
-              touchAction: "none",
+              width: "100%",
+              maxWidth: imageDimensions 
+                ? (imageDimensions.width >= imageDimensions.height ? "540px" : "400px")
+                : "540px",
+              aspectRatio: imageDimensions 
+                ? `${imageDimensions.width}/${imageDimensions.height}` 
+                : "9/16",
             }}
+            {...handlers}
           >
-            {/* Artist name and rating on same row */}
-            <div className="flex items-start justify-between gap-4 mb-2">
-              {overlayConfig.showArtists && (
-                <h2 
-                  className="text-2xl font-bold flex-1" 
-                  style={{ 
-                    color: overlayConfig.showBackground ? primaryColor : "white",
-                    textShadow: overlayConfig.showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
-                  }}
-                >
-                  {headliners.map(a => a.name).join(", ")}
-                </h2>
-              )}
-              
-              {overlayConfig.showRating && (
-                <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none flex-shrink-0`}>
-                  {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
-                </div>
-              )}
-            </div>
-            
-            {overlayConfig.showVenue && (
-              <p className="text-lg mb-1 flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                {show.venue_name}
-              </p>
-            )}
-            
-            {overlayConfig.showDate && (
-              <p className="text-sm opacity-90 mb-3">
-                {new Date(show.show_date).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
-            )}
-
-            {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
-              <div className="space-y-2 text-xs mb-3">
-                {show.artist_performance && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-20">Performance</span>
-                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-white rounded-full"
-                        style={{ width: `${(show.artist_performance / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {show.sound && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-20">Sound</span>
-                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-white rounded-full"
-                        style={{ width: `${(show.sound / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {show.lighting && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-20">Lighting</span>
-                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-white rounded-full"
-                        style={{ width: `${(show.lighting / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {show.crowd && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-20">Crowd</span>
-                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-white rounded-full"
-                        style={{ width: `${(show.crowd / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {show.venue_vibe && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-20">Vibe</span>
-                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-white rounded-full"
-                        style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {overlayConfig.showNotes && show.notes && (
-              <p className="text-sm italic opacity-90 line-clamp-3 mb-2">
-                "{show.notes}"
-              </p>
-            )}
-            
-            {/* Scene logo and rank at bottom */}
-            <div className="mt-4 flex items-center justify-between">
-              {overlayConfig.showRank && rankData.total > 0 ? (
-                <div 
-                  className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent`}
-                >
-                  #{rankData.position} of {rankData.total} shows {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time'}
-                </div>
-              ) : (
-                <div />
-              )}
-              <span className="text-xs font-bold tracking-wider opacity-30" style={{ filter: "grayscale(100%)" }}>
-                SCENE
-              </span>
-            </div>
-          </div>
-          
-          {/* Gesture hint */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-white/60 bg-black/40 px-2 py-1 rounded-full pointer-events-none">
-            <Move className="h-3 w-3" />
-            <span>Drag • Pinch to resize • Rotate</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Controls Panel */}
-      <div className="w-full lg:w-80 space-y-6 pointer-events-auto">
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Customize Overlay</h3>
-
-          {/* Toggle Switches */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-artists">Artist Names</Label>
-              <Switch
-                id="show-artists"
-                checked={overlayConfig.showArtists}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showArtists: checked })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-venue">Venue Name</Label>
-              <Switch
-                id="show-venue"
-                checked={overlayConfig.showVenue}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showVenue: checked })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-date">Show Date</Label>
-              <Switch
-                id="show-date"
-                checked={overlayConfig.showDate}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showDate: checked })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-rating">Overall Rating</Label>
-              <Switch
-                id="show-rating"
-                checked={overlayConfig.showRating}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showRating: checked })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-detailed">Detailed Ratings</Label>
-              <Switch
-                id="show-detailed"
-                checked={overlayConfig.showDetailedRatings}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showDetailedRatings: checked })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-notes">My Take</Label>
-              <Switch
-                id="show-notes"
-                checked={overlayConfig.showNotes}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showNotes: checked })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-background">Background Overlay</Label>
-              <Switch
-                id="show-background"
-                checked={overlayConfig.showBackground}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showBackground: checked })
-                }
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show-rank">Show Rank</Label>
-              <Switch
-                id="show-rank"
-                checked={overlayConfig.showRank}
-                onCheckedChange={(checked) => 
-                  setOverlayConfig({ ...overlayConfig, showRank: checked })
-                }
-              />
-            </div>
-          </div>
-          
-          {/* Rank Options */}
-          {overlayConfig.showRank && (
-            <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
-              <div className="space-y-2">
-                <Label className="text-sm">Ranking Method</Label>
-                <ToggleGroup 
-                  type="single" 
-                  value={rankingMethod}
-                  onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
-                  className="justify-start"
-                >
-                  <ToggleGroupItem value="score" className="text-xs">By Score</ToggleGroupItem>
-                  <ToggleGroupItem value="elo" className="text-xs">Head to Head</ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm">Time Period</Label>
-                <ToggleGroup 
-                  type="single" 
-                  value={rankingTimeFilter}
-                  onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
-                  className="justify-start flex-wrap"
-                >
-                  <ToggleGroupItem value="all-time" className="text-xs">All Time</ToggleGroupItem>
-                  <ToggleGroupItem value="this-year" className="text-xs">This Year</ToggleGroupItem>
-                  <ToggleGroupItem value="this-month" className="text-xs">This Month</ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-            </div>
-          )}
-
-          {/* Gesture controls hint (replaces old size slider) */}
-          <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-xs text-muted-foreground text-center">
-              <strong>Touch gestures:</strong> Drag to move • Pinch to resize • Two fingers to rotate
-            </p>
-            <p className="text-xs text-muted-foreground text-center mt-1">
-              <strong>Desktop:</strong> Drag to move • Scroll to zoom
-            </p>
-          </div>
-
-          {/* Opacity Slider */}
-          <div className="space-y-2">
-            <Label>Overlay Opacity</Label>
-            <Slider
-              min={80}
-              max={100}
-              step={5}
-              value={[overlayOpacity]}
-              onValueChange={(value) => setOverlayOpacity(value[0])}
+            {/* Background Photo */}
+            <img
+              src={show.photo_url}
+              alt="Show"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              crossOrigin="anonymous"
+              onError={(e) => {
+                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EPhoto Unavailable%3C/text%3E%3C/svg%3E';
+              }}
             />
-            <div className="text-xs text-muted-foreground text-right">
-              {overlayOpacity}%
+
+            {/* Touch-controlled Overlay with tap-to-toggle elements */}
+            <div
+              id="rating-overlay"
+              className="absolute rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 cursor-move select-none"
+              style={{
+                left: transform.x,
+                top: transform.y,
+                transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
+                transformOrigin: "top left",
+                background: overlayConfig.showBackground ? getRatingGradient(show.rating) : "transparent",
+                opacity: overlayOpacity / 100,
+                width: 280,
+                touchAction: "none",
+              }}
+            >
+              {/* Artist name and rating on same row - tap to toggle */}
+              <div className="flex items-start justify-between gap-4 mb-2">
+                {overlayConfig.showArtists && (
+                  <h2 
+                    className="text-2xl font-bold flex-1 cursor-pointer transition-opacity hover:opacity-70" 
+                    style={{ 
+                      color: overlayConfig.showBackground ? primaryColor : "white",
+                      textShadow: overlayConfig.showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
+                    }}
+                    onClick={(e) => { e.stopPropagation(); toggleConfig("showArtists"); }}
+                  >
+                    {headliners.map(a => a.name).join(", ")}
+                  </h2>
+                )}
+                
+                {overlayConfig.showRating && (
+                  <div 
+                    className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none flex-shrink-0 cursor-pointer transition-opacity hover:opacity-70`}
+                    onClick={(e) => { e.stopPropagation(); toggleConfig("showRating"); }}
+                  >
+                    {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
+                  </div>
+                )}
+              </div>
+              
+              {overlayConfig.showVenue && (
+                <p 
+                  className="text-lg mb-1 flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-70"
+                  onClick={(e) => { e.stopPropagation(); toggleConfig("showVenue"); }}
+                >
+                  <MapPin className="h-4 w-4" />
+                  {show.venue_name}
+                </p>
+              )}
+              
+              {overlayConfig.showDate && (
+                <p 
+                  className="text-sm opacity-90 mb-3 cursor-pointer transition-opacity hover:opacity-70"
+                  onClick={(e) => { e.stopPropagation(); toggleConfig("showDate"); }}
+                >
+                  {new Date(show.show_date).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
+
+              {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
+                <div 
+                  className="space-y-2 text-xs mb-3 cursor-pointer transition-opacity hover:opacity-70"
+                  onClick={(e) => { e.stopPropagation(); toggleConfig("showDetailedRatings"); }}
+                >
+                  {show.artist_performance && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-20">Performance</span>
+                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-white rounded-full"
+                          style={{ width: `${(show.artist_performance / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {show.sound && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-20">Sound</span>
+                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-white rounded-full"
+                          style={{ width: `${(show.sound / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {show.lighting && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-20">Lighting</span>
+                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-white rounded-full"
+                          style={{ width: `${(show.lighting / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {show.crowd && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-20">Crowd</span>
+                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-white rounded-full"
+                          style={{ width: `${(show.crowd / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {show.venue_vibe && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-20">Vibe</span>
+                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-white rounded-full"
+                          style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {overlayConfig.showNotes && show.notes && (
+                <p 
+                  className="text-sm italic opacity-90 line-clamp-3 mb-2 cursor-pointer transition-opacity hover:opacity-70"
+                  onClick={(e) => { e.stopPropagation(); toggleConfig("showNotes"); }}
+                >
+                  "{show.notes}"
+                </p>
+              )}
+              
+              {/* Scene logo and rank at bottom */}
+              <div className="mt-4 flex items-center justify-between">
+                {overlayConfig.showRank && rankData.total > 0 ? (
+                  <div 
+                    className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
+                    onClick={(e) => { e.stopPropagation(); toggleConfig("showRank"); }}
+                  >
+                    #{rankData.position} of {rankData.total} shows {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time'}
+                  </div>
+                ) : (
+                  <div />
+                )}
+                <span 
+                  className="text-xs font-bold tracking-wider opacity-30 cursor-pointer transition-opacity hover:opacity-50" 
+                  style={{ filter: "grayscale(100%)" }}
+                  onClick={(e) => { e.stopPropagation(); toggleConfig("showBackground"); }}
+                >
+                  SCENE
+                </span>
+              </div>
             </div>
+            
+            {/* Floating Toolbar - hidden in preview mode */}
+            {!isPreviewMode && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/70 backdrop-blur-md px-2 py-1.5 rounded-full border border-white/10 shadow-lg">
+                {toggleItems.map((item) => (
+                  <Tooltip key={item.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (item.key === "showRank") {
+                            if (!overlayConfig.showRank) {
+                              toggleConfig("showRank");
+                            }
+                            setShowRankOptions(!showRankOptions);
+                          } else {
+                            toggleConfig(item.key);
+                          }
+                        }}
+                        disabled={item.disabled}
+                        className={`p-2 rounded-full transition-all ${
+                          item.active 
+                            ? "bg-white/20 text-white" 
+                            : "text-white/40 hover:text-white/70 hover:bg-white/10"
+                        } ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                
+                <div className="w-px h-5 bg-white/20 mx-1" />
+                
+                {/* Reset position */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleReset(); }}
+                      className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/10 transition-all"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    Reset Position
+                  </TooltipContent>
+                </Tooltip>
+                
+                {/* Preview toggle */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); }}
+                      className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/10 transition-all"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    Preview
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+            
+            {/* Exit preview mode button */}
+            {isPreviewMode && (
+              <button
+                onClick={() => setIsPreviewMode(false)}
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white/80 hover:text-white transition-colors"
+              >
+                <EyeOff className="h-4 w-4" />
+                <span className="text-sm">Exit Preview</span>
+              </button>
+            )}
+            
+            {/* Rank options popup */}
+            {showRankOptions && overlayConfig.showRank && !isPreviewMode && (
+              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg space-y-3 min-w-[200px]">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-white/70">Method</Label>
+                  <ToggleGroup 
+                    type="single" 
+                    value={rankingMethod}
+                    onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
+                    className="justify-start"
+                  >
+                    <ToggleGroupItem value="score" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">By Score</ToggleGroupItem>
+                    <ToggleGroupItem value="elo" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">Head to Head</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-white/70">Period</Label>
+                  <ToggleGroup 
+                    type="single" 
+                    value={rankingTimeFilter}
+                    onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
+                    className="justify-start flex-wrap"
+                  >
+                    <ToggleGroupItem value="all-time" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">All</ToggleGroupItem>
+                    <ToggleGroupItem value="this-year" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">Year</ToggleGroupItem>
+                    <ToggleGroupItem value="this-month" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">Month</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                
+                <button
+                  onClick={() => setShowRankOptions(false)}
+                  className="w-full text-xs text-white/50 hover:text-white/70 pt-1"
+                >
+                  Done
+                </button>
+              </div>
+            )}
           </div>
+          
+          {/* Gesture hint below image */}
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            Drag • Pinch to resize • Two fingers to rotate • Tap elements to toggle
+          </p>
+        </div>
+
+        {/* Opacity Slider */}
+        <div className="space-y-2 px-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Overlay Opacity</Label>
+            <span className="text-xs text-muted-foreground">{overlayOpacity}%</span>
+          </div>
+          <Slider
+            min={50}
+            max={100}
+            step={5}
+            value={[overlayOpacity]}
+            onValueChange={(value) => setOverlayOpacity(value[0])}
+          />
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-2 pt-4 border-t">
+        <div className="flex gap-2 pt-2">
           <Button
             onClick={handleShareToInstagram}
             disabled={isGenerating}
-            variant="outline"
-            className="w-full border-primary/50 hover:bg-primary/10"
+            className="flex-1"
           >
-            <Instagram className="mr-2 h-4 w-4 text-primary" />
-            {isGenerating ? "Generating..." : "Share to Instagram"}
+            <Instagram className="mr-2 h-4 w-4" />
+            {isGenerating ? "Generating..." : "Share"}
           </Button>
           <Button
             onClick={handleDownloadImage}
             disabled={isGenerating}
-            variant="ghost"
-            className="w-full"
+            variant="outline"
+            className="flex-1"
           >
             <Download className="mr-2 h-4 w-4" />
-            Download Image
-          </Button>
-          <Button variant="ghost" onClick={onClose} className="w-full text-muted-foreground">
-            Close
+            Download
           </Button>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
