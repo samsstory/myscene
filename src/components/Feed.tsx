@@ -189,21 +189,27 @@ const Feed = () => {
     return filteredShows;
   };
   
-  // Helper to get rank info for a show
-  const getShowRankInfo = (showId: string) => {
+  // Helper to get rank info for a show (optionally scoped to filtered shows)
+  const getShowRankInfo = (showId: string, filteredShowIds?: string[]) => {
     const rankingMap = new Map(rankings.map(r => [r.show_id, r]));
     const ranking = rankingMap.get(showId);
     
     if (!ranking || ranking.comparisons_count === 0) {
-      return { position: null, total: shows.length, comparisonsCount: 0 };
+      const total = filteredShowIds ? filteredShowIds.length : shows.length;
+      return { position: null, total, comparisonsCount: 0 };
     }
     
-    // Calculate position based on ELO
-    const sortedRankings = [...rankings].sort((a, b) => b.elo_score - a.elo_score);
+    // Filter rankings to only include shows in current view (if filter provided)
+    const relevantRankings = filteredShowIds 
+      ? rankings.filter(r => filteredShowIds.includes(r.show_id))
+      : rankings;
+    
+    // Calculate position based on ELO within the filtered set
+    const sortedRankings = [...relevantRankings].sort((a, b) => b.elo_score - a.elo_score);
     const position = sortedRankings.findIndex(r => r.show_id === showId) + 1;
     
     return { 
-      position, 
+      position: position > 0 ? position : null, 
       total: sortedRankings.length, 
       comparisonsCount: ranking.comparisons_count 
     };
@@ -213,9 +219,10 @@ const Feed = () => {
   };
   const renderListView = () => {
     const sortedShows = getSortedShows();
+    const filteredShowIds = sortedShows.map(s => s.id);
     return <div className="flex flex-col gap-3 items-center w-full">
         {sortedShows.map((show, index) => {
-          const rankInfo = getShowRankInfo(show.id);
+          const rankInfo = getShowRankInfo(show.id, filteredShowIds);
           return (
             <Card 
               key={show.id} 
