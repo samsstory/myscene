@@ -205,30 +205,17 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
       isValid ? "border-primary/50" : "border-border"
     )}>
       {/* Header with progress */}
-      <div className="flex items-center justify-between gap-2 min-w-0">
-        <span className="text-sm text-muted-foreground truncate">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm text-muted-foreground">
           Show {index + 1} of {total}
         </span>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {isValid ? (
-            <div className="flex items-center gap-1 text-primary text-sm whitespace-nowrap">
-              <Check className="h-4 w-4 flex-shrink-0" />
-              Ready
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 text-amber-500 text-sm whitespace-nowrap">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              Add artist
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => onDelete(photo.id)}
-            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => onDelete(photo.id)}
+          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Photo thumbnail with edit button */}
@@ -349,6 +336,19 @@ const PhotoReviewCard = ({ photo, index, total, onUpdate, onPhotoReplace, onDele
               <span className="text-xs text-muted-foreground">Approx</span>
             </label>
           </div>
+
+          {/* Status indicator */}
+          {isValid ? (
+            <div className="flex items-center gap-1 text-primary text-sm">
+              <Check className="h-4 w-4" />
+              Ready
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 text-amber-500 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              Add artist
+            </div>
+          )}
         </div>
       </div>
     </div>
