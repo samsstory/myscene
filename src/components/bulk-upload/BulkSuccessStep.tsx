@@ -42,7 +42,7 @@ const BulkSuccessStep = ({ addedCount, onAddMore, onDone, onViewFeed, onRank }: 
               <Instagram className="h-6 w-6 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="font-semibold">Share Your Shows</h3>
+              <h3 className="font-semibold">Share Your Show{addedCount !== 1 ? 's' : ''}</h3>
               <p className="text-sm text-muted-foreground">Create stories and posts from your Feed</p>
             </div>
           </CardContent>
@@ -57,8 +57,8 @@ const BulkSuccessStep = ({ addedCount, onAddMore, onDone, onViewFeed, onRank }: 
               <Scale className="h-6 w-6 text-primary" />
             </div>
             <div className="text-left">
-              <h3 className="font-semibold">Rank Your Shows</h3>
-              <p className="text-sm text-muted-foreground">Compare them against your collection</p>
+              <h3 className="font-semibold">Rank Your Show{addedCount !== 1 ? 's' : ''}</h3>
+              <p className="text-sm text-muted-foreground">Compare {addedCount !== 1 ? 'them' : 'it'} against your collection</p>
             </div>
           </CardContent>
         </Card>
