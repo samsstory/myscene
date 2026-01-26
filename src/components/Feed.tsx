@@ -189,28 +189,37 @@ const Feed = () => {
     return filteredShows;
   };
   
-  // Helper to get rank info for a show (optionally scoped to filtered shows)
-  const getShowRankInfo = (showId: string, filteredShowIds?: string[]) => {
+  // Get all shows sorted by ELO for global ranking
+  const getAllShowsSortedByElo = () => {
+    const rankingMap = new Map(rankings.map(r => [r.show_id, r.elo_score]));
+    return [...shows].sort((a, b) => {
+      const eloA = rankingMap.get(a.id) || 1200;
+      const eloB = rankingMap.get(b.id) || 1200;
+      if (eloB !== eloA) return eloB - eloA;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }).map(s => s.id);
+  };
+
+  // Helper to get rank info for a show based on its position in the sorted list
+  const getShowRankInfo = (showId: string, sortedShowIds?: string[]) => {
     const rankingMap = new Map(rankings.map(r => [r.show_id, r]));
     const ranking = rankingMap.get(showId);
     
+    // Use provided sorted list or compute global ranking
+    const effectiveSortedIds = sortedShowIds || getAllShowsSortedByElo();
+    
+    // Position is simply the index in the already-sorted list + 1
+    const position = effectiveSortedIds.indexOf(showId) + 1;
+    const total = effectiveSortedIds.length;
+    
+    // If no comparisons have been made, mark as unranked
     if (!ranking || ranking.comparisons_count === 0) {
-      const total = filteredShowIds ? filteredShowIds.length : shows.length;
       return { position: null, total, comparisonsCount: 0 };
     }
     
-    // Filter rankings to only include shows in current view (if filter provided)
-    const relevantRankings = filteredShowIds 
-      ? rankings.filter(r => filteredShowIds.includes(r.show_id))
-      : rankings;
-    
-    // Calculate position based on ELO within the filtered set
-    const sortedRankings = [...relevantRankings].sort((a, b) => b.elo_score - a.elo_score);
-    const position = sortedRankings.findIndex(r => r.show_id === showId) + 1;
-    
     return { 
       position: position > 0 ? position : null, 
-      total: sortedRankings.length, 
+      total, 
       comparisonsCount: ranking.comparisons_count 
     };
   };
