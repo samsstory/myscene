@@ -221,6 +221,8 @@ const Dashboard = () => {
       <BulkUploadFlow
         open={showBulkUpload}
         onOpenChange={setShowBulkUpload}
+        onNavigateToFeed={() => setActiveTab("feed")}
+        onNavigateToRank={() => setActiveTab("rank")}
       />
 
       {shareShow && (
