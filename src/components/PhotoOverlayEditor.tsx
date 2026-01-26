@@ -1019,6 +1019,12 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               <div 
                 className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-3 rounded-full border border-white/10"
                 onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseMove={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
               >
                 <SunDim className="h-3.5 w-3.5 text-white/60" />
                 <div className="relative h-20 w-4 flex items-center justify-center">
