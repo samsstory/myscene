@@ -216,20 +216,6 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
           </div>
         )}
 
-        {/* Initial state */}
-        {searchTerm.trim().length < 2 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <div className="flex justify-center gap-4 mb-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Music className="h-6 w-6 text-primary" />
-              </div>
-              <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
-                <MapPin className="h-6 w-6 text-muted-foreground" />
-              </div>
-            </div>
-            <p className="text-sm">Start typing to search...</p>
-          </div>
-        )}
       </div>
     </div>
   );
