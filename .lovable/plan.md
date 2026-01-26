@@ -1,84 +1,138 @@
 
-# Plan: Add Flexible Date Selection to Bulk Upload Cards
+# Plan: Bulk Upload UX Improvements
 
 ## Overview
-Replace the basic native date input in bulk upload `PhotoReviewCard` with a compact, flexible date selection UI that matches the single-show flow's capability - allowing users to specify exact dates, month+year, or year-only when EXIF metadata is missing.
+This plan addresses 4 UX issues in the bulk upload photo review flow based on user feedback.
 
-## Technical Approach
+---
 
-### Design for Compact Cards
-Since bulk upload cards need to stay compact (unlike the full DateStep which takes a whole screen), we'll use a **segmented approach**:
+## Task 1: Fix Venue Search Not Providing Suggestions
 
-1. **Default state**: Show a compact date display or "Add date" button
-2. **Tapping expands**: Reveal inline date selection options
-3. **Three precision modes**:
-   - **Exact date**: Native date picker (quick for photos with known dates)
-   - **Month + Year**: Two dropdowns for approximate dates
-   - **Year only**: Single dropdown for very old shows
+**Problem**: When typing in the venue field, search suggestions no longer appear.
 
-### UI Components
+**Root Cause**: The venue search only triggers when `showManualSearch` is `true` (line 226). When there are no GPS-detected venue suggestions, the input shows but search mode isn't properly activated.
 
+**Solution**:
+- Modify the search logic to trigger for both manual search mode AND when there are no venue suggestions available
+- When the venue input is shown without suggestions (no GPS data), automatically enable search functionality
+
+**File**: `src/components/bulk-upload/PhotoReviewCard.tsx`
+- Update the `useEffect` for venue search (line 225-252) to trigger when either:
+  - `showManualSearch` is true, OR
+  - `!hasVenueSuggestions` (no GPS-suggested venues)
+- Update the venue input section to enable search when no suggestions are available
+
+---
+
+## Task 2: Add Calendar View for "Exact" Date Mode
+
+**Problem**: Clicking "Exact" shows a native date input with "mm/dd/yyyy" format which isn't intuitive for selecting dates.
+
+**Solution**:
+- Replace the native date input with a Popover containing the existing `Calendar` component
+- Show a clickable button that displays the selected date or "Select date" placeholder
+- Calendar opens in a popover when clicked, allowing visual date selection
+
+**File**: `src/components/bulk-upload/CompactDateSelector.tsx`
+- Import `Popover`, `PopoverContent`, `PopoverTrigger` from `@/components/ui/popover`
+- Import `Calendar` from `@/components/ui/calendar`
+- Import `CalendarIcon` from `lucide-react`
+- Replace the native `<input type="date">` with a Popover-based calendar picker
+- Format display date using `date-fns` format function
+
+**New UI for Exact mode**:
 ```
-┌─────────────────────────────────────────┐
-│ Date (optional)                         │
-│ ┌─────────────────────────────────────┐ │
-│ │ [Exact] [Month/Year] [Year Only]    │ │  ← Segmented toggle
-│ └─────────────────────────────────────┘ │
-│                                         │
-│ (Based on selection, show either:)      │
-│  - Native date input (exact)            │
-│  - Month + Year dropdowns (approximate) │
-│  - Year dropdown only (unknown)         │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────┐
+│ 📅 Select date          ▼         │  ← Opens calendar popover on click
+└────────────────────────────────────┘
 ```
 
-### State Changes
+---
 
-**PhotoReviewCard.tsx updates:**
-- Add `datePrecision` state: `'exact' | 'approximate' | 'unknown'`
-- Add `selectedMonth` and `selectedYear` states for approximate modes
-- Replace single date input with precision-aware UI
-- Auto-detect mode: If photo has EXIF date → exact, otherwise → show picker
+## Task 3: Add Confirm Button to Rating Section
 
-**ReviewedShow interface updates:**
-- Add `datePrecision: string` field (already has `isApproximate` but need full precision)
-- Add `selectedMonth?: string` and `selectedYear?: string` for approximate dates
+**Problem**: After entering ratings and notes, there's no clear way to confirm/save and close the section.
 
-**useBulkShowUpload.ts updates:**
-- Construct `show_date` based on precision:
-  - `exact`: Use the full date
-  - `approximate`: Set to 1st of selected month/year
-  - `unknown`: Set to January 1st of selected year
-- Pass correct `date_precision` value to database
+**Solution**:
+- Add a "Done" button with a checkmark icon at the bottom of the ratings section
+- Clicking it closes the ratings section and shows a visual indicator that ratings were saved
 
-### Implementation Details
+**File**: `src/components/bulk-upload/PhotoReviewCard.tsx`
+- Import `Check` icon from `lucide-react`
+- Add a "Done" button at the bottom of the ratings section (after the notes textarea)
+- Button should call `setShowRatings(false)` to close the section
+- Style with primary color to indicate it's the confirmation action
 
-1. **CompactDateSelector** component (new internal component):
-   - Three-segment toggle for precision mode
-   - Renders appropriate inputs based on mode
-   - Stays compact (single row for toggle, single row for input)
+**New UI**:
+```
+┌────────────────────────────────────┐
+│  Performance    ① ② ③ ④ ⑤         │
+│  Sound          ① ② ③ ④ ⑤         │
+│  ...                               │
+│  My Take                           │
+│  ┌──────────────────────────────┐  │
+│  │ Add your thoughts...         │  │
+│  └──────────────────────────────┘  │
+│                                    │
+│  ┌──────────────────────────────┐  │
+│  │        ✓ Done                │  │  ← New confirm button
+│  └──────────────────────────────┘  │
+└────────────────────────────────────┘
+```
 
-2. **Auto-detection logic**:
-   - If photo has EXIF date: Pre-fill exact date, show in exact mode
-   - If no EXIF date: Default to approximate mode with current year pre-selected
+---
 
-3. **Date construction for database**:
-   ```typescript
-   // Exact: use selected date
-   // Approximate: first of month (e.g., "2024-06-01")
-   // Unknown: January 1st of year (e.g., "2024-01-01")
-   ```
+## Task 4: Improve Required Field Clarity
 
-## Files to Modify
+**Problem**: 
+- The orange "Add Artist" text isn't clearly understood as a warning
+- The artist field isn't obviously marked as the only required field
+
+**Solution A - Change collapsed header text**:
+- Change "Add Artist" to "Add Info" when no artist is selected
+- This makes it clearer that info needs to be added without being confusing
+
+**Solution B - Mark artist field as required**:
+- Add an asterisk (*) to the artist input placeholder: "Add artists... *"
+- Add a subtle "(required)" label next to the artist input
+- Keep other fields without asterisks to show they're optional
+
+**File**: `src/components/bulk-upload/PhotoReviewCard.tsx`
+- Line 293: Change `"Add Artist"` to `"Add Info"`
+- Line 374: Add a label above the artist input showing it's required
+
+**Updated UI**:
+```
+┌────────────────────────────────────┐
+│  [📷]  Add Info                    │  ← Orange "Add Info" when empty
+└────────────────────────────────────┘
+
+Expanded:
+┌────────────────────────────────────┐
+│  Artist *                          │  ← Small required indicator
+│  ┌──────────────────────────────┐  │
+│  │ Add artists...               │  │
+│  └──────────────────────────────┘  │
+│  ┌──────────────────────────────┐  │
+│  │ Search venue...              │  │  ← No asterisk (optional)
+│  └──────────────────────────────┘  │
+└────────────────────────────────────┘
+```
+
+---
+
+## Summary of Changes
 
 | File | Changes |
 |------|---------|
-| `src/components/bulk-upload/PhotoReviewCard.tsx` | Replace date input with CompactDateSelector, add precision states |
-| `src/hooks/useBulkShowUpload.ts` | Update date construction logic for different precisions |
+| `src/components/bulk-upload/PhotoReviewCard.tsx` | Fix venue search trigger, add ratings "Done" button, change "Add Artist" → "Add Info", add required indicator |
+| `src/components/bulk-upload/CompactDateSelector.tsx` | Replace native date input with Calendar popover for exact mode |
 
-## User Experience
+---
 
-1. **Photo with EXIF data**: Date auto-fills, user sees exact date displayed
-2. **Photo without EXIF data**: Shows "Add date" with approximate mode ready
-3. **User wants to change**: Tap to expand, select precision mode, pick date/month/year
-4. **Optional field**: Users can skip entirely if they don't remember at all
+## Implementation Order
+1. **Task 1**: Fix venue search (quick fix, improves core functionality)
+2. **Task 2**: Add calendar popover (improves date UX significantly)
+3. **Task 3**: Add ratings confirm button (small UX improvement)
+4. **Task 4**: Improve field clarity (copy/label changes)
+
