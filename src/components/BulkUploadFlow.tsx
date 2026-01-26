@@ -139,17 +139,12 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         {step === 'success' && (
           <BulkSuccessStep
             addedCount={addedCount}
+            addedShows={addedShows}
             onAddMore={handleAddMore}
             onDone={handleClose}
-            onViewFeed={() => {
-              // If single show, open share sheet directly; otherwise navigate to feed
-              if (addedShows.length === 1 && onShareShow) {
-                handleClose();
-                onShareShow(addedShows[0]);
-              } else {
-                handleClose();
-                onNavigateToFeed?.();
-              }
+            onCreateReviewPhoto={(show) => {
+              handleClose();
+              onShareShow?.(show);
             }}
             onRank={() => {
               handleClose();
