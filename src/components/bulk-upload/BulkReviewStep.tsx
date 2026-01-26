@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { PhotoWithExif } from "@/lib/exif-utils";
 import PhotoReviewCard, { ReviewedShow } from "./PhotoReviewCard";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,18 @@ interface BulkReviewStepProps {
 
 const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, onPhotoDelete, isSubmitting }: BulkReviewStepProps) => {
   const [reviewedShows, setReviewedShows] = useState<Map<string, ReviewedShow>>(new Map());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Auto-expand the first incomplete card on mount or when photos change
+  useEffect(() => {
+    if (photos.length > 0 && !expandedId) {
+      const firstIncomplete = photos.find(p => {
+        const reviewed = reviewedShows.get(p.id);
+        return !reviewed?.isValid;
+      });
+      setExpandedId(firstIncomplete?.id || photos[0].id);
+    }
+  }, [photos]);
 
   const handleUpdate = useCallback((data: ReviewedShow) => {
     setReviewedShows(prev => {
@@ -23,8 +35,11 @@ const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, onPhotoDelete, isS
     });
   }, []);
 
+  const handleToggle = (photoId: string) => {
+    setExpandedId(prev => prev === photoId ? null : photoId);
+  };
+
   const validShows = Array.from(reviewedShows.values()).filter(show => show.isValid);
-  const allValid = validShows.length === photos.length;
 
   const handleAddAll = () => {
     onComplete(validShows);
@@ -49,7 +64,7 @@ const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, onPhotoDelete, isS
       </div>
 
       {/* Review cards */}
-      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
         {photos.map((photo, index) => (
           <PhotoReviewCard
             key={photo.id}
@@ -60,6 +75,8 @@ const BulkReviewStep = ({ photos, onComplete, onPhotoReplace, onPhotoDelete, isS
             onPhotoReplace={onPhotoReplace}
             onDelete={onPhotoDelete}
             initialData={reviewedShows.get(photo.id)}
+            isExpanded={expandedId === photo.id}
+            onToggle={() => handleToggle(photo.id)}
           />
         ))}
       </div>
