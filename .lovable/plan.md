@@ -1,110 +1,56 @@
 
-# Improve Top Shows Filter Design
+# Minimal Check Icon Buttons for VS Battle
 
-## Current State
+## Design
 
-The Top Shows tab displays 3 horizontal buttons for time period filtering:
-- All Time | This Year | This Month
-
-You want to add:
-1. **Last Year** as a time period option
-2. **Sort direction toggle** (Best to Worst / Worst to Best)
-
-The concern is that adding more buttons makes the UI feel cluttered.
-
-## Proposed Solution: Compact Two-Row Filter Bar
-
-Instead of adding more horizontal buttons, I'll create a cleaner layout with two distinct controls:
+Replace the current "This One" buttons with ghost buttons containing only a checkmark icon:
 
 ```text
-+------------------------------------------+
-|  [All Time ▼]              [Best ▲▼ Worst]  |
-+------------------------------------------+
++------------------+     +------------------+
+|   [Show Card]    |     |   [Show Card]    |
++------------------+     +------------------+
+       [ ✓ ]       VS          [ ✓ ]
 ```
 
-**Left side**: Dropdown select for time period (compact, expandable)
-**Right side**: Sort direction toggle with up/down arrows
+## Implementation
 
-This approach:
-- Reduces visual clutter by hiding time options in a dropdown
-- Makes room for the sort toggle without adding a third row
-- Scales better if you add more time filters later (e.g., "Last 6 Months")
+### Button Style
 
-## Filter Options
-
-**Time Period Dropdown:**
-| Option | Filter Logic |
-|--------|--------------|
-| All Time | No date filter |
-| This Month | Current month of current year |
-| This Year | Shows from 2026 |
-| Last Year | Shows from 2025 |
-
-**Sort Direction Toggle:**
-| Option | Display |
-|--------|---------|
-| Best First | Shows ranked #1, #2, #3... (default) |
-| Worst First | Shows ranked from worst to best |
-
-## Visual Design
-
-The filter bar will be a single row with flexbox layout:
-- Time dropdown on the left with subtle styling
-- Sort toggle on the right using a button pair or single toggle button
-- Icons: `ArrowUp` / `ArrowDown` from lucide-react to indicate direction
-- Consistent with the dark theme and existing component styling
-
-## Implementation Steps
-
-### Step 1: Update State Variables
-
-Add new state for sort direction:
-```typescript
-const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
+```tsx
+<Button 
+  onClick={() => handleChoice(showPair[0].id)}
+  disabled={comparing}
+  variant="ghost"
+  size="icon"
+  className="w-full h-10"
+>
+  <Check className="h-5 w-5" />
+</Button>
 ```
 
-Update the time filter type to include "last-year":
-```typescript
-const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "last-year" | "this-month">("all-time");
-```
+- `variant="ghost"` - subtle background on hover only
+- `size="icon"` combined with `w-full` - full width tap target but icon-sized height
+- Single `Check` icon from lucide-react (already available)
 
-### Step 2: Update getSortedShows Logic
+### Changes Summary
 
-Add the "last-year" filter case and reverse sort when direction is "worst-first":
-```typescript
-if (topRatedFilter === "last-year") {
-  const lastYear = currentYear - 1;
-  filteredShows = shows.filter(show => {
-    const showDate = parseISO(show.date);
-    return showDate.getFullYear() === lastYear;
-  });
-}
+| Element | Current | New |
+|---------|---------|-----|
+| Pick buttons | Filled primary, Trophy icon + "This One" | Ghost, Check icon only |
+| Skip text | "Can't decide? Skip this one" | "Can't Compare" |
+| Trophy import | Used | Remove (no longer needed) |
+| Check import | Not used | Add to imports |
 
-// After ELO sort, reverse if worst-first
-if (sortDirection === "worst-first") {
-  sortedShows.reverse();
-}
-```
+## File to Modify
 
-### Step 3: Replace Button Row with New Filter Bar
+`src/components/Rank.tsx`:
+1. Update lucide-react imports: remove `Trophy`, add `Check`
+2. Change both pick buttons to ghost variant with Check icon
+3. Update skip button text to "Can't Compare"
 
-Replace the current 3-button row with a flex container:
-- Left: `<Select>` dropdown with time period options
-- Right: Toggle button for sort direction with arrow icon
+## Visual Result
 
-### Step 4: Update Rank Display for Reversed Order
-
-When sorting worst-first, the rank badges should still show the true rank position (not reversed), so users understand where shows actually stand in their rankings.
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/Feed.tsx` | Add `sortDirection` state, update filter type, modify `getSortedShows`, replace filter UI |
-
-## Expected Result
-
-- Cleaner, more professional filter UI
-- Easy one-tap access to switch between best/worst ordering
-- Time period options neatly tucked into a dropdown
-- Scalable design for future filter additions
+- Cards remain the visual focus
+- Checkmark provides clear "select this" affordance
+- Full-width tap target for easy mobile use
+- Clean, minimal aesthetic matching the dark theme
