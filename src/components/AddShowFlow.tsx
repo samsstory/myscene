@@ -7,9 +7,9 @@ import VenueStep from "./add-show-steps/VenueStep";
 import DateStep from "./add-show-steps/DateStep";
 import ArtistsStep from "./add-show-steps/ArtistsStep";
 import RatingStep from "./add-show-steps/RatingStep";
+import QuickCompareStep from "./add-show-steps/QuickCompareStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 
 interface AddShowFlowProps {
   open: boolean;
@@ -37,7 +37,7 @@ export interface AddedShowData {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   venue: { name: string; location: string };
   date: string;
-  rating: number;
+  rating: number | null;
   artistPerformance?: number | null;
   sound?: number | null;
   lighting?: number | null;
@@ -197,7 +197,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
 
   // Get step count based on entry point
   const getTotalSteps = () => {
-    return 4; // Search -> [Venue/Artists] -> Date -> Rating
+    return 3; // Search -> [Venue/Artists] -> Date (no more Rating step)
   };
 
   // Get current step number for progress indicator
@@ -209,9 +209,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
   // Get step labels for progress
   const getStepLabels = () => {
     if (entryPoint === 'artist') {
-      return ['Search', 'Venue', 'Date', 'Rating'];
+      return ['Search', 'Venue', 'Date'];
     }
-    return ['Search', 'Date', 'Artists', 'Rating'];
+    return ['Search', 'Date', 'Artists'];
   };
 
   const handleBack = () => {
@@ -288,7 +288,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
     if (showStepSelector) {
       setStep(0);
     } else if (entryPoint === 'artist') {
-      setStep(4); // Go to rating
+      // Artist flow: after date, submit immediately
+      handleSubmit();
     } else {
       setStep(3); // Go to artists
     }
@@ -299,7 +300,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
     if (showStepSelector) {
       setStep(0);
     } else {
-      setStep(4); // Go to rating
+      // After artists step, submit immediately (no rating step)
+      handleSubmit();
     }
   };
 
@@ -495,13 +497,13 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
         toast.success("Show updated successfully! 🎉");
         resetAndClose();
       } else {
-        // For new shows, show success step with share prompt
+        // For new shows, go to quick compare step
         const newShowData: AddedShowData = {
           id: show.id,
           artists: showData.artists,
           venue: { name: showData.venue, location: showData.venueLocation },
           date: showDate,
-          rating: showData.rating!,
+          rating: null, // No rating in new system
           artistPerformance: showData.artistPerformance,
           sound: showData.sound,
           lighting: showData.lighting,
@@ -509,7 +511,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           venueVibe: showData.venueVibe,
         };
         setAddedShow(newShowData);
-        setStep(5); // Success step
+        setStep(4); // Quick compare step
       }
     } catch (error) {
       console.error("Error adding show:", error);
@@ -552,59 +554,31 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
     resetAndClose();
   };
 
-  // Render success step with share prompt
-  const renderSuccessStep = () => {
+  // Render quick compare step
+  const renderQuickCompareStep = () => {
     if (!addedShow) return null;
-    
-    const score = calculateShowScore(
-      addedShow.rating,
-      addedShow.artistPerformance,
-      addedShow.sound,
-      addedShow.lighting,
-      addedShow.crowd,
-      addedShow.venueVibe
-    );
 
     return (
-      <div className="flex flex-col items-center text-center space-y-6 py-4">
-        {/* Success icon */}
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-          <CheckCircle2 className="h-8 w-8 text-primary" />
-        </div>
-
-        {/* Title */}
-        <div className="space-y-2">
-          <h3 className="text-xl font-bold">Show Added!</h3>
-          <p className="text-muted-foreground text-sm">
-            {addedShow.artists.slice(0, 2).map(a => a.name).join(" & ")}
-            {addedShow.artists.length > 2 && ` +${addedShow.artists.length - 2}`}
-          </p>
-        </div>
-
-        {/* Score display */}
-        <div className={`text-5xl font-black bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}>
-          {score.toFixed(1)}
-        </div>
-
-        {/* Share CTA */}
-        <div className="w-full space-y-3 pt-4">
-          <Button 
-            onClick={handleShareShow}
-            className="w-full h-12 gap-2 text-base"
-          >
-            <Instagram className="h-5 w-5" />
-            Share to Instagram
-          </Button>
-          
-          <Button 
-            variant="ghost" 
-            onClick={resetAndClose}
-            className="w-full text-muted-foreground"
-          >
-            Maybe later
-          </Button>
-        </div>
-      </div>
+      <QuickCompareStep
+        newShowId={addedShow.id}
+        newShowArtists={addedShow.artists}
+        newShowVenue={addedShow.venue.name}
+        newShowDate={addedShow.date}
+        onComplete={() => {
+          toast.success("Show ranked! 🎉");
+          if (onShowAdded) {
+            onShowAdded(addedShow);
+          }
+          resetAndClose();
+        }}
+        onSkip={() => {
+          toast.success("Show added! 🎉");
+          if (onShowAdded) {
+            onShowAdded(addedShow);
+          }
+          resetAndClose();
+        }}
+      />
     );
   };
 
@@ -674,9 +648,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
                 <Star className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <div className="font-semibold">Rating & Notes</div>
+                <div className="font-semibold">Details & Notes</div>
                 <div className="text-sm text-muted-foreground">
-                  {["😴", "😐", "🙂", "😃", "🤩"][showData.rating ? showData.rating - 1 : 0]}
+                  {showData.notes ? "Has notes" : "Optional details"}
                 </div>
               </div>
             </div>
@@ -841,9 +815,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
       }
     }
 
-    // Success step (step 5)
-    if (step === 5) {
-      return renderSuccessStep();
+    // Quick compare step (step 4 for new shows)
+    if (step === 4 && !showStepSelector) {
+      return renderQuickCompareStep();
     }
 
     return null;
@@ -852,8 +826,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[70vh] sm:max-h-[85vh] flex flex-col fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
-        {/* Back button - absolute positioned (hide on success step) */}
-        {step > 1 && step < 5 && (
+        {/* Back button - absolute positioned (hide on quick compare step) */}
+        {step > 1 && step < 4 && (
           <Button
             variant="ghost"
             size="icon"
@@ -878,10 +852,10 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           </div>
         </div>
 
-        {/* Progress indicator - hide for step selector and success step */}
-        {step > 0 && step < 5 && !showStepSelector && (
+        {/* Progress indicator - hide for step selector and quick compare step */}
+        {step > 0 && step < 4 && !showStepSelector && (
           <div className="flex gap-1 px-6 pb-4 pt-2 border-t border-border/50 bg-background">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div
                 key={i}
                 className={`h-1 flex-1 rounded-full transition-colors ${

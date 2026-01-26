@@ -197,7 +197,7 @@ export type Database = {
           lighting: number | null
           notes: string | null
           photo_url: string | null
-          rating: number
+          rating: number | null
           show_date: string
           sound: number | null
           updated_at: string
@@ -216,7 +216,7 @@ export type Database = {
           lighting?: number | null
           notes?: string | null
           photo_url?: string | null
-          rating: number
+          rating?: number | null
           show_date: string
           sound?: number | null
           updated_at?: string
@@ -235,7 +235,7 @@ export type Database = {
           lighting?: number | null
           notes?: string | null
           photo_url?: string | null
-          rating?: number
+          rating?: number | null
           show_date?: string
           sound?: number | null
           updated_at?: string
