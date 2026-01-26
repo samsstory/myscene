@@ -33,17 +33,19 @@ export async function extractExifData(file: File): Promise<ExifData> {
     
     // Extract GPS coordinates if available
     let gps: { latitude: number; longitude: number } | undefined;
-    
-    const gpsLatitude = tags['GPSLatitude']?.description;
-    const gpsLongitude = tags['GPSLongitude']?.description;
-    
-    if (gpsLatitude && gpsLongitude) {
-      const lat = parseFloat(gpsLatitude);
-      const lng = parseFloat(gpsLongitude);
-      
-      if (!isNaN(lat) && !isNaN(lng)) {
-        gps = { latitude: lat, longitude: lng };
-      }
+
+    const rawLat = tags['GPSLatitude'];
+    const rawLng = tags['GPSLongitude'];
+    const latRef = tags['GPSLatitudeRef']?.description; // 'N' | 'S'
+    const lngRef = tags['GPSLongitudeRef']?.description; // 'E' | 'W'
+
+    const lat = parseGpsCoordinate(rawLat);
+    const lng = parseGpsCoordinate(rawLng);
+
+    if (lat != null && lng != null) {
+      const signedLat = latRef === 'S' ? -Math.abs(lat) : Math.abs(lat);
+      const signedLng = lngRef === 'W' ? -Math.abs(lng) : Math.abs(lng);
+      gps = { latitude: signedLat, longitude: signedLng };
     }
     
     return {
@@ -83,6 +85,38 @@ function parseExifDate(dateString: string): Date | null {
     return fallbackDate;
   }
   
+  return null;
+}
+
+type ExifTag = {
+  description?: string;
+  value?: unknown;
+};
+
+function parseGpsCoordinate(tag: ExifTag | undefined): number | null {
+  if (!tag) return null;
+
+  // Prefer description (ExifReader provides a human-friendly string)
+  const desc = tag.description;
+  if (typeof desc === 'string' && desc.trim()) {
+    // Decimal degrees (e.g. "-97.68639" or "97.68639")
+    const decimal = Number(desc);
+    if (!Number.isNaN(decimal) && Number.isFinite(decimal)) return decimal;
+
+    // DMS (e.g. "97° 41' 11.02\"" or similar)
+    const dms = desc.match(/(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)/);
+    if (dms) {
+      const deg = Number(dms[1]);
+      const min = Number(dms[2]);
+      const sec = Number(dms[3]);
+      if ([deg, min, sec].every(n => Number.isFinite(n))) {
+        return deg + min / 60 + sec / 3600;
+      }
+    }
+  }
+
+  // Fallback: attempt to parse from value if it's numeric-ish
+  if (typeof tag.value === 'number' && Number.isFinite(tag.value)) return tag.value;
   return null;
 }
 
