@@ -120,7 +120,7 @@ const PhotoSelectStep = ({ onPhotosSelected, isProcessing }: PhotoSelectStepProp
           ) : (
             <>
               <ImagePlus className="h-10 w-10 text-muted-foreground" />
-              <span className="text-muted-foreground font-medium">Select 1 photo per show</span>
+              <span className="text-muted-foreground font-medium">Select 1 Photo Per Show</span>
               <span className="text-xs text-muted-foreground">Tap to browse your photo library</span>
             </>
           )}
