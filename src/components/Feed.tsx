@@ -208,83 +208,86 @@ const Feed = () => {
   const renderListView = () => {
     const sortedShows = getSortedShows();
     const isHeadToHead = viewMode === "top-rated" && rankingMode === "elo";
-    return <div className="flex flex-col gap-4 items-center w-full">
-        {sortedShows.map((show, index) => <Card key={show.id} className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative w-full max-w-3xl" onClick={() => {
-        setReviewShow(show);
-        setReviewSheetOpen(true);
-      }}>
-            <CardContent className="p-3 relative overflow-hidden px-[10px]">
-              {/* Ranking position badge for Head to Head mode */}
-              {isHeadToHead && <div className="absolute top-2 left-2 z-10">
+    return <div className="flex flex-col gap-3 items-center w-full">
+        {sortedShows.map((show, index) => {
+          const score = calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe);
+          return (
+            <Card 
+              key={show.id} 
+              className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative w-full max-w-3xl" 
+              onClick={() => {
+                setReviewShow(show);
+                setReviewSheetOpen(true);
+              }}
+            >
+              <CardContent className="p-4 relative">
+                {/* Main content grid - consistent 3-column layout */}
+                <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
                   
-                </div>}
-              
-              <div className="flex items-start gap-4">
+                  {/* Left: Optional photo thumbnail */}
+                  {show.photo_url ? (
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-md border border-border/50">
+                      <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0">
+                      <Music2 className="h-6 w-6 text-muted-foreground/50" />
+                    </div>
+                  )}
 
-                {/* Photo thumbnail (only if photo exists) */}
-                {show.photo_url && <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-md border border-border/50">
-                    <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
-                  </div>}
-
-                {/* Left section: Artist name */}
-                <div className="flex-1 space-y-4">
-                  {/* Artist names */}
-                  <div className="flex items-center gap-2">
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {show.artists.slice(0, 2).map((artist, idx) => <span key={idx} className="text-lg font-bold">
+                  {/* Center: Show info - always same structure */}
+                  <div className="min-w-0 space-y-1">
+                    {/* Artist names */}
+                    <div className="font-bold text-base leading-tight truncate">
+                      {show.artists.slice(0, 2).map((artist, idx) => (
+                        <span key={idx}>
                           {artist.name}
-                          {idx < Math.min(show.artists.length - 1, 1) && <span className="mx-1">•</span>}
-                        </span>)}
-                      {show.artists.length > 2 && <span className="text-lg font-bold text-muted-foreground">
-                          + {show.artists.length - 2} more
-                        </span>}
+                          {idx < Math.min(show.artists.length - 1, 1) && <span className="text-muted-foreground"> • </span>}
+                        </span>
+                      ))}
+                      {show.artists.length > 2 && (
+                        <span className="text-muted-foreground font-normal"> +{show.artists.length - 2}</span>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Venue and Date - only show here if no photo */}
-                  {!show.photo_url && <div className="grid gap-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4 flex-shrink-0" />
-                      <span>{show.venue.name}</span>
+                    
+                    {/* Venue */}
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground truncate">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{show.venue.name}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                    
+                    {/* Date */}
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
                       <span>{format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy")}</span>
                     </div>
-                  </div>}
-                </div>
+                  </div>
 
-                {/* Right section: Rating */}
-                <div className="flex flex-col items-center gap-3 min-w-[100px] self-start mt-1 pr-2">
-                  <div className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe))} bg-clip-text text-transparent`}>
-                    {calculateShowScore(show.rating, show.artistPerformance, show.sound, show.lighting, show.crowd, show.venueVibe).toFixed(1)}
+                  {/* Right: Score - fixed width for alignment */}
+                  <div className="flex flex-col items-center justify-center w-16">
+                    <div className={`text-3xl font-black bg-gradient-to-r ${getScoreGradient(score)} bg-clip-text text-transparent`}>
+                      {score.toFixed(1)}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Venue and Date - horizontal at bottom when photo exists */}
-              {show.photo_url && <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 flex-shrink-0" />
-                    <span>{show.venue.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 flex-shrink-0" />
-                    <span>{format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy")}</span>
-                  </div>
-                </div>}
-
-              {/* Share button - bottom right */}
-              <Button size="icon" variant="ghost" className="absolute bottom-2 right-2 h-8 w-8" onClick={e => {
-            e.stopPropagation();
-            setShareShow(show);
-            setShareSheetOpen(true);
-          }}>
-                <Instagram className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>)}
+                {/* Share button - absolute bottom right */}
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="absolute bottom-2 right-2 h-7 w-7 opacity-60 hover:opacity-100" 
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShareShow(show);
+                    setShareSheetOpen(true);
+                  }}
+                >
+                  <Instagram className="h-3.5 w-3.5" />
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>;
   };
   const renderCalendarView = () => {
