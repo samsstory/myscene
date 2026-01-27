@@ -697,42 +697,68 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
   const headliners = show.artists.filter(a => a.is_headliner);
 
-  // Toolbar toggle items configuration (removed Background - now controlled by opacity slider)
+  // Toolbar toggle items with color-coded groups
   const toggleItems = [
-    { key: "showArtists" as const, icon: Mic2, label: "Artist", active: overlayConfig.showArtists },
-    { key: "showVenue" as const, icon: Building2, label: "Venue", active: overlayConfig.showVenue },
-    { key: "showDate" as const, icon: Calendar, label: "Date", active: overlayConfig.showDate },
-    { key: "showRating" as const, icon: Star, label: "Score", active: overlayConfig.showRating },
-    { key: "showDetailedRatings" as const, icon: BarChart3, label: "Details", active: overlayConfig.showDetailedRatings },
-    { key: "showNotes" as const, icon: MessageSquareQuote, label: "Notes", active: overlayConfig.showNotes, disabled: !show.notes },
-    { key: "showRank" as const, icon: Trophy, label: "Rank", active: overlayConfig.showRank },
+    // Content group - cyan
+    { key: "showArtists" as const, icon: Mic2, label: "Artist", active: overlayConfig.showArtists, group: "content" as const },
+    { key: "showVenue" as const, icon: Building2, label: "Venue", active: overlayConfig.showVenue, group: "content" as const },
+    { key: "showDate" as const, icon: Calendar, label: "Date", active: overlayConfig.showDate, group: "content" as const },
+    // Ratings group - amber
+    { key: "showRating" as const, icon: Star, label: "Score", active: overlayConfig.showRating, group: "ratings" as const },
+    { key: "showDetailedRatings" as const, icon: BarChart3, label: "Details", active: overlayConfig.showDetailedRatings, group: "ratings" as const },
+    { key: "showNotes" as const, icon: MessageSquareQuote, label: "Notes", active: overlayConfig.showNotes, disabled: !show.notes, group: "ratings" as const },
+    // Meta group - purple
+    { key: "showRank" as const, icon: Trophy, label: "Rank", active: overlayConfig.showRank, group: "meta" as const },
   ];
+  
+  // Color-coded styling based on group
+  const getToggleStyle = (item: typeof toggleItems[number]) => {
+    const base = "p-1.5 rounded-full transition-all";
+    if (item.disabled) return `${base} opacity-30 cursor-not-allowed`;
+    
+    const styles = {
+      content: item.active 
+        ? "bg-cyan-500/20 text-cyan-400" 
+        : "text-cyan-400/40 hover:text-cyan-400 hover:bg-cyan-500/10",
+      ratings: item.active 
+        ? "bg-amber-500/20 text-amber-400" 
+        : "text-amber-400/40 hover:text-amber-400 hover:bg-amber-500/10",
+      meta: item.active 
+        ? "bg-purple-500/20 text-purple-400" 
+        : "text-purple-400/40 hover:text-purple-400 hover:bg-purple-500/10",
+    };
+    
+    return `${base} ${styles[item.group]}`;
+  };
   
   // Determine if background should show based on opacity (0 = no background)
   const showBackground = overlayOpacity > 0;
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex flex-col gap-4 pb-4">
-        {/* Canvas Preview with touch gestures */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 rounded-lg relative p-4">
-          {/* Main image container */}
+      <div className="flex flex-col h-full">
+        {/* Hero image area - takes remaining space */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-black/20 rounded-lg relative min-h-0 overflow-hidden">
+          {/* Main image container - fills available space */}
           <div
             ref={containerRef}
             id="canvas-container"
-            className="relative bg-black overflow-hidden touch-none rounded-lg"
-            style={{
-              width: "100%",
-              maxWidth: aspectMode === "story" ? "280px" : (imageDimensions 
-                ? (imageDimensions.width >= imageDimensions.height ? "540px" : "400px")
-                : "280px"),
-              aspectRatio: aspectMode === "story" ? "9/16" : (imageDimensions 
-                ? `${imageDimensions.width}/${imageDimensions.height}` 
-                : "9/16"),
-              maxHeight: "55vh",
-            }}
+            className="relative bg-black overflow-hidden touch-none rounded-lg h-full w-full flex items-center justify-center"
             {...handlers}
           >
+            {/* Photo wrapper - scales to fit */}
+            <div 
+              className="relative"
+              style={{
+                width: aspectMode === "story" ? "auto" : "100%",
+                height: aspectMode === "story" ? "100%" : "auto",
+                aspectRatio: aspectMode === "story" ? "9/16" : (imageDimensions 
+                  ? `${imageDimensions.width}/${imageDimensions.height}` 
+                  : "9/16"),
+                maxWidth: "100%",
+                maxHeight: "100%",
+              }}
+            >
             {/* Background Photo */}
             <img
               src={show.photo_url}
@@ -899,6 +925,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 </span>
               </div>
             </div>
+            </div>{/* Close photo wrapper */}
             
             {/* Vertical Opacity Slider - inside image on right edge, hidden in preview mode */}
             {!isPreviewMode && (
@@ -947,155 +974,199 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             )}
           </div>
           
-          {/* Floating Toolbar - OUTSIDE image container, always visible */}
+          {/* Floating Toolbar - Color-coded with separators */}
           {!isPreviewMode && (
-            <div className="flex items-center justify-center gap-0.5 bg-card/90 backdrop-blur-md px-2 py-1.5 rounded-full border border-border shadow-lg mt-3 relative">
-              {toggleItems.map((item) => (
-                <Tooltip key={item.key}>
+            <div className="flex items-center justify-center gap-1 mt-3">
+              <div className="flex items-center gap-0.5 bg-card/80 backdrop-blur-md px-2 py-1.5 rounded-full border border-border/50 relative">
+                {/* Content group - cyan */}
+                {toggleItems.filter(i => i.group === "content").map((item) => (
+                  <Tooltip key={item.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          toggleConfig(item.key);
+                        }}
+                        disabled={item.disabled}
+                        className={getToggleStyle(item)}
+                      >
+                        <item.icon className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                
+                <div className="w-px h-3 bg-border/50 mx-1" />
+                
+                {/* Ratings group - amber */}
+                {toggleItems.filter(i => i.group === "ratings").map((item) => (
+                  <Tooltip key={item.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          toggleConfig(item.key);
+                        }}
+                        disabled={item.disabled}
+                        className={getToggleStyle(item)}
+                      >
+                        <item.icon className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                
+                <div className="w-px h-3 bg-border/50 mx-1" />
+                
+                {/* Meta group - purple (rank with options) */}
+                {toggleItems.filter(i => i.group === "meta").map((item) => (
+                  <Tooltip key={item.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (item.key === "showRank") {
+                            if (!overlayConfig.showRank) {
+                              toggleConfig("showRank");
+                            }
+                            setShowRankOptions(!showRankOptions);
+                          } else {
+                            toggleConfig(item.key);
+                          }
+                        }}
+                        disabled={item.disabled}
+                        className={getToggleStyle(item)}
+                      >
+                        <item.icon className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                
+                <div className="w-px h-3 bg-border/30 mx-1" />
+                
+                {/* Utilities - muted */}
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        if (item.key === "showRank") {
-                          if (!overlayConfig.showRank) {
-                            toggleConfig("showRank");
-                          }
-                          setShowRankOptions(!showRankOptions);
-                        } else {
-                          toggleConfig(item.key);
-                        }
-                      }}
-                      disabled={item.disabled}
-                      className={`p-1.5 rounded-full transition-all ${
-                        item.active 
-                          ? "bg-primary/20 text-primary" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      } ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+                      onClick={(e) => { e.stopPropagation(); handleReset(); }}
+                      className="p-1.5 rounded-full text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all"
                     >
-                      <item.icon className="h-3.5 w-3.5" />
+                      <RotateCcw className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs">
-                    {item.label}
+                    Reset
                   </TooltipContent>
                 </Tooltip>
-              ))}
-              
-              <div className="w-px h-4 bg-border mx-0.5" />
-              
-              {/* Reset position */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                    className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  Reset
-                </TooltipContent>
-              </Tooltip>
-              
-              {/* Preview toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowRankOptions(false); }}
-                    className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  Preview
-                </TooltipContent>
-              </Tooltip>
-              
-              {/* Rank options popup - positioned above toolbar */}
-              {showRankOptions && overlayConfig.showRank && (
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card backdrop-blur-md p-3 rounded-xl border border-border shadow-lg space-y-3 min-w-[200px]">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Method</Label>
-                    <ToggleGroup 
-                      type="single" 
-                      value={rankingMethod}
-                      onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
-                      className="justify-start"
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowRankOptions(false); }}
+                      className="p-1.5 rounded-full text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all"
                     >
-                      <ToggleGroupItem value="score" className="text-xs h-7 px-2">By Score</ToggleGroupItem>
-                      <ToggleGroupItem value="elo" className="text-xs h-7 px-2">Head to Head</ToggleGroupItem>
-                    </ToggleGroup>
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Period</Label>
-                    <ToggleGroup 
-                      type="single" 
-                      value={rankingTimeFilter}
-                      onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
-                      className="justify-start flex-wrap"
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    Preview
+                  </TooltipContent>
+                </Tooltip>
+                
+                {/* Rank options popup - positioned above toolbar */}
+                {showRankOptions && overlayConfig.showRank && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card backdrop-blur-md p-3 rounded-xl border border-border shadow-lg space-y-3 min-w-[200px]">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Method</Label>
+                      <ToggleGroup 
+                        type="single" 
+                        value={rankingMethod}
+                        onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
+                        className="justify-start"
+                      >
+                        <ToggleGroupItem value="score" className="text-xs h-7 px-2">By Score</ToggleGroupItem>
+                        <ToggleGroupItem value="elo" className="text-xs h-7 px-2">Head to Head</ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Period</Label>
+                      <ToggleGroup 
+                        type="single" 
+                        value={rankingTimeFilter}
+                        onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
+                        className="justify-start flex-wrap"
+                      >
+                        <ToggleGroupItem value="all-time" className="text-xs h-7 px-2">All</ToggleGroupItem>
+                        <ToggleGroupItem value="this-year" className="text-xs h-7 px-2">Year</ToggleGroupItem>
+                        <ToggleGroupItem value="this-month" className="text-xs h-7 px-2">Month</ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowRankOptions(false)}
+                      className="w-full text-xs text-muted-foreground hover:text-foreground pt-1"
                     >
-                      <ToggleGroupItem value="all-time" className="text-xs h-7 px-2">All</ToggleGroupItem>
-                      <ToggleGroupItem value="this-year" className="text-xs h-7 px-2">Year</ToggleGroupItem>
-                      <ToggleGroupItem value="this-month" className="text-xs h-7 px-2">Month</ToggleGroupItem>
-                    </ToggleGroup>
+                      Done
+                    </button>
                   </div>
-                  
-                  <button
-                    onClick={() => setShowRankOptions(false)}
-                    className="w-full text-xs text-muted-foreground hover:text-foreground pt-1"
-                  >
-                    Done
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
+              
+              {/* Aspect ratio pill - separate element */}
+              <button
+                onClick={() => setAspectMode(aspectMode === "story" ? "native" : "story")}
+                className="text-[10px] bg-muted/50 px-2 py-1 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {aspectMode === "story" ? "9:16" : "1:1"}
+              </button>
             </div>
           )}
         </div>
         
-        {/* Aspect mode toggle + gesture hint */}
-        <div className="flex items-center justify-between px-2">
-          <button
-            onClick={() => setAspectMode(aspectMode === "story" ? "native" : "story")}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {aspectMode === "story" ? "9:16 Story" : "Native"} • Tap to switch
-          </button>
-          <p className="text-xs text-muted-foreground">
-            Drag • Pinch • Tap to toggle
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-2 pt-2">
+        {/* Bottom controls - fixed height */}
+        <div className="flex-shrink-0 pt-3 space-y-3 px-1">
+          {/* Instagram Hero Button */}
           <Button
             onClick={handleShareToInstagram}
             disabled={isGenerating}
-            className="w-full"
+            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 border-0 shadow-lg shadow-purple-500/25"
           >
-            <Instagram className="mr-2 h-4 w-4" />
-            {isGenerating ? "Generating..." : "Share to Instagram Story"}
+            <Instagram className="mr-2 h-5 w-5" />
+            {isGenerating ? "Generating..." : "Share to Instagram"}
           </Button>
-          <Button
-            onClick={handleShareWithFriends}
-            disabled={isGenerating}
-            variant="secondary"
-            className="w-full"
-          >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Share with Friends
-          </Button>
-          <Button
-            onClick={handleDownloadImage}
-            disabled={isGenerating}
-            variant="ghost"
-            className="w-full"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download Image
-          </Button>
+          
+          {/* Secondary actions - compact row */}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleShareWithFriends}
+              disabled={isGenerating}
+              variant="secondary"
+              className="flex-1 h-10"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Friends
+            </Button>
+            <Button
+              onClick={handleDownloadImage}
+              disabled={isGenerating}
+              variant="ghost"
+              className="flex-1 h-10"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Save
+            </Button>
+          </div>
         </div>
       </div>
     </TooltipProvider>
