@@ -78,7 +78,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-accent pb-20">
+    <div className="min-h-screen bg-gradient-accent pb-24">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -107,94 +107,97 @@ const Dashboard = () => {
         {renderContent()}
       </main>
 
-      {/* Bottom Navigation */}
-      <TooltipProvider>
-        <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
-          <div className="container mx-auto px-4">
-            <div className="flex items-end justify-center h-16 pb-2 gap-12">
-              {/* Home */}
-              <button
-                onClick={() => setActiveTab("home")}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 transition-colors",
-                  activeTab === "home" ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <HomeIcon className="h-6 w-6" />
-                <span className="text-xs font-medium">Home</span>
-              </button>
+      {/* Floating Navigation */}
+      <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center items-end gap-3 px-4">
+        
+        {/* Glass Pill Navigation */}
+        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-2 shadow-2xl">
+          <div className="flex items-center gap-10">
+            {/* Home */}
+            <button
+              onClick={() => setActiveTab("home")}
+              className={cn(
+                "flex flex-col items-center gap-0.5 transition-all py-1",
+                activeTab === "home" 
+                  ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" 
+                  : "text-white/60"
+              )}
+            >
+              <HomeIcon className="h-5 w-5" />
+              <span className="text-[11px] font-medium">Home</span>
+            </button>
 
-              {/* Add Show Button - Elevated with Menu */}
-              <div className="relative flex justify-center">
-                {/* FAB Menu Options */}
-                {showFabMenu && (
-                  <>
-                    {/* Backdrop */}
-                    <div 
-                      className="fixed inset-0 bg-black/40 z-40"
-                      onClick={() => setShowFabMenu(false)}
-                    />
-                    
-                    {/* Menu Options */}
-                    <div className="absolute bottom-20 z-50 flex flex-col gap-3 items-center">
-                      {/* Add from Photos */}
-                      <button
-                        onClick={() => {
-                          setShowFabMenu(false);
-                          setShowBulkUpload(true);
-                        }}
-                        className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
-                      >
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Camera className="h-5 w-5 text-primary" />
-                        </div>
-                        <span className="font-medium whitespace-nowrap">Add from Photos</span>
-                      </button>
-                      
-                      {/* Add Single Show */}
-                      <button
-                        onClick={() => {
-                          setShowFabMenu(false);
-                          setShowAddDialog(true);
-                        }}
-                        className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
-                      >
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Music className="h-5 w-5 text-primary" />
-                        </div>
-                        <span className="font-medium whitespace-nowrap">Add Single Show</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-                
-                {/* Main FAB */}
-                <button
-                  onClick={() => setShowFabMenu(!showFabMenu)}
-                  className={cn(
-                    "bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-all hover:scale-105 active:scale-95 -mt-8 z-50",
-                    showFabMenu && "rotate-45"
-                  )}
-                >
-                  {showFabMenu ? <X className="h-8 w-8" /> : <Plus className="h-8 w-8" />}
-                </button>
-              </div>
-
-              {/* Rank */}
-              <button
-                onClick={() => setActiveTab("rank")}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 transition-colors",
-                  activeTab === "rank" ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Scale className="h-6 w-6" />
-                <span className="text-xs font-medium">Rank</span>
-              </button>
-            </div>
+            {/* Rank */}
+            <button
+              onClick={() => setActiveTab("rank")}
+              className={cn(
+                "flex flex-col items-center gap-0.5 transition-all py-1",
+                activeTab === "rank" 
+                  ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" 
+                  : "text-white/60"
+              )}
+            >
+              <Scale className="h-5 w-5" />
+              <span className="text-[11px] font-medium">Rank</span>
+            </button>
           </div>
         </nav>
-      </TooltipProvider>
+
+        {/* Floating FAB */}
+        <div className="relative">
+          {showFabMenu && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 bg-black/40 z-40"
+                onClick={() => setShowFabMenu(false)}
+              />
+              
+              {/* Menu Options */}
+              <div className="absolute bottom-14 right-0 z-50 flex flex-col gap-3 items-end">
+                {/* Add from Photos */}
+                <button
+                  onClick={() => {
+                    setShowFabMenu(false);
+                    setShowBulkUpload(true);
+                  }}
+                  className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Camera className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium whitespace-nowrap">Add from Photos</span>
+                </button>
+                
+                {/* Add Single Show */}
+                <button
+                  onClick={() => {
+                    setShowFabMenu(false);
+                    setShowAddDialog(true);
+                  }}
+                  className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Music className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium whitespace-nowrap">Add Single Show</span>
+                </button>
+              </div>
+            </>
+          )}
+          
+          {/* FAB Button */}
+          <button
+            onClick={() => setShowFabMenu(!showFabMenu)}
+            className={cn(
+              "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-3 shadow-2xl transition-all hover:scale-105 active:scale-95 z-50",
+              showFabMenu && "rotate-45 bg-white/20"
+            )}
+          >
+            {showFabMenu ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+          </button>
+        </div>
+      </div>
 
       <AddShowFlow 
         open={showAddDialog} 
