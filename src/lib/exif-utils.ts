@@ -12,16 +12,37 @@ export interface ExifData {
 export async function extractExifData(file: File): Promise<ExifData> {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const tags = ExifReader.load(arrayBuffer);
+    const tags = ExifReader.load(arrayBuffer, { expanded: true });
     
     let date: Date | null = null;
     
-    // Try different date fields
-    const dateTimeOriginal = tags['DateTimeOriginal']?.description;
-    const createDate = tags['CreateDate']?.description;
-    const dateTime = tags['DateTime']?.description;
+    // Flatten tags - ExifReader with expanded:true returns nested structure
+    const exifTags = tags.exif || {};
+    const xmpTags = tags.xmp || {};
+    const iptcTags = tags.iptc || {};
+    const pngTags = (tags as any).pHYs || (tags as any).tEXt || {}; // PNG-specific chunks
     
-    const dateString = dateTimeOriginal || createDate || dateTime;
+    // Try different date fields from various metadata sources
+    // EXIF fields (most common for camera photos)
+    const dateTimeOriginal = exifTags['DateTimeOriginal']?.description;
+    const createDate = exifTags['CreateDate']?.description;
+    const dateTime = exifTags['DateTime']?.description;
+    
+    // XMP fields (common in edited/exported images)
+    const xmpCreateDate = xmpTags['CreateDate']?.description;
+    const xmpDateCreated = xmpTags['DateCreated']?.description;
+    const xmpModifyDate = xmpTags['ModifyDate']?.description;
+    
+    // PNG tEXt chunks (sometimes contain dates)
+    const pngCreationTime = (tags as any)['CreationTime']?.description;
+    const pngDate = (tags as any)['date:create']?.description || (tags as any)['date:modify']?.description;
+    
+    // File metadata fallback
+    const fileModifyDate = (tags as any)['FileModifyDate']?.description;
+    
+    const dateString = dateTimeOriginal || createDate || dateTime || 
+                       xmpCreateDate || xmpDateCreated || xmpModifyDate ||
+                       pngCreationTime || pngDate || fileModifyDate;
     
     if (dateString) {
       // EXIF date format is usually "YYYY:MM:DD HH:MM:SS"
@@ -29,6 +50,13 @@ export async function extractExifData(file: File): Promise<ExifData> {
       if (parsedDate && !isNaN(parsedDate.getTime())) {
         date = parsedDate;
       }
+    }
+    
+    // Debug logging to help diagnose extraction issues
+    if (!date) {
+      console.log('EXIF extraction - no date found. Available tags:', Object.keys(tags));
+      console.log('EXIF tags:', Object.keys(exifTags));
+      console.log('XMP tags:', Object.keys(xmpTags));
     }
     
     // Extract GPS coordinates if available
