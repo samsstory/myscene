@@ -67,13 +67,13 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "home":
-        return <Home />;
+        return <Home onNavigateToRank={() => setActiveTab("rank")} />;
       case "rank":
         return <Rank />;
       case "profile":
         return <Profile />;
       default:
-        return <Home />;
+        return <Home onNavigateToRank={() => setActiveTab("rank")} />;
     }
   };
 

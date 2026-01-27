@@ -14,10 +14,9 @@ import { ShowRankBadge } from "./feed/ShowRankBadge";
 import { toast } from "sonner";
 
 // Home components
-import StatPills from "./home/StatPills";
+import StatPills, { StatPillAction } from "./home/StatPills";
 import DynamicInsight from "./home/DynamicInsight";
 import RecentShowCard from "./home/RecentShowCard";
-import DiscoveryCards, { DiscoveryView } from "./home/DiscoveryCards";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
 
@@ -56,7 +55,11 @@ interface ShowRanking {
 
 type ViewMode = 'home' | 'calendar' | 'rankings' | 'globe';
 
-const Home = () => {
+interface HomeProps {
+  onNavigateToRank?: () => void;
+}
+
+const Home = ({ onNavigateToRank }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -237,8 +240,30 @@ const Home = () => {
 
   const getShowsForDate = (date: Date) => shows.filter(show => isSameDay(parseISO(show.date), date));
 
-  const handleDiscoveryNavigate = (view: DiscoveryView) => {
-    setViewMode(view);
+  const handlePillTap = (action: StatPillAction, payload?: string) => {
+    switch (action) {
+      case 'rankings':
+        setViewMode('rankings');
+        break;
+      case 'calendar':
+        setViewMode('calendar');
+        break;
+      case 'globe':
+        setViewMode('globe');
+        break;
+      case 'rank-tab':
+        onNavigateToRank?.();
+        break;
+      case 'show-detail':
+        if (payload) {
+          const show = shows.find(s => s.id === payload);
+          if (show) {
+            setReviewShow(show);
+            setReviewSheetOpen(true);
+          }
+        }
+        break;
+    }
   };
 
   const handleBackToHome = () => {
@@ -252,7 +277,7 @@ const Home = () => {
     return (
       <div className="space-y-6">
         {/* Stat Pills */}
-        <StatPills stats={statPills} isLoading={statsLoading} />
+        <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} />
 
         {/* Dynamic Insight */}
         <DynamicInsight insight={insight} />
@@ -286,12 +311,6 @@ const Home = () => {
               />
             ))
           )}
-        </div>
-
-        {/* Discovery Cards */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Explore</h3>
-          <DiscoveryCards onNavigate={handleDiscoveryNavigate} />
         </div>
       </div>
     );
