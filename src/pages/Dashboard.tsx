@@ -111,16 +111,17 @@ const Dashboard = () => {
       <TooltipProvider>
         <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
           <div className="container mx-auto px-4">
-            <div className="flex items-end justify-center h-16 pb-2 gap-8">
+            <div className="flex items-end justify-center h-16 pb-2 gap-12">
               {/* Home */}
               <button
                 onClick={() => setActiveTab("home")}
                 className={cn(
-                  "flex flex-col items-center justify-center transition-colors",
+                  "flex flex-col items-center justify-center gap-1 transition-colors",
                   activeTab === "home" ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <HomeIcon className="h-6 w-6" />
+                <span className="text-xs font-medium">Home</span>
               </button>
 
               {/* Add Show Button - Elevated with Menu */}
@@ -183,11 +184,12 @@ const Dashboard = () => {
               <button
                 onClick={() => setActiveTab("rank")}
                 className={cn(
-                  "flex flex-col items-center justify-center transition-colors",
+                  "flex flex-col items-center justify-center gap-1 transition-colors",
                   activeTab === "rank" ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <Scale className="h-6 w-6" />
+                <span className="text-xs font-medium">Rank</span>
               </button>
             </div>
           </div>
