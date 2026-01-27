@@ -949,7 +949,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           
           {/* Floating Toolbar - OUTSIDE image container, always visible */}
           {!isPreviewMode && (
-            <div className="flex items-center justify-center gap-1 bg-card/90 backdrop-blur-md px-3 py-2 rounded-full border border-border shadow-lg mt-3 relative">
+            <div className="flex items-center justify-center gap-0.5 bg-card/90 backdrop-blur-md px-2 py-1.5 rounded-full border border-border shadow-lg mt-3 relative">
               {toggleItems.map((item) => (
                 <Tooltip key={item.key}>
                   <TooltipTrigger asChild>
@@ -966,13 +966,13 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                         }
                       }}
                       disabled={item.disabled}
-                      className={`p-2 rounded-full transition-all ${
+                      className={`p-1.5 rounded-full transition-all ${
                         item.active 
                           ? "bg-primary/20 text-primary" 
                           : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       } ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs">
@@ -981,20 +981,20 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 </Tooltip>
               ))}
               
-              <div className="w-px h-5 bg-border mx-1" />
+              <div className="w-px h-4 bg-border mx-0.5" />
               
               {/* Reset position */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                    className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                    className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcw className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
-                  Reset Position
+                  Reset
                 </TooltipContent>
               </Tooltip>
               
@@ -1003,9 +1003,9 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 <TooltipTrigger asChild>
                   <button
                     onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowRankOptions(false); }}
-                    className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                    className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
