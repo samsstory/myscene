@@ -930,7 +930,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             {/* Vertical Opacity Slider - inside image on right edge, hidden in preview mode */}
             {!isPreviewMode && (
               <div 
-                className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-3 rounded-full border border-white/10"
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5"
                 onClick={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
@@ -958,7 +958,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                     }}
                   />
                 </div>
-                <span className="text-[10px] text-white/60">{overlayOpacity}</span>
               </div>
             )}
             
