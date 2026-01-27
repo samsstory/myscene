@@ -713,19 +713,19 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   
   // Color-coded styling based on group
   const getToggleStyle = (item: typeof toggleItems[number]) => {
-    const base = "p-1.5 rounded-full transition-all";
-    if (item.disabled) return `${base} opacity-30 cursor-not-allowed`;
+    const base = "p-1.5 transition-all";
+    if (item.disabled) return `${base} opacity-20 cursor-not-allowed`;
     
     const styles = {
       content: item.active 
-        ? "bg-cyan-500/20 text-cyan-400" 
-        : "text-cyan-400/40 hover:text-cyan-400 hover:bg-cyan-500/10",
+        ? "text-cyan-400" 
+        : "text-cyan-400/30 hover:text-cyan-400/60",
       ratings: item.active 
-        ? "bg-amber-500/20 text-amber-400" 
-        : "text-amber-400/40 hover:text-amber-400 hover:bg-amber-500/10",
+        ? "text-amber-400" 
+        : "text-amber-400/30 hover:text-amber-400/60",
       meta: item.active 
-        ? "bg-purple-500/20 text-purple-400" 
-        : "text-purple-400/40 hover:text-purple-400 hover:bg-purple-500/10",
+        ? "text-purple-400" 
+        : "text-purple-400/30 hover:text-purple-400/60",
     };
     
     return `${base} ${styles[item.group]}`;
