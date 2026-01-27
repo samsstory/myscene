@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Scale, BarChart3, Plus, Music, Camera, X } from "lucide-react";
+import { Home as HomeIcon, Scale, Plus, Music, Camera, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Feed from "@/components/Feed";
-import Stats from "@/components/Stats";
+import Home from "@/components/Home";
 import Profile from "@/components/Profile";
 import Rank from "@/components/Rank";
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
@@ -22,7 +21,7 @@ const Dashboard = () => {
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("feed");
+  const [activeTab, setActiveTab] = useState("home");
   const [shareShow, setShareShow] = useState<AddedShowData | null>(null);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
 
@@ -67,16 +66,14 @@ const Dashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "feed":
-        return <Feed />;
+      case "home":
+        return <Home />;
       case "rank":
         return <Rank />;
-      case "stats":
-        return <Stats />;
       case "profile":
         return <Profile />;
       default:
-        return <Feed />;
+        return <Home />;
     }
   };
 
@@ -103,13 +100,13 @@ const Dashboard = () => {
             <div className="flex items-end justify-between h-16 pb-2">
             {/* Home */}
             <button
-              onClick={() => setActiveTab("feed")}
+              onClick={() => setActiveTab("home")}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
-                activeTab === "feed" ? "text-primary" : "text-muted-foreground"
+                activeTab === "home" ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Home className="h-6 w-6" />
+              <HomeIcon className="h-6 w-6" />
             </button>
 
             {/* Rank */}
@@ -179,16 +176,7 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* Stats */}
-            <button
-              onClick={() => setActiveTab("stats")}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
-                activeTab === "stats" ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <BarChart3 className="h-6 w-6" />
-            </button>
+            {/* Profile */}
 
             {/* Profile */}
             <button
