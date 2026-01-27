@@ -84,6 +84,9 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showRankOptions, setShowRankOptions] = useState(false);
   
+  // Aspect ratio mode: 'story' (9:16) or 'native' (original image ratio)
+  const [aspectMode, setAspectMode] = useState<"story" | "native">("story");
+  
   // Multi-touch transform for Instagram-style overlay manipulation
   const { transform, setTransform, handlers, handleWheel } = useMultiTouchTransform({
     initialTransform: { x: 20, y: 100, scale: 0.8, rotation: 0 },
@@ -712,7 +715,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col gap-4 pb-4">
         {/* Canvas Preview with touch gestures */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 rounded-lg relative min-h-[400px] p-4">
+        <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 rounded-lg relative p-4">
           {/* Main image container */}
           <div
             ref={containerRef}
@@ -720,12 +723,13 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             className="relative bg-black overflow-hidden touch-none rounded-lg"
             style={{
               width: "100%",
-              maxWidth: imageDimensions 
+              maxWidth: aspectMode === "story" ? "280px" : (imageDimensions 
                 ? (imageDimensions.width >= imageDimensions.height ? "540px" : "400px")
-                : "540px",
-              aspectRatio: imageDimensions 
+                : "280px"),
+              aspectRatio: aspectMode === "story" ? "9/16" : (imageDimensions 
                 ? `${imageDimensions.width}/${imageDimensions.height}` 
-                : "9/16",
+                : "9/16"),
+              maxHeight: "55vh",
             }}
             {...handlers}
           >
@@ -1051,10 +1055,18 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           </div>
         </div>
         
-        {/* Gesture hint below */}
-        <p className="text-xs text-muted-foreground text-center">
-          Drag • Pinch to resize • Two fingers to rotate • Tap elements to toggle
-        </p>
+        {/* Aspect mode toggle + gesture hint */}
+        <div className="flex items-center justify-between px-2">
+          <button
+            onClick={() => setAspectMode(aspectMode === "story" ? "native" : "story")}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {aspectMode === "story" ? "9:16 Story" : "Native"} • Tap to switch
+          </button>
+          <p className="text-xs text-muted-foreground">
+            Drag • Pinch • Tap to toggle
+          </p>
+        </div>
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2">
