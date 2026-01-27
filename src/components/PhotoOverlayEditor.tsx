@@ -89,7 +89,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   
   // Multi-touch transform for Instagram-style overlay manipulation
   const { transform, setTransform, handlers, handleWheel } = useMultiTouchTransform({
-    initialTransform: { x: 20, y: 100, scale: 0.8, rotation: 0 },
+    initialTransform: { x: 20, y: 60, scale: 1, rotation: 0 },
     minScale: 0.3,
     maxScale: 1.5,
   });
@@ -98,7 +98,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   
   // Reset overlay position
   const handleReset = () => {
-    setTransform({ x: 20, y: 100, scale: 0.8, rotation: 0 });
+    setTransform({ x: 20, y: 60, scale: 1, rotation: 0 });
   };
   
   // Toggle helper for tap-to-toggle
@@ -369,102 +369,123 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       ctx.globalAlpha = 1;
     }
 
-    // Draw text matching screen layout exactly
-    const padding = 24 * scaleX;
+    // Draw text matching screen layout exactly - VERTICAL STACKED LAYOUT
+    const padding = 16 * scaleX;
     let yPos = overlayY + padding;
     
     ctx.fillStyle = "white";
-    ctx.textAlign = "left";
+    ctx.textAlign = "center";
+    const centerX = overlayX + overlayWidth / 2;
 
-    // Row 1: Artist and Score
-    if (overlayConfig.showArtists || overlayConfig.showRating) {
+    // Large score at top - the visual anchor
+    if (overlayConfig.showRating) {
+      const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
+      ctx.font = `900 ${48 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      
+      // Score gradient
+      const scoreGradient = ctx.createLinearGradient(centerX - 30 * scaleX, yPos, centerX + 30 * scaleX, yPos);
+      if (score >= 9) {
+        scoreGradient.addColorStop(0, "hsl(170, 80%, 50%)");
+        scoreGradient.addColorStop(1, "hsl(189, 94%, 55%)");
+      } else if (score >= 7) {
+        scoreGradient.addColorStop(0, "hsl(85, 85%, 50%)");
+        scoreGradient.addColorStop(1, "hsl(120, 75%, 45%)");
+      } else if (score >= 5) {
+        scoreGradient.addColorStop(0, "hsl(45, 100%, 55%)");
+        scoreGradient.addColorStop(1, "hsl(60, 90%, 50%)");
+      } else if (score >= 3) {
+        scoreGradient.addColorStop(0, "hsl(30, 100%, 50%)");
+        scoreGradient.addColorStop(1, "hsl(45, 100%, 55%)");
+      } else {
+        scoreGradient.addColorStop(0, "hsl(0, 84%, 55%)");
+        scoreGradient.addColorStop(1, "hsl(20, 90%, 50%)");
+      }
+      
+      ctx.fillStyle = scoreGradient;
+      ctx.fillText(score.toFixed(1), centerX, yPos + 36 * scaleY);
+      yPos += 52 * scaleY;
+    }
+
+    // Artist name below score
+    if (overlayConfig.showArtists) {
       const headliners = show.artists.filter((a) => a.is_headliner);
       const artistText = headliners.map((a) => a.name).join(", ");
-      const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
-
-      if (overlayConfig.showArtists) {
-        ctx.font = `bold ${24 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-        ctx.fillStyle = overlayOpacity > 0 ? primaryColor : "white";
-        if (overlayOpacity === 0) {
-          ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-          ctx.shadowBlur = 8 * scaleX;
-          ctx.shadowOffsetY = 2 * scaleY;
-        }
-        ctx.fillText(artistText, overlayX + padding, yPos);
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetY = 0;
+      ctx.font = `bold ${16 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = overlayOpacity > 0 ? primaryColor : "white";
+      if (overlayOpacity === 0) {
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        ctx.shadowBlur = 8 * scaleX;
+        ctx.shadowOffsetY = 2 * scaleY;
       }
-
-      if (overlayConfig.showRating) {
-        ctx.font = `900 ${36 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-        ctx.fillStyle = "white";
-        const scoreText = score.toFixed(1);
-        const scoreWidth = ctx.measureText(scoreText).width;
-        ctx.fillText(scoreText, overlayX + overlayWidth - padding - scoreWidth, yPos);
-      }
-
-      yPos += 40 * scaleY;
+      ctx.fillText(artistText, centerX, yPos);
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      yPos += 20 * scaleY;
     }
 
-    // Venue
+    // Venue - centered compact
     if (overlayConfig.showVenue) {
-      ctx.font = `${18 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.font = `${12 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "white";
-      ctx.fillText(show.venue_name, overlayX + padding, yPos);
-      yPos += 28 * scaleY;
+      ctx.fillText(show.venue_name, centerX, yPos);
+      yPos += 16 * scaleY;
     }
 
-    // Date
+    // Date - centered compact
     if (overlayConfig.showDate) {
-      ctx.font = `${14 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      const dateStr = new Date(show.show_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-      ctx.fillText(dateStr, overlayX + padding, yPos);
-      yPos += 36 * scaleY;
+      ctx.font = `${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      const dateStr = new Date(show.show_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      ctx.fillText(dateStr, centerX, yPos);
+      yPos += 18 * scaleY;
     }
 
-    // Detailed ratings
+    // Detailed ratings - 5-column grid with initials
     if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
-      const detailedRatings = [
-        { label: "Performance", value: show.artist_performance },
-        { label: "Sound", value: show.sound },
-        { label: "Lighting", value: show.lighting },
-        { label: "Crowd", value: show.crowd },
-        { label: "Vibe", value: show.venue_vibe },
+      const ratings = [
+        { label: "P", value: show.artist_performance },
+        { label: "S", value: show.sound },
+        { label: "L", value: show.lighting },
+        { label: "C", value: show.crowd },
+        { label: "V", value: show.venue_vibe },
       ].filter((r) => r.value);
 
-      ctx.font = `${12 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      const labelWidth = 80 * scaleX;
-      const barWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
-      const barHeight = 6 * scaleY;
+      const columnWidth = (overlayWidth - padding * 2) / ratings.length;
+      const barHeight = 4 * scaleY;
+      const barWidth = columnWidth - 4 * scaleX;
 
-      detailedRatings.forEach((rating) => {
-        ctx.fillStyle = "white";
-        ctx.fillText(rating.label, overlayX + padding, yPos);
-
-        const barX = overlayX + padding + labelWidth;
-        const barY = yPos - barHeight / 2 - 6 * scaleY;
-
+      ctx.font = `${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      
+      ratings.forEach((rating, index) => {
+        const colCenterX = overlayX + padding + columnWidth * index + columnWidth / 2;
+        
+        // Label
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.fillText(rating.label, colCenterX, yPos);
+        
+        // Bar background
+        const barX = colCenterX - barWidth / 2;
+        const barY = yPos + 4 * scaleY;
         ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
         ctx.beginPath();
         ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
         ctx.fill();
-
+        
+        // Bar fill
         const fillWidth = (rating.value! / 5) * barWidth;
         ctx.fillStyle = "rgba(255, 255, 255, 1)";
         ctx.beginPath();
         ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
         ctx.fill();
-
-        yPos += 22 * scaleY;
       });
-      yPos += 12 * scaleY;
+      
+      yPos += 22 * scaleY;
     }
 
-    // Notes
+    // Notes - centered, smaller
     if (overlayConfig.showNotes && show.notes) {
-      ctx.font = `italic ${14 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.font = `italic ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
       const maxWidth = overlayWidth - padding * 2;
       const words = `"${show.notes}"`.split(" ");
       let line = "";
@@ -474,24 +495,24 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
         const testLine = line + word + " ";
         const metrics = ctx.measureText(testLine);
         if (metrics.width > maxWidth && line !== "") {
-          if (lineCount < 3) {
-            ctx.fillText(line, overlayX + padding, yPos);
+          if (lineCount < 2) {
+            ctx.fillText(line.trim(), centerX, yPos);
             line = word + " ";
-            yPos += 28 * scaleY;
+            yPos += 14 * scaleY;
             lineCount++;
           }
         } else {
           line = testLine;
         }
       });
-      if (lineCount < 3 && line !== "") {
-        ctx.fillText(line, overlayX + padding, yPos);
+      if (lineCount < 2 && line !== "") {
+        ctx.fillText(line.trim(), centerX, yPos);
       }
-      yPos += 12 * scaleY;
+      yPos += 10 * scaleY;
     }
     
-    // Scene logo and rank at bottom
-    const bottomY = overlayY + overlayHeight - 12 * scaleY;
+    // Footer: Rank on left, Scene logo on right
+    const bottomY = overlayY + overlayHeight - 10 * scaleY;
     
     // Rank on the left
     if (overlayConfig.showRank && rankData.total > 0) {
@@ -510,9 +531,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       
       ctx.fillStyle = gradient;
       ctx.textAlign = "left";
-      const timePeriod = rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time';
-      const rankText = `#${rankData.position} of ${rankData.total} shows ${timePeriod}`;
-      ctx.fillText(rankText, overlayX + padding, bottomY);
+      ctx.fillText(`#${rankData.position}`, overlayX + padding, bottomY);
     }
     
     // Scene logo on the right
@@ -770,10 +789,10 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               }}
             />
 
-            {/* Touch-controlled Overlay with tap-to-toggle elements */}
+            {/* Touch-controlled Overlay - Vertical Stacked Layout */}
             <div
               id="rating-overlay"
-              className="absolute rounded-3xl p-6 text-white shadow-2xl backdrop-blur-sm border border-white/10 cursor-move select-none"
+              className="absolute rounded-2xl p-4 text-white text-center shadow-2xl backdrop-blur-sm border border-white/10 cursor-move select-none"
               style={{
                 left: transform.x,
                 top: transform.y,
@@ -781,144 +800,132 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 transformOrigin: "top left",
                 background: showBackground ? getRatingGradient(show.rating) : "transparent",
                 opacity: showBackground ? overlayOpacity / 100 : 1,
-                width: 280,
+                width: 160,
                 touchAction: "none",
               }}
             >
-              {/* Artist name and rating on same row - tap to toggle */}
-              <div className="flex items-start justify-between gap-4 mb-2">
-                {overlayConfig.showArtists && (
-                  <h2 
-                    className="text-2xl font-bold flex-1 cursor-pointer transition-opacity hover:opacity-70" 
-                    style={{ 
-                      color: showBackground ? primaryColor : "white",
-                      textShadow: showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
-                    }}
-                    onClick={(e) => { e.stopPropagation(); toggleConfig("showArtists"); }}
-                  >
-                    {headliners.map(a => a.name).join(", ")}
-                  </h2>
-                )}
-                
-                {overlayConfig.showRating && (
-                  <div 
-                    className={`text-4xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none flex-shrink-0 cursor-pointer transition-opacity hover:opacity-70`}
-                    onClick={(e) => { e.stopPropagation(); toggleConfig("showRating"); }}
-                  >
-                    {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
-                  </div>
-                )}
-              </div>
+              {/* Large score at top - the visual anchor */}
+              {overlayConfig.showRating && (
+                <div 
+                  className={`text-5xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none mb-2 cursor-pointer transition-opacity hover:opacity-70`}
+                  onClick={(e) => { e.stopPropagation(); toggleConfig("showRating"); }}
+                >
+                  {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
+                </div>
+              )}
               
+              {/* Artist name below score */}
+              {overlayConfig.showArtists && (
+                <h2 
+                  className="text-base font-bold mb-1 cursor-pointer transition-opacity hover:opacity-70 leading-tight" 
+                  style={{ 
+                    color: showBackground ? primaryColor : "white",
+                    textShadow: showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
+                  }}
+                  onClick={(e) => { e.stopPropagation(); toggleConfig("showArtists"); }}
+                >
+                  {headliners.map(a => a.name).join(", ")}
+                </h2>
+              )}
+              
+              {/* Venue - centered compact */}
               {overlayConfig.showVenue && (
                 <p 
-                  className="text-lg mb-1 flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-70"
+                  className="text-xs mb-0.5 flex items-center justify-center gap-1 cursor-pointer transition-opacity hover:opacity-70"
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showVenue"); }}
                 >
-                  <MapPin className="h-4 w-4" />
-                  {show.venue_name}
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{show.venue_name}</span>
                 </p>
               )}
               
+              {/* Date - centered compact */}
               {overlayConfig.showDate && (
                 <p 
-                  className="text-sm opacity-90 mb-3 cursor-pointer transition-opacity hover:opacity-70"
+                  className="text-[10px] opacity-80 mb-2 cursor-pointer transition-opacity hover:opacity-70"
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showDate"); }}
                 >
                   {new Date(show.show_date).toLocaleDateString("en-US", {
-                    month: "long",
+                    month: "short",
                     day: "numeric",
                     year: "numeric",
                   })}
                 </p>
               )}
 
+              {/* Detailed ratings - 5-column grid with initials */}
               {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
                 <div 
-                  className="space-y-2 text-xs mb-3 cursor-pointer transition-opacity hover:opacity-70"
+                  className="grid grid-cols-5 gap-1 text-[10px] mb-2 cursor-pointer transition-opacity hover:opacity-70"
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showDetailedRatings"); }}
                 >
                   {show.artist_performance && (
-                    <div className="flex items-center gap-2">
-                      <span className="w-20">Performance</span>
-                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-white rounded-full"
-                          style={{ width: `${(show.artist_performance / 5) * 100}%` }}
-                        />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="opacity-60">P</span>
+                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.artist_performance / 5) * 100}%` }} />
                       </div>
                     </div>
                   )}
                   {show.sound && (
-                    <div className="flex items-center gap-2">
-                      <span className="w-20">Sound</span>
-                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-white rounded-full"
-                          style={{ width: `${(show.sound / 5) * 100}%` }}
-                        />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="opacity-60">S</span>
+                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.sound / 5) * 100}%` }} />
                       </div>
                     </div>
                   )}
                   {show.lighting && (
-                    <div className="flex items-center gap-2">
-                      <span className="w-20">Lighting</span>
-                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-white rounded-full"
-                          style={{ width: `${(show.lighting / 5) * 100}%` }}
-                        />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="opacity-60">L</span>
+                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.lighting / 5) * 100}%` }} />
                       </div>
                     </div>
                   )}
                   {show.crowd && (
-                    <div className="flex items-center gap-2">
-                      <span className="w-20">Crowd</span>
-                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-white rounded-full"
-                          style={{ width: `${(show.crowd / 5) * 100}%` }}
-                        />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="opacity-60">C</span>
+                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.crowd / 5) * 100}%` }} />
                       </div>
                     </div>
                   )}
                   {show.venue_vibe && (
-                    <div className="flex items-center gap-2">
-                      <span className="w-20">Vibe</span>
-                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-white rounded-full"
-                          style={{ width: `${(show.venue_vibe / 5) * 100}%` }}
-                        />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="opacity-60">V</span>
+                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.venue_vibe / 5) * 100}%` }} />
                       </div>
                     </div>
                   )}
                 </div>
               )}
 
+              {/* Notes - centered, smaller */}
               {overlayConfig.showNotes && show.notes && (
                 <p 
-                  className="text-sm italic opacity-90 line-clamp-3 mb-2 cursor-pointer transition-opacity hover:opacity-70"
+                  className="text-[10px] italic opacity-80 line-clamp-2 mb-2 cursor-pointer transition-opacity hover:opacity-70"
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showNotes"); }}
                 >
                   "{show.notes}"
                 </p>
               )}
               
-              {/* Scene logo and rank at bottom */}
-              <div className="mt-4 flex items-center justify-between">
+              {/* Footer - rank and logo */}
+              <div className="mt-2 flex items-center justify-between text-[10px]">
                 {overlayConfig.showRank && rankData.total > 0 ? (
-                  <div 
-                    className={`text-xs font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
+                  <span 
+                    className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
                     onClick={(e) => { e.stopPropagation(); toggleConfig("showRank"); }}
                   >
-                    #{rankData.position} of {rankData.total} shows {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'this-month' ? 'this month' : 'all time'}
-                  </div>
+                    #{rankData.position}
+                  </span>
                 ) : (
-                  <div />
+                  <span />
                 )}
                 <span 
-                  className="text-xs font-bold tracking-wider opacity-30" 
+                  className="font-bold tracking-wider opacity-30" 
                   style={{ filter: "grayscale(100%)" }}
                 >
                   SCENE
