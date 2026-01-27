@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
   Download, MapPin, Instagram, Move, Eye, EyeOff,
   Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, 
@@ -1072,39 +1069,31 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                   </TooltipContent>
                 </Tooltip>
                 
-                {/* Rank options popup - positioned above toolbar */}
+                {/* Rank options - liquid glass pill toggle */}
                 {showRankOptions && overlayConfig.showRank && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md p-3 rounded-xl border border-border shadow-xl min-w-[160px]">
-                    {/* Period toggle */}
-                    <div className="space-y-1.5">
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Period</Label>
-                      <ToggleGroup 
-                        type="single" 
-                        value={rankingTimeFilter}
-                        onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year")}
-                        className="grid grid-cols-2 gap-1"
-                      >
-                        <ToggleGroupItem 
-                          value="all-time" 
-                          className="text-xs h-8 px-2 data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-400 data-[state=on]:border-purple-500/30"
-                        >
-                          All Time
-                        </ToggleGroupItem>
-                        <ToggleGroupItem 
-                          value="this-year" 
-                          className="text-xs h-8 px-2 data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-400 data-[state=on]:border-purple-500/30"
-                        >
-                          This Year
-                        </ToggleGroupItem>
-                      </ToggleGroup>
-                    </div>
-                    
-                    {/* Dismiss */}
+                  <div 
+                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
-                      onClick={() => setShowRankOptions(false)}
-                      className="w-full text-xs text-muted-foreground hover:text-foreground py-1.5 border-t border-border/50 mt-3"
+                      onClick={() => { setRankingTimeFilter("all-time"); setShowRankOptions(false); }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        rankingTimeFilter === "all-time" 
+                          ? "bg-white/20 text-white shadow-sm" 
+                          : "text-white/60 hover:text-white/80"
+                      }`}
                     >
-                      Done
+                      All Time
+                    </button>
+                    <button
+                      onClick={() => { setRankingTimeFilter("this-year"); setShowRankOptions(false); }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        rankingTimeFilter === "this-year" 
+                          ? "bg-white/20 text-white shadow-sm" 
+                          : "text-white/60 hover:text-white/80"
+                      }`}
+                    >
+                      This Year
                     </button>
                   </div>
                 )}
