@@ -1,138 +1,162 @@
 
-# Plan: Bulk Upload UX Improvements
+
+# Plan: Redesign Bulk Success Screen for Multi-Show Logic & Minimal Aesthetic
 
 ## Overview
-This plan addresses 4 UX issues in the bulk upload photo review flow based on user feedback.
+Redesign the `BulkSuccessStep` to fix multi-show logic issues and align with the platform's minimal, dark aesthetic.
 
 ---
 
-## Task 1: Fix Venue Search Not Providing Suggestions
+## Design Changes
 
-**Problem**: When typing in the venue field, search suggestions no longer appear.
+### Visual Hierarchy (Before → After)
 
-**Root Cause**: The venue search only triggers when `showManualSearch` is `true` (line 226). When there are no GPS-detected venue suggestions, the input shows but search mode isn't properly activated.
-
-**Solution**:
-- Modify the search logic to trigger for both manual search mode AND when there are no venue suggestions available
-- When the venue input is shown without suggestions (no GPS data), automatically enable search functionality
-
-**File**: `src/components/bulk-upload/PhotoReviewCard.tsx`
-- Update the `useEffect` for venue search (line 225-252) to trigger when either:
-  - `showManualSearch` is true, OR
-  - `!hasVenueSuggestions` (no GPS-suggested venues)
-- Update the venue input section to enable search when no suggestions are available
-
----
-
-## Task 2: Add Calendar View for "Exact" Date Mode
-
-**Problem**: Clicking "Exact" shows a native date input with "mm/dd/yyyy" format which isn't intuitive for selecting dates.
-
-**Solution**:
-- Replace the native date input with a Popover containing the existing `Calendar` component
-- Show a clickable button that displays the selected date or "Select date" placeholder
-- Calendar opens in a popover when clicked, allowing visual date selection
-
-**File**: `src/components/bulk-upload/CompactDateSelector.tsx`
-- Import `Popover`, `PopoverContent`, `PopoverTrigger` from `@/components/ui/popover`
-- Import `Calendar` from `@/components/ui/calendar`
-- Import `CalendarIcon` from `lucide-react`
-- Replace the native `<input type="date">` with a Popover-based calendar picker
-- Format display date using `date-fns` format function
-
-**New UI for Exact mode**:
 ```
-┌────────────────────────────────────┐
-│ 📅 Select date          ▼         │  ← Opens calendar popover on click
-└────────────────────────────────────┘
+CURRENT (Cluttered)                    PROPOSED (Minimal)
+┌─────────────────────────┐           ┌─────────────────────────┐
+│ ✓  2 shows added! 🎉    │           │                         │
+│    Share your experience │           │    ✓ 2 shows added      │
+├─────────────────────────┤           │                         │
+│ [photo][photo][photo]   │           ├─────────────────────────┤
+│ [photo]                 │           │                         │
+├─────────────────────────┤           │  [photo]     [photo]    │  ← Tappable
+│ 🎤 5/5  🔊 4/5  ...     │           │  Mind Against Charlotte │
+├─────────────────────────┤           │                         │
+│ [Create Review Photo]   │           ├─────────────────────────┤
+│ [Send to Friends    ]   │           │  What's next?           │
+│ [Rank Shows         ]   │           │                         │
+├─────────────────────────┤           │  ┌─────────────────────┐│
+│ [Add More]    [Done]    │           │  │ 📊 Rank These Shows ││  ← Primary action
+└─────────────────────────┘           │  │ Compare your shows  ││
+                                      │  └─────────────────────┘│
+                                      │                         │
+                                      │  [Add More]    [Done]   │
+                                      └─────────────────────────┘
 ```
 
 ---
 
-## Task 3: Add Confirm Button to Rating Section
+## Logic Changes
 
-**Problem**: After entering ratings and notes, there's no clear way to confirm/save and close the section.
+### Single Show (1 show added)
+Keep current behavior - share/review actions make sense for one show:
+- "Create Review Photo" → Opens PhotoOverlayEditor
+- "Send to Friends" → SMS share
+- "Rank This Show" → Opens rank flow
 
-**Solution**:
-- Add a "Done" button with a checkmark icon at the bottom of the ratings section
-- Clicking it closes the ratings section and shows a visual indicator that ratings were saved
+### Multiple Shows (2+ shows added)
+Redesign for multi-show context:
 
-**File**: `src/components/bulk-upload/PhotoReviewCard.tsx`
-- Import `Check` icon from `lucide-react`
-- Add a "Done" button at the bottom of the ratings section (after the notes textarea)
-- Button should call `setShowRatings(false)` to close the section
-- Style with primary color to indicate it's the confirmation action
+| Old Action | New Action | Reason |
+|------------|------------|--------|
+| "Create Review Photo" | **Remove** (handled via tappable cards) | Ambiguous which show |
+| "Send to Friends" | "Share All" with summary text | Multi-show makes sense |
+| Photo grid (passive) | **Tappable photo cards** | Each card opens share flow for that show |
 
-**New UI**:
+---
+
+## Implementation Details
+
+### File: `src/components/bulk-upload/BulkSuccessStep.tsx`
+
+**1. Remove visual noise:**
+- Remove `animate-bounce` from PartyPopper
+- Remove rating pills section entirely
+- Remove "Share your experience" subtitle (implied by actions)
+
+**2. Add tappable show cards for multi-show:**
+```typescript
+// New component for multi-show display
+const ShowCard = ({ show, onTap }) => (
+  <button 
+    onClick={() => onTap(show)}
+    className="text-left space-y-1 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+  >
+    <div className="aspect-[4/5] rounded-lg overflow-hidden bg-muted">
+      {show.photo_url ? (
+        <img src={show.photo_url} className="w-full h-full object-cover" />
+      ) : (
+        <Music2 className="text-muted-foreground" />
+      )}
+    </div>
+    <p className="text-xs font-medium truncate">
+      {show.artists[0]?.name || "Show"}
+    </p>
+  </button>
+);
 ```
-┌────────────────────────────────────┐
-│  Performance    ① ② ③ ④ ⑤         │
-│  Sound          ① ② ③ ④ ⑤         │
-│  ...                               │
-│  My Take                           │
-│  ┌──────────────────────────────┐  │
-│  │ Add your thoughts...         │  │
-│  └──────────────────────────────┘  │
-│                                    │
-│  ┌──────────────────────────────┐  │
-│  │        ✓ Done                │  │  ← New confirm button
-│  └──────────────────────────────┘  │
-└────────────────────────────────────┘
+
+**3. Conditional action buttons:**
+```typescript
+{!hasMultiple ? (
+  // Single show: Keep current share actions
+  <>
+    <Button onClick={() => onCreateReviewPhoto(firstShow)}>
+      Create Review Photo
+    </Button>
+    <Button variant="secondary" onClick={handleSendToFriends}>
+      Send to Friends  
+    </Button>
+  </>
+) : (
+  // Multi show: Focus on ranking + browsing
+  <>
+    <p className="text-sm text-muted-foreground">
+      Tap a show above to share it
+    </p>
+    <Button onClick={handleShareAll} variant="secondary">
+      <Share className="mr-2 h-4 w-4" />
+      Share Summary
+    </Button>
+  </>
+)}
+
+// Rank button stays for both (works for multi)
+<Button onClick={onRank} variant="outline">
+  Rank {hasMultiple ? "These Shows" : "This Show"}
+</Button>
+```
+
+**4. Update "Send to Friends" for multi-show:**
+```typescript
+const handleShareAll = () => {
+  const showCount = addedShows.length;
+  const shareText = `Just added ${showCount} shows to my Scene! 🎵`;
+  window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
+};
 ```
 
 ---
 
-## Task 4: Improve Required Field Clarity
+## Updated Props Interface
 
-**Problem**: 
-- The orange "Add Artist" text isn't clearly understood as a warning
-- The artist field isn't obviously marked as the only required field
-
-**Solution A - Change collapsed header text**:
-- Change "Add Artist" to "Add Info" when no artist is selected
-- This makes it clearer that info needs to be added without being confusing
-
-**Solution B - Mark artist field as required**:
-- Add an asterisk (*) to the artist input placeholder: "Add artists... *"
-- Add a subtle "(required)" label next to the artist input
-- Keep other fields without asterisks to show they're optional
-
-**File**: `src/components/bulk-upload/PhotoReviewCard.tsx`
-- Line 293: Change `"Add Artist"` to `"Add Info"`
-- Line 374: Add a label above the artist input showing it's required
-
-**Updated UI**:
-```
-┌────────────────────────────────────┐
-│  [📷]  Add Info                    │  ← Orange "Add Info" when empty
-└────────────────────────────────────┘
-
-Expanded:
-┌────────────────────────────────────┐
-│  Artist *                          │  ← Small required indicator
-│  ┌──────────────────────────────┐  │
-│  │ Add artists...               │  │
-│  └──────────────────────────────┘  │
-│  ┌──────────────────────────────┐  │
-│  │ Search venue...              │  │  ← No asterisk (optional)
-│  └──────────────────────────────┘  │
-└────────────────────────────────────┘
+```typescript
+interface BulkSuccessStepProps {
+  addedCount: number;
+  addedShows: AddedShowData[];
+  onAddMore: () => void;
+  onDone: () => void;
+  onCreateReviewPhoto: (show: AddedShowData) => void; // Now used per-show
+  onRank: () => void;
+}
 ```
 
 ---
 
-## Summary of Changes
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/bulk-upload/PhotoReviewCard.tsx` | Fix venue search trigger, add ratings "Done" button, change "Add Artist" → "Add Info", add required indicator |
-| `src/components/bulk-upload/CompactDateSelector.tsx` | Replace native date input with Calendar popover for exact mode |
+| `src/components/bulk-upload/BulkSuccessStep.tsx` | Complete redesign with conditional multi/single show logic |
 
 ---
 
-## Implementation Order
-1. **Task 1**: Fix venue search (quick fix, improves core functionality)
-2. **Task 2**: Add calendar popover (improves date UX significantly)
-3. **Task 3**: Add ratings confirm button (small UX improvement)
-4. **Task 4**: Improve field clarity (copy/label changes)
+## Summary
+
+| Improvement | How |
+|-------------|-----|
+| **Minimal aesthetic** | Remove bouncing icon, rating pills, reduce button count |
+| **Multi-show logic** | Tappable cards for per-show actions, summary share for all |
+| **Clear hierarchy** | "Rank" as primary CTA, "Done" as clear exit |
+| **User intent** | Don't force sharing - make it optional via tappable cards |
 
