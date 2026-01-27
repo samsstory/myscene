@@ -81,10 +81,24 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-accent pb-20">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Scene
           </h1>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className="transition-transform hover:scale-105"
+          >
+            <Avatar className={cn(
+              "h-9 w-9 border-2 transition-colors",
+              activeTab === "profile" ? "border-primary" : "border-transparent"
+            )}>
+              <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
+              <AvatarFallback className="text-sm bg-muted">
+                {session?.user?.email?.charAt(0).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </button>
         </div>
       </header>
 
@@ -97,100 +111,84 @@ const Dashboard = () => {
       <TooltipProvider>
         <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
           <div className="container mx-auto px-4">
-            <div className="flex items-end justify-between h-16 pb-2">
-            {/* Home */}
-            <button
-              onClick={() => setActiveTab("home")}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
-                activeTab === "home" ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <HomeIcon className="h-6 w-6" />
-            </button>
-
-            {/* Rank */}
-            <button
-              onClick={() => setActiveTab("rank")}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
-                activeTab === "rank" ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <Scale className="h-6 w-6" />
-            </button>
-
-            {/* Add Show Button - Elevated with Menu */}
-            <div className="flex-1 flex justify-center relative">
-              {/* FAB Menu Options */}
-              {showFabMenu && (
-                <>
-                  {/* Backdrop */}
-                  <div 
-                    className="fixed inset-0 bg-black/40 z-40"
-                    onClick={() => setShowFabMenu(false)}
-                  />
-                  
-                  {/* Menu Options */}
-                  <div className="absolute bottom-20 z-50 flex flex-col gap-3 items-center">
-                    {/* Add from Photos */}
-                    <button
-                      onClick={() => {
-                        setShowFabMenu(false);
-                        setShowBulkUpload(true);
-                      }}
-                      className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
-                    >
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Camera className="h-5 w-5 text-primary" />
-                      </div>
-                      <span className="font-medium whitespace-nowrap">Add from Photos</span>
-                    </button>
-                    
-                    {/* Add Single Show */}
-                    <button
-                      onClick={() => {
-                        setShowFabMenu(false);
-                        setShowAddDialog(true);
-                      }}
-                      className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
-                    >
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Music className="h-5 w-5 text-primary" />
-                      </div>
-                      <span className="font-medium whitespace-nowrap">Add Single Show</span>
-                    </button>
-                  </div>
-                </>
-              )}
-              
-              {/* Main FAB */}
+            <div className="flex items-end justify-center h-16 pb-2 gap-8">
+              {/* Home */}
               <button
-                onClick={() => setShowFabMenu(!showFabMenu)}
+                onClick={() => setActiveTab("home")}
                 className={cn(
-                  "bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-all hover:scale-105 active:scale-95 -mt-8 z-50",
-                  showFabMenu && "rotate-45"
+                  "flex flex-col items-center justify-center transition-colors",
+                  activeTab === "home" ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                {showFabMenu ? <X className="h-8 w-8" /> : <Plus className="h-8 w-8" />}
+                <HomeIcon className="h-6 w-6" />
               </button>
-            </div>
 
-            {/* Profile */}
-            <button
-              onClick={() => setActiveTab("profile")}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-colors flex-1",
-                activeTab === "profile" ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <Avatar className="h-7 w-7 border-2 border-transparent transition-colors data-[active=true]:border-primary" data-active={activeTab === "profile"}>
-                <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
-                <AvatarFallback className="text-xs">
-                  {session?.user?.email?.charAt(0).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-            </button>
+              {/* Add Show Button - Elevated with Menu */}
+              <div className="relative flex justify-center">
+                {/* FAB Menu Options */}
+                {showFabMenu && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 bg-black/40 z-40"
+                      onClick={() => setShowFabMenu(false)}
+                    />
+                    
+                    {/* Menu Options */}
+                    <div className="absolute bottom-20 z-50 flex flex-col gap-3 items-center">
+                      {/* Add from Photos */}
+                      <button
+                        onClick={() => {
+                          setShowFabMenu(false);
+                          setShowBulkUpload(true);
+                        }}
+                        className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Camera className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="font-medium whitespace-nowrap">Add from Photos</span>
+                      </button>
+                      
+                      {/* Add Single Show */}
+                      <button
+                        onClick={() => {
+                          setShowFabMenu(false);
+                          setShowAddDialog(true);
+                        }}
+                        className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Music className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="font-medium whitespace-nowrap">Add Single Show</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+                
+                {/* Main FAB */}
+                <button
+                  onClick={() => setShowFabMenu(!showFabMenu)}
+                  className={cn(
+                    "bg-primary text-primary-foreground rounded-full p-4 shadow-glow transition-all hover:scale-105 active:scale-95 -mt-8 z-50",
+                    showFabMenu && "rotate-45"
+                  )}
+                >
+                  {showFabMenu ? <X className="h-8 w-8" /> : <Plus className="h-8 w-8" />}
+                </button>
+              </div>
+
+              {/* Rank */}
+              <button
+                onClick={() => setActiveTab("rank")}
+                className={cn(
+                  "flex flex-col items-center justify-center transition-colors",
+                  activeTab === "rank" ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                <Scale className="h-6 w-6" />
+              </button>
             </div>
           </div>
         </nav>
