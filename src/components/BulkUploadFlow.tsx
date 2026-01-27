@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import PhotoSelectStep from "./bulk-upload/PhotoSelectStep";
 import BulkReviewStep from "./bulk-upload/BulkReviewStep";
 import BulkSuccessStep from "./bulk-upload/BulkSuccessStep";
+import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import { PhotoWithExif, cleanupPhotoUrls } from "@/lib/exif-utils";
 import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
@@ -17,13 +18,14 @@ interface BulkUploadFlowProps {
   onShareShow?: (show: AddedShowData) => void;
 }
 
-type Step = 'select' | 'review' | 'success';
+type Step = 'select' | 'review' | 'success' | 'editor';
 
 const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
   const [photos, setPhotos] = useState<PhotoWithExif[]>([]);
   const [addedCount, setAddedCount] = useState(0);
   const [addedShows, setAddedShows] = useState<AddedShowData[]>([]);
+  const [editorShow, setEditorShow] = useState<AddedShowData | null>(null);
   const { uploadShows, isUploading } = useBulkShowUpload();
 
   const handleClose = () => {
@@ -34,6 +36,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     setPhotos([]);
     setAddedCount(0);
     setAddedShows([]);
+    setEditorShow(null);
     onOpenChange(false);
   };
 
@@ -56,6 +59,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     cleanupPhotoUrls(photos);
     setPhotos([]);
     setAddedShows([]);
+    setEditorShow(null);
     setStep('select');
   };
 
@@ -83,7 +87,15 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   const handleBack = () => {
     if (step === 'review') {
       setStep('select');
+    } else if (step === 'editor') {
+      setEditorShow(null);
+      setStep('success');
     }
+  };
+
+  const handleOpenEditor = (show: AddedShowData) => {
+    setEditorShow(show);
+    setStep('editor');
   };
 
   const getTitle = () => {
@@ -94,17 +106,32 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         return 'Add Shows';
       case 'success':
         return 'Success!';
+      case 'editor':
+        return 'Create Share Image';
       default:
         return 'Add Shows';
     }
   };
+
+  // Normalize show data for PhotoOverlayEditor
+  const normalizedEditorShow = editorShow ? {
+    id: editorShow.id,
+    artists: editorShow.artists.map(a => ({
+      name: a.name,
+      is_headliner: 'isHeadliner' in a ? a.isHeadliner : ('is_headliner' in a ? (a as any).is_headliner : false),
+    })),
+    venue_name: editorShow.venue.name,
+    show_date: editorShow.date,
+    rating: editorShow.rating ?? 0,
+    photo_url: editorShow.photo_url,
+  } : null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
-          {step === 'review' && (
+          {(step === 'review' || step === 'editor') && (
             <Button
               variant="ghost"
               size="icon"
@@ -142,13 +169,20 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             addedShows={addedShows}
             onAddMore={handleAddMore}
             onDone={handleClose}
-            onCreateReviewPhoto={(show) => {
-              handleClose();
-              onShareShow?.(show);
-            }}
+            onCreateReviewPhoto={handleOpenEditor}
             onRank={() => {
               handleClose();
               onNavigateToRank?.();
+            }}
+          />
+        )}
+
+        {step === 'editor' && normalizedEditorShow && (
+          <PhotoOverlayEditor
+            show={normalizedEditorShow}
+            onClose={() => {
+              setEditorShow(null);
+              setStep('success');
             }}
           />
         )}
