@@ -180,11 +180,13 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     rankingTimeFilter
   });
   
+  // Rank gradient aligned with score tier colors (red→orange→gold→green→teal)
   const getRankGradient = (percentile: number) => {
-    if (percentile >= 90) return "from-[hsl(45,93%,58%)] to-[hsl(189,94%,55%)]";
-    if (percentile >= 75) return "from-[hsl(189,94%,55%)] to-[hsl(260,80%,60%)]";
-    if (percentile >= 50) return "from-[hsl(260,80%,60%)] to-[hsl(330,85%,65%)]";
-    return "from-[hsl(330,85%,65%)] to-[hsl(0,84%,60%)]";
+    if (percentile >= 90) return "from-[hsl(170,80%,50%)] to-[hsl(189,94%,55%)]"; // Top 10% - Teal (exceptional)
+    if (percentile >= 75) return "from-[hsl(85,85%,50%)] to-[hsl(120,75%,45%)]"; // Top 25% - Green (great)
+    if (percentile >= 50) return "from-[hsl(45,100%,55%)] to-[hsl(60,90%,50%)]"; // Top 50% - Gold (good)
+    if (percentile >= 25) return "from-[hsl(30,100%,50%)] to-[hsl(45,100%,55%)]"; // Bottom 50% - Orange
+    return "from-[hsl(0,84%,55%)] to-[hsl(20,90%,50%)]"; // Bottom 25% - Red
   };
 
   // Extract primary color from image
