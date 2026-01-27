@@ -3,11 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
 import { ShowReviewSheet } from "./ShowReviewSheet";
+import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import MapView from "./MapView";
 import AddShowFlow from "./AddShowFlow";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
@@ -75,8 +77,36 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Direct photo editor state for feed cards
+  const [directEditShow, setDirectEditShow] = useState<Show | null>(null);
+  const [directEditOpen, setDirectEditOpen] = useState(false);
 
   const { statPills, insight, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
+  
+  // Normalizer for PhotoOverlayEditor show format
+  const normalizeShowForEditor = (show: Show) => ({
+    ...show,
+    artists: show.artists.map(a => ({
+      ...a,
+      is_headliner: a.isHeadliner ?? false,
+    })),
+    venue_name: show.venue?.name || "",
+    show_date: show.date || "",
+    artist_performance: show.artistPerformance,
+    venue_vibe: show.venueVibe,
+  });
+  
+  // Smart share handler - direct to editor if photo exists, otherwise share sheet
+  const handleShareFromCard = (show: Show) => {
+    if (show.photo_url) {
+      setDirectEditShow(show);
+      setDirectEditOpen(true);
+    } else {
+      setShareShow(show);
+      setShareSheetOpen(true);
+    }
+  };
 
   useEffect(() => {
     fetchShows();
@@ -315,6 +345,7 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
                   setReviewShow(s);
                   setReviewSheetOpen(true);
                 }}
+                onShare={handleShareFromCard}
               />
             ))
           )}
@@ -575,6 +606,25 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
       )}
 
       <ShareShowSheet show={shareShow} open={shareSheetOpen} onOpenChange={setShareSheetOpen} allShows={shows} rankings={rankings} />
+      
+      {/* Direct Photo Overlay Editor for feed cards */}
+      <Sheet open={directEditOpen} onOpenChange={setDirectEditOpen}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-hidden flex flex-col">
+          <SheetHeader className="flex-shrink-0">
+            <SheetTitle>Share to Instagram</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto mt-4">
+            {directEditShow && directEditShow.photo_url && (
+              <PhotoOverlayEditor
+                show={normalizeShowForEditor(directEditShow)}
+                onClose={() => setDirectEditOpen(false)}
+                allShows={shows.map(normalizeShowForEditor)}
+                rankings={rankings}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
       
       <ShowReviewSheet 
         show={reviewShow} 
