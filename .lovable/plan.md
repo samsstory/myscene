@@ -1,385 +1,327 @@
 
 
-# Hybrid Home Page Redesign: Implementation Plan
+# Tappable Stat Pills with Smart Navigation
 
 ## Overview
 
-Transform the current fragmented Feed + Stats experience into a unified, minimal home page that surfaces key metrics upfront while making deeper features easily discoverable.
+Transform the static stat pills at the top of the home page into interactive navigation triggers that link to the most valuable features. Replace the bottom "Explore" section with higher-value stat pills that drive engagement and make key data immediately actionable.
 
 ---
 
-## Current State Analysis
+## Current vs. Proposed Layout
 
-```
-CURRENT STRUCTURE                    NAVIGATION
-┌─────────────────────────┐         ┌────────────────────────┐
-│ Dashboard.tsx           │         │ Home │ Rank │ + │Stats│ Profile│
-├─────────────────────────┤         └────────────────────────┘
-│  activeTab: feed        │──────▶  Feed.tsx (4 sub-tabs)
-│  activeTab: rank        │──────▶  Rank.tsx
-│  activeTab: stats       │──────▶  Stats.tsx (separate page)
-│  activeTab: profile     │──────▶  Profile.tsx
-└─────────────────────────┘
-```
-
-**Issues:**
-- Stats tab requires extra navigation to see key metrics
-- Feed has 4 internal tabs (Recent, Calendar, Top Shows, Globe) - too complex
-- Visual hierarchy is flat - every show card has equal weight
-- No personalized insights or "at-a-glance" summary
-
----
-
-## Proposed Architecture
-
-```
-NEW HOME STRUCTURE (Feed.tsx → Home.tsx)
-┌───────────────────────────────────────────────────────┐
-│                                                       │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                 │
-│  │  47  │ │  12  │ │ Top  │ │ 3-   │   ← Stat Pills  │
-│  │Shows │ │ This │ │  5%  │ │Show  │                 │
-│  │      │ │ Year │ │      │ │Streak│                 │
-│  └──────┘ └──────┘ └──────┘ └──────┘                 │
-│                                                       │
-│  ┌─────────────────────────────────────────────────┐ │
-│  │  🔥 New Personal Best!                          │ │  ← Dynamic Insight
-│  │  "Mind Against at Charlotte" is now your #2    │ │
-│  └─────────────────────────────────────────────────┘ │
-│                                                       │
-│  Recent Shows                                         │
-│  ┌─────────────────────────────────────────────────┐ │
-│  │ ┌──────┐                                        │ │
-│  │ │photo │  Mind Against  •  Charlotte            │ │
-│  │ └──────┘  Dec 15  ·························#2   │ │  ← High-impact cards
-│  └─────────────────────────────────────────────────┘ │
-│  ┌─────────────────────────────────────────────────┐ │
-│  │ ┌──────┐                                        │ │
-│  │ │photo │  Anyma  •  Madison Square Garden       │ │
-│  │ └──────┘  Dec 10  ························#15   │ │
-│  └─────────────────────────────────────────────────┘ │
-│                                                       │
-│  Explore                                              │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐    │
-│  │ 📅 Calendar │ │ 🏆 Rankings │ │ 🌍 Globe    │    │  ← Discovery Cards
-│  └─────────────┘ └─────────────┘ └─────────────┘    │
-│                                                       │
-└───────────────────────────────────────────────────────┘
+```text
+CURRENT HOME LAYOUT                    PROPOSED HOME LAYOUT
++----------------------------------+   +----------------------------------+
+| [All Time] [2026] [Activity] [S] |   | [47 Shows] [#1 Show] [3 Unranked]|
+|        (static pills)            |   |        (tappable pills)          |
++----------------------------------+   +----------------------------------+
+|                                  |   |                                  |
+| [Dynamic Insight Card]           |   | [Dynamic Insight Card]           |
+|                                  |   |                                  |
++----------------------------------+   +----------------------------------+
+|                                  |   |                                  |
+| Recent Shows                     |   | Recent Shows                     |
+|   - Show Card 1                  |   |   - Show Card 1                  |
+|   - Show Card 2                  |   |   - Show Card 2                  |
+|   - Show Card 3                  |   |   - Show Card 3                  |
+|                                  |   |                                  |
++----------------------------------+   +----------------------------------+
+| Explore                          |   |                                  |
+|  [Calendar] [Rankings] [Globe]   |   | (REMOVED - replaced by pills)    |
++----------------------------------+   +----------------------------------+
 ```
 
 ---
 
-## Navigation Changes
+## Prioritized Stat Pills
 
-### Bottom Nav Updates (Dashboard.tsx)
+Based on UX value and user engagement drivers:
 
-```
-CURRENT                          PROPOSED
-[Home] [Rank] [+] [Stats] [👤]   [Home] [Rank] [+] [👤]
-  ↓      ↓         ↓                ↓      ↓      ↓
-Feed   Rank     Stats            Home   Rank   Profile
-                                  (merged stats)
-```
-
-**Changes:**
-- Remove Stats tab from bottom navigation
-- Stats data integrated into the new Home component
-- Profile moves to the 4th position (fills Stats gap)
-- Cleaner 4-tab layout: Home, Rank, +, Profile
+| Priority | Pill | Value Displayed | Tap Action | Why It Matters |
+|----------|------|-----------------|------------|----------------|
+| 1 | **Total Shows** | "47 Shows" | Opens Rankings view | Identity anchor - users' core achievement |
+| 2 | **#1 Show** | Artist name + Venue (truncated) | Opens that show's detail sheet | Most emotionally resonant stat |
+| 3 | **Unranked** | "3 to Rank" | Switches to Rank tab | Clear call-to-action, drives engagement |
+| 4 | **This Year** | "12 in 2026" | Opens Calendar view | Recency context |
+| 5 | **Streak** (conditional) | "3mo streak" | Visual only (no nav) | Momentum indicator (only if streak > 0) |
 
 ---
 
-## Component Breakdown
+## Data Flow Changes
 
-### 1. StatPills Component (New)
+```text
+useHomeStats Hook                     StatPills Component
++--------------------------------+    +--------------------------------+
+| Fetch:                         |    | Receives:                      |
+|  - Total shows count           |    |  - statPills[] with:           |
+|  - Shows this year             |    |    - id, label, value, icon    |
+|  - Unranked count              |    |    - NEW: action, actionPayload|
+|  - #1 ranked show details      | -> |                                |
+|  - Current streak              |    | Renders tappable buttons       |
+|                                |    | Calls onPillTap(action, payload)|
++--------------------------------+    +--------------------------------+
+                                              |
+                                              v
+                                      Home Component
+                                      +--------------------------------+
+                                      | handlePillTap(action, payload) |
+                                      |   - 'rankings' -> setViewMode  |
+                                      |   - 'calendar' -> setViewMode  |
+                                      |   - 'rank-tab' -> prop callback|
+                                      |   - 'show-detail' -> open sheet|
+                                      +--------------------------------+
+```
 
-Horizontal scrollable row of key metrics at the top of the home page.
+---
 
+## Component Changes
+
+### 1. StatPills.tsx - Add Interactivity
+
+**Current Interface:**
 ```typescript
-// src/components/home/StatPills.tsx
 interface StatPill {
+  id: string;
   label: string;
   value: string | number;
   icon?: LucideIcon;
-  gradient?: string;
+  highlight?: boolean;
+}
+```
+
+**New Interface:**
+```typescript
+interface StatPill {
+  id: string;
+  label: string;
+  value: string | number;
+  icon?: LucideIcon;
+  highlight?: boolean;
+  // NEW: Navigation properties
+  action?: 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | null;
+  actionPayload?: string; // e.g., show ID for show-detail
 }
 
-const StatPills = ({ stats, isLoading }: StatPillsProps) => (
-  <ScrollArea orientation="horizontal">
-    <div className="flex gap-3 pb-2">
-      {stats.map((stat) => (
-        <div className="flex-shrink-0 px-4 py-3 rounded-full bg-card border border-border">
-          <div className="text-xs text-muted-foreground">{stat.label}</div>
-          <div className="text-lg font-bold">{stat.value}</div>
-        </div>
-      ))}
-    </div>
-  </ScrollArea>
-);
+interface StatPillsProps {
+  stats: StatPill[];
+  isLoading?: boolean;
+  onPillTap?: (action: string, payload?: string) => void; // NEW
+}
 ```
 
-**Displayed Stats:**
-- Total Shows (all time)
-- Shows This Year
-- Activity Rank (e.g., "Top 5%")
-- Current Streak (e.g., "3-show streak")
+**Visual Changes:**
+- Add subtle tap feedback (scale animation on press)
+- Add chevron indicator for tappable pills
+- Slightly larger touch targets
 
----
+### 2. useHomeStats.ts - Fetch #1 Show Data
 
-### 2. DynamicInsight Component (New)
-
-Contextual, personalized message that changes based on user activity.
+Add fetching of the user's top-ranked show:
 
 ```typescript
-// src/components/home/DynamicInsight.tsx
-type InsightType = 
-  | 'new_personal_best'    // A show moved up in rankings
-  | 'milestone_reached'    // Hit 50/100/etc shows
-  | 'streak_active'        // Currently on a streak
-  | 'inactive_prompt'      // Haven't logged in a while
-  | 'ranking_reminder'     // Shows need ranking
-  | null;                  // No insight to show
+interface TopShow {
+  id: string;
+  artistName: string;
+  venueName: string;
+}
 
-const DynamicInsight = ({ insight }: { insight: InsightData | null }) => {
-  if (!insight) return null;
-  
-  return (
-    <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-transparent border border-primary/20">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <span className="text-sm font-medium">{insight.title}</span>
-      </div>
-      <p className="text-sm text-muted-foreground mt-1">{insight.message}</p>
-    </div>
-  );
-};
-```
+// In fetchStats:
+// Get top ranked show by ELO
+const { data: topRankedData } = await supabase
+  .from('show_rankings')
+  .select('show_id, elo_score')
+  .eq('user_id', userId)
+  .order('elo_score', { ascending: false })
+  .limit(1);
 
-**Insight Priority Logic:**
-1. New personal best (show rank improved)
-2. Milestone reached (50, 100, 200 shows)
-3. Active streak
-4. Unranked shows need attention
-5. No shows yet - welcome message
-
----
-
-### 3. RecentShowCard Component (New)
-
-Larger, more impactful show cards for the home page.
-
-```typescript
-// src/components/home/RecentShowCard.tsx
-const RecentShowCard = ({ show, rankInfo, onTap }: Props) => (
-  <Card className="overflow-hidden" onClick={() => onTap(show)}>
-    <div className="flex gap-4 p-4">
-      {/* Photo thumbnail - larger than current */}
-      <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
-        {show.photo_url ? (
-          <img src={show.photo_url} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <Music2 className="h-8 w-8 text-muted-foreground/50" />
-          </div>
-        )}
-      </div>
-      
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="font-bold text-base truncate">{artistName}</div>
-        <div className="text-sm text-muted-foreground truncate">{venue}</div>
-        <div className="text-xs text-muted-foreground mt-1">{formattedDate}</div>
-      </div>
-      
-      {/* Rank badge - right aligned */}
-      <div className="flex-shrink-0 self-center">
-        <ShowRankBadge position={rankInfo.position} total={rankInfo.total} />
-      </div>
-    </div>
-  </Card>
-);
-```
-
----
-
-### 4. DiscoveryCards Component (New)
-
-Navigation cards to access Calendar, Top Shows, and Globe features.
-
-```typescript
-// src/components/home/DiscoveryCards.tsx
-const features = [
-  { id: 'calendar', icon: Calendar, label: 'Calendar', description: 'View by month' },
-  { id: 'rankings', icon: Trophy, label: 'Rankings', description: 'Your top shows' },
-  { id: 'globe', icon: Globe, label: 'Show Globe', description: 'Map your travels' },
-];
-
-const DiscoveryCards = ({ onNavigate }: { onNavigate: (view: string) => void }) => (
-  <div className="grid grid-cols-3 gap-3">
-    {features.map((feature) => (
-      <button
-        key={feature.id}
-        onClick={() => onNavigate(feature.id)}
-        className="flex flex-col items-center p-4 rounded-xl bg-card border border-border hover:bg-accent transition-colors"
-      >
-        <feature.icon className="h-6 w-6 text-primary mb-2" />
-        <span className="text-sm font-medium">{feature.label}</span>
-      </button>
-    ))}
-  </div>
-);
-```
-
----
-
-## Data Flow
-
-### Home Component Data Fetching
-
-The new Home component will consolidate data fetching from both Feed.tsx and Stats.tsx:
-
-```typescript
-// src/components/Home.tsx
-const Home = () => {
-  // Shows data (from current Feed.tsx)
-  const [shows, setShows] = useState<Show[]>([]);
-  const [rankings, setRankings] = useState<ShowRanking[]>([]);
-  
-  // Stats data (from current Stats.tsx) 
-  const [stats, setStats] = useState<StatsData>({
-    allTimeShows: 0,
-    showsThisYear: 0,
-    showsThisMonth: 0,
-    activityRank: 0,
-    currentStreak: 0,
-    topRankedShow: null,
-  });
-  
-  // Dynamic insight
-  const [insight, setInsight] = useState<InsightData | null>(null);
-  
-  // View mode for sub-views
-  const [viewMode, setViewMode] = useState<'home' | 'calendar' | 'rankings' | 'globe'>('home');
-  
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-  
-  // Unified fetch that combines shows + stats
-  const fetchAllData = async () => {
-    // Parallel fetch for performance
-    const [showsResult, statsResult] = await Promise.all([
-      fetchShows(),
-      fetchStats(),
-    ]);
+if (topRankedData?.[0]) {
+  // Fetch show details
+  const { data: showData } = await supabase
+    .from('shows')
+    .select('id, venue_name')
+    .eq('id', topRankedData[0].show_id)
+    .single();
     
-    // Generate dynamic insight based on data
-    const insight = generateInsight(showsResult, statsResult);
-    setInsight(insight);
-  };
+  // Fetch headliner artist
+  const { data: artistData } = await supabase
+    .from('show_artists')
+    .select('artist_name')
+    .eq('show_id', topRankedData[0].show_id)
+    .eq('is_headliner', true)
+    .limit(1);
+}
+```
+
+### 3. Home.tsx - Handle Pill Navigation
+
+Add handler and wire up navigation:
+
+```typescript
+const handlePillTap = (action: string, payload?: string) => {
+  switch (action) {
+    case 'rankings':
+      setViewMode('rankings');
+      break;
+    case 'calendar':
+      setViewMode('calendar');
+      break;
+    case 'rank-tab':
+      onNavigateToRank?.(); // Prop from Dashboard
+      break;
+    case 'show-detail':
+      if (payload) {
+        const show = shows.find(s => s.id === payload);
+        if (show) {
+          setReviewShow(show);
+          setReviewSheetOpen(true);
+        }
+      }
+      break;
+  }
 };
+```
+
+### 4. Remove DiscoveryCards Section
+
+- Delete the "Explore" section from `renderHomeView()`
+- Remove import of `DiscoveryCards`
+- Keep `DiscoveryCards.tsx` file (could be useful elsewhere) or delete if unused
+
+---
+
+## Updated Stat Pills Configuration
+
+In `useHomeStats.ts`, the new `statPills` array:
+
+```typescript
+const statPills: StatPill[] = [
+  // Total Shows -> Rankings
+  {
+    id: 'total-shows',
+    label: 'Shows',
+    value: stats.allTimeShows,
+    icon: Music,
+    highlight: true,
+    action: 'rankings',
+  },
+  // #1 Show -> Show Detail (if exists)
+  ...(stats.topShow ? [{
+    id: 'top-show',
+    label: '#1 Show',
+    value: truncate(stats.topShow.artistName, 12),
+    icon: Trophy,
+    action: 'show-detail',
+    actionPayload: stats.topShow.id,
+  }] : []),
+  // Unranked -> Rank Tab (if > 0)
+  ...(stats.unrankedCount > 0 ? [{
+    id: 'unranked',
+    label: 'To Rank',
+    value: stats.unrankedCount,
+    icon: Target,
+    action: 'rank-tab',
+  }] : []),
+  // This Year -> Calendar
+  {
+    id: 'this-year',
+    label: new Date().getFullYear().toString(),
+    value: stats.showsThisYear,
+    icon: Calendar,
+    action: 'calendar',
+  },
+  // Streak (no action, just display)
+  ...(stats.currentStreak >= 2 ? [{
+    id: 'streak',
+    label: 'Streak',
+    value: `${stats.currentStreak}mo`,
+    icon: Flame,
+    action: null, // No navigation
+  }] : []),
+];
 ```
 
 ---
 
 ## File Changes Summary
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/Feed.tsx` | **Rename** → `Home.tsx` | Major refactor to new home layout |
-| `src/components/home/StatPills.tsx` | **Create** | Horizontal stat pills component |
-| `src/components/home/DynamicInsight.tsx` | **Create** | Personalized insight card |
-| `src/components/home/RecentShowCard.tsx` | **Create** | Enhanced show card for home |
-| `src/components/home/DiscoveryCards.tsx` | **Create** | Feature navigation cards |
-| `src/pages/Dashboard.tsx` | **Modify** | Remove Stats tab, update nav |
-| `src/components/Stats.tsx` | **Delete** | No longer needed as separate page |
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/components/home/StatPills.tsx` | Modify | Add `onPillTap` prop, button wrapper, tap animation |
+| `src/hooks/useHomeStats.ts` | Modify | Add top show fetch, unranked count, action properties |
+| `src/components/Home.tsx` | Modify | Add `handlePillTap`, remove DiscoveryCards section, add `onNavigateToRank` prop |
+| `src/pages/Dashboard.tsx` | Modify | Pass `onNavigateToRank` callback to Home component |
+| `src/components/home/DiscoveryCards.tsx` | Optional Delete | No longer used in home view |
 
 ---
 
 ## Implementation Steps
 
-### Phase 1: Create New Components
+### Phase 1: Extend StatPill Interface
+1. Update `StatPill` interface in `StatPills.tsx` with `action` and `actionPayload`
+2. Add `onPillTap` prop to `StatPillsProps`
+3. Wrap pills in `<button>` elements with tap handlers
+4. Add visual feedback (hover/active states, optional chevron)
 
-1. Create `src/components/home/` directory
-2. Build `StatPills.tsx` with horizontal scroll
-3. Build `DynamicInsight.tsx` with insight logic
-4. Build `RecentShowCard.tsx` with enhanced layout
-5. Build `DiscoveryCards.tsx` for feature navigation
+### Phase 2: Enhance useHomeStats Hook
+1. Add `topShow` and `unrankedCount` to stats state
+2. Fetch top-ranked show by ELO score with artist/venue details
+3. Calculate unranked count (shows without comparisons)
+4. Update `statPills` array with new action properties
 
-### Phase 2: Refactor Feed → Home
+### Phase 3: Wire Up Navigation in Home
+1. Add `handlePillTap` function with switch statement
+2. Pass handler to `<StatPills onPillTap={handlePillTap} />`
+3. Add `onNavigateToRank` prop to Home component interface
+4. Remove `<DiscoveryCards>` section from `renderHomeView()`
 
-1. Create new `Home.tsx` based on Feed.tsx
-2. Integrate stat fetching logic from Stats.tsx
-3. Build unified data layer with parallel fetching
-4. Implement view mode switching for sub-views (calendar, rankings, globe)
-5. Add insight generation logic
+### Phase 4: Update Dashboard Integration
+1. Pass `onNavigateToRank={() => setActiveTab("rank")}` to Home
+2. Verify navigation flows work correctly
 
-### Phase 3: Update Navigation
-
-1. Modify Dashboard.tsx to remove Stats tab
-2. Update bottom nav to 4-tab layout
-3. Replace Feed component import with Home
-4. Test navigation flow
-
-### Phase 4: Polish and Test
-
-1. Add loading skeletons for stat pills
-2. Test insight generation across scenarios
-3. Verify sub-view navigation works correctly
-4. Clean up unused Stats.tsx file
+### Phase 5: Polish
+1. Add loading states for new data
+2. Test edge cases (no shows, no rankings, etc.)
+3. Ensure smooth animations on pill tap
 
 ---
 
-## Visual Design Notes
+## Visual Design Details
 
-### Stat Pills
+### Tappable Pill Styling
 
-- Pill shape with rounded-full corners
-- Subtle gradient or border on primary stat
-- Horizontal scroll with fade edges
-- Fixed height, variable width based on content
+```text
++----------------------------------+
+|  [Music Icon]  Shows             |  <- Label with icon
+|       47           >             |  <- Value + chevron indicator
++----------------------------------+
+     ^                    ^
+     |                    |
+  Highlight gradient    Chevron shows
+  for primary pill      it's tappable
+```
 
-### Recent Show Cards
+- **Touch target**: Minimum 44px height
+- **Tap feedback**: `active:scale-95` + opacity change
+- **Chevron**: Small `ChevronRight` icon (only for actionable pills)
+- **Non-actionable pills** (like Streak): No chevron, no hover state
 
-- Larger photo thumbnails (80x80px vs current 64x64px)
-- More generous padding
-- Subtle shadow on hover
-- Rank badge aligned right
-
-### Discovery Cards
-
-- Square-ish aspect ratio
-- Icon + label centered
-- Subtle hover state
-- Equal width via grid
-
-### Color Palette
-
-- Keep existing dark theme
-- Primary color for highlights
-- Muted backgrounds for cards
-- Gradient accents for special elements (insights, milestones)
+### Pill Order (Left to Right)
+1. Total Shows (highlighted, primary)
+2. #1 Show (if exists)
+3. Unranked (if > 0)
+4. This Year
+5. Streak (if >= 2 months)
 
 ---
 
-## Technical Considerations
+## Edge Cases
 
-### Performance
-
-- Parallel data fetching for shows + stats
-- Limit recent shows to 5-10 on home (not full list)
-- Lazy load Calendar/Globe when navigating to sub-views
-- Memoize stat calculations
-
-### State Management
-
-- Single useEffect for initial data load
-- Separate state for each sub-view to avoid re-fetches
-- Use React Query patterns for caching if needed
-
-### Accessibility
-
-- Proper heading hierarchy (h1 for page, h2 for sections)
-- aria-labels on icon-only elements
-- Keyboard navigation for discovery cards
+| Scenario | Behavior |
+|----------|----------|
+| No shows yet | Only show "0 Shows" pill (tappable but shows empty rankings) |
+| No rankings yet | Skip "#1 Show" pill, show "X to Rank" pill |
+| All shows ranked | Skip "To Rank" pill |
+| No streak | Skip "Streak" pill |
+| Tap #1 Show but show data unavailable | Silently fail (show not found in local state) |
 
