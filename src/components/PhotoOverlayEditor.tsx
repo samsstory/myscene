@@ -74,8 +74,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     showRank: false,
   });
   
-  const [rankingMethod, setRankingMethod] = useState<"score" | "elo">("score");
-  const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "this-month">("all-time");
+  const [rankingMethod, setRankingMethod] = useState<"score" | "elo">("elo");
+  const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year">("all-time");
 
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -531,7 +531,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       
       ctx.fillStyle = gradient;
       ctx.textAlign = "left";
-      ctx.fillText(`#${rankData.position}`, overlayX + padding, bottomY);
+      const timePeriodText = rankingTimeFilter === 'this-year' ? 'this year' : 'all time';
+      ctx.fillText(`#${rankData.position} ${timePeriodText}`, overlayX + padding, bottomY);
     }
     
     // Scene logo on the right
@@ -919,7 +920,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                     className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
                     onClick={(e) => { e.stopPropagation(); toggleConfig("showRank"); }}
                   >
-                    #{rankData.position}
+                    #{rankData.position} {rankingTimeFilter === 'this-year' ? 'this year' : 'all time'}
                   </span>
                 ) : (
                   <span />
@@ -1091,37 +1092,59 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 
                 {/* Rank options popup - positioned above toolbar */}
                 {showRankOptions && overlayConfig.showRank && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card backdrop-blur-md p-3 rounded-xl border border-border shadow-lg space-y-3 min-w-[200px]">
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md p-3 rounded-xl border border-border shadow-xl space-y-3 min-w-[180px]">
+                    {/* Method toggle */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Method</Label>
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Method</Label>
                       <ToggleGroup 
                         type="single" 
                         value={rankingMethod}
                         onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
-                        className="justify-start"
+                        className="grid grid-cols-2 gap-1"
                       >
-                        <ToggleGroupItem value="score" className="text-xs h-7 px-2">By Score</ToggleGroupItem>
-                        <ToggleGroupItem value="elo" className="text-xs h-7 px-2">Head to Head</ToggleGroupItem>
+                        <ToggleGroupItem 
+                          value="score" 
+                          className="text-xs h-8 px-2 data-[state=on]:bg-amber-500/20 data-[state=on]:text-amber-400 data-[state=on]:border-amber-500/30"
+                        >
+                          By Score
+                        </ToggleGroupItem>
+                        <ToggleGroupItem 
+                          value="elo" 
+                          className="text-xs h-8 px-2 data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-400 data-[state=on]:border-purple-500/30"
+                        >
+                          Head to Head
+                        </ToggleGroupItem>
                       </ToggleGroup>
                     </div>
                     
+                    {/* Period toggle */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Period</Label>
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Period</Label>
                       <ToggleGroup 
                         type="single" 
                         value={rankingTimeFilter}
-                        onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
-                        className="justify-start flex-wrap"
+                        onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year")}
+                        className="grid grid-cols-2 gap-1"
                       >
-                        <ToggleGroupItem value="all-time" className="text-xs h-7 px-2">All</ToggleGroupItem>
-                        <ToggleGroupItem value="this-year" className="text-xs h-7 px-2">Year</ToggleGroupItem>
-                        <ToggleGroupItem value="this-month" className="text-xs h-7 px-2">Month</ToggleGroupItem>
+                        <ToggleGroupItem 
+                          value="all-time" 
+                          className="text-xs h-8 px-2 data-[state=on]:bg-cyan-500/20 data-[state=on]:text-cyan-400 data-[state=on]:border-cyan-500/30"
+                        >
+                          All Time
+                        </ToggleGroupItem>
+                        <ToggleGroupItem 
+                          value="this-year" 
+                          className="text-xs h-8 px-2 data-[state=on]:bg-cyan-500/20 data-[state=on]:text-cyan-400 data-[state=on]:border-cyan-500/30"
+                        >
+                          This Year
+                        </ToggleGroupItem>
                       </ToggleGroup>
                     </div>
                     
+                    {/* Dismiss */}
                     <button
                       onClick={() => setShowRankOptions(false)}
-                      className="w-full text-xs text-muted-foreground hover:text-foreground pt-1"
+                      className="w-full text-xs text-muted-foreground hover:text-foreground py-1.5 border-t border-border/50 mt-2"
                     >
                       Done
                     </button>
