@@ -15,7 +15,7 @@ interface BulkSuccessStepProps {
 const ShowCard = ({ show, onTap }: { show: AddedShowData; onTap: (show: AddedShowData) => void }) => (
   <button 
     onClick={() => onTap(show)}
-    className="text-left space-y-1.5 p-2 rounded-lg hover:bg-muted/50 transition-colors w-full"
+    className="text-center space-y-1.5 p-2 rounded-lg hover:bg-muted/50 transition-colors w-full"
   >
     <div className="aspect-[4/5] rounded-lg overflow-hidden bg-muted">
       {show.photo_url ? (
@@ -28,9 +28,6 @@ const ShowCard = ({ show, onTap }: { show: AddedShowData; onTap: (show: AddedSho
     </div>
     <p className="text-xs font-medium truncate">
       {show.artists[0]?.name || "Show"}
-    </p>
-    <p className="text-[10px] text-muted-foreground truncate">
-      {show.venue.name}
     </p>
   </button>
 );
@@ -115,7 +112,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            Tap a show to create a shareable image
+            Tap to share your review on Instagram
           </p>
         </div>
       )}
@@ -146,28 +143,28 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
           </>
         )}
 
-        {/* Multi-show actions */}
-        {hasMultiple && (
-          <Button 
-            onClick={handleShareAll}
-            variant="secondary"
-            className="w-full"
-            size="lg"
-          >
-            <Share className="h-4 w-4 mr-2" />
-            Share Summary
-          </Button>
-        )}
-
-        {/* Rank button - always shown */}
+        {/* Rank button - always shown, primary for multi-show */}
         <Button 
           onClick={onRank}
-          variant="outline"
+          variant={hasMultiple ? "default" : "outline"}
+          size={hasMultiple ? "lg" : "default"}
           className="w-full"
         >
           <Scale className="h-4 w-4 mr-2" />
           Rank {hasMultiple ? 'These Shows' : 'This Show'}
         </Button>
+
+        {/* Multi-show actions */}
+        {hasMultiple && (
+          <Button 
+            onClick={handleShareAll}
+            variant="outline"
+            className="w-full"
+          >
+            <Share className="h-4 w-4 mr-2" />
+            Share Summary
+          </Button>
+        )}
       </div>
 
       {/* Footer actions */}
