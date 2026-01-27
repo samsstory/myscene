@@ -177,8 +177,6 @@ const Dashboard = () => {
             </div>
 
             {/* Profile */}
-
-            {/* Profile */}
             <button
               onClick={() => setActiveTab("profile")}
               className={cn(
@@ -210,7 +208,7 @@ const Dashboard = () => {
       <BulkUploadFlow
         open={showBulkUpload}
         onOpenChange={setShowBulkUpload}
-        onNavigateToFeed={() => setActiveTab("feed")}
+        onNavigateToFeed={() => setActiveTab("home")}
         onNavigateToRank={() => setActiveTab("rank")}
         onShareShow={(show: BulkAddedShowData) => {
           setShareShow({
