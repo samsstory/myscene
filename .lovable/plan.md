@@ -1,198 +1,202 @@
 
 
-# Tappable Stat Pills with Smart Navigation
+# Dynamic Insight Priority & Tappable CTA
 
 ## Overview
 
-Transform the static stat pills at the top of the home page into interactive navigation triggers that link to the most valuable features. Replace the bottom "Explore" section with higher-value stat pills that drive engagement and make key data immediately actionable.
+Refine the Dynamic Insight card to prioritize actionable CTAs (ranking reminder) over celebratory stats (streak), make the insight card tappable for direct navigation, lower the streak threshold, and remove the redundant "To Rank" stat pill.
 
 ---
 
-## Current vs. Proposed Layout
+## Current vs. Proposed Behavior
 
 ```text
-CURRENT HOME LAYOUT                    PROPOSED HOME LAYOUT
-+----------------------------------+   +----------------------------------+
-| [All Time] [2026] [Activity] [S] |   | [47 Shows] [#1 Show] [3 Unranked]|
-|        (static pills)            |   |        (tappable pills)          |
-+----------------------------------+   +----------------------------------+
-|                                  |   |                                  |
-| [Dynamic Insight Card]           |   | [Dynamic Insight Card]           |
-|                                  |   |                                  |
-+----------------------------------+   +----------------------------------+
-|                                  |   |                                  |
-| Recent Shows                     |   | Recent Shows                     |
-|   - Show Card 1                  |   |   - Show Card 1                  |
-|   - Show Card 2                  |   |   - Show Card 2                  |
-|   - Show Card 3                  |   |   - Show Card 3                  |
-|                                  |   |                                  |
-+----------------------------------+   +----------------------------------+
-| Explore                          |   |                                  |
-|  [Calendar] [Rankings] [Globe]   |   | (REMOVED - replaced by pills)    |
-+----------------------------------+   +----------------------------------+
+CURRENT PRIORITY ORDER              PROPOSED PRIORITY ORDER
+1. Welcome (no shows)               1. Welcome (no shows)
+2. Milestone (25/50/100/200)        2. Milestone (25/50/100/200)
+3. Streak (≥3 months)      ←        3. Ranking Reminder (≥3 unranked) ← SWAPPED
+4. Ranking Reminder (≥3)   ←        4. Streak (≥2 months)             ← SWAPPED + LOWERED
+
+INSIGHT CARD BEHAVIOR               INSIGHT CARD BEHAVIOR
+- Static display only               - Tappable when actionable
+- No navigation                     - "Rank reminder" → Rank tab
 ```
 
 ---
 
-## Prioritized Stat Pills
-
-Based on UX value and user engagement drivers:
-
-| Priority | Pill | Value Displayed | Tap Action | Why It Matters |
-|----------|------|-----------------|------------|----------------|
-| 1 | **Total Shows** | "47 Shows" | Opens Rankings view | Identity anchor - users' core achievement |
-| 2 | **#1 Show** | Artist name + Venue (truncated) | Opens that show's detail sheet | Most emotionally resonant stat |
-| 3 | **Unranked** | "3 to Rank" | Switches to Rank tab | Clear call-to-action, drives engagement |
-| 4 | **This Year** | "12 in 2026" | Opens Calendar view | Recency context |
-| 5 | **Streak** (conditional) | "3mo streak" | Visual only (no nav) | Momentum indicator (only if streak > 0) |
-
----
-
-## Data Flow Changes
+## Visual Before/After
 
 ```text
-useHomeStats Hook                     StatPills Component
-+--------------------------------+    +--------------------------------+
-| Fetch:                         |    | Receives:                      |
-|  - Total shows count           |    |  - statPills[] with:           |
-|  - Shows this year             |    |    - id, label, value, icon    |
-|  - Unranked count              |    |    - NEW: action, actionPayload|
-|  - #1 ranked show details      | -> |                                |
-|  - Current streak              |    | Renders tappable buttons       |
-|                                |    | Calls onPillTap(action, payload)|
-+--------------------------------+    +--------------------------------+
-                                              |
-                                              v
-                                      Home Component
-                                      +--------------------------------+
-                                      | handlePillTap(action, payload) |
-                                      |   - 'rankings' -> setViewMode  |
-                                      |   - 'calendar' -> setViewMode  |
-                                      |   - 'rank-tab' -> prop callback|
-                                      |   - 'show-detail' -> open sheet|
-                                      +--------------------------------+
+BEFORE (Stat Pills Row):
+[47 Shows] [#1 Show] [3 To Rank] [2026] [3mo Streak]
+                        ↑
+                   Redundant pill
+
+AFTER (Stat Pills Row):
+[47 Shows] [#1 Show] [2026] [3mo Streak]
+                       ↑
+                  Cleaner, CTA moved to Insight card
+
+INSIGHT CARD (Tappable):
++------------------------------------------+
+|  🎯  3 Shows to Rank                     |
+|  Tap to compare your recent shows.   >   |
++------------------------------------------+
+         ↑                              ↑
+    Action-focused               Chevron indicates tap
 ```
 
 ---
 
-## Component Changes
+## Changes Summary
 
-### 1. StatPills.tsx - Add Interactivity
+| Component | Change |
+|-----------|--------|
+| `useHomeStats.ts` | Swap priority: ranking reminder before streak |
+| `useHomeStats.ts` | Lower streak threshold from ≥3 to ≥2 months |
+| `useHomeStats.ts` | Remove "To Rank" pill from statPills array |
+| `useHomeStats.ts` | Return `insight` with `actionable` flag |
+| `DynamicInsight.tsx` | Accept `onAction` prop for tap handling |
+| `DynamicInsight.tsx` | Add chevron indicator for actionable insights |
+| `DynamicInsight.tsx` | Wrap in button for tappable insights |
+| `Home.tsx` | Pass `onInsightAction` handler to DynamicInsight |
 
-**Current Interface:**
+---
+
+## Technical Details
+
+### 1. Update useHomeStats.ts - Insight Priority
+
+**Current Logic (lines 144-171):**
 ```typescript
-interface StatPill {
-  id: string;
-  label: string;
-  value: string | number;
-  icon?: LucideIcon;
-  highlight?: boolean;
+if (totalShows === 0) { /* welcome */ }
+else if ([25, 50, 100, 200].includes(totalShows)) { /* milestone */ }
+else if (streak >= 3) { /* streak */ }        // ← Currently higher priority
+else if (unrankedCount >= 3) { /* ranking */ } // ← Should be higher
+```
+
+**New Logic:**
+```typescript
+if (totalShows === 0) { /* welcome */ }
+else if ([25, 50, 100, 200].includes(totalShows)) { /* milestone */ }
+else if (unrankedCount >= 3) {
+  // Ranking reminder - actionable CTA (higher priority)
+  generatedInsight = {
+    type: 'ranking_reminder',
+    title: `${unrankedCount} Shows to Rank`,
+    message: 'Tap to compare your recent shows.',
+    actionable: true,  // NEW
+    action: 'rank-tab' // NEW
+  };
+}
+else if (streak >= 2) {  // Lowered threshold
+  // Streak - celebratory (lower priority)
+  generatedInsight = {
+    type: 'streak_active',
+    title: `${streak}-Month Streak`,
+    message: `You've been to shows ${streak} months in a row!`,
+    actionable: false
+  };
 }
 ```
 
-**New Interface:**
-```typescript
-interface StatPill {
-  id: string;
-  label: string;
-  value: string | number;
-  icon?: LucideIcon;
-  highlight?: boolean;
-  // NEW: Navigation properties
-  action?: 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | null;
-  actionPayload?: string; // e.g., show ID for show-detail
-}
+### 2. Update InsightData Interface
 
-interface StatPillsProps {
-  stats: StatPill[];
-  isLoading?: boolean;
-  onPillTap?: (action: string, payload?: string) => void; // NEW
+**In DynamicInsight.tsx:**
+```typescript
+export interface InsightData {
+  type: InsightType;
+  title: string;
+  message: string;
+  actionable?: boolean;  // NEW: Whether card is tappable
+  action?: 'rank-tab' | 'calendar' | 'rankings';  // NEW: Navigation action
 }
 ```
 
-**Visual Changes:**
-- Add subtle tap feedback (scale animation on press)
-- Add chevron indicator for tappable pills
-- Slightly larger touch targets
+### 3. Remove "To Rank" Pill from statPills
 
-### 2. useHomeStats.ts - Fetch #1 Show Data
-
-Add fetching of the user's top-ranked show:
-
+**Current (lines 213-220):**
 ```typescript
-interface TopShow {
-  id: string;
-  artistName: string;
-  venueName: string;
-}
-
-// In fetchStats:
-// Get top ranked show by ELO
-const { data: topRankedData } = await supabase
-  .from('show_rankings')
-  .select('show_id, elo_score')
-  .eq('user_id', userId)
-  .order('elo_score', { ascending: false })
-  .limit(1);
-
-if (topRankedData?.[0]) {
-  // Fetch show details
-  const { data: showData } = await supabase
-    .from('shows')
-    .select('id, venue_name')
-    .eq('id', topRankedData[0].show_id)
-    .single();
-    
-  // Fetch headliner artist
-  const { data: artistData } = await supabase
-    .from('show_artists')
-    .select('artist_name')
-    .eq('show_id', topRankedData[0].show_id)
-    .eq('is_headliner', true)
-    .limit(1);
-}
+// Unranked -> Rank Tab (if > 0)
+...(stats.unrankedCount > 0 ? [{
+  id: 'unranked',
+  label: 'To Rank',
+  value: stats.unrankedCount,
+  icon: Target,
+  action: 'rank-tab' as StatPillAction,
+}] : []),
 ```
 
-### 3. Home.tsx - Handle Pill Navigation
+**New:** Remove this entire block. The CTA is now in the Dynamic Insight card.
 
-Add handler and wire up navigation:
+### 4. Update DynamicInsight.tsx - Tappable Card
 
 ```typescript
-const handlePillTap = (action: string, payload?: string) => {
-  switch (action) {
-    case 'rankings':
-      setViewMode('rankings');
-      break;
-    case 'calendar':
-      setViewMode('calendar');
-      break;
-    case 'rank-tab':
-      onNavigateToRank?.(); // Prop from Dashboard
-      break;
-    case 'show-detail':
-      if (payload) {
-        const show = shows.find(s => s.id === payload);
-        if (show) {
-          setReviewShow(show);
-          setReviewSheetOpen(true);
-        }
-      }
-      break;
+interface DynamicInsightProps {
+  insight: InsightData | null;
+  onAction?: (action: string) => void;  // NEW
+}
+
+const DynamicInsight = ({ insight, onAction }: DynamicInsightProps) => {
+  if (!insight || !insight.type) return null;
+
+  const config = insightConfig[insight.type];
+  const Icon = config.icon;
+  const isActionable = insight.actionable && insight.action;
+
+  const content = (
+    <div className={cn(
+      "p-4 rounded-xl bg-gradient-to-r border transition-all",
+      config.gradient,
+      isActionable && "cursor-pointer hover:border-primary/50 active:scale-[0.98]"
+    )}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-primary flex-shrink-0" />
+          <span className="text-sm font-medium">{insight.title}</span>
+        </div>
+        {isActionable && (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground mt-1">{insight.message}</p>
+    </div>
+  );
+
+  if (isActionable) {
+    return (
+      <button 
+        onClick={() => onAction?.(insight.action!)} 
+        className="w-full text-left"
+      >
+        {content}
+      </button>
+    );
   }
+
+  return content;
 };
 ```
 
-### 4. Remove DiscoveryCards Section
+### 5. Wire Up in Home.tsx
 
-- Delete the "Explore" section from `renderHomeView()`
-- Remove import of `DiscoveryCards`
-- Keep `DiscoveryCards.tsx` file (could be useful elsewhere) or delete if unused
+```typescript
+// In renderHomeView():
+<DynamicInsight 
+  insight={insight} 
+  onAction={(action) => {
+    if (action === 'rank-tab') {
+      onNavigateToRank?.();
+    }
+  }} 
+/>
+```
 
 ---
 
-## Updated Stat Pills Configuration
+## Updated Stat Pills Array
 
-In `useHomeStats.ts`, the new `statPills` array:
+After removing "To Rank" pill:
 
 ```typescript
 const statPills: StatPill[] = [
@@ -214,14 +218,6 @@ const statPills: StatPill[] = [
     action: 'show-detail',
     actionPayload: stats.topShow.id,
   }] : []),
-  // Unranked -> Rank Tab (if > 0)
-  ...(stats.unrankedCount > 0 ? [{
-    id: 'unranked',
-    label: 'To Rank',
-    value: stats.unrankedCount,
-    icon: Target,
-    action: 'rank-tab',
-  }] : []),
   // This Year -> Calendar
   {
     id: 'this-year',
@@ -230,88 +226,38 @@ const statPills: StatPill[] = [
     icon: Calendar,
     action: 'calendar',
   },
-  // Streak (no action, just display)
+  // Streak (no action, just display) - now ≥2 months
   ...(stats.currentStreak >= 2 ? [{
     id: 'streak',
     label: 'Streak',
     value: `${stats.currentStreak}mo`,
     icon: Flame,
-    action: null, // No navigation
+    action: null,
   }] : []),
 ];
 ```
 
 ---
 
-## File Changes Summary
+## File Changes
 
 | File | Change Type | Description |
 |------|-------------|-------------|
-| `src/components/home/StatPills.tsx` | Modify | Add `onPillTap` prop, button wrapper, tap animation |
-| `src/hooks/useHomeStats.ts` | Modify | Add top show fetch, unranked count, action properties |
-| `src/components/Home.tsx` | Modify | Add `handlePillTap`, remove DiscoveryCards section, add `onNavigateToRank` prop |
-| `src/pages/Dashboard.tsx` | Modify | Pass `onNavigateToRank` callback to Home component |
-| `src/components/home/DiscoveryCards.tsx` | Optional Delete | No longer used in home view |
+| `src/hooks/useHomeStats.ts` | Modify | Swap insight priority, lower streak threshold, remove "To Rank" pill, add actionable/action to insight |
+| `src/components/home/DynamicInsight.tsx` | Modify | Add `onAction` prop, make card tappable, add chevron indicator |
+| `src/components/Home.tsx` | Modify | Pass `onAction` handler to DynamicInsight |
 
 ---
 
 ## Implementation Steps
 
-### Phase 1: Extend StatPill Interface
-1. Update `StatPill` interface in `StatPills.tsx` with `action` and `actionPayload`
-2. Add `onPillTap` prop to `StatPillsProps`
-3. Wrap pills in `<button>` elements with tap handlers
-4. Add visual feedback (hover/active states, optional chevron)
-
-### Phase 2: Enhance useHomeStats Hook
-1. Add `topShow` and `unrankedCount` to stats state
-2. Fetch top-ranked show by ELO score with artist/venue details
-3. Calculate unranked count (shows without comparisons)
-4. Update `statPills` array with new action properties
-
-### Phase 3: Wire Up Navigation in Home
-1. Add `handlePillTap` function with switch statement
-2. Pass handler to `<StatPills onPillTap={handlePillTap} />`
-3. Add `onNavigateToRank` prop to Home component interface
-4. Remove `<DiscoveryCards>` section from `renderHomeView()`
-
-### Phase 4: Update Dashboard Integration
-1. Pass `onNavigateToRank={() => setActiveTab("rank")}` to Home
-2. Verify navigation flows work correctly
-
-### Phase 5: Polish
-1. Add loading states for new data
-2. Test edge cases (no shows, no rankings, etc.)
-3. Ensure smooth animations on pill tap
-
----
-
-## Visual Design Details
-
-### Tappable Pill Styling
-
-```text
-+----------------------------------+
-|  [Music Icon]  Shows             |  <- Label with icon
-|       47           >             |  <- Value + chevron indicator
-+----------------------------------+
-     ^                    ^
-     |                    |
-  Highlight gradient    Chevron shows
-  for primary pill      it's tappable
-```
-
-- **Touch target**: Minimum 44px height
-- **Tap feedback**: `active:scale-95` + opacity change
-- **Chevron**: Small `ChevronRight` icon (only for actionable pills)
-- **Non-actionable pills** (like Streak): No chevron, no hover state
-
-### Pill Order (Left to Right)
-1. Total Shows (highlighted, primary)
-2. #1 Show (if exists)
-3. Unranked (if > 0)
-4. This Year
-5. Streak (if >= 2 months)
+1. **Update InsightData interface** in `DynamicInsight.tsx` with `actionable` and `action` fields
+2. **Add `onAction` prop** to DynamicInsight component
+3. **Make insight card tappable** - wrap in button when actionable, add chevron
+4. **Update insight priority logic** in `useHomeStats.ts` - ranking reminder before streak
+5. **Lower streak threshold** from ≥3 to ≥2 months
+6. **Remove "To Rank" pill** from statPills array
+7. **Wire up handler** in Home.tsx to navigate to Rank tab
 
 ---
 
@@ -319,9 +265,8 @@ const statPills: StatPill[] = [
 
 | Scenario | Behavior |
 |----------|----------|
-| No shows yet | Only show "0 Shows" pill (tappable but shows empty rankings) |
-| No rankings yet | Skip "#1 Show" pill, show "X to Rank" pill |
-| All shows ranked | Skip "To Rank" pill |
-| No streak | Skip "Streak" pill |
-| Tap #1 Show but show data unavailable | Silently fail (show not found in local state) |
+| No unranked shows, streak ≥2 | Show streak insight (non-tappable) |
+| Unranked shows exist + streak | Show ranking reminder (tappable) - takes priority |
+| New user, no shows | Show welcome insight |
+| All shows ranked, no streak | No insight card shown |
 
