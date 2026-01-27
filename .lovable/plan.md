@@ -1,258 +1,269 @@
 
 
-# Pill-Shaped Liquid Glass Navigation Bar
+# Globe Access via Stat Pill + Nav Layout Fix
 
 ## Overview
 
-Transform the current full-width bottom navigation bar into a floating, pill-shaped element with a liquid glass aesthetic, inspired by the Oura app reference image. The styling will match the transparent overlay aesthetic from the PhotoOverlayEditor when opacity is set to zero.
+Add a geographic stat pill (Cities/Countries) to the Home page stat pills that navigates to the Globe view, while fixing the bottom navigation layout to have the pill centered and FAB right-aligned.
 
 ---
 
 ## Visual Before/After
 
 ```text
-CURRENT NAVIGATION:
-+------------------------------------------------+
-| [Home]        [+ FAB]        [Rank]            |
-+------------------------------------------------+
-     ^               ^               ^
-     |    Full-width bar with solid bg     
-     |         border-t at top              
+CURRENT BOTTOM NAV:
+    +-------------------+  +---+
+    |  [Home]   [Rank]  |  | + |   <- Both just centered together
+    +-------------------+  +---+
+           ^                  ^
+      Pill + FAB together, gap-3
 
-PROPOSED NAVIGATION:
-                                            
-      +---------------------------+    +---+
-      |  [Home]   [+ FAB]  [Rank] |    | + |  <- Option A: FAB inside
-      +---------------------------+    +---+
-                  OR
-      +-------------------+         +-------+
-      |  [Home]   [Rank]  |         |   +   | <- Option B: FAB separate
-      +-------------------+         +-------+
-              ^                          ^
-    Floating pill shape           Separate FAB
-    Liquid glass aesthetic        Same styling
+PROPOSED BOTTOM NAV:
+|                                              |
+| [spacer]    [Home]   [Rank]           [+]    |
+|                                              |
+      ^             ^                     ^
+   Invisible    Centered pill        Right-aligned
+   balancer      (2 items)           larger FAB
 ```
-
-**Recommended: Option B** - Matches Oura reference with separate FAB
-
----
-
-## Liquid Glass Styling Reference
-
-From the PhotoOverlayEditor (opacity = 0) and MapHoverCard:
-
-```css
-/* Liquid Glass Effect */
-.nav-pill {
-  backdrop-blur-xl       /* Strong blur for glass effect */
-  bg-black/40            /* Dark translucent base */
-  border border-white/20 /* Subtle light border */
-  shadow-2xl             /* Deep shadow for depth */
-  rounded-full           /* Pill shape */
-}
-```
-
----
-
-## Layout Changes
-
-### Current Structure (Dashboard.tsx lines 110-196):
-```jsx
-<nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
-  <div className="container mx-auto px-4">
-    <div className="flex items-end justify-center h-16 pb-2 gap-12">
-      {/* Home button */}
-      {/* FAB with menu */}
-      {/* Rank button */}
-    </div>
-  </div>
-</nav>
-```
-
-### New Structure:
-```jsx
-{/* Navigation container - positions elements at bottom */}
-<div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center items-end gap-4 px-4">
-  
-  {/* Pill-shaped nav bar */}
-  <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-3 shadow-2xl">
-    <div className="flex items-center gap-8">
-      {/* Home button */}
-      {/* Rank button */}
-    </div>
-  </nav>
-  
-  {/* Floating FAB - separate from pill */}
-  <div className="relative">
-    {/* FAB Menu Options (when open) */}
-    {/* Main FAB button */}
-  </div>
-  
-</div>
-```
-
----
-
-## Styling Details
-
-### Pill Container
-| Property | Value | Purpose |
-|----------|-------|---------|
-| `backdrop-blur-xl` | 24px blur | Strong glass effect |
-| `bg-black/40` | 40% opacity black | Dark translucent base |
-| `border-white/20` | 20% opacity white | Subtle edge highlight |
-| `rounded-full` | Full pill shape | Matches Oura design |
-| `shadow-2xl` | Large shadow | Floating appearance |
-| `px-6 py-3` | Horizontal/vertical padding | Comfortable touch targets |
-
-### Nav Items Inside Pill
-| Property | Current | New |
-|----------|---------|-----|
-| Icons | `h-6 w-6` | `h-5 w-5` (slightly smaller) |
-| Labels | `text-xs` | `text-[11px]` (tighter) |
-| Gap between items | `gap-12` | `gap-8` (tighter for pill) |
-| Active color | `text-primary` | `text-white` with glow |
-| Inactive color | `text-muted-foreground` | `text-white/60` |
-
-### FAB Button
-| Property | Current | New |
-|----------|---------|-----|
-| Size | `p-4` (large) | `p-3` (medium) |
-| Position | Inline with nav | Separate floating element |
-| Background | `bg-primary` | Keep or match glass |
-| Shadow | `shadow-glow` | `shadow-2xl` for consistency |
-
----
-
-## Spacing and Positioning
 
 ```text
-              Screen Edge
-                  |
-    +-------------+-------------+
-    |                           |
-    |      Main Content         |
-    |                           |
-    |                           |
-    +---------------------------+
-    |                           |
-    |  pb-24 (96px) bottom pad  | <- Increased from pb-20 (80px)
-    |                           |
-    +---------------------------+
-                  ↓
-              bottom-6 (24px from edge)
-                  ↓
-    +-------------------+  +---+
-    |  [Home]   [Rank]  |  | + |
-    +-------------------+  +---+
-              ↑
-        Pill floats above safe area
+CURRENT STAT PILLS:
+[47 Shows] [#1 Show] [2026] [3mo Streak]
+
+PROPOSED STAT PILLS:
+[47 Shows] [#1 Show] [8 Cities] [2026] [3mo Streak]
+                        ^
+                   NEW - taps to Globe
 ```
 
 ---
 
-## File Changes
+## Changes Summary
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/pages/Dashboard.tsx` | Modify | Restructure nav to floating pill + separate FAB |
-| `src/index.css` | Optional | Add reusable `.glass-pill` utility class |
+| Component | Change |
+|-----------|--------|
+| `Dashboard.tsx` | Update nav layout: center pill, right-align FAB |
+| `Dashboard.tsx` | Enlarge FAB (p-4, h-7 w-7 icons) |
+| `useHomeStats.ts` | Add geographic stats (cities/countries count) |
+| `useHomeStats.ts` | Add Cities/Countries stat pill with `'globe'` action |
+| `StatPills.tsx` | Already supports `'globe'` action (no changes needed) |
+| `Home.tsx` | Already handles `'globe'` action in `handlePillTap` (no changes needed) |
 
 ---
 
 ## Implementation Details
 
-### 1. Update main container padding
-```tsx
-// Before
-<div className="min-h-screen bg-gradient-accent pb-20">
+### 1. Dashboard.tsx - Fix Nav Layout
 
-// After
-<div className="min-h-screen bg-gradient-accent pb-24">
+**Current (line 111):**
+```tsx
+<div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center items-end gap-3 px-4">
 ```
 
-### 2. Replace nav element with floating layout
+**New:**
 ```tsx
-{/* Floating Navigation */}
-<div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center items-end gap-3 px-4">
+<div className="fixed bottom-6 left-0 right-0 z-50 flex justify-between items-end px-6">
+  {/* Left spacer to balance FAB for centering pill */}
+  <div className="w-14" />
   
-  {/* Glass Pill Navigation */}
+  {/* Glass Pill Navigation - now truly centered */}
   <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-2 shadow-2xl">
-    <div className="flex items-center gap-10">
-      {/* Home */}
-      <button
-        onClick={() => setActiveTab("home")}
-        className={cn(
-          "flex flex-col items-center gap-0.5 transition-all py-1",
-          activeTab === "home" 
-            ? "text-white" 
-            : "text-white/60"
-        )}
-      >
-        <HomeIcon className="h-5 w-5" />
-        <span className="text-[11px] font-medium">Home</span>
-      </button>
-
-      {/* Rank */}
-      <button
-        onClick={() => setActiveTab("rank")}
-        className={cn(
-          "flex flex-col items-center gap-0.5 transition-all py-1",
-          activeTab === "rank" 
-            ? "text-white" 
-            : "text-white/60"
-        )}
-      >
-        <Scale className="h-5 w-5" />
-        <span className="text-[11px] font-medium">Rank</span>
-      </button>
-    </div>
+    ...
   </nav>
-
-  {/* Floating FAB */}
+  
+  {/* Floating FAB - right aligned */}
   <div className="relative">
-    {showFabMenu && (
-      <>
-        {/* Backdrop */}
-        <div 
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={() => setShowFabMenu(false)}
-        />
-        
-        {/* Menu Options - positioned above FAB */}
-        <div className="absolute bottom-16 right-0 z-50 flex flex-col gap-3 items-end">
-          {/* ... menu items ... */}
-        </div>
-      </>
-    )}
-    
-    {/* FAB Button */}
-    <button
-      onClick={() => setShowFabMenu(!showFabMenu)}
-      className={cn(
-        "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-3 shadow-2xl transition-all hover:scale-105 active:scale-95 z-50",
-        showFabMenu && "rotate-45 bg-white/20"
-      )}
-    >
-      {showFabMenu ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
-    </button>
+    ...
   </div>
 </div>
 ```
 
-### 3. Remove TooltipProvider wrapper (simplified)
-The nav no longer needs the TooltipProvider wrapper since we're simplifying the layout.
+### 2. Dashboard.tsx - Enlarge FAB
+
+**Current FAB button (lines 190-198):**
+```tsx
+<button
+  className={cn(
+    "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-3 shadow-2xl...",
+    ...
+  )}
+>
+  {showFabMenu ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+</button>
+```
+
+**New FAB button:**
+```tsx
+<button
+  className={cn(
+    "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-4 shadow-2xl...",
+    ...
+  )}
+>
+  {showFabMenu ? <X className="h-7 w-7" /> : <Plus className="h-7 w-7" />}
+</button>
+```
+
+### 3. useHomeStats.ts - Add Geographic Stats
+
+**Add to StatsData interface:**
+```typescript
+interface StatsData {
+  allTimeShows: number;
+  showsThisYear: number;
+  showsThisMonth: number;
+  activityRank: number;
+  currentStreak: number;
+  unrankedCount: number;
+  topShow: TopShow | null;
+  uniqueCities: number;    // NEW
+  uniqueCountries: number; // NEW
+}
+```
+
+**Add to fetchStats function (after fetching shows):**
+```typescript
+// Calculate unique cities and countries from venue locations
+const cities = new Set<string>();
+const countries = new Set<string>();
+
+// Helper function to extract country from location
+const getCountryFromLocation = (location: string): string => {
+  const parts = location.split(',').map(p => p.trim());
+  const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 
+    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 
+    'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 
+    'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 
+    'WA', 'WV', 'WI', 'WY'];
+  
+  const lastPart = parts[parts.length - 1];
+  if (['USA', 'US', 'United States'].includes(lastPart)) return 'United States';
+  
+  for (const part of parts) {
+    const cleanedPart = part.replace(/\s*\d+\s*$/, '').trim();
+    if (usStates.includes(cleanedPart)) return 'United States';
+  }
+  
+  return parts.length >= 2 ? lastPart : 'United States';
+};
+
+// Helper function to extract city from location
+const getCityFromLocation = (location: string): string => {
+  const parts = location.split(',').map(p => p.trim());
+  if (parts.length >= 3 && /^\d/.test(parts[0])) {
+    return `${parts[1]}, ${parts[2].replace(/\s*\d+\s*$/, '').trim()}`;
+  }
+  if (parts.length >= 2) {
+    return `${parts[0]}, ${parts[1].replace(/\s*\d+\s*$/, '').trim()}`;
+  }
+  return parts[0];
+};
+
+// Fetch shows with venue_location for geographic stats
+const { data: showsWithLocation } = await supabase
+  .from('shows')
+  .select('venue_location')
+  .eq('user_id', userId)
+  .not('venue_location', 'is', null);
+
+showsWithLocation?.forEach(show => {
+  if (show.venue_location) {
+    cities.add(getCityFromLocation(show.venue_location));
+    countries.add(getCountryFromLocation(show.venue_location));
+  }
+});
+```
+
+### 4. useHomeStats.ts - Add Cities Stat Pill
+
+**Add Globe icon import:**
+```typescript
+import { Music, Calendar, Trophy, Flame, Globe } from "lucide-react";
+```
+
+**Add to statPills array (after #1 Show, before Year):**
+```typescript
+// Cities -> Globe View
+...(stats.uniqueCities > 0 ? [{
+  id: 'cities',
+  label: stats.uniqueCountries > 1 ? 'Places' : 'Cities',
+  value: stats.uniqueCountries > 1 
+    ? `${stats.uniqueCities}/${stats.uniqueCountries}` 
+    : stats.uniqueCities,
+  icon: Globe,
+  action: 'globe' as StatPillAction,
+}] : []),
+```
+
+**Smart label logic:**
+- If user has shows in multiple countries: Show "8 Cities / 3 Countries" or "8/3" with label "Places"
+- If user is in one country: Show just city count with label "Cities"
 
 ---
 
-## Active State Enhancement
+## Stat Pill Display Logic
 
-Add subtle glow effect for active tab:
+| Scenario | Pill Label | Pill Value | Example |
+|----------|------------|------------|---------|
+| Single country, 5 cities | Cities | 5 | "5 Cities" |
+| Multiple countries (3), 8 cities | Places | 8/3 | "8/3 Places" |
+| No location data | (hidden) | - | - |
 
-```tsx
-activeTab === "home" 
-  ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" 
-  : "text-white/60"
+---
+
+## File Changes
+
+| File | Change Type | Lines Affected |
+|------|-------------|----------------|
+| `src/pages/Dashboard.tsx` | Modify | ~111-200 (nav layout + FAB) |
+| `src/hooks/useHomeStats.ts` | Modify | Interface, fetchStats, statPills array |
+
+---
+
+## Layout Spacing Details
+
+```text
+Screen width
+|<----------------------------------------->|
+|  [spacer]      [    PILL    ]       [FAB] |
+|    w-14          centered            w-14 |
+      ^                ^                 ^
+   Balances         Home+Rank         Right
+   the FAB          centered          edge
+```
+
+**Container changes:**
+- `justify-between` instead of `justify-center`
+- `px-6` instead of `px-4` for better edge spacing
+- Remove `gap-3` (no longer needed with justify-between)
+
+**FAB sizing:**
+- Padding: `p-3` → `p-4` (48px → 56px total)
+- Icon: `h-6 w-6` → `h-7 w-7`
+- Menu position: Adjust `bottom-14` → `bottom-16` for larger FAB
+
+---
+
+## Existing Infrastructure (No Changes Needed)
+
+The `'globe'` action is already wired up:
+
+**StatPills.tsx (line 50):**
+```typescript
+export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | null;
+```
+
+**Home.tsx (lines 243-266):**
+```typescript
+const handlePillTap = (action: StatPillAction, payload?: string) => {
+  switch (action) {
+    case 'globe':
+      setViewMode('globe');
+      break;
+    ...
+  }
+};
 ```
 
 ---
@@ -261,15 +272,8 @@ activeTab === "home"
 
 | Scenario | Behavior |
 |----------|----------|
-| FAB menu open | Backdrop covers screen, menu items appear above FAB |
-| Very small screens | Pill maintains minimum width, may reduce gap slightly |
-| Safe area (notched phones) | `bottom-6` provides clearance, but can add `pb-safe` if needed |
-
----
-
-## Visual Polish Options (Phase 2)
-
-- Add subtle inner shadow for more depth: `shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]`
-- Animate pill on first appearance with `animate-in fade-in slide-in-from-bottom-4`
-- Add subtle scale animation on tab switch
+| No shows with location | Cities pill is hidden |
+| All shows in one city | Shows "1" with label "Cities" |
+| International user | Shows "8/3" format with "Places" label |
+| User taps Cities pill | Navigates to Globe view within Home |
 
