@@ -900,124 +900,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               </div>
             </div>
             
-            {/* Floating Toolbar - hidden in preview mode */}
-            {!isPreviewMode && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/70 backdrop-blur-md px-2 py-1.5 rounded-full border border-white/10 shadow-lg">
-                {toggleItems.map((item) => (
-                  <Tooltip key={item.key}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          if (item.key === "showRank") {
-                            if (!overlayConfig.showRank) {
-                              toggleConfig("showRank");
-                            }
-                            setShowRankOptions(!showRankOptions);
-                          } else {
-                            toggleConfig(item.key);
-                          }
-                        }}
-                        disabled={item.disabled}
-                        className={`p-2 rounded-full transition-all ${
-                          item.active 
-                            ? "bg-white/20 text-white" 
-                            : "text-white/40 hover:text-white/70 hover:bg-white/10"
-                        } ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
-                      >
-                        <item.icon className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
-                      {item.label}
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-                
-                <div className="w-px h-5 bg-white/20 mx-1" />
-                
-                {/* Reset position */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                      className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/10 transition-all"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    Reset Position
-                  </TooltipContent>
-                </Tooltip>
-                
-                {/* Preview toggle */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowRankOptions(false); }}
-                      className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/10 transition-all"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    Preview
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            )}
-            
-            {/* Exit preview mode button */}
-            {isPreviewMode && (
-              <button
-                onClick={() => setIsPreviewMode(false)}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white/80 hover:text-white transition-colors"
-              >
-                <EyeOff className="h-4 w-4" />
-                <span className="text-sm">Exit Preview</span>
-              </button>
-            )}
-            
-            {/* Rank options popup */}
-            {showRankOptions && overlayConfig.showRank && !isPreviewMode && (
-              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg space-y-3 min-w-[200px]">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-white/70">Method</Label>
-                  <ToggleGroup 
-                    type="single" 
-                    value={rankingMethod}
-                    onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
-                    className="justify-start"
-                  >
-                    <ToggleGroupItem value="score" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">By Score</ToggleGroupItem>
-                    <ToggleGroupItem value="elo" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">Head to Head</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-white/70">Period</Label>
-                  <ToggleGroup 
-                    type="single" 
-                    value={rankingTimeFilter}
-                    onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
-                    className="justify-start flex-wrap"
-                  >
-                    <ToggleGroupItem value="all-time" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">All</ToggleGroupItem>
-                    <ToggleGroupItem value="this-year" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">Year</ToggleGroupItem>
-                    <ToggleGroupItem value="this-month" className="text-xs h-7 px-2 data-[state=on]:bg-white/20 data-[state=on]:text-white text-white/60">Month</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-                
-                <button
-                  onClick={() => setShowRankOptions(false)}
-                  className="w-full text-xs text-white/50 hover:text-white/70 pt-1"
-                >
-                  Done
-                </button>
-              </div>
-            )}
-            
             {/* Vertical Opacity Slider - inside image on right edge, hidden in preview mode */}
             {!isPreviewMode && (
               <div 
@@ -1052,7 +934,125 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 <span className="text-[10px] text-white/60">{overlayOpacity}</span>
               </div>
             )}
+            
+            {/* Exit preview mode button - inside container */}
+            {isPreviewMode && (
+              <button
+                onClick={() => setIsPreviewMode(false)}
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white/80 hover:text-white transition-colors"
+              >
+                <EyeOff className="h-4 w-4" />
+                <span className="text-sm">Exit Preview</span>
+              </button>
+            )}
           </div>
+          
+          {/* Floating Toolbar - OUTSIDE image container, always visible */}
+          {!isPreviewMode && (
+            <div className="flex items-center justify-center gap-1 bg-card/90 backdrop-blur-md px-3 py-2 rounded-full border border-border shadow-lg mt-3 relative">
+              {toggleItems.map((item) => (
+                <Tooltip key={item.key}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (item.key === "showRank") {
+                          if (!overlayConfig.showRank) {
+                            toggleConfig("showRank");
+                          }
+                          setShowRankOptions(!showRankOptions);
+                        } else {
+                          toggleConfig(item.key);
+                        }
+                      }}
+                      disabled={item.disabled}
+                      className={`p-2 rounded-full transition-all ${
+                        item.active 
+                          ? "bg-primary/20 text-primary" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      } ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+              
+              <div className="w-px h-5 bg-border mx-1" />
+              
+              {/* Reset position */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleReset(); }}
+                    className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Reset Position
+                </TooltipContent>
+              </Tooltip>
+              
+              {/* Preview toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowRankOptions(false); }}
+                    className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Preview
+                </TooltipContent>
+              </Tooltip>
+              
+              {/* Rank options popup - positioned above toolbar */}
+              {showRankOptions && overlayConfig.showRank && (
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card backdrop-blur-md p-3 rounded-xl border border-border shadow-lg space-y-3 min-w-[200px]">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Method</Label>
+                    <ToggleGroup 
+                      type="single" 
+                      value={rankingMethod}
+                      onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
+                      className="justify-start"
+                    >
+                      <ToggleGroupItem value="score" className="text-xs h-7 px-2">By Score</ToggleGroupItem>
+                      <ToggleGroupItem value="elo" className="text-xs h-7 px-2">Head to Head</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Period</Label>
+                    <ToggleGroup 
+                      type="single" 
+                      value={rankingTimeFilter}
+                      onValueChange={(value) => value && setRankingTimeFilter(value as "all-time" | "this-year" | "this-month")}
+                      className="justify-start flex-wrap"
+                    >
+                      <ToggleGroupItem value="all-time" className="text-xs h-7 px-2">All</ToggleGroupItem>
+                      <ToggleGroupItem value="this-year" className="text-xs h-7 px-2">Year</ToggleGroupItem>
+                      <ToggleGroupItem value="this-month" className="text-xs h-7 px-2">Month</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowRankOptions(false)}
+                    className="w-full text-xs text-muted-foreground hover:text-foreground pt-1"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         
         {/* Aspect mode toggle + gesture hint */}
