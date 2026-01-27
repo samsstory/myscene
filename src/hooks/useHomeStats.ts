@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { InsightData, InsightType } from "@/components/home/DynamicInsight";
+import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 import { StatPill, StatPillAction } from "@/components/home/StatPills";
-import { Music, Calendar, Trophy, Flame, Target } from "lucide-react";
+import { Music, Calendar, Trophy, Flame } from "lucide-react";
 
 interface TopShow {
   id: string;
@@ -156,17 +156,20 @@ export const useHomeStats = (): UseHomeStatsReturn => {
           title: `${totalShows} Shows!`,
           message: `Incredible milestone! You've logged ${totalShows} concerts.`,
         };
-      } else if (streak >= 3) {
-        generatedInsight = {
-          type: 'streak_active',
-          title: `${streak}-Month Streak`,
-          message: `You've been to shows ${streak} months in a row. Keep it going!`,
-        };
       } else if (unrankedCount >= 3) {
         generatedInsight = {
           type: 'ranking_reminder',
           title: `${unrankedCount} Shows to Rank`,
-          message: 'Head to Rank to compare your recent shows.',
+          message: 'Tap to compare your recent shows.',
+          actionable: true,
+          action: 'rank-tab' as InsightAction,
+        };
+      } else if (streak >= 2) {
+        generatedInsight = {
+          type: 'streak_active',
+          title: `${streak}-Month Streak`,
+          message: `You've been to shows ${streak} months in a row!`,
+          actionable: false,
         };
       }
 
@@ -209,14 +212,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       icon: Trophy,
       action: 'show-detail' as StatPillAction,
       actionPayload: stats.topShow.id,
-    }] : []),
-    // Unranked -> Rank Tab (if > 0)
-    ...(stats.unrankedCount > 0 ? [{
-      id: 'unranked',
-      label: 'To Rank',
-      value: stats.unrankedCount,
-      icon: Target,
-      action: 'rank-tab' as StatPillAction,
     }] : []),
     // This Year -> Calendar
     {

@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 // Home components
 import StatPills, { StatPillAction } from "./home/StatPills";
-import DynamicInsight from "./home/DynamicInsight";
+import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
 import RecentShowCard from "./home/RecentShowCard";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
@@ -280,7 +280,14 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
         <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} />
 
         {/* Dynamic Insight */}
-        <DynamicInsight insight={insight} />
+        <DynamicInsight 
+          insight={insight} 
+          onAction={(action: InsightAction) => {
+            if (action === 'rank-tab') {
+              onNavigateToRank?.();
+            }
+          }} 
+        />
 
         {/* Recent Shows */}
         <div className="space-y-3">
