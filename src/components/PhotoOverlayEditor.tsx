@@ -74,7 +74,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     showRank: false,
   });
   
-  const [rankingMethod, setRankingMethod] = useState<"score" | "elo">("elo");
   const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year">("all-time");
 
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
@@ -152,7 +151,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     });
   };
 
-  // Calculate rank data
+  // Calculate rank data (always ELO-based)
   const calculateRankData = () => {
     const filteredShows = filterShowsByTime(allShows, rankingTimeFilter);
     
@@ -160,33 +159,17 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       return { position: 0, total: 0, percentile: 0 };
     }
 
-    if (rankingMethod === "score") {
-      // Sort by calculated score (descending)
-      const sorted = [...filteredShows].sort((a, b) => {
-        const scoreA = calculateShowScore(a.rating, a.artist_performance, a.sound, a.lighting, a.crowd, a.venue_vibe);
-        const scoreB = calculateShowScore(b.rating, b.artist_performance, b.sound, b.lighting, b.crowd, b.venue_vibe);
-        if (scoreB !== scoreA) return scoreB - scoreA;
-        return new Date(b.show_date).getTime() - new Date(a.show_date).getTime();
-      });
-      
-      const position = sorted.findIndex(s => s.id === show.id) + 1;
-      const total = sorted.length;
-      const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
-      
-      return { position, total, percentile };
-    } else {
-      // ELO-based ranking
-      const filteredShowIds = new Set(filteredShows.map(s => s.id));
-      const filteredRankings = rankings.filter(r => filteredShowIds.has(r.show_id));
-      
-      const sorted = [...filteredRankings].sort((a, b) => b.elo_score - a.elo_score);
-      
-      const position = sorted.findIndex(r => r.show_id === show.id) + 1;
-      const total = sorted.length;
-      const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
-      
-      return { position, total, percentile };
-    }
+    // ELO-based ranking
+    const filteredShowIds = new Set(filteredShows.map(s => s.id));
+    const filteredRankings = rankings.filter(r => filteredShowIds.has(r.show_id));
+    
+    const sorted = [...filteredRankings].sort((a, b) => b.elo_score - a.elo_score);
+    
+    const position = sorted.findIndex(r => r.show_id === show.id) + 1;
+    const total = sorted.length;
+    const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
+    
+    return { position, total, percentile };
   };
 
   const rankData = calculateRankData();
@@ -197,7 +180,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     allShowsCount: allShows.length,
     rankingsCount: rankings.length,
     rankData,
-    rankingMethod,
     rankingTimeFilter
   });
   
@@ -1092,31 +1074,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 
                 {/* Rank options popup - positioned above toolbar */}
                 {showRankOptions && overlayConfig.showRank && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md p-3 rounded-xl border border-border shadow-xl space-y-3 min-w-[180px]">
-                    {/* Method toggle */}
-                    <div className="space-y-1.5">
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Method</Label>
-                      <ToggleGroup 
-                        type="single" 
-                        value={rankingMethod}
-                        onValueChange={(value) => value && setRankingMethod(value as "score" | "elo")}
-                        className="grid grid-cols-2 gap-1"
-                      >
-                        <ToggleGroupItem 
-                          value="score" 
-                          className="text-xs h-8 px-2 data-[state=on]:bg-amber-500/20 data-[state=on]:text-amber-400 data-[state=on]:border-amber-500/30"
-                        >
-                          By Score
-                        </ToggleGroupItem>
-                        <ToggleGroupItem 
-                          value="elo" 
-                          className="text-xs h-8 px-2 data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-400 data-[state=on]:border-purple-500/30"
-                        >
-                          Head to Head
-                        </ToggleGroupItem>
-                      </ToggleGroup>
-                    </div>
-                    
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md p-3 rounded-xl border border-border shadow-xl min-w-[160px]">
                     {/* Period toggle */}
                     <div className="space-y-1.5">
                       <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Period</Label>
@@ -1128,13 +1086,13 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                       >
                         <ToggleGroupItem 
                           value="all-time" 
-                          className="text-xs h-8 px-2 data-[state=on]:bg-cyan-500/20 data-[state=on]:text-cyan-400 data-[state=on]:border-cyan-500/30"
+                          className="text-xs h-8 px-2 data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-400 data-[state=on]:border-purple-500/30"
                         >
                           All Time
                         </ToggleGroupItem>
                         <ToggleGroupItem 
                           value="this-year" 
-                          className="text-xs h-8 px-2 data-[state=on]:bg-cyan-500/20 data-[state=on]:text-cyan-400 data-[state=on]:border-cyan-500/30"
+                          className="text-xs h-8 px-2 data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-400 data-[state=on]:border-purple-500/30"
                         >
                           This Year
                         </ToggleGroupItem>
@@ -1144,7 +1102,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                     {/* Dismiss */}
                     <button
                       onClick={() => setShowRankOptions(false)}
-                      className="w-full text-xs text-muted-foreground hover:text-foreground py-1.5 border-t border-border/50 mt-2"
+                      className="w-full text-xs text-muted-foreground hover:text-foreground py-1.5 border-t border-border/50 mt-3"
                     >
                       Done
                     </button>
