@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 import { StatPill, StatPillAction } from "@/components/home/StatPills";
-import { Music, Calendar, Trophy, Flame } from "lucide-react";
+import { Music, Calendar, Trophy, Flame, Globe } from "lucide-react";
 
 interface TopShow {
   id: string;
@@ -18,6 +18,8 @@ interface StatsData {
   currentStreak: number;
   unrankedCount: number;
   topShow: TopShow | null;
+  uniqueCities: number;
+  uniqueCountries: number;
 }
 
 interface UseHomeStatsReturn {
@@ -42,6 +44,8 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     currentStreak: 0,
     unrankedCount: 0,
     topShow: null,
+    uniqueCities: 0,
+    uniqueCountries: 0,
   });
   const [insight, setInsight] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,6 +100,54 @@ export const useHomeStats = (): UseHomeStatsReturn => {
 
       // Simple percentile calc based on show count
       const activityRank = totalShows > 20 ? 95 : totalShows > 10 ? 85 : totalShows > 5 ? 70 : 50;
+
+      // Calculate unique cities and countries from venue locations
+      const cities = new Set<string>();
+      const countries = new Set<string>();
+
+      const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 
+        'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 
+        'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 
+        'WA', 'WV', 'WI', 'WY'];
+
+      const getCountryFromLocation = (location: string): string => {
+        const parts = location.split(',').map(p => p.trim());
+        const lastPart = parts[parts.length - 1];
+        if (['USA', 'US', 'United States'].includes(lastPart)) return 'United States';
+        
+        for (const part of parts) {
+          const cleanedPart = part.replace(/\s*\d+\s*$/, '').trim();
+          if (usStates.includes(cleanedPart)) return 'United States';
+        }
+        
+        return parts.length >= 2 ? lastPart : 'United States';
+      };
+
+      const getCityFromLocation = (location: string): string => {
+        const parts = location.split(',').map(p => p.trim());
+        if (parts.length >= 3 && /^\d/.test(parts[0])) {
+          return `${parts[1]}, ${parts[2].replace(/\s*\d+\s*$/, '').trim()}`;
+        }
+        if (parts.length >= 2) {
+          return `${parts[0]}, ${parts[1].replace(/\s*\d+\s*$/, '').trim()}`;
+        }
+        return parts[0];
+      };
+
+      // Fetch shows with venue_location for geographic stats
+      const { data: showsWithLocation } = await supabase
+        .from('shows')
+        .select('venue_location')
+        .eq('user_id', userId)
+        .not('venue_location', 'is', null);
+
+      showsWithLocation?.forEach(show => {
+        if (show.venue_location) {
+          cities.add(getCityFromLocation(show.venue_location));
+          countries.add(getCountryFromLocation(show.venue_location));
+        }
+      });
 
       // Get rankings to find unranked shows and top show
       const { data: rankings } = await supabase
@@ -181,6 +233,8 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         currentStreak: streak,
         unrankedCount,
         topShow,
+        uniqueCities: cities.size,
+        uniqueCountries: countries.size,
       });
       setInsight(generatedInsight);
     } catch (error) {
@@ -212,6 +266,16 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       icon: Trophy,
       action: 'show-detail' as StatPillAction,
       actionPayload: stats.topShow.id,
+    }] : []),
+    // Cities -> Globe View
+    ...(stats.uniqueCities > 0 ? [{
+      id: 'cities',
+      label: stats.uniqueCountries > 1 ? 'Places' : 'Cities',
+      value: stats.uniqueCountries > 1 
+        ? `${stats.uniqueCities}/${stats.uniqueCountries}` 
+        : stats.uniqueCities,
+      icon: Globe,
+      action: 'globe' as StatPillAction,
     }] : []),
     // This Year -> Calendar
     {
