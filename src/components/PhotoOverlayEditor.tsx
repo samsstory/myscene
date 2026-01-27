@@ -516,11 +516,21 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       ctx.fillText(`#${rankData.position} ${timePeriodText}`, overlayX + padding, bottomY);
     }
     
-    // Scene logo on the right
-    ctx.font = `bold ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    // Scene logo on the right - stylized with glow
+    ctx.font = `900 ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
     ctx.textAlign = "right";
-    ctx.fillText("SCENE", overlayX + overlayWidth - padding, bottomY);
+    ctx.letterSpacing = `${0.25 * scaleX}em`;
+    
+    // Add soft glow effect
+    ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+    ctx.shadowBlur = 8 * scaleX;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+    ctx.fillText("Scene", overlayX + overlayWidth - padding, bottomY);
+    
+    // Reset shadow
+    ctx.shadowBlur = 0;
 
     return canvas;
   };
@@ -907,10 +917,12 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                   <span />
                 )}
                 <span 
-                  className="font-bold tracking-wider opacity-30" 
-                  style={{ filter: "grayscale(100%)" }}
+                  className="font-black tracking-[0.25em] text-white/75"
+                  style={{ 
+                    textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)" 
+                  }}
                 >
-                  SCENE
+                  Scene
                 </span>
               </div>
             </div>
