@@ -743,12 +743,11 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           <div
             ref={containerRef}
             id="canvas-container"
-            className="relative bg-black overflow-hidden touch-none rounded-lg h-full w-full flex items-center justify-center"
-            {...handlers}
+            className="relative bg-black overflow-hidden rounded-lg h-full w-full flex items-center justify-center"
           >
-            {/* Photo wrapper - scales to fit */}
+            {/* Photo wrapper - scales to fit, handlers here constrain overlay to image bounds */}
             <div 
-              className="relative"
+              className="relative touch-none overflow-hidden"
               style={{
                 width: aspectMode === "story" ? "auto" : "100%",
                 height: aspectMode === "story" ? "100%" : "auto",
@@ -758,6 +757,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 maxWidth: "100%",
                 maxHeight: "100%",
               }}
+              {...handlers}
             >
             {/* Background Photo */}
             <img
