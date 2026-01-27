@@ -1,240 +1,152 @@
 
 
-# Dynamic Insight Priority & Tappable CTA
+# Pill-Shaped Liquid Glass Navigation Bar
 
 ## Overview
 
-Refine the Dynamic Insight card to prioritize actionable CTAs (ranking reminder) over celebratory stats (streak), make the insight card tappable for direct navigation, lower the streak threshold, and remove the redundant "To Rank" stat pill.
-
----
-
-## Current vs. Proposed Behavior
-
-```text
-CURRENT PRIORITY ORDER              PROPOSED PRIORITY ORDER
-1. Welcome (no shows)               1. Welcome (no shows)
-2. Milestone (25/50/100/200)        2. Milestone (25/50/100/200)
-3. Streak (≥3 months)      ←        3. Ranking Reminder (≥3 unranked) ← SWAPPED
-4. Ranking Reminder (≥3)   ←        4. Streak (≥2 months)             ← SWAPPED + LOWERED
-
-INSIGHT CARD BEHAVIOR               INSIGHT CARD BEHAVIOR
-- Static display only               - Tappable when actionable
-- No navigation                     - "Rank reminder" → Rank tab
-```
+Transform the current full-width bottom navigation bar into a floating, pill-shaped element with a liquid glass aesthetic, inspired by the Oura app reference image. The styling will match the transparent overlay aesthetic from the PhotoOverlayEditor when opacity is set to zero.
 
 ---
 
 ## Visual Before/After
 
 ```text
-BEFORE (Stat Pills Row):
-[47 Shows] [#1 Show] [3 To Rank] [2026] [3mo Streak]
-                        ↑
-                   Redundant pill
+CURRENT NAVIGATION:
++------------------------------------------------+
+| [Home]        [+ FAB]        [Rank]            |
++------------------------------------------------+
+     ^               ^               ^
+     |    Full-width bar with solid bg     
+     |         border-t at top              
 
-AFTER (Stat Pills Row):
-[47 Shows] [#1 Show] [2026] [3mo Streak]
-                       ↑
-                  Cleaner, CTA moved to Insight card
+PROPOSED NAVIGATION:
+                                            
+      +---------------------------+    +---+
+      |  [Home]   [+ FAB]  [Rank] |    | + |  <- Option A: FAB inside
+      +---------------------------+    +---+
+                  OR
+      +-------------------+         +-------+
+      |  [Home]   [Rank]  |         |   +   | <- Option B: FAB separate
+      +-------------------+         +-------+
+              ^                          ^
+    Floating pill shape           Separate FAB
+    Liquid glass aesthetic        Same styling
+```
 
-INSIGHT CARD (Tappable):
-+------------------------------------------+
-|  🎯  3 Shows to Rank                     |
-|  Tap to compare your recent shows.   >   |
-+------------------------------------------+
-         ↑                              ↑
-    Action-focused               Chevron indicates tap
+**Recommended: Option B** - Matches Oura reference with separate FAB
+
+---
+
+## Liquid Glass Styling Reference
+
+From the PhotoOverlayEditor (opacity = 0) and MapHoverCard:
+
+```css
+/* Liquid Glass Effect */
+.nav-pill {
+  backdrop-blur-xl       /* Strong blur for glass effect */
+  bg-black/40            /* Dark translucent base */
+  border border-white/20 /* Subtle light border */
+  shadow-2xl             /* Deep shadow for depth */
+  rounded-full           /* Pill shape */
+}
 ```
 
 ---
 
-## Changes Summary
+## Layout Changes
 
-| Component | Change |
-|-----------|--------|
-| `useHomeStats.ts` | Swap priority: ranking reminder before streak |
-| `useHomeStats.ts` | Lower streak threshold from ≥3 to ≥2 months |
-| `useHomeStats.ts` | Remove "To Rank" pill from statPills array |
-| `useHomeStats.ts` | Return `insight` with `actionable` flag |
-| `DynamicInsight.tsx` | Accept `onAction` prop for tap handling |
-| `DynamicInsight.tsx` | Add chevron indicator for actionable insights |
-| `DynamicInsight.tsx` | Wrap in button for tappable insights |
-| `Home.tsx` | Pass `onInsightAction` handler to DynamicInsight |
-
----
-
-## Technical Details
-
-### 1. Update useHomeStats.ts - Insight Priority
-
-**Current Logic (lines 144-171):**
-```typescript
-if (totalShows === 0) { /* welcome */ }
-else if ([25, 50, 100, 200].includes(totalShows)) { /* milestone */ }
-else if (streak >= 3) { /* streak */ }        // ← Currently higher priority
-else if (unrankedCount >= 3) { /* ranking */ } // ← Should be higher
-```
-
-**New Logic:**
-```typescript
-if (totalShows === 0) { /* welcome */ }
-else if ([25, 50, 100, 200].includes(totalShows)) { /* milestone */ }
-else if (unrankedCount >= 3) {
-  // Ranking reminder - actionable CTA (higher priority)
-  generatedInsight = {
-    type: 'ranking_reminder',
-    title: `${unrankedCount} Shows to Rank`,
-    message: 'Tap to compare your recent shows.',
-    actionable: true,  // NEW
-    action: 'rank-tab' // NEW
-  };
-}
-else if (streak >= 2) {  // Lowered threshold
-  // Streak - celebratory (lower priority)
-  generatedInsight = {
-    type: 'streak_active',
-    title: `${streak}-Month Streak`,
-    message: `You've been to shows ${streak} months in a row!`,
-    actionable: false
-  };
-}
-```
-
-### 2. Update InsightData Interface
-
-**In DynamicInsight.tsx:**
-```typescript
-export interface InsightData {
-  type: InsightType;
-  title: string;
-  message: string;
-  actionable?: boolean;  // NEW: Whether card is tappable
-  action?: 'rank-tab' | 'calendar' | 'rankings';  // NEW: Navigation action
-}
-```
-
-### 3. Remove "To Rank" Pill from statPills
-
-**Current (lines 213-220):**
-```typescript
-// Unranked -> Rank Tab (if > 0)
-...(stats.unrankedCount > 0 ? [{
-  id: 'unranked',
-  label: 'To Rank',
-  value: stats.unrankedCount,
-  icon: Target,
-  action: 'rank-tab' as StatPillAction,
-}] : []),
-```
-
-**New:** Remove this entire block. The CTA is now in the Dynamic Insight card.
-
-### 4. Update DynamicInsight.tsx - Tappable Card
-
-```typescript
-interface DynamicInsightProps {
-  insight: InsightData | null;
-  onAction?: (action: string) => void;  // NEW
-}
-
-const DynamicInsight = ({ insight, onAction }: DynamicInsightProps) => {
-  if (!insight || !insight.type) return null;
-
-  const config = insightConfig[insight.type];
-  const Icon = config.icon;
-  const isActionable = insight.actionable && insight.action;
-
-  const content = (
-    <div className={cn(
-      "p-4 rounded-xl bg-gradient-to-r border transition-all",
-      config.gradient,
-      isActionable && "cursor-pointer hover:border-primary/50 active:scale-[0.98]"
-    )}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-primary flex-shrink-0" />
-          <span className="text-sm font-medium">{insight.title}</span>
-        </div>
-        {isActionable && (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        )}
-      </div>
-      <p className="text-sm text-muted-foreground mt-1">{insight.message}</p>
+### Current Structure (Dashboard.tsx lines 110-196):
+```jsx
+<nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50">
+  <div className="container mx-auto px-4">
+    <div className="flex items-end justify-center h-16 pb-2 gap-12">
+      {/* Home button */}
+      {/* FAB with menu */}
+      {/* Rank button */}
     </div>
-  );
-
-  if (isActionable) {
-    return (
-      <button 
-        onClick={() => onAction?.(insight.action!)} 
-        className="w-full text-left"
-      >
-        {content}
-      </button>
-    );
-  }
-
-  return content;
-};
+  </div>
+</nav>
 ```
 
-### 5. Wire Up in Home.tsx
-
-```typescript
-// In renderHomeView():
-<DynamicInsight 
-  insight={insight} 
-  onAction={(action) => {
-    if (action === 'rank-tab') {
-      onNavigateToRank?.();
-    }
-  }} 
-/>
+### New Structure:
+```jsx
+{/* Navigation container - positions elements at bottom */}
+<div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center items-end gap-4 px-4">
+  
+  {/* Pill-shaped nav bar */}
+  <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-3 shadow-2xl">
+    <div className="flex items-center gap-8">
+      {/* Home button */}
+      {/* Rank button */}
+    </div>
+  </nav>
+  
+  {/* Floating FAB - separate from pill */}
+  <div className="relative">
+    {/* FAB Menu Options (when open) */}
+    {/* Main FAB button */}
+  </div>
+  
+</div>
 ```
 
 ---
 
-## Updated Stat Pills Array
+## Styling Details
 
-After removing "To Rank" pill:
+### Pill Container
+| Property | Value | Purpose |
+|----------|-------|---------|
+| `backdrop-blur-xl` | 24px blur | Strong glass effect |
+| `bg-black/40` | 40% opacity black | Dark translucent base |
+| `border-white/20` | 20% opacity white | Subtle edge highlight |
+| `rounded-full` | Full pill shape | Matches Oura design |
+| `shadow-2xl` | Large shadow | Floating appearance |
+| `px-6 py-3` | Horizontal/vertical padding | Comfortable touch targets |
 
-```typescript
-const statPills: StatPill[] = [
-  // Total Shows -> Rankings
-  {
-    id: 'total-shows',
-    label: 'Shows',
-    value: stats.allTimeShows,
-    icon: Music,
-    highlight: true,
-    action: 'rankings',
-  },
-  // #1 Show -> Show Detail (if exists)
-  ...(stats.topShow ? [{
-    id: 'top-show',
-    label: '#1 Show',
-    value: truncate(stats.topShow.artistName, 12),
-    icon: Trophy,
-    action: 'show-detail',
-    actionPayload: stats.topShow.id,
-  }] : []),
-  // This Year -> Calendar
-  {
-    id: 'this-year',
-    label: new Date().getFullYear().toString(),
-    value: stats.showsThisYear,
-    icon: Calendar,
-    action: 'calendar',
-  },
-  // Streak (no action, just display) - now ≥2 months
-  ...(stats.currentStreak >= 2 ? [{
-    id: 'streak',
-    label: 'Streak',
-    value: `${stats.currentStreak}mo`,
-    icon: Flame,
-    action: null,
-  }] : []),
-];
+### Nav Items Inside Pill
+| Property | Current | New |
+|----------|---------|-----|
+| Icons | `h-6 w-6` | `h-5 w-5` (slightly smaller) |
+| Labels | `text-xs` | `text-[11px]` (tighter) |
+| Gap between items | `gap-12` | `gap-8` (tighter for pill) |
+| Active color | `text-primary` | `text-white` with glow |
+| Inactive color | `text-muted-foreground` | `text-white/60` |
+
+### FAB Button
+| Property | Current | New |
+|----------|---------|-----|
+| Size | `p-4` (large) | `p-3` (medium) |
+| Position | Inline with nav | Separate floating element |
+| Background | `bg-primary` | Keep or match glass |
+| Shadow | `shadow-glow` | `shadow-2xl` for consistency |
+
+---
+
+## Spacing and Positioning
+
+```text
+              Screen Edge
+                  |
+    +-------------+-------------+
+    |                           |
+    |      Main Content         |
+    |                           |
+    |                           |
+    +---------------------------+
+    |                           |
+    |  pb-24 (96px) bottom pad  | <- Increased from pb-20 (80px)
+    |                           |
+    +---------------------------+
+                  ↓
+              bottom-6 (24px from edge)
+                  ↓
+    +-------------------+  +---+
+    |  [Home]   [Rank]  |  | + |
+    +-------------------+  +---+
+              ↑
+        Pill floats above safe area
 ```
 
 ---
@@ -243,21 +155,105 @@ const statPills: StatPill[] = [
 
 | File | Change Type | Description |
 |------|-------------|-------------|
-| `src/hooks/useHomeStats.ts` | Modify | Swap insight priority, lower streak threshold, remove "To Rank" pill, add actionable/action to insight |
-| `src/components/home/DynamicInsight.tsx` | Modify | Add `onAction` prop, make card tappable, add chevron indicator |
-| `src/components/Home.tsx` | Modify | Pass `onAction` handler to DynamicInsight |
+| `src/pages/Dashboard.tsx` | Modify | Restructure nav to floating pill + separate FAB |
+| `src/index.css` | Optional | Add reusable `.glass-pill` utility class |
 
 ---
 
-## Implementation Steps
+## Implementation Details
 
-1. **Update InsightData interface** in `DynamicInsight.tsx` with `actionable` and `action` fields
-2. **Add `onAction` prop** to DynamicInsight component
-3. **Make insight card tappable** - wrap in button when actionable, add chevron
-4. **Update insight priority logic** in `useHomeStats.ts` - ranking reminder before streak
-5. **Lower streak threshold** from ≥3 to ≥2 months
-6. **Remove "To Rank" pill** from statPills array
-7. **Wire up handler** in Home.tsx to navigate to Rank tab
+### 1. Update main container padding
+```tsx
+// Before
+<div className="min-h-screen bg-gradient-accent pb-20">
+
+// After
+<div className="min-h-screen bg-gradient-accent pb-24">
+```
+
+### 2. Replace nav element with floating layout
+```tsx
+{/* Floating Navigation */}
+<div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center items-end gap-3 px-4">
+  
+  {/* Glass Pill Navigation */}
+  <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-2 shadow-2xl">
+    <div className="flex items-center gap-10">
+      {/* Home */}
+      <button
+        onClick={() => setActiveTab("home")}
+        className={cn(
+          "flex flex-col items-center gap-0.5 transition-all py-1",
+          activeTab === "home" 
+            ? "text-white" 
+            : "text-white/60"
+        )}
+      >
+        <HomeIcon className="h-5 w-5" />
+        <span className="text-[11px] font-medium">Home</span>
+      </button>
+
+      {/* Rank */}
+      <button
+        onClick={() => setActiveTab("rank")}
+        className={cn(
+          "flex flex-col items-center gap-0.5 transition-all py-1",
+          activeTab === "rank" 
+            ? "text-white" 
+            : "text-white/60"
+        )}
+      >
+        <Scale className="h-5 w-5" />
+        <span className="text-[11px] font-medium">Rank</span>
+      </button>
+    </div>
+  </nav>
+
+  {/* Floating FAB */}
+  <div className="relative">
+    {showFabMenu && (
+      <>
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={() => setShowFabMenu(false)}
+        />
+        
+        {/* Menu Options - positioned above FAB */}
+        <div className="absolute bottom-16 right-0 z-50 flex flex-col gap-3 items-end">
+          {/* ... menu items ... */}
+        </div>
+      </>
+    )}
+    
+    {/* FAB Button */}
+    <button
+      onClick={() => setShowFabMenu(!showFabMenu)}
+      className={cn(
+        "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-3 shadow-2xl transition-all hover:scale-105 active:scale-95 z-50",
+        showFabMenu && "rotate-45 bg-white/20"
+      )}
+    >
+      {showFabMenu ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+    </button>
+  </div>
+</div>
+```
+
+### 3. Remove TooltipProvider wrapper (simplified)
+The nav no longer needs the TooltipProvider wrapper since we're simplifying the layout.
+
+---
+
+## Active State Enhancement
+
+Add subtle glow effect for active tab:
+
+```tsx
+activeTab === "home" 
+  ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" 
+  : "text-white/60"
+```
 
 ---
 
@@ -265,8 +261,15 @@ const statPills: StatPill[] = [
 
 | Scenario | Behavior |
 |----------|----------|
-| No unranked shows, streak ≥2 | Show streak insight (non-tappable) |
-| Unranked shows exist + streak | Show ranking reminder (tappable) - takes priority |
-| New user, no shows | Show welcome insight |
-| All shows ranked, no streak | No insight card shown |
+| FAB menu open | Backdrop covers screen, menu items appear above FAB |
+| Very small screens | Pill maintains minimum width, may reduce gap slightly |
+| Safe area (notched phones) | `bottom-6` provides clearance, but can add `pb-safe` if needed |
+
+---
+
+## Visual Polish Options (Phase 2)
+
+- Add subtle inner shadow for more depth: `shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]`
+- Animate pill on first appearance with `animate-in fade-in slide-in-from-bottom-4`
+- Add subtle scale animation on tab switch
 
