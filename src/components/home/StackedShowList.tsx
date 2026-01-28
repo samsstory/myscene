@@ -93,6 +93,26 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
     }
   }, []);
 
+  // Calculate z-index based on distance from expanded card
+  const getZIndex = (index: number, expandedIndex: number, total: number) => {
+    if (expandedIndex === -1) {
+      // No card expanded - simple descending order
+      return total - index;
+    }
+    
+    if (index === expandedIndex) {
+      // Expanded card is always on top
+      return total + 10;
+    }
+    
+    // Distance from expanded card determines z-index
+    // Cards closer to expanded have higher z-index
+    const distance = Math.abs(index - expandedIndex);
+    return total - distance;
+  };
+
+  const expandedIndex = shows.findIndex(s => s.id === expandedId);
+
   if (shows.length === 0) {
     return (
       <Card className="border-border">
@@ -130,8 +150,8 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
             key={show.id}
             className="snap-center will-change-transform isolate"
             style={{
-              marginTop: index === 0 ? 0 : "8px",
-              zIndex: shows.length - index,
+              marginTop: index === 0 ? 0 : "-20px",
+              zIndex: getZIndex(index, expandedIndex, shows.length),
               position: "relative",
               pointerEvents: "auto",
             }}
