@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, X } from "lucide-react";
+import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -14,6 +14,7 @@ import { QuickPhotoAddSheet } from "./QuickPhotoAddSheet";
 import MapView from "./MapView";
 import AddShowFlow from "./AddShowFlow";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
+import SwipeableRankingCard from "./rankings/SwipeableRankingCard";
 import { toast } from "sonner";
 
 // Home components
@@ -393,10 +394,10 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
     
     return (
       <div className="space-y-4">
-        {/* Filter bar */}
+        {/* Filter bar - glassmorphism styled */}
         <div className="flex items-center justify-between gap-4">
           <Select value={topRatedFilter} onValueChange={(v) => setTopRatedFilter(v as typeof topRatedFilter)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] bg-white/[0.05] border-white/[0.08] text-white/80">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -411,91 +412,121 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
             variant="outline"
             size="sm"
             onClick={() => setSortDirection(prev => prev === "best-first" ? "worst-first" : "best-first")}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-white/[0.05] border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowUpDown className="h-4 w-4" />
             <span>{sortDirection === "best-first" ? "Best First" : "Worst First"}</span>
           </Button>
         </div>
 
-        {/* Show list */}
-        <div className="flex flex-col gap-3">
-          {sortedShows.map((show) => {
-            const baseRankInfo = getShowRankInfo(show.id, filteredShowIds);
-            // When viewing worst-first, show inverted position so worst show appears as #total
-            const rankInfo = sortDirection === "worst-first" && baseRankInfo.position
-              ? { ...baseRankInfo, position: baseRankInfo.total - baseRankInfo.position + 1 }
-              : baseRankInfo;
-            return (
-              <Card 
-                key={show.id} 
-                className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative"
-                onClick={() => handleShowTap(show)}
-              >
-                <CardContent className="p-4 relative">
-                  <div className="absolute top-2 right-2 flex items-center gap-1">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleShareFromCard(show);
-                      }}
-                    >
-                      <Instagram className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-7 w-7 text-muted-foreground/50 hover:text-destructive"
-                      onClick={e => {
-                        e.stopPropagation();
-                        setDeleteConfirmShow(show);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-4 pr-8">
-                    {show.photo_url ? (
-                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-md border border-border/50">
-                        <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
+        {/* Empty state */}
+        {sortedShows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <div className="relative w-16 h-16 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+                <Music2 className="h-8 w-8 text-white/40" />
+              </div>
+            </div>
+            <h3 
+              className="text-lg font-semibold text-white/80 mb-1"
+              style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
+            >
+              No shows match this filter
+            </h3>
+            <p className="text-sm text-white/50">
+              Try selecting a different time period
+            </p>
+          </div>
+        ) : (
+          /* Show list */
+          <div className="flex flex-col gap-3">
+            {sortedShows.map((show) => {
+              const baseRankInfo = getShowRankInfo(show.id, filteredShowIds);
+              // When viewing worst-first, show inverted position so worst show appears as #total
+              const rankInfo = sortDirection === "worst-first" && baseRankInfo.position
+                ? { ...baseRankInfo, position: baseRankInfo.total - baseRankInfo.position + 1 }
+                : baseRankInfo;
+              return (
+                <SwipeableRankingCard 
+                  key={show.id} 
+                  onDelete={() => setDeleteConfirmShow(show)}
+                >
+                  <Card 
+                    className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.05] transition-all duration-300 cursor-pointer relative overflow-hidden"
+                    onClick={() => handleShowTap(show)}
+                  >
+                    <CardContent className="p-4 relative">
+                      {/* Instagram share button - top right */}
+                      <div className="absolute top-2 right-2">
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className={`h-7 w-7 ${show.photo_url ? 'text-pink-400 hover:text-pink-300' : 'text-white/30 hover:text-white/50'}`}
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleShareFromCard(show);
+                          }}
+                        >
+                          <Instagram className="h-4 w-4" />
+                        </Button>
                       </div>
-                    ) : (
-                      <div className="w-16 h-16 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0">
-                        <Music2 className="h-6 w-6 text-muted-foreground/50" />
-                      </div>
-                    )}
 
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="font-bold text-base leading-tight truncate">
-                        {show.artists.slice(0, 2).map((artist, idx) => (
-                          <span key={idx}>
-                            {artist.name}
-                            {idx < Math.min(show.artists.length - 1, 1) && <span className="text-muted-foreground"> • </span>}
-                          </span>
-                        ))}
-                        {show.artists.length > 2 && (
-                          <span className="text-muted-foreground font-normal"> +{show.artists.length - 2}</span>
+                      <div className="flex gap-4 pr-8">
+                        {/* Larger thumbnail - 80px */}
+                        {show.photo_url ? (
+                          <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/10">
+                            <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-20 h-20 rounded-xl bg-white/[0.05] flex items-center justify-center flex-shrink-0 border border-white/[0.08]">
+                            <Music2 className="h-8 w-8 text-white/30" />
+                          </div>
                         )}
-                      </div>
-                      <div className="text-sm text-muted-foreground truncate">{show.venue.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM yyyy")}
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="absolute bottom-3 right-3">
-                    <ShowRankBadge position={rankInfo.position} total={rankInfo.total} comparisonsCount={rankInfo.comparisonsCount} />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          {/* Artist name with glow */}
+                          <div 
+                            className="font-bold text-base leading-tight truncate"
+                            style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
+                          >
+                            {show.artists.slice(0, 2).map((artist, idx) => (
+                              <span key={idx}>
+                                {artist.name}
+                                {idx < Math.min(show.artists.length - 1, 1) && <span className="text-white/40"> • </span>}
+                              </span>
+                            ))}
+                            {show.artists.length > 2 && (
+                              <span className="text-white/40 font-normal"> +{show.artists.length - 2}</span>
+                            )}
+                          </div>
+                          {/* Venue with muted glow */}
+                          <div 
+                            className="text-sm text-white/60 truncate"
+                            style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}
+                          >
+                            {show.venue.name}
+                          </div>
+                          {/* Date with muted glow */}
+                          <div 
+                            className="text-sm text-white/60"
+                            style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}
+                          >
+                            {format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM yyyy")}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="absolute bottom-3 right-3">
+                        <ShowRankBadge position={rankInfo.position} total={rankInfo.total} comparisonsCount={rankInfo.comparisonsCount} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </SwipeableRankingCard>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -620,7 +651,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
       
       {viewMode === 'rankings' && (
         <>
-          {renderSubViewHeader('Top Shows')}
+          {renderSubViewHeader('Top Ranked Shows')}
           {renderRankingsView()}
         </>
       )}
