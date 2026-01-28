@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Music, Star } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Music, Star, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
 import VenueStep from "./add-show-steps/VenueStep";
@@ -30,6 +30,7 @@ interface AddShowFlowProps {
     venueVibe?: number | null;
     notes?: string | null;
     venueId?: string | null;
+    photo_url?: string | null;
   } | null;
 }
 
@@ -97,6 +98,11 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
   });
   const [userHomeCity, setUserHomeCity] = useState<string>("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  
+  // Photo editing state for edit mode
+  const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null);
+  const [editPhotoUploading, setEditPhotoUploading] = useState(false);
+  const editPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Populate form with edit data
   useEffect(() => {
@@ -126,6 +132,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
         venueVibe: editShow.venueVibe || null,
         notes: editShow.notes || "",
       });
+      setEditPhotoUrl(editShow.photo_url || null);
       setShowStepSelector(true);
       setStep(0);
       setEntryPoint(null);
@@ -133,6 +140,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
       setShowStepSelector(false);
       setStep(1);
       setEntryPoint(null);
+      setEditPhotoUrl(null);
     }
   }, [editShow, open]);
 
@@ -553,6 +561,45 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
     if (updateError) throw updateError;
   };
 
+  // Handle photo upload for edit mode (step selector)
+  const handleEditPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editShow) return;
+
+    setEditPhotoUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${editShow.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('show-photos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('show-photos')
+        .getPublicUrl(filePath);
+
+      await supabase.from('shows')
+        .update({ photo_url: publicUrl })
+        .eq('id', editShow.id);
+
+      setEditPhotoUrl(publicUrl);
+      setHasUnsavedChanges(true);
+      toast.success("Photo updated!");
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.error("Failed to upload photo");
+    } finally {
+      setEditPhotoUploading(false);
+    }
+  };
+
   const resetAndClose = () => {
     setShowData({
       venue: "",
@@ -578,6 +625,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
     setShowStepSelector(false);
     setHasUnsavedChanges(false);
     setAddedShow(null);
+    setEditPhotoUrl(null);
     onOpenChange(false);
   };
 
@@ -672,6 +720,46 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
               </div>
             </div>
           </button>
+
+          {/* Photo Option */}
+          <button
+            onClick={() => editPhotoInputRef.current?.click()}
+            disabled={editPhotoUploading}
+            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+          >
+            <div className="flex items-center gap-3">
+              {editPhotoUrl ? (
+                <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
+                  <img 
+                    src={editPhotoUrl} 
+                    alt="Show photo" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera className="h-5 w-5 text-primary" />
+                </div>
+              )}
+              <div>
+                <div className="font-semibold">
+                  {editPhotoUploading ? "Uploading..." : "Photo"}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {editPhotoUrl ? "Tap to change" : "Add a photo"}
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* Hidden file input */}
+          <input
+            ref={editPhotoInputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp"
+            className="hidden"
+            onChange={handleEditPhotoUpload}
+          />
 
           <button
             onClick={() => setStep(4)}

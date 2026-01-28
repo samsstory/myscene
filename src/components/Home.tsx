@@ -732,8 +732,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
           crowd: editShow.crowd,
           venueVibe: editShow.venueVibe,
           notes: editShow.notes,
-          venueId: editShow.venueId
-        } : null} 
+          venueId: editShow.venueId,
+          photo_url: editShow.photo_url
+        } : null}
       />
 
       <AlertDialog open={!!deleteConfirmShow} onOpenChange={(open) => !open && setDeleteConfirmShow(null)}>
