@@ -1,9 +1,9 @@
-import { Camera, Upload, Pencil } from "lucide-react";
+import { Camera, Upload, Pencil, MapPin, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { getScoreGradient } from "@/lib/utils";
 
 interface Artist {
@@ -24,6 +24,7 @@ interface HeroPhotoSectionProps {
   onPhotoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   onEditPhoto?: () => void;
+  onRankThisShow?: () => void;
 }
 
 export const HeroPhotoSection = ({
@@ -39,10 +40,18 @@ export const HeroPhotoSection = ({
   onPhotoUpload,
   fileInputRef,
   onEditPhoto,
+  onRankThisShow,
 }: HeroPhotoSectionProps) => {
   const headliner = artists.find(a => a.isHeadliner) || artists[0];
   const supportingArtists = artists.filter(a => !a.isHeadliner && a.name !== headliner?.name);
   const formattedDate = format(parseISO(date), "MMM d, yyyy");
+  const timeAgo = formatDistanceToNow(parseISO(date), { addSuffix: true });
+  const needsMoreRanking = comparisonsCount < 5 && rankTotal > 1;
+
+  const openInMaps = () => {
+    const query = encodeURIComponent(`${venue.name}, ${venue.location}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+  };
 
   if (photoUrl) {
     return (
@@ -88,16 +97,37 @@ export const HeroPhotoSection = ({
                     with {supportingArtists.map(a => a.name).join(', ')}
                   </p>
                 )}
-                <p className="text-white/60 text-sm mt-1 truncate">
-                  {venue.name} · {formattedDate}
-                </p>
+                <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
+                  <button 
+                    onClick={openInMaps}
+                    className="flex items-center gap-1 hover:text-white/80 transition-colors truncate"
+                  >
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{venue.name}</span>
+                  </button>
+                  <span className="flex-shrink-0">· {formattedDate}</span>
+                </div>
+                <p className="text-white/40 text-xs mt-0.5">{timeAgo}</p>
                 {/* Rank with comparisons context */}
-                <p className="text-white/50 text-xs mt-1.5">
-                  {rankPosition > 0 
-                    ? `#${rankPosition} All Time${comparisonsCount > 0 ? ` · ${comparisonsCount} comparisons` : ''}`
-                    : "Unranked"
-                  }
-                </p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <p className="text-white/50 text-xs">
+                    {rankPosition > 0 
+                      ? `#${rankPosition} All Time${comparisonsCount > 0 ? ` · ${comparisonsCount} comparisons` : ''}`
+                      : "Unranked"
+                    }
+                  </p>
+                  {needsMoreRanking && onRankThisShow && (
+                    <button
+                      onClick={onRankThisShow}
+                      className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 
+                                 text-amber-400/80 text-xs font-medium hover:bg-amber-500/20 transition-colors
+                                 flex items-center gap-1"
+                    >
+                      <Scale className="h-3 w-3" />
+                      Rank
+                    </button>
+                  )}
+                </div>
               </div>
               {/* Score Badge */}
               <div 
@@ -194,9 +224,17 @@ export const HeroPhotoSection = ({
               with {supportingArtists.map(a => a.name).join(', ')}
             </p>
           )}
-          <p className="text-white/60 text-sm mt-1 truncate">
-            {venue.name} · {formattedDate}
-          </p>
+          <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
+            <button 
+              onClick={openInMaps}
+              className="flex items-center gap-1 hover:text-white/80 transition-colors truncate"
+            >
+              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{venue.name}</span>
+            </button>
+            <span className="flex-shrink-0">· {formattedDate}</span>
+          </div>
+          <p className="text-white/40 text-xs mt-0.5">{timeAgo}</p>
         </div>
       </div>
 
