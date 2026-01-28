@@ -67,7 +67,7 @@ export const HeroPhotoSection = ({
         )}
 
         {/* Top Right: Scene Logo */}
-        <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
+        <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
           <SceneLogo size="sm" />
         </div>
 
