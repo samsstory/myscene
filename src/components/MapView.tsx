@@ -8,7 +8,7 @@ import { Edit, MapPin, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MapBreadcrumb from "./map/MapBreadcrumb";
-import MapStatsCard from "./map/MapStatsCard";
+import MapRightPanel from "./map/MapRightPanel";
 import MapHoverCard from "./map/MapHoverCard";
 
 interface Show {
@@ -943,12 +943,15 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         </div>
       </div>
 
-      {/* Stats card */}
-      <MapStatsCard
+      {/* Unified Right Panel - Stats + Location Notification */}
+      <MapRightPanel
         totalShows={mapStats.totalShows}
         totalCountries={mapStats.totalCountries}
         totalCities={mapStats.totalCities}
         totalVenues={mapStats.totalVenues}
+        showsWithoutLocation={showsWithoutLocation.length}
+        isLocationCardExpanded={!isLocationCardMinimized}
+        onToggleLocationCard={() => setIsLocationCardMinimized(false)}
       />
 
       {/* Hover info for country */}
@@ -978,92 +981,74 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         />
       )}
 
-      {/* Shows without location list */}
-      {showsWithoutLocation.length > 0 && (
-        <>
-          {!isLocationCardMinimized ? (
-            <Card className="absolute top-4 left-4 max-w-sm z-10 animate-fade-in">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Shows without location ({showsWithoutLocation.length})
-                  </h3>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => setIsLocationCardMinimized(true)}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {showsWithoutLocation.map((show) => (
-                    <div
-                      key={show.id}
-                      className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {show.artists.map(a => a.name).join(", ")}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {show.venue.name}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onEditShow(show)}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-                
-                {showsWithoutLocation.length > 0 && (
-                  <Button
-                    onClick={handleFixMissingLocations}
-                    disabled={isBackfilling}
-                    className="w-full mt-4"
-                    variant="default"
-                  >
-                    {isBackfilling ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Fixing Locations...
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Fix All Missing Locations
-                      </>
-                    )}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10 animate-fade-in">
+      {/* Shows without location list - only when expanded */}
+      {showsWithoutLocation.length > 0 && !isLocationCardMinimized && (
+        <Card className="absolute top-4 left-4 max-w-sm z-10 animate-fade-in">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Shows without location ({showsWithoutLocation.length})
+              </h3>
               <Button
                 size="icon"
-                variant="default"
-                className="relative"
-                onClick={() => setIsLocationCardMinimized(false)}
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={() => setIsLocationCardMinimized(true)}
               >
-                <MapPin className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
-                  {showsWithoutLocation.length}
-                </Badge>
+                <Minus className="h-4 w-4" />
               </Button>
             </div>
-          )}
-        </>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {showsWithoutLocation.map((show) => (
+                <div
+                  key={show.id}
+                  className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {show.artists.map(a => a.name).join(", ")}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {show.venue.name}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onEditShow(show)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            
+            {showsWithoutLocation.length > 0 && (
+              <Button
+                onClick={handleFixMissingLocations}
+                disabled={isBackfilling}
+                className="w-full mt-4"
+                variant="default"
+              >
+                {isBackfilling ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Fixing Locations...
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Fix All Missing Locations
+                  </>
+                )}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Selected venue details */}
