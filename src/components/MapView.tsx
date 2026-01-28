@@ -949,12 +949,8 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         </div>
       </div>
 
-      {/* Unified Right Panel - Stats + Location Notification */}
+      {/* Location notification badge - only shows when there are shows without location */}
       <MapRightPanel
-        totalShows={mapStats.totalShows}
-        totalCountries={mapStats.totalCountries}
-        totalCities={mapStats.totalCities}
-        totalVenues={mapStats.totalVenues}
         showsWithoutLocation={showsWithoutLocation.length}
         isLocationCardExpanded={!isLocationCardMinimized}
         onToggleLocationCard={() => setIsLocationCardMinimized(false)}
