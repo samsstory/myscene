@@ -1,76 +1,147 @@
 
-
-# Add Native Smooth Scroll to Card List
+# Redesign Stat Pills to Match Scene Logo Aesthetic
 
 ## Summary
 
-Enhance the stacked card list with native CSS smooth scroll behavior so that swiping, dragging, and all scroll interactions feel fluid and natural on both desktop and mobile.
+Transform the current "card-style" stat pills into minimal, elegant typography-driven elements that match the Scene logo's glowing, airy aesthetic—using subtle text shadows, wide tracking, and reduced visual weight instead of heavy borders and backgrounds.
 
 ---
 
-## Current State
+## Current State Analysis
 
-The container currently has:
-- `overflow-y-auto` - enables scrolling
-- `snap-y snap-mandatory` - snaps to card boundaries
-- `scrollbar-hide` - hides the scrollbar visually
-- Programmatic `scrollIntoView({ behavior: "smooth" })` on tap
+**Current Stat Pills:**
+- Solid card backgrounds (`bg-card`) with visible borders
+- Rounded rectangular shapes (`rounded-2xl`)
+- Primary color icons with gradient highlights
+- Chunky, button-like appearance
 
-**What's Missing:**
-- Native `scroll-behavior: smooth` for manual scroll interactions
-- iOS momentum scrolling (`-webkit-overflow-scrolling: touch`)
-- Smoother snap behavior with `scroll-snap-stop`
+**Scene Logo Aesthetic:**
+- Text-driven, no heavy backgrounds
+- Multi-layer glow effect (`textShadow`)
+- Wide letter-spacing (`tracking-[0.25em]`)
+- White/translucent coloring (`text-white/75`)
+- Uppercase, bold typography
+- Ethereal, floating appearance
 
 ---
 
-## Changes
+## Design Direction
 
-### 1. Add Smooth Scroll Utility Class
+Transform pills from "tappable cards" → "glowing typographic elements" that feel like they're part of the same visual system as the logo.
 
-**File:** `src/index.css`
+### Visual Changes
 
-Add a new utility class for smooth scrolling with iOS momentum:
+| Aspect | Current | Proposed |
+|--------|---------|----------|
+| Background | Solid card color | Transparent or very subtle (`bg-white/5`) |
+| Border | Visible borders | Invisible or ultra-thin glow |
+| Icons | Solid primary color | Subtle, smaller, muted |
+| Label text | Small muted | Uppercase, tracked, glowing |
+| Value text | Large bold | Slightly smaller, glowing white |
+| Spacing | Compact pills | More airy, horizontal flow |
 
-```css
-/* Smooth scrolling for card stacks */
-.scroll-smooth-momentum {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
-```
+---
 
-### 2. Apply Smooth Scroll to Container
+## Implementation
 
-**File:** `src/components/home/StackedShowList.tsx`
+### 1. Update StatPills Component Styling
 
-Add the new utility class to the scroll container:
+**File:** `src/components/home/StatPills.tsx`
 
-```tsx
-<div
-  ref={containerRef}
-  className="overflow-y-auto snap-y snap-mandatory max-h-[70vh] scrollbar-hide scroll-smooth-momentum"
-  style={{ scrollSnapType: "y mandatory" }}
->
-```
-
-### 3. Add Scroll Snap Stop for Better Control
-
-**File:** `src/components/home/StackedShowList.tsx`
-
-Update card wrapper to use `scroll-snap-stop: always` so the scroll always stops at each card (prevents skipping):
+Replace the current card-based styling with Scene-logo-inspired typography:
 
 ```tsx
-<div
-  key={show.id}
-  className="snap-center will-change-transform isolate"
-  style={{
-    marginTop: index === 0 ? 0 : "-20px",
-    zIndex: getZIndex(index, expandedIndex, shows.length),
-    position: "relative",
-    pointerEvents: "auto",
-    scrollSnapStop: "always",
-  }}
+// Current button styling
+className={cn(
+  "flex-shrink-0 px-4 py-3 rounded-2xl bg-card border transition-all text-left",
+  stat.highlight ? "border-primary/30 bg-gradient-to-br from-primary/10 to-card" : "border-border",
+  isInteractive && "hover:border-primary/50 hover:bg-accent/50 active:scale-95 cursor-pointer",
+  !isInteractive && "cursor-default"
+)}
+
+// New minimal glow styling
+className={cn(
+  "flex-shrink-0 px-3 py-2 rounded-xl transition-all text-center",
+  "bg-white/[0.03] backdrop-blur-sm",
+  isInteractive && "hover:bg-white/[0.08] active:scale-95 cursor-pointer",
+  !isInteractive && "cursor-default"
+)}
+
+// Add glow text styling to labels and values
+style={{
+  textShadow: isInteractive 
+    ? "0 0 8px rgba(255,255,255,0.3), 0 0 16px rgba(255,255,255,0.1)"
+    : undefined
+}}
+```
+
+### 2. Typography & Layout Updates
+
+**Label styling:**
+```tsx
+// Current
+<span className="text-xs text-muted-foreground">{stat.label}</span>
+
+// New - uppercase, tracked, smaller
+<span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">
+  {stat.label}
+</span>
+```
+
+**Value styling:**
+```tsx
+// Current
+<span className={cn("text-xl font-bold", stat.highlight && "bg-gradient-primary bg-clip-text text-transparent")}>
+  {stat.value}
+</span>
+
+// New - cleaner, glowing white
+<span 
+  className="text-lg font-bold text-white/90"
+  style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}
 >
+  {stat.value}
+</span>
+```
+
+### 3. Simplify Icon Presentation
+
+Make icons smaller and more subtle:
+
+```tsx
+// Current
+{stat.icon && <stat.icon className="h-3.5 w-3.5 text-primary" />}
+
+// New - smaller, muted, optional glow
+{stat.icon && (
+  <stat.icon 
+    className="h-3 w-3 text-white/40" 
+    style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.2))" }}
+  />
+)}
+```
+
+### 4. Remove Chevron Indicators
+
+The chevron adds visual clutter. Interactive state is communicated through hover glow instead:
+
+```tsx
+// Remove this section entirely
+{isInteractive && (
+  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+)}
+```
+
+### 5. Adjust Container Layout
+
+Update the flex gap and padding for a more airy feel:
+
+```tsx
+// Current
+<div className="flex gap-3 pb-2">
+
+// New - tighter gap, centered alignment
+<div className="flex gap-2 pb-2 items-center">
 ```
 
 ---
@@ -79,23 +150,35 @@ Update card wrapper to use `scroll-snap-stop: always` so the scroll always stops
 
 | File | Change |
 |------|--------|
-| `src/index.css` | Add `.scroll-smooth-momentum` utility class with smooth scroll and iOS momentum |
-| `src/components/home/StackedShowList.tsx` | Apply smooth scroll class to container, add `scrollSnapStop` to cards |
+| `src/components/home/StatPills.tsx` | Complete styling overhaul to match Scene logo aesthetic |
+
+---
+
+## Visual Result
+
+**Before:** Heavy, card-like buttons with solid backgrounds and visible borders
+
+**After:** Floating, typographic elements with:
+- Ultra-subtle glass background (`bg-white/[0.03]`)
+- Glowing text effects matching the Scene logo
+- Uppercase, tracked labels
+- Clean white values with subtle shadow
+- Muted, smaller icons
+- Hover glow effect instead of border changes
 
 ---
 
 ## Technical Details
 
-**Why These Properties:**
+**Key CSS properties to match Scene logo:**
 
-| Property | Purpose |
-|----------|---------|
-| `scroll-behavior: smooth` | Native CSS smooth scrolling for all scroll actions (swipe, drag, programmatic) |
-| `-webkit-overflow-scrolling: touch` | iOS Safari momentum/inertia scrolling (feels native) |
-| `scroll-snap-stop: always` | Forces scroll to stop at each card, preventing fast-swipe skip-overs |
+| Property | Value | Purpose |
+|----------|-------|---------|
+| `tracking-[0.15em]` | Wide letter-spacing | Matches logo's airy feel |
+| `text-white/50` | Translucent labels | Subtle hierarchy |
+| `textShadow` | Multi-layer glow | Luminous effect |
+| `bg-white/[0.03]` | Near-invisible background | Floaty appearance |
+| `backdrop-blur-sm` | Subtle blur | Glass effect |
+| `uppercase` | All caps labels | Typography consistency |
 
-**Browser Support:**
-- `scroll-behavior: smooth` - 95%+ support
-- `-webkit-overflow-scrolling: touch` - iOS Safari (gracefully ignored elsewhere)
-- `scroll-snap-stop` - 93%+ support
-
+This creates a cohesive visual language where the stat pills feel like they belong to the same design system as the Scene logo watermark.
