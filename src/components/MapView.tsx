@@ -73,6 +73,9 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [hoveredVenue, setHoveredVenue] = useState<string | null>(null);
   
+  // Track hovered feature for feature-state system
+  const hoveredFeatureRef = useRef<{ source: string; id: number | string | undefined } | null>(null);
+  
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -508,18 +511,25 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       if (!map.current) return;
 
       // Remove existing layers and sources
+      if (map.current.getLayer('country-labels')) {
+        map.current.removeLayer('country-labels');
+      }
       if (map.current.getLayer('country-dots')) {
         map.current.removeLayer('country-dots');
+      }
+      if (map.current.getLayer('country-dots-glow')) {
+        map.current.removeLayer('country-dots-glow');
       }
       if (map.current.getSource('countries')) {
         map.current.removeSource('countries');
       }
 
-      // Create GeoJSON for countries
+      // Create GeoJSON for countries with unique IDs for feature-state
       const geojson: GeoJSON.FeatureCollection = {
         type: 'FeatureCollection',
-        features: countryData.map(country => ({
+        features: countryData.map((country, index) => ({
           type: 'Feature',
+          id: index,
           properties: {
             name: country.name,
             showCount: country.showCount
@@ -537,45 +547,55 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer with size based on show count (increased for better mobile tap targets)
-      map.current.addLayer({
-        id: 'country-dots',
-        type: 'circle',
-        source: 'countries',
-        paint: {
-          'circle-radius': [
-            'interpolate', ['linear'], ['get', 'showCount'],
-            1, 22,
-            5, 28,
-            10, 34,
-            50, 44
-          ],
-          'circle-color': 'hsl(280, 70%, 55%)',
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
-          'circle-blur': 0.1
-        }
-      });
-
-      // Add glow layer behind main dots
+      // Add glow layer behind main dots (with hover state)
       map.current.addLayer({
         id: 'country-dots-glow',
         type: 'circle',
         source: 'countries',
         paint: {
           'circle-radius': [
-            'interpolate', ['linear'], ['get', 'showCount'],
-            1, 28,
-            5, 38,
-            10, 48,
-            50, 60
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            // Hovered: larger glow
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 36, 5, 48, 10, 58, 50, 72],
+            // Default glow
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 28, 5, 38, 10, 48, 50, 60]
           ],
           'circle-color': 'hsl(280, 70%, 55%)',
-          'circle-opacity': 0.3,
-          'circle-blur': 1
-        }
-      }, 'country-dots');
+          'circle-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            0.5,
+            0.3
+          ],
+          'circle-blur': 1,
+          'circle-radius-transition': { duration: 150 },
+          'circle-opacity-transition': { duration: 150 }
+        } as mapboxgl.CirclePaint
+      });
+
+      // Add main dot layer with size based on show count (with hover state)
+      map.current.addLayer({
+        id: 'country-dots',
+        type: 'circle',
+        source: 'countries',
+        paint: {
+          'circle-radius': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            // Hovered: larger radius (+6px)
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 28, 5, 34, 10, 40, 50, 50],
+            // Default radius
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 22, 5, 28, 10, 34, 50, 44]
+          ],
+          'circle-color': 'hsl(280, 70%, 55%)',
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+          'circle-blur': 0.1,
+          'circle-radius-transition': { duration: 150 }
+        } as mapboxgl.CirclePaint
+      });
 
       // Add count labels
       map.current.addLayer({
@@ -595,6 +615,16 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
+      // Helper to set feature hover state
+      const setHoverState = (featureId: number | string | undefined, hover: boolean) => {
+        if (map.current && featureId !== undefined) {
+          map.current.setFeatureState(
+            { source: 'countries', id: featureId },
+            { hover }
+          );
+        }
+      };
+
       // Add click handler
       map.current.on('click', 'country-dots', (e) => {
         if (e.features && e.features.length > 0) {
@@ -605,19 +635,71 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
-      // Add hover effect
+      // Add hover effect with feature-state
       map.current.on('mouseenter', 'country-dots', (e) => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (!map.current) return;
+        map.current.getCanvas().style.cursor = 'pointer';
+        
         if (e.features && e.features.length > 0) {
-          setHoveredCountry(e.features[0].properties?.name);
+          const feature = e.features[0];
+          
+          // Clear previous hover state
+          if (hoveredFeatureRef.current) {
+            setHoverState(hoveredFeatureRef.current.id, false);
+          }
+          
+          // Set new hover state
+          setHoverState(feature.id, true);
+          hoveredFeatureRef.current = { source: 'countries', id: feature.id };
+          setHoveredCountry(feature.properties?.name);
         }
       });
 
       map.current.on('mouseleave', 'country-dots', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
+        if (!map.current) return;
+        map.current.getCanvas().style.cursor = '';
+        
+        // Clear hover state
+        if (hoveredFeatureRef.current?.source === 'countries') {
+          setHoverState(hoveredFeatureRef.current.id, false);
+          hoveredFeatureRef.current = null;
+        }
         setHoveredCountry(null);
       });
+
+      // Touch feedback for mobile
+      map.current.on('touchstart', 'country-dots', (e) => {
+        if (!map.current || !e.features?.length) return;
+        
+        const feature = e.features[0];
+        
+        // Clear previous hover state
+        if (hoveredFeatureRef.current) {
+          setHoverState(hoveredFeatureRef.current.id, false);
+        }
+        
+        // Set hover state for touch feedback
+        setHoverState(feature.id, true);
+        hoveredFeatureRef.current = { source: 'countries', id: feature.id };
+        setHoveredCountry(feature.properties?.name);
+      });
     }
+
+    // Clear touch hover state on touchend anywhere on map
+    const handleTouchEnd = () => {
+      if (hoveredFeatureRef.current?.source === 'countries' && map.current) {
+        map.current.setFeatureState(
+          { source: 'countries', id: hoveredFeatureRef.current.id },
+          { hover: false }
+        );
+        hoveredFeatureRef.current = null;
+        setHoveredCountry(null);
+      }
+    };
+
+    map.current.on('touchend', handleTouchEnd);
+    map.current.on('touchcancel', handleTouchEnd);
+
   }, [countryData, viewLevel]);
 
   // Add city markers to map
@@ -663,11 +745,12 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         map.current.removeSource('cities');
       }
 
-      // Create GeoJSON for cities
+      // Create GeoJSON for cities with unique IDs for feature-state
       const geojson: GeoJSON.FeatureCollection = {
         type: 'FeatureCollection',
-        features: cityData.map(city => ({
+        features: cityData.map((city, index) => ({
           type: 'Feature',
+          id: index,
           properties: {
             name: city.name,
             showCount: city.showCount
@@ -685,45 +768,55 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer with size based on show count (increased for better mobile tap targets)
-      map.current.addLayer({
-        id: 'city-dots',
-        type: 'circle',
-        source: 'cities',
-        paint: {
-          'circle-radius': [
-            'interpolate', ['linear'], ['get', 'showCount'],
-            1, 18,
-            5, 24,
-            10, 30,
-            25, 36
-          ],
-          'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
-          'circle-blur': 0.1
-        }
-      });
-
-      // Add glow layer behind main dots
+      // Add glow layer behind main dots (with hover state)
       map.current.addLayer({
         id: 'city-dots-glow',
         type: 'circle',
         source: 'cities',
         paint: {
           'circle-radius': [
-            'interpolate', ['linear'], ['get', 'showCount'],
-            1, 24,
-            5, 34,
-            10, 44,
-            25, 52
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            // Hovered: larger glow
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 32, 5, 44, 10, 54, 25, 64],
+            // Default glow
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 24, 5, 34, 10, 44, 25, 52]
           ],
           'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-opacity': 0.3,
-          'circle-blur': 1
-        }
-      }, 'city-dots');
+          'circle-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            0.5,
+            0.3
+          ],
+          'circle-blur': 1,
+          'circle-radius-transition': { duration: 150 },
+          'circle-opacity-transition': { duration: 150 }
+        } as mapboxgl.CirclePaint
+      });
+
+      // Add main dot layer with size based on show count (with hover state)
+      map.current.addLayer({
+        id: 'city-dots',
+        type: 'circle',
+        source: 'cities',
+        paint: {
+          'circle-radius': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            // Hovered: larger radius (+6px)
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 24, 5, 30, 10, 36, 25, 42],
+            // Default radius
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 18, 5, 24, 10, 30, 25, 36]
+          ],
+          'circle-color': 'hsl(189, 94%, 55%)',
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+          'circle-blur': 0.1,
+          'circle-radius-transition': { duration: 150 }
+        } as mapboxgl.CirclePaint
+      });
 
       // Add count labels
       map.current.addLayer({
@@ -743,6 +836,16 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
+      // Helper to set feature hover state
+      const setHoverState = (featureId: number | string | undefined, hover: boolean) => {
+        if (map.current && featureId !== undefined) {
+          map.current.setFeatureState(
+            { source: 'cities', id: featureId },
+            { hover }
+          );
+        }
+      };
+
       // Add click handler
       map.current.on('click', 'city-dots', (e) => {
         if (e.features && e.features.length > 0) {
@@ -753,17 +856,53 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
-      // Add hover effect
+      // Add hover effect with feature-state
       map.current.on('mouseenter', 'city-dots', (e) => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (!map.current) return;
+        map.current.getCanvas().style.cursor = 'pointer';
+        
         if (e.features && e.features.length > 0) {
-          setHoveredCity(e.features[0].properties?.name);
+          const feature = e.features[0];
+          
+          // Clear previous hover state
+          if (hoveredFeatureRef.current) {
+            setHoverState(hoveredFeatureRef.current.id, false);
+          }
+          
+          // Set new hover state
+          setHoverState(feature.id, true);
+          hoveredFeatureRef.current = { source: 'cities', id: feature.id };
+          setHoveredCity(feature.properties?.name);
         }
       });
 
       map.current.on('mouseleave', 'city-dots', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
+        if (!map.current) return;
+        map.current.getCanvas().style.cursor = '';
+        
+        // Clear hover state
+        if (hoveredFeatureRef.current?.source === 'cities') {
+          setHoverState(hoveredFeatureRef.current.id, false);
+          hoveredFeatureRef.current = null;
+        }
         setHoveredCity(null);
+      });
+
+      // Touch feedback for mobile
+      map.current.on('touchstart', 'city-dots', (e) => {
+        if (!map.current || !e.features?.length) return;
+        
+        const feature = e.features[0];
+        
+        // Clear previous hover state
+        if (hoveredFeatureRef.current) {
+          setHoverState(hoveredFeatureRef.current.id, false);
+        }
+        
+        // Set hover state for touch feedback
+        setHoverState(feature.id, true);
+        hoveredFeatureRef.current = { source: 'cities', id: feature.id };
+        setHoveredCity(feature.properties?.name);
       });
 
       // Fit map to show all cities
@@ -775,6 +914,22 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         map.current.fitBounds(bounds, { padding: 100, maxZoom: 6 });
       }
     }
+
+    // Clear touch hover state on touchend anywhere on map
+    const handleTouchEnd = () => {
+      if (hoveredFeatureRef.current?.source === 'cities' && map.current) {
+        map.current.setFeatureState(
+          { source: 'cities', id: hoveredFeatureRef.current.id },
+          { hover: false }
+        );
+        hoveredFeatureRef.current = null;
+        setHoveredCity(null);
+      }
+    };
+
+    map.current.on('touchend', handleTouchEnd);
+    map.current.on('touchcancel', handleTouchEnd);
+
   }, [cityData, viewLevel]);
 
   // Add venue markers to map
@@ -820,11 +975,12 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         map.current.removeSource('venues');
       }
 
-      // Create GeoJSON for venues
+      // Create GeoJSON for venues with unique IDs for feature-state
       const geojson: GeoJSON.FeatureCollection = {
         type: 'FeatureCollection',
-        features: venueData.map(venue => ({
+        features: venueData.map((venue, index) => ({
           type: 'Feature',
+          id: index,
           properties: {
             name: venue.name,
             location: venue.location,
@@ -843,45 +999,55 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer with size based on show count (increased for better mobile tap targets)
-      map.current.addLayer({
-        id: 'venue-dots',
-        type: 'circle',
-        source: 'venues',
-        paint: {
-          'circle-radius': [
-            'interpolate', ['linear'], ['get', 'showCount'],
-            1, 16,
-            3, 20,
-            5, 24,
-            10, 30
-          ],
-          'circle-color': 'hsl(35, 90%, 55%)',
-          'circle-opacity': 0.9,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
-          'circle-blur': 0.05
-        }
-      });
-
-      // Add glow layer behind main dots
+      // Add glow layer behind main dots (with hover state)
       map.current.addLayer({
         id: 'venue-dots-glow',
         type: 'circle',
         source: 'venues',
         paint: {
           'circle-radius': [
-            'interpolate', ['linear'], ['get', 'showCount'],
-            1, 20,
-            3, 28,
-            5, 36,
-            10, 44
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            // Hovered: larger glow
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 28, 3, 38, 5, 48, 10, 56],
+            // Default glow
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 20, 3, 28, 5, 36, 10, 44]
           ],
           'circle-color': 'hsl(35, 90%, 55%)',
-          'circle-opacity': 0.3,
-          'circle-blur': 1
-        }
-      }, 'venue-dots');
+          'circle-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            0.5,
+            0.3
+          ],
+          'circle-blur': 1,
+          'circle-radius-transition': { duration: 150 },
+          'circle-opacity-transition': { duration: 150 }
+        } as mapboxgl.CirclePaint
+      });
+
+      // Add main dot layer with size based on show count (with hover state)
+      map.current.addLayer({
+        id: 'venue-dots',
+        type: 'circle',
+        source: 'venues',
+        paint: {
+          'circle-radius': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            // Hovered: larger radius (+6px)
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 22, 3, 26, 5, 30, 10, 36],
+            // Default radius
+            ['interpolate', ['linear'], ['get', 'showCount'], 1, 16, 3, 20, 5, 24, 10, 30]
+          ],
+          'circle-color': 'hsl(35, 90%, 55%)',
+          'circle-opacity': 0.9,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+          'circle-blur': 0.05,
+          'circle-radius-transition': { duration: 150 }
+        } as mapboxgl.CirclePaint
+      });
 
       // Add count labels
       map.current.addLayer({
@@ -901,6 +1067,16 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
+      // Helper to set feature hover state
+      const setHoverState = (featureId: number | string | undefined, hover: boolean) => {
+        if (map.current && featureId !== undefined) {
+          map.current.setFeatureState(
+            { source: 'venues', id: featureId },
+            { hover }
+          );
+        }
+      };
+
       // Add click handler
       map.current.on('click', 'venue-dots', (e) => {
         if (e.features && e.features.length > 0) {
@@ -917,17 +1093,53 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         }
       });
 
-      // Add hover effect
+      // Add hover effect with feature-state
       map.current.on('mouseenter', 'venue-dots', (e) => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (!map.current) return;
+        map.current.getCanvas().style.cursor = 'pointer';
+        
         if (e.features && e.features.length > 0) {
-          setHoveredVenue(e.features[0].properties?.name);
+          const feature = e.features[0];
+          
+          // Clear previous hover state
+          if (hoveredFeatureRef.current) {
+            setHoverState(hoveredFeatureRef.current.id, false);
+          }
+          
+          // Set new hover state
+          setHoverState(feature.id, true);
+          hoveredFeatureRef.current = { source: 'venues', id: feature.id };
+          setHoveredVenue(feature.properties?.name);
         }
       });
 
       map.current.on('mouseleave', 'venue-dots', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
+        if (!map.current) return;
+        map.current.getCanvas().style.cursor = '';
+        
+        // Clear hover state
+        if (hoveredFeatureRef.current?.source === 'venues') {
+          setHoverState(hoveredFeatureRef.current.id, false);
+          hoveredFeatureRef.current = null;
+        }
         setHoveredVenue(null);
+      });
+
+      // Touch feedback for mobile
+      map.current.on('touchstart', 'venue-dots', (e) => {
+        if (!map.current || !e.features?.length) return;
+        
+        const feature = e.features[0];
+        
+        // Clear previous hover state
+        if (hoveredFeatureRef.current) {
+          setHoverState(hoveredFeatureRef.current.id, false);
+        }
+        
+        // Set hover state for touch feedback
+        setHoverState(feature.id, true);
+        hoveredFeatureRef.current = { source: 'venues', id: feature.id };
+        setHoveredVenue(feature.properties?.name);
       });
 
       // Fit map to show all venues with tighter zoom
@@ -939,6 +1151,22 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
       }
     }
+
+    // Clear touch hover state on touchend anywhere on map
+    const handleTouchEnd = () => {
+      if (hoveredFeatureRef.current?.source === 'venues' && map.current) {
+        map.current.setFeatureState(
+          { source: 'venues', id: hoveredFeatureRef.current.id },
+          { hover: false }
+        );
+        hoveredFeatureRef.current = null;
+        setHoveredVenue(null);
+      }
+    };
+
+    map.current.on('touchend', handleTouchEnd);
+    map.current.on('touchcancel', handleTouchEnd);
+
   }, [venueData, viewLevel]);
 
   return (
