@@ -1,183 +1,237 @@
 
 
-# ShowReviewSheet UI Refinements
+# ShowReviewSheet Feature Enhancements
 
-## Summary of Changes
+## Overview
+Add five missing features to complete the ShowReviewSheet as a comprehensive show details view with full sharing, editing, and management capabilities.
 
-Based on your feedback, I'll make the following adjustments to the ShowReviewSheet and HeroPhotoSection:
+## Features to Implement
 
-| Issue | Current | Fix |
-|-------|---------|-----|
-| 1. Share button missing | Button exists at line 343-355 but may not be visible | Verify it's rendering; check for conditional issues |
-| 2. Scene logo placement | Bottom-right at `bottom-20 right-4` | Move to top-right corner |
-| 3. Rank needs context | Shows only `#1` | Change to `#1 All Time` and reposition under venue/date |
-| 4. "Performance" label | Says "Performance" | Change to "Show" |
-| 5. Edit button on photo | Not present on photo | Add pencil icon button to top-left of photo |
-| 6. Remove header | Has "Close" and "Edit" buttons | Delete the header row entirely (X exists on Sheet, edit moves to photo) |
+| Feature | Description | Pattern Reference |
+|---------|-------------|-------------------|
+| Send to Friends | Web Share API for SMS/iMessage sharing | `PhotoOverlayEditor.handleShareWithFriends` |
+| Edit Review | Ghost button to modify ratings/notes | Existing `onEdit` prop (unused after header removal) |
+| Delete Show | Confirmation dialog + transactional delete | `Home.tsx` AlertDialog pattern |
+| Supporting Artists | Display openers below headliner | `show.artists` array filtering |
+| Rank Comparisons | Show basis for ranking (e.g., "from 12 comparisons") | `comparisonsCount` already passed to HeroPhotoSection |
 
 ## Implementation Details
 
-### 1. Verify Share Button Rendering
+### 1. Send to Friends Button
 
-The Share to Instagram button exists in ShowReviewSheet at lines 343-355. I'll verify it's properly positioned and visible. The button should render correctly as a full-width gradient CTA.
+Add a "Send" ghost button that uses the Web Share API pattern from PhotoOverlayEditor.
 
-### 2. Move Scene Logo to Top-Right
+**Location**: Secondary actions row (alongside "Change Photo" and "Remove")
 
-**File:** `src/components/show-review/HeroPhotoSection.tsx`
-
-Current (line 99-102):
+**Logic**:
 ```typescript
-<div className="absolute bottom-20 right-4">
-  <SceneLogo size="sm" />
-</div>
+const handleSendToFriends = async () => {
+  const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
+  const shareText = `Check out this show: ${headliner?.name} at ${show.venue.name}!`;
+  
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `${headliner?.name} at ${show.venue.name}`,
+        text: shareText,
+      });
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        toast({ title: "Share failed", variant: "destructive" });
+      }
+    }
+  } else {
+    // Fallback: copy to clipboard
+    await navigator.clipboard.writeText(shareText);
+    toast({ title: "Copied to clipboard" });
+  }
+};
 ```
 
-New position - top-right (replacing score badge position, score moves elsewhere):
+**UI**: Ghost button with `MessageCircle` or `Send` icon, positioned in secondary actions row.
+
+### 2. Edit Review Button
+
+Re-expose the `onEdit` callback that was removed with the header.
+
+**Location**: Secondary actions row
+
+**UI**:
 ```typescript
-<div className="absolute top-3 right-3">
-  <SceneLogo size="sm" />
-</div>
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={() => {
+    onOpenChange(false);
+    onEdit(show);
+  }}
+  className="text-white/50 hover:text-white hover:bg-white/10"
+>
+  <Pencil className="h-4 w-4 mr-2" />
+  Edit Review
+</Button>
 ```
 
-Since the score badge is currently at top-right, I'll move the score into the glass metadata bar at the bottom alongside the artist name.
+### 3. Delete Show with Confirmation
 
-### 3. Add Context to Rank Badge + Reposition
+Add AlertDialog confirmation flow matching the Home.tsx pattern.
 
-**File:** `src/components/show-review/HeroPhotoSection.tsx`
-
-Current (line 59-66):
-- Position: Top-left
-- Display: Just `#1`
-
-New approach:
-- Position: Inside the bottom glass metadata bar, below venue/date
-- Display: `#1 All Time` with the existing glow styling
-
-Updated glass metadata bar:
+**New Props**:
 ```typescript
-<div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
-  <h2 className="font-black text-xl text-white tracking-wide truncate">
-    {headliner?.name}
-  </h2>
-  <p className="text-white/60 text-sm mt-1 truncate">
-    {venue.name} · {formattedDate}
-  </p>
-  {/* Rank with context */}
-  <div className="mt-2 flex items-center gap-2">
-    <span className="text-white/80 text-sm font-bold">#{position} All Time</span>
-  </div>
-</div>
-```
-
-The score badge will also move into this bar, creating a complete info section.
-
-### 4. Change "Performance" to "Show"
-
-**File:** `src/components/ShowReviewSheet.tsx`
-
-Current (line 311-315):
-```typescript
-<CompactRatingBar 
-  icon={<Mic2 className="h-4 w-4" />} 
-  label="Performance" 
-  value={show.artistPerformance} 
-/>
-```
-
-Change to:
-```typescript
-<CompactRatingBar 
-  icon={<Mic2 className="h-4 w-4" />} 
-  label="Show" 
-  value={show.artistPerformance} 
-/>
-```
-
-### 5. Add Edit Pencil Button to Photo (Top-Left)
-
-**File:** `src/components/show-review/HeroPhotoSection.tsx`
-
-Add new prop `onEditPhoto` to open the PhotoOverlayEditor:
-```typescript
-interface HeroPhotoSectionProps {
+interface ShowReviewSheetProps {
   // ... existing props
-  onEditPhoto?: () => void;
+  onDelete?: (showId: string) => void;
 }
 ```
 
-Add edit button at top-left when photo exists:
+**State**:
 ```typescript
-{/* Top Left: Edit Photo Button */}
-{photoUrl && onEditPhoto && (
-  <button
-    onClick={onEditPhoto}
-    className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-  >
-    <Pencil className="h-4 w-4 text-white/80" />
-  </button>
+const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+```
+
+**UI**: Red-tinted ghost button with `Trash2` icon at the end of secondary actions.
+
+**Dialog**:
+```typescript
+<AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Delete this show?</AlertDialogTitle>
+      <AlertDialogDescription>
+        This will permanently delete <strong>{headliner?.name}</strong> at {show.venue.name}.
+        This action cannot be undone.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction 
+        onClick={() => onDelete?.(show.id)}
+        className="bg-destructive text-destructive-foreground"
+      >
+        Delete
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+### 4. Supporting Artists Display
+
+Show opener/supporting acts below the headliner in the HeroPhotoSection metadata bar.
+
+**File**: `src/components/show-review/HeroPhotoSection.tsx`
+
+**Logic**:
+```typescript
+const headliner = artists.find(a => a.isHeadliner) || artists[0];
+const supportingArtists = artists.filter(a => !a.isHeadliner && a.name !== headliner?.name);
+```
+
+**UI Addition** (below headliner name):
+```typescript
+{supportingArtists.length > 0 && (
+  <p className="text-white/40 text-xs mt-0.5 truncate">
+    with {supportingArtists.map(a => a.name).join(', ')}
+  </p>
 )}
 ```
 
-### 6. Remove Header Row
+### 5. Rank Comparisons Context
 
-**File:** `src/components/ShowReviewSheet.tsx`
+Display how many comparisons were used to calculate the ranking.
 
-Delete lines 264-284 (the entire header div with "Close" and "Edit" buttons):
+**File**: `src/components/show-review/HeroPhotoSection.tsx`
+
+**Current** (line 89-91):
 ```typescript
-// DELETE THIS ENTIRE BLOCK
-<div className="flex items-center justify-between py-2 mb-4">
-  <button onClick={() => onOpenChange(false)} ...>Close</button>
-  <Button onClick={() => onEdit(show)} ...>Edit</Button>
-</div>
+<p className="text-white/50 text-xs mt-1.5">
+  {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
+</p>
 ```
 
-The SheetContent already has a built-in X close button, and edit functionality moves to the photo's pencil icon.
+**Updated**:
+```typescript
+<p className="text-white/50 text-xs mt-1.5">
+  {rankPosition > 0 
+    ? `#${rankPosition} All Time${comparisonsCount > 0 ? ` · ${comparisonsCount} comparisons` : ''}`
+    : "Unranked"
+  }
+</p>
+```
 
-## Updated Visual Layout
+This leverages the `comparisonsCount` prop that's already being passed but not displayed.
+
+## Updated Secondary Actions Layout
+
+Replace the current conditional photo-only actions with a comprehensive row:
 
 ```text
-┌─────────────────────────────────────────────┐
-│  (Sheet's built-in X button in corner)      │
-│                                             │
-│  ┌───────────────────────────────────────┐  │
-│  │                                       │  │
-│  │         HERO PHOTO                    │  │
-│  │                                       │  │
-│  │   ┌─────┐                 ┌─────────┐ │  │
-│  │   │ ✏️  │                 │Scene ✦  │ │  │  ← Edit (top-left), Logo (top-right)
-│  │   └─────┘                 └─────────┘ │  │
-│  │                                       │  │
-│  │   ┌─────────────────────────────────┐ │  │
-│  │   │  ARTIST NAME              9.2   │ │  │  ← Score moves here
-│  │   │  Venue · Date                   │ │  │
-│  │   │  #1 All Time                    │ │  │  ← Rank with context
-│  │   └─────────────────────────────────┘ │  │
-│  └───────────────────────────────────────┘  │
-│                                             │
-│  ┌───────────────────────────────────────┐  │
-│  │ 🎤 Show         ████████░░░  Great    │  │  ← "Show" not "Performance"
-│  │ 🔊 Sound        ██████████░  Amazing  │  │
-│  │ ...                                   │  │
-│  └───────────────────────────────────────┘  │
-│                                             │
-│  ┌───────────────────────────────────────┐  │
-│  │   ✦ Share to Instagram                │  │  ← Gradient CTA
-│  └───────────────────────────────────────┘  │
-│                                             │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  [📤 Send]   [✏️ Edit Review]   [📷 Change Photo]   [🗑️]   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Code Structure**:
+```typescript
+{/* Secondary Actions - Always visible */}
+<div className="flex gap-2 justify-center flex-wrap">
+  <Button variant="ghost" size="sm" onClick={handleSendToFriends}>
+    <Send className="h-4 w-4 mr-2" />
+    Send
+  </Button>
+  <Button variant="ghost" size="sm" onClick={() => { onOpenChange(false); onEdit(show); }}>
+    <Pencil className="h-4 w-4 mr-2" />
+    Edit Review
+  </Button>
+  {photoUrl && (
+    <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
+      <Upload className="h-4 w-4 mr-2" />
+      Change Photo
+    </Button>
+  )}
+  <Button 
+    variant="ghost" 
+    size="sm" 
+    onClick={() => setShowDeleteConfirm(true)}
+    className="text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
+  >
+    <Trash2 className="h-4 w-4" />
+  </Button>
+</div>
 ```
 
 ## Files to Edit
 
 | File | Changes |
 |------|---------|
-| `src/components/show-review/HeroPhotoSection.tsx` | Move Scene logo to top-right, add edit pencil to top-left, move rank badge into metadata bar with "All Time" context, move score into metadata bar |
-| `src/components/ShowReviewSheet.tsx` | Remove header row, change "Performance" to "Show", pass `onEditPhoto` callback to HeroPhotoSection |
+| `src/components/ShowReviewSheet.tsx` | Add Send handler, Edit button, Delete dialog, reorganize secondary actions |
+| `src/components/show-review/HeroPhotoSection.tsx` | Add supporting artists display, enhance rank with comparisons count |
 
-## Technical Notes
+## New Imports (ShowReviewSheet.tsx)
 
-1. **Edit button callback**: The `onEditPhoto` will call the existing `onShareToEditor` prop since that opens the PhotoOverlayEditor
-2. **Rank display**: Will show "Unranked" if no comparisons, otherwise `#X All Time`
-3. **Score placement**: Moving score into the glass bar keeps the visual hierarchy clean while freeing up space for the logo
-4. **No-photo state**: Will maintain similar layout but without the edit pencil (no photo to edit)
+```typescript
+import { Send, Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+```
+
+## Props Update
+
+The `onDelete` callback needs to be added to `ShowReviewSheetProps` and wired up from `Home.tsx` to trigger the existing delete logic.
+
+## Summary
+
+These additions complete the ShowReviewSheet as a full-featured show management view:
+- **Share**: Instagram (primary) + Send to Friends (secondary)
+- **Edit**: Quick access to modify review details
+- **Delete**: Safe removal with confirmation
+- **Context**: Supporting artists and ranking basis visible at a glance
 
