@@ -1,6 +1,6 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Upload, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles, Send, Pencil, Trash2 } from "lucide-react";
+import { Upload, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles, Send, Pencil, Trash2, Download } from "lucide-react";
 import { parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -58,6 +58,7 @@ interface ShowReviewSheetProps {
   onEdit: (show: Show) => void;
   onShareToEditor?: (show: Show) => void;
   onDelete?: (showId: string) => void;
+  onNavigateToRank?: () => void;
   allShows?: Show[];
   rankings?: ShowRanking[];
 }
@@ -69,6 +70,7 @@ export const ShowReviewSheet = ({
   onEdit, 
   onShareToEditor,
   onDelete,
+  onNavigateToRank,
   allShows = [], 
   rankings = [] 
 }: ShowReviewSheetProps) => {
@@ -299,6 +301,85 @@ export const ShowReviewSheet = ({
     setShowDeleteConfirm(false);
   };
 
+  const handleRankThisShow = () => {
+    onOpenChange(false);
+    onNavigateToRank?.();
+  };
+
+  const handleDownloadImage = async () => {
+    if (photoUrl) {
+      // If photo exists, download it directly
+      try {
+        const response = await fetch(photoUrl);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${headliner?.name}-${show.venue.name}.jpg`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "Image saved", description: "Photo downloaded to your device" });
+      } catch (error) {
+        toast({ title: "Download failed", description: "Could not save the image", variant: "destructive" });
+      }
+    } else {
+      // No photo - create a simple card image
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        toast({ title: "Download failed", variant: "destructive" });
+        return;
+      }
+
+      // Draw gradient background
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, '#1a1a2e');
+      gradient.addColorStop(1, '#16213e');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw show info
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 72px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(headliner?.name || '', canvas.width / 2, canvas.height / 2 - 100);
+      
+      ctx.font = '48px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillText(show.venue.name, canvas.width / 2, canvas.height / 2);
+      
+      ctx.font = '36px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      const formattedDate = new Date(show.date).toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      ctx.fillText(formattedDate, canvas.width / 2, canvas.height / 2 + 80);
+
+      // Draw score
+      ctx.font = 'bold 120px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(score.toFixed(1), canvas.width / 2, canvas.height / 2 + 300);
+
+      // Download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${headliner?.name}-${show.venue.name}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: "Image saved", description: "Show card downloaded to your device" });
+        }
+      }, 'image/png');
+    }
+  };
+
   const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
 
   return (
@@ -323,6 +404,7 @@ export const ShowReviewSheet = ({
                 onOpenChange(false);
                 onShareToEditor(show);
               } : undefined}
+              onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
             />
 
             {/* Compact Ratings */}
@@ -390,6 +472,15 @@ export const ShowReviewSheet = ({
               >
                 <Send className="h-4 w-4 mr-2" />
                 Send
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownloadImage}
+                className="text-white/50 hover:text-white hover:bg-white/10"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Save
               </Button>
               <Button
                 variant="ghost"
