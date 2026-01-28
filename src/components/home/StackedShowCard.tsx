@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
 import { cn, getScoreGradient, calculateShowScore } from "@/lib/utils";
 import { forwardRef } from "react";
+import SceneLogo from "@/components/ui/SceneLogo";
 
 interface Artist {
   name: string;
@@ -165,13 +166,8 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               </div>
               
               {/* Scene Logo */}
-              <div 
-                className="absolute bottom-4 right-4 text-white/75 font-black text-sm tracking-[0.25em] uppercase"
-                style={{
-                  textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)"
-                }}
-              >
-                Scene ✦
+              <div className="absolute bottom-4 right-4">
+                <SceneLogo />
               </div>
             </div>
           </div>
