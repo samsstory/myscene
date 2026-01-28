@@ -415,7 +415,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
             className="flex items-center gap-2 bg-white/[0.05] border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowUpDown className="h-4 w-4" />
-            <span>{sortDirection === "best-first" ? "Best First" : "Worst First"}</span>
+            <span>{sortDirection === "best-first" ? "Best" : "Worst"}</span>
           </Button>
         </div>
 
