@@ -321,7 +321,12 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
 
         {/* Recent Shows */}
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Recent Shows</h3>
+          <h3 
+            className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+            style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+          >
+            Recent Shows
+          </h3>
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
