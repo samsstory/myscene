@@ -1,4 +1,4 @@
-import { LucideIcon, ChevronRight } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -24,9 +24,9 @@ interface StatPillsProps {
 const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
   if (isLoading) {
     return (
-      <div className="flex gap-3 pb-2">
+      <div className="flex gap-2 pb-2 items-center">
         {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-16 w-24 rounded-2xl flex-shrink-0" />
+          <Skeleton key={i} className="h-12 w-20 rounded-xl flex-shrink-0 bg-white/[0.03]" />
         ))}
       </div>
     );
@@ -34,7 +34,7 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
 
   return (
     <ScrollArea className="w-full whitespace-nowrap">
-      <div className="flex gap-3 pb-2">
+      <div className="flex gap-2 pb-2 items-center">
         {stats.map((stat) => {
           const isInteractive = stat.action !== null && stat.action !== undefined;
           
@@ -44,28 +44,30 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
               onClick={() => isInteractive && onPillTap?.(stat.action!, stat.actionPayload)}
               disabled={!isInteractive}
               className={cn(
-                "flex-shrink-0 px-4 py-3 rounded-2xl bg-card border transition-all text-left",
-                stat.highlight 
-                  ? "border-primary/30 bg-gradient-to-br from-primary/10 to-card" 
-                  : "border-border",
-                isInteractive && "hover:border-primary/50 hover:bg-accent/50 active:scale-95 cursor-pointer",
+                "flex-shrink-0 px-3 py-2 rounded-xl transition-all text-center",
+                "bg-white/[0.03] backdrop-blur-sm",
+                isInteractive && "hover:bg-white/[0.08] active:scale-95 cursor-pointer",
                 !isInteractive && "cursor-default"
               )}
             >
-              <div className="flex items-center gap-2">
-                {stat.icon && <stat.icon className="h-3.5 w-3.5 text-primary" />}
-                <span className="text-xs text-muted-foreground">{stat.label}</span>
+              <div className="flex items-center justify-center gap-1.5">
+                {stat.icon && (
+                  <stat.icon 
+                    className="h-3 w-3 text-white/40" 
+                    style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.2))" }}
+                  />
+                )}
+                <span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">
+                  {stat.label}
+                </span>
               </div>
-              <div className="flex items-center justify-between gap-2 mt-0.5">
-                <span className={cn(
-                  "text-xl font-bold",
-                  stat.highlight && "bg-gradient-primary bg-clip-text text-transparent"
-                )}>
+              <div className="mt-0.5">
+                <span 
+                  className="text-lg font-bold text-white/90"
+                  style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}
+                >
                   {stat.value}
                 </span>
-                {isInteractive && (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-                )}
               </div>
             </button>
           );
