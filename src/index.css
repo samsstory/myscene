@@ -93,4 +93,10 @@ All colors MUST be HSL.
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Smooth scrolling for card stacks */
+  .scroll-smooth-momentum {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
 }

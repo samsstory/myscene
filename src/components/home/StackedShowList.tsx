@@ -141,7 +141,7 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
   return (
     <div
       ref={containerRef}
-      className="overflow-y-auto snap-y snap-mandatory max-h-[70vh] scrollbar-hide"
+      className="overflow-y-auto snap-y snap-mandatory max-h-[70vh] scrollbar-hide scroll-smooth-momentum"
       style={{ scrollSnapType: "y mandatory" }}
     >
       <div className="relative pb-32 pt-2">
@@ -154,6 +154,7 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
               zIndex: getZIndex(index, expandedIndex, shows.length),
               position: "relative",
               pointerEvents: "auto",
+              scrollSnapStop: "always",
             }}
           >
             <StackedShowCard
