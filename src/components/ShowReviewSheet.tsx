@@ -400,10 +400,7 @@ export const ShowReviewSheet = ({
               comparisonsCount={rankData.comparisons}
               onPhotoUpload={handlePhotoUpload}
               fileInputRef={fileInputRef}
-              onEditPhoto={photoUrl && onShareToEditor ? () => {
-                onOpenChange(false);
-                onShareToEditor(show);
-              } : undefined}
+              onChangePhoto={() => fileInputRef.current?.click()}
               onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
             />
 
