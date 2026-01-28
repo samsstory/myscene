@@ -18,7 +18,7 @@ import { toast } from "sonner";
 // Home components
 import StatPills, { StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
-import RecentShowCard from "./home/RecentShowCard";
+import StackedShowList from "./home/StackedShowList";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
 
@@ -328,26 +328,16 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
                 <Skeleton key={i} className="h-28 w-full rounded-xl" />
               ))}
             </div>
-          ) : recentShows.length === 0 ? (
-            <Card className="border-border">
-              <CardContent className="py-12 text-center">
-                <Music2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-muted-foreground">No shows yet. Add your first concert!</p>
-              </CardContent>
-            </Card>
           ) : (
-            recentShows.map((show) => (
-              <RecentShowCard
-                key={show.id}
-                show={show}
-                rankInfo={getShowRankInfo(show.id)}
-                onTap={(s) => {
-                  setReviewShow(s);
-                  setReviewSheetOpen(true);
-                }}
-                onShare={handleShareFromCard}
-              />
-            ))
+            <StackedShowList
+              shows={recentShows}
+              getRankInfo={getShowRankInfo}
+              onShowTap={(show) => {
+                setReviewShow(show);
+                setReviewSheetOpen(true);
+              }}
+              onShowShare={handleShareFromCard}
+            />
           )}
         </div>
       </div>
