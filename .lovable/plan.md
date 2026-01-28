@@ -1,265 +1,130 @@
 
 
-# Stacked Memory Cards - "Rolodex" Show Feed
+# Enhanced Stacked Card Layout
 
-## Overview
+## Summary
 
-Replace the current vertical card list with a **stacked, overlapping card interface** where shows layer on top of each other like a deck of cards. Each card shows a "peek" header (artist name only) until scrolled into focus, when it expands to reveal the full photo and metadata.
+Update the "Rolodex" card stacking to create a true deck-of-cards effect where collapsed cards overlap slightly and the expanded card visually "pops" above cards both above and below it.
 
 ---
 
-## Visual Design
+## Visual Concept
 
 ```text
-┌─────────────────────────────────────────────┐
-│  Stat Pills + Dynamic Insight               │
-├─────────────────────────────────────────────┤
-│                                             │
-│  Recent Shows                               │
-│                                             │
-│  ┌─────────────────────────────────────┐    │
-│  │  ░░░░░░░░░░░░ Collapsed Card ░░░░░░░│◄── Peek header only
-│  │  Tyler, the Creator                 │    (~60px visible)
-│  ├─────────────────────────────────────┤    │
-│  │  ░░░░░░░░░░░░ Collapsed Card ░░░░░░░│    │
-│  │  Kendrick Lamar                     │    │
-│  ├═════════════════════════════════════┤    │
-│  │                                     │    │
-│  │    ╔════════════════════════════╗   │◄── FOCUSED CARD
-│  │    ║                            ║   │    (Full photo + overlay)
-│  │    ║      [    PHOTO    ]       ║   │    
-│  │    ║                            ║   │    
-│  │    ║  ┌──────────────────────┐  ║   │    
-│  │    ║  │ 9.2  Fred Again..    │  ║   │    
-│  │    ║  │ Red Rocks · Dec 15   │  ║   │    
-│  │    ║  └──────────────────────┘  ║   │    
-│  │    ║               Scene ✦     ║   │    
-│  │    ╚════════════════════════════╝   │    
-│  │                                     │    
-│  ├─────────────────────────────────────┤    
-│  │  Bon Iver                           │◄── Next card peeking
-│  └─────────────────────────────────────┘    
-│                                             │
-└─────────────────────────────────────────────┘
+Before (current):                    After (proposed):
+┌─────────────────┐                  ┌─────────────────┐ z:1
+│ Card 1          │ 8px gap          │ Card 1          │───┐
+├─────────────────┤                  └───────┬─────────┘   │ overlap
+│ Card 2          │ 8px gap              ┌───┴─────────┐ z:2
+├─────────────────┤                      │ Card 2      │───┐
+│ Card 3 EXPANDED │                      └───────┬─────┘   │
+├─────────────────┤                  ╔═══════════╧═════════╗ z:10 (MAX)
+│ Card 4          │                  ║                     ║
+└─────────────────┘                  ║   EXPANDED CARD 3   ║
+                                     ║                     ║
+                                     ╚═══════════╤═════════╝
+                                         ┌───────┴─────┐ z:2
+                                         │ Card 4      │
+                                         └─────────────┘ z:1
 ```
+
+**Z-Index Logic:**
+- Cards above expanded: z-index increases as you get closer to the expanded card
+- Expanded card: highest z-index (always on top)
+- Cards below expanded: z-index decreases as you move away from expanded card
 
 ---
 
-## Card States
+## Changes
 
-### Collapsed State (Peek Header)
+### 1. Increase Collapsed Card Height
 
-```text
-┌─────────────────────────────────────────┐
-│  ▓▓▓▓▓  Gradient bar  ▓▓▓▓▓             │  ← 4px colored bar 
-│  Fred Again..                    #3     │  ← Artist + rank badge
-└─────────────────────────────────────────┘
-     │                                │
-     └── Height: ~60px ───────────────┘
-```
+**File:** `src/components/home/StackedShowCard.tsx`
 
-- **Top gradient bar**: Score-based color (green for 9+, gold for 7+, etc.)
-- **Artist name**: Bold, truncated to single line
-- **Rank badge**: Small pill on the right
-- **Overlap**: Cards stack with ~20px visible between them
-
-### Expanded State (Focused)
-
-```text
-┌─────────────────────────────────────────┐
-│                                         │
-│  ╭───────────────────────────────────╮  │
-│  │                                   │  │
-│  │         [ SHOW PHOTO ]            │  │  ← 16:9 or native ratio
-│  │                                   │  │
-│  │  ┌─────────────────────────────┐  │  │
-│  │  │ 9.2   Fred Again..          │  │  │  ← Floating overlay
-│  │  │       Red Rocks Amphitheatre│  │  │     (like share image)
-│  │  │       Dec 15, 2025          │  │  │
-│  │  └─────────────────────────────┘  │  │
-│  │                        Scene ✦    │  │  ← Glow logo
-│  ╰───────────────────────────────────╯  │
-│                                         │
-│   [ Share ]                    [ View ] │  ← Action buttons
-│                                         │
-└─────────────────────────────────────────┘
-         │                          │
-         └── Height: ~350-400px ────┘
-```
-
-### No-Photo Fallback
-
-When a show has no photo, the expanded card uses a **gradient background** based on score:
-
-```text
-┌─────────────────────────────────────────┐
-│  ╭───────────────────────────────────╮  │
-│  │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  │
-│  │ ▓▓▓▓▓  SCORE GRADIENT  ▓▓▓▓▓▓▓▓▓▓ │  │  ← Uses getScoreGradient()
-│  │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  │
-│  │  ┌─────────────────────────────┐  │  │
-│  │  │ 7.5   Bon Iver              │  │  │
-│  │  │       The Anthem            │  │  │
-│  │  │       Nov 22, 2025          │  │  │
-│  │  └─────────────────────────────┘  │  │
-│  │                        Scene ✦    │  │
-│  ╰───────────────────────────────────╯  │
-└─────────────────────────────────────────┘
-```
-
----
-
-## Interaction Model
-
-| Gesture | Action |
-|---------|--------|
-| Scroll | Cards snap into focus position |
-| Tap collapsed card | Scrolls that card into focus |
-| Tap expanded card | Opens ShowReviewSheet for full details |
-| Tap Share button | Opens PhotoOverlayEditor (if photo) or ShareShowSheet |
-| Swipe horizontally | Could trigger quick-share (future enhancement) |
-
----
-
-## Technical Implementation
-
-### 1. New Component: `StackedShowCard.tsx`
+Increase the padding in the collapsed state from `p-3` to `py-5 px-4` so the card is taller and the artist name has more visual breathing room.
 
 ```tsx
-interface StackedShowCardProps {
-  show: Show;
-  rankInfo: RankInfo;
-  isExpanded: boolean;
-  onExpand: () => void;
-  onTap: () => void;
-  onShare: () => void;
-}
+// Collapsed state CardContent
+<CardContent className="relative py-5 px-4 flex items-center justify-between">
 ```
 
-**Collapsed state renders:**
-- Gradient top bar (4px, score-colored)
-- Artist name (single line, bold)
-- Rank badge (right side)
+### 2. Overlap Cards with Negative Margin
 
-**Expanded state renders:**
-- Full photo with rounded corners
-- Floating overlay (score, artist, venue, date)
-- "Scene" watermark with glow effect
-- Action buttons (Share, View)
+**File:** `src/components/home/StackedShowList.tsx`
 
-### 2. New Component: `StackedShowList.tsx`
-
-**Scroll container with snap behavior:**
+Change the margin from `8px` (gap) to `-20px` (overlap) so cards layer on top of each other.
 
 ```tsx
-<div 
-  className="overflow-y-auto snap-y snap-mandatory"
-  style={{ scrollSnapType: "y mandatory" }}
->
-  {shows.map((show, index) => (
-    <div 
-      key={show.id}
-      className="snap-center"
-      style={{ 
-        marginTop: index === 0 ? 0 : "-40px", // Overlap
-        zIndex: shows.length - index 
-      }}
-    >
-      <StackedShowCard ... />
-    </div>
-  ))}
-</div>
+style={{
+  marginTop: index === 0 ? 0 : "-20px",  // Negative margin creates overlap
+  ...
+}}
 ```
 
-**Intersection Observer** to detect which card is in the viewport center:
+### 3. Dynamic Z-Index Calculation
+
+**File:** `src/components/home/StackedShowList.tsx`
+
+Implement z-index logic that makes the expanded card the highest, with cards ascending toward it from above and below:
 
 ```tsx
-const observerRef = useRef<IntersectionObserver | null>(null);
-
-useEffect(() => {
-  observerRef.current = new IntersectionObserver(
-    (entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-          setExpandedId(entry.target.dataset.showId);
-        }
-      });
-    },
-    { threshold: 0.5, rootMargin: "-40% 0px -40% 0px" }
-  );
-  // ... attach to card refs
-}, []);
+// Calculate z-index based on distance from expanded card
+const getZIndex = (index: number, expandedIndex: number, total: number) => {
+  if (expandedIndex === -1) {
+    // No card expanded - simple descending order
+    return total - index;
+  }
+  
+  if (index === expandedIndex) {
+    // Expanded card is always on top
+    return total + 10;
+  }
+  
+  // Distance from expanded card determines z-index
+  // Cards closer to expanded have higher z-index
+  const distance = Math.abs(index - expandedIndex);
+  return total - distance;
+};
 ```
 
-### 3. Update `Home.tsx`
-
-Replace the current RecentShowCard map with the new StackedShowList:
+**Usage in the map:**
 
 ```tsx
-// Before
-{recentShows.map((show) => (
-  <RecentShowCard key={show.id} ... />
-))}
+const expandedIndex = shows.findIndex(s => s.id === expandedId);
 
-// After
-<StackedShowList 
-  shows={recentShows}
-  rankings={rankings}
-  onShowTap={(show) => { setReviewShow(show); setReviewSheetOpen(true); }}
-  onShowShare={handleShareFromCard}
-/>
-```
-
-### 4. CSS Additions (index.css or tailwind.config.ts)
-
-Add smooth expansion animation:
-
-```css
-.card-expand {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.card-collapsed {
-  height: 60px;
-  overflow: hidden;
-}
-
-.card-expanded {
-  height: auto;
-  min-height: 350px;
-}
+{shows.map((show, index) => (
+  <div
+    style={{
+      marginTop: index === 0 ? 0 : "-20px",
+      zIndex: getZIndex(index, expandedIndex, shows.length),
+      position: "relative",
+      pointerEvents: "auto",
+    }}
+  >
 ```
 
 ---
 
-## Files to Create/Modify
+## Files to Modify
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/home/StackedShowCard.tsx` | **Create** | Individual card with collapsed/expanded states |
-| `src/components/home/StackedShowList.tsx` | **Create** | Scroll container with snap + intersection observer |
-| `src/components/Home.tsx` | **Modify** | Replace RecentShowCard usage with StackedShowList |
-| `src/lib/utils.ts` | **Modify** | Add solid gradient helper for no-photo fallback |
-| `src/index.css` | **Modify** | Add card expansion keyframes |
-| `src/components/home/RecentShowCard.tsx` | **Delete** | No longer needed (replaced by StackedShowCard) |
+| File | Change |
+|------|--------|
+| `src/components/home/StackedShowCard.tsx` | Increase collapsed card padding from `p-3` to `py-5 px-4` |
+| `src/components/home/StackedShowList.tsx` | Change margin from `8px` to `-20px`, add dynamic z-index calculation |
 
 ---
 
-## Edge Cases
+## Technical Details
 
-| Scenario | Handling |
-|----------|----------|
-| 0 shows | Show empty state with CTA to add first show |
-| 1 show | Single expanded card, no stacking |
-| No photo | Use score-based gradient background |
-| Long artist name | Truncate with ellipsis in collapsed state |
-| Multiple artists | Show headliner only in collapsed, full list in expanded |
+**Z-Index Behavior Example** (5 cards, card 3 expanded):
 
----
+| Card | Position | Distance from Expanded | Z-Index |
+|------|----------|------------------------|---------|
+| Card 1 | index 0 | 2 | 3 |
+| Card 2 | index 1 | 1 | 4 |
+| Card 3 | index 2 | 0 (expanded) | 15 |
+| Card 4 | index 3 | 1 | 4 |
+| Card 5 | index 4 | 2 | 3 |
 
-## Performance Considerations
-
-- **Lazy load photos**: Only load images for cards near viewport
-- **Virtualization**: For users with 100+ shows, consider virtualizing the list
-- **Reduce repaints**: Use `will-change: transform` on cards during scroll
+This creates the "pyramid" effect where cards visually stack toward the expanded card from both directions.
 
