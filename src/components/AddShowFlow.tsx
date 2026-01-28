@@ -672,6 +672,46 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
         <div className="space-y-3">
           <p className="text-muted-foreground mb-4">What would you like to edit?</p>
           
+          {/* Photo Option - FIRST */}
+          <button
+            onClick={() => editPhotoInputRef.current?.click()}
+            disabled={editPhotoUploading}
+            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+          >
+            <div className="flex items-center gap-3">
+              {editPhotoUrl ? (
+                <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
+                  <img 
+                    src={editPhotoUrl} 
+                    alt="Show photo" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera className="h-5 w-5 text-primary" />
+                </div>
+              )}
+              <div>
+                <div className="font-semibold">
+                  {editPhotoUploading ? "Uploading..." : "Photo"}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {editPhotoUrl ? "Tap to change" : "Add a photo"}
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* Hidden file input */}
+          <input
+            ref={editPhotoInputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp"
+            className="hidden"
+            onChange={handleEditPhotoUpload}
+          />
+
           <button
             onClick={() => setStep(1)}
             className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
@@ -720,46 +760,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
               </div>
             </div>
           </button>
-
-          {/* Photo Option */}
-          <button
-            onClick={() => editPhotoInputRef.current?.click()}
-            disabled={editPhotoUploading}
-            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
-          >
-            <div className="flex items-center gap-3">
-              {editPhotoUrl ? (
-                <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
-                  <img 
-                    src={editPhotoUrl} 
-                    alt="Show photo" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Camera className="h-5 w-5 text-primary" />
-                </div>
-              )}
-              <div>
-                <div className="font-semibold">
-                  {editPhotoUploading ? "Uploading..." : "Photo"}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {editPhotoUrl ? "Tap to change" : "Add a photo"}
-                </div>
-              </div>
-            </div>
-          </button>
-
-          {/* Hidden file input */}
-          <input
-            ref={editPhotoInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp"
-            className="hidden"
-            onChange={handleEditPhotoUpload}
-          />
 
           <button
             onClick={() => setStep(4)}
