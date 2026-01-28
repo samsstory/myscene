@@ -287,6 +287,12 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       style: "mapbox://styles/mapbox/dark-v11",
       center: defaultCenter,
       zoom: defaultZoom,
+      dragPan: {
+        linearity: 0.25,
+        easing: (t: number) => 1 - Math.pow(1 - t, 3), // Cubic ease-out for natural deceleration
+        deceleration: 3000,
+        maxSpeed: 1800
+      }
     });
 
     
