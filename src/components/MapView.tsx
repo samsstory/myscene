@@ -445,8 +445,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     setViewLevel('venue');
   };
 
-  // Handle reset to world view
+  // Handle reset to world view - zooms out from current location
   const handleResetToWorld = () => {
+    // Get current center before resetting state
+    const currentCenter = map.current?.getCenter();
+    
     // Reset all state
     setViewLevel('country');
     setSelectedCountry(null);
@@ -456,10 +459,10 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     setHoveredCity(null);
     setHoveredVenue(null);
     
-    // Animate map back to world view
-    if (map.current) {
+    // Animate map zooming out from current position
+    if (map.current && currentCenter) {
       map.current.flyTo({
-        center: [0, 20],
+        center: [currentCenter.lng, currentCenter.lat],
         zoom: 1.5,
         duration: 1500,
         essential: true
