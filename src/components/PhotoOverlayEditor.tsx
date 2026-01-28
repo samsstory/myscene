@@ -421,46 +421,55 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       yPos += 18 * scaleY;
     }
 
-    // Detailed ratings - 5-column grid with initials
+    // Detailed ratings - Equalizer style with icons
     if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
       const ratings = [
-        { label: "P", value: show.artist_performance },
-        { label: "S", value: show.sound },
-        { label: "L", value: show.lighting },
-        { label: "C", value: show.crowd },
-        { label: "V", value: show.venue_vibe },
+        { icon: "🎤", value: show.artist_performance },
+        { icon: "🔊", value: show.sound },
+        { icon: "💡", value: show.lighting },
+        { icon: "👥", value: show.crowd },
+        { icon: "✨", value: show.venue_vibe },
       ].filter((r) => r.value);
 
-      const columnWidth = (overlayWidth - padding * 2) / ratings.length;
-      const barHeight = 4 * scaleY;
-      const barWidth = columnWidth - 4 * scaleX;
+      const barWidth = 12 * scaleX;
+      const barHeight = 40 * scaleY;
+      const gap = 8 * scaleX;
+      const totalWidth = ratings.length * barWidth + (ratings.length - 1) * gap;
+      const startX = centerX - totalWidth / 2;
 
-      ctx.font = `${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.textAlign = "center";
       
       ratings.forEach((rating, index) => {
-        const colCenterX = overlayX + padding + columnWidth * index + columnWidth / 2;
+        const barX = startX + index * (barWidth + gap);
+        const barCenterX = barX + barWidth / 2;
         
-        // Label
-        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-        ctx.fillText(rating.label, colCenterX, yPos);
+        // Icon above bar
+        ctx.font = `${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = "white";
+        ctx.fillText(rating.icon, barCenterX, yPos);
         
-        // Bar background
-        const barX = colCenterX - barWidth / 2;
-        const barY = yPos + 4 * scaleY;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
-        ctx.fill();
+        const barTop = yPos + 6 * scaleY;
+        const fillHeight = (rating.value! / 5) * barHeight;
+        const emptyHeight = barHeight - fillHeight;
         
-        // Bar fill
-        const fillWidth = (rating.value! / 5) * barWidth;
-        ctx.fillStyle = "rgba(255, 255, 255, 1)";
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, fillWidth, barHeight, barHeight / 2);
-        ctx.fill();
+        // Empty portion (top) - muted
+        if (emptyHeight > 0) {
+          ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+          ctx.beginPath();
+          ctx.roundRect(barX, barTop, barWidth, emptyHeight, 2 * scaleX);
+          ctx.fill();
+        }
+        
+        // Filled portion (bottom) - solid white, NO GAPS
+        if (fillHeight > 0) {
+          ctx.fillStyle = "rgba(255, 255, 255, 1)";
+          ctx.beginPath();
+          ctx.roundRect(barX, barTop + emptyHeight, barWidth, fillHeight, 2 * scaleX);
+          ctx.fill();
+        }
       });
       
-      yPos += 22 * scaleY;
+      yPos += 56 * scaleY;
     }
 
     // Notes - centered, smaller
@@ -845,52 +854,37 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 </p>
               )}
 
-              {/* Detailed ratings - 5-column grid with initials */}
+              {/* Detailed ratings - Equalizer style with icons */}
               {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
                 <div 
-                  className="grid grid-cols-5 gap-1 text-[10px] mb-2 cursor-pointer transition-opacity hover:opacity-70"
+                  className="flex justify-center gap-2 mb-2 cursor-pointer transition-opacity hover:opacity-70"
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showDetailedRatings"); }}
                 >
-                  {show.artist_performance && (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="opacity-60">P</span>
-                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.artist_performance / 5) * 100}%` }} />
+                  {[
+                    { icon: "🎤", value: show.artist_performance },
+                    { icon: "🔊", value: show.sound },
+                    { icon: "💡", value: show.lighting },
+                    { icon: "👥", value: show.crowd },
+                    { icon: "✨", value: show.venue_vibe },
+                  ].filter(r => r.value).map((rating, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-0.5">
+                      {/* Icon label */}
+                      <span className="text-[10px]">{rating.icon}</span>
+                      {/* Equalizer bar - continuous fill from bottom, NO GAPS */}
+                      <div className="flex flex-col w-3 h-10 rounded-sm overflow-hidden">
+                        {/* Empty portion above - muted */}
+                        <div 
+                          className="w-full bg-white/20"
+                          style={{ height: `${((5 - rating.value!) / 5) * 100}%` }}
+                        />
+                        {/* Filled portion - continuous block from bottom */}
+                        <div 
+                          className="w-full bg-white"
+                          style={{ height: `${(rating.value! / 5) * 100}%` }}
+                        />
                       </div>
                     </div>
-                  )}
-                  {show.sound && (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="opacity-60">S</span>
-                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.sound / 5) * 100}%` }} />
-                      </div>
-                    </div>
-                  )}
-                  {show.lighting && (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="opacity-60">L</span>
-                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.lighting / 5) * 100}%` }} />
-                      </div>
-                    </div>
-                  )}
-                  {show.crowd && (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="opacity-60">C</span>
-                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.crowd / 5) * 100}%` }} />
-                      </div>
-                    </div>
-                  )}
-                  {show.venue_vibe && (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="opacity-60">V</span>
-                      <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white rounded-full" style={{ width: `${(show.venue_vibe / 5) * 100}%` }} />
-                      </div>
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
 
