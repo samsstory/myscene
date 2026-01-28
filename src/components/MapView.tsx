@@ -13,7 +13,7 @@ import {
 import { Edit, MapPin, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MapBreadcrumb from "./map/MapBreadcrumb";
+import MapNavButton from "./map/MapNavButton";
 import MapRightPanel from "./map/MapRightPanel";
 import MapHoverCard from "./map/MapHoverCard";
 
@@ -72,6 +72,9 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const [venueData, setVenueData] = useState<VenueData[]>([]);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [hoveredVenue, setHoveredVenue] = useState<string | null>(null);
+  
+  // Navigation history for "drill back down" functionality
+  const [lastCountry, setLastCountry] = useState<string | null>(null);
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -444,22 +447,26 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     setViewLevel('venue');
   };
 
-  // Handle breadcrumb navigation
-  const handleBreadcrumbNavigate = (level: 'country' | 'city') => {
-    if (level === 'country') {
-      setViewLevel('country');
-      setSelectedCountry(null);
-      setSelectedCity(null);
-      setCityData([]);
-      setVenueData([]);
-      setHoveredCity(null);
-      setHoveredVenue(null);
-    } else if (level === 'city' && viewLevel === 'venue') {
+  // Handle navigation button click - context-aware up/down navigation
+  const handleNavButtonClick = () => {
+    if (viewLevel === 'venue') {
+      // At venue level: go back to city level
       setViewLevel('city');
       setVenueData([]);
       setSelectedCity(null);
       setHoveredVenue(null);
+    } else if (viewLevel === 'city') {
+      // At city level: save current country, go to world
+      setLastCountry(selectedCountry);
+      setViewLevel('country');
+      setSelectedCountry(null);
+      setCityData([]);
+      setHoveredCity(null);
+    } else if (viewLevel === 'country' && lastCountry) {
+      // At world level with history: drill back to last country
+      handleCountryClick(lastCountry);
     }
+    // At world level without history: do nothing (button is disabled)
   };
 
   // Calculate stats
@@ -937,16 +944,15 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     <div className="relative w-full h-[calc(100vh-180px)] min-h-[400px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
 
-      {/* Breadcrumb navigation */}
+      {/* Context-aware navigation button */}
       <div className="absolute top-4 left-4 z-10">
-        <div className="backdrop-blur-xl bg-black/40 border border-white/10 rounded-xl px-3 py-2 shadow-lg">
-          <MapBreadcrumb
-            viewLevel={viewLevel}
-            selectedCountry={selectedCountry}
-            selectedCity={selectedCity}
-            onNavigate={handleBreadcrumbNavigate}
-          />
-        </div>
+        <MapNavButton
+          viewLevel={viewLevel}
+          selectedCountry={selectedCountry}
+          selectedCity={selectedCity}
+          hasHistory={!!lastCountry}
+          onClick={handleNavButtonClick}
+        />
       </div>
 
       {/* Location notification badge - only shows when there are shows without location */}
