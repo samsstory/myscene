@@ -41,10 +41,11 @@ interface StackedShowCardProps {
   onExpand: () => void;
   onTap: () => void;
   onShare: () => void;
+  onView?: () => void;
 }
 
 const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
-  ({ show, rankInfo, isExpanded, onExpand, onTap, onShare }, ref) => {
+  ({ show, rankInfo, isExpanded, onExpand, onTap, onShare, onView }, ref) => {
     const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
     const artistName = headliner?.name || "Unknown Artist";
     
@@ -202,7 +203,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
                 style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onTap();
+                  onView?.();
                 }}
               >
                 <Eye className="h-4 w-4" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.2))" }} />
