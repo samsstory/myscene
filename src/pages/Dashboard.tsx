@@ -13,6 +13,7 @@ import { ShareShowSheet } from "@/components/ShareShowSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
+import SceneLogo from "@/components/ui/SceneLogo";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -82,9 +83,7 @@ const Dashboard = () => {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Scene
-          </h1>
+          <SceneLogo size="lg" className="text-white" />
           <button
             onClick={() => setActiveTab("profile")}
             className="transition-transform hover:scale-105"
