@@ -494,18 +494,6 @@ export const ShowReviewSheet = ({
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Review
               </Button>
-              {photoUrl && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="text-white/50 hover:text-white hover:bg-white/10"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Change Photo
-                </Button>
-              )}
               {onDelete && (
                 <Button
                   variant="ghost"
