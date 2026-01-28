@@ -383,7 +383,11 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
         {/* Show list */}
         <div className="flex flex-col gap-3">
           {sortedShows.map((show) => {
-            const rankInfo = getShowRankInfo(show.id, filteredShowIds);
+            const baseRankInfo = getShowRankInfo(show.id, filteredShowIds);
+            // When viewing worst-first, show inverted position so worst show appears as #total
+            const rankInfo = sortDirection === "worst-first" && baseRankInfo.position
+              ? { ...baseRankInfo, position: baseRankInfo.total - baseRankInfo.position + 1 }
+              : baseRankInfo;
             return (
               <Card 
                 key={show.id} 
