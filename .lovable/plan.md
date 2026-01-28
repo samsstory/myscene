@@ -1,106 +1,76 @@
 
 
-# Enhanced Stacked Card Layout
+# Add Native Smooth Scroll to Card List
 
 ## Summary
 
-Update the "Rolodex" card stacking to create a true deck-of-cards effect where collapsed cards overlap slightly and the expanded card visually "pops" above cards both above and below it.
+Enhance the stacked card list with native CSS smooth scroll behavior so that swiping, dragging, and all scroll interactions feel fluid and natural on both desktop and mobile.
 
 ---
 
-## Visual Concept
+## Current State
 
-```text
-Before (current):                    After (proposed):
-┌─────────────────┐                  ┌─────────────────┐ z:1
-│ Card 1          │ 8px gap          │ Card 1          │───┐
-├─────────────────┤                  └───────┬─────────┘   │ overlap
-│ Card 2          │ 8px gap              ┌───┴─────────┐ z:2
-├─────────────────┤                      │ Card 2      │───┐
-│ Card 3 EXPANDED │                      └───────┬─────┘   │
-├─────────────────┤                  ╔═══════════╧═════════╗ z:10 (MAX)
-│ Card 4          │                  ║                     ║
-└─────────────────┘                  ║   EXPANDED CARD 3   ║
-                                     ║                     ║
-                                     ╚═══════════╤═════════╝
-                                         ┌───────┴─────┐ z:2
-                                         │ Card 4      │
-                                         └─────────────┘ z:1
-```
+The container currently has:
+- `overflow-y-auto` - enables scrolling
+- `snap-y snap-mandatory` - snaps to card boundaries
+- `scrollbar-hide` - hides the scrollbar visually
+- Programmatic `scrollIntoView({ behavior: "smooth" })` on tap
 
-**Z-Index Logic:**
-- Cards above expanded: z-index increases as you get closer to the expanded card
-- Expanded card: highest z-index (always on top)
-- Cards below expanded: z-index decreases as you move away from expanded card
+**What's Missing:**
+- Native `scroll-behavior: smooth` for manual scroll interactions
+- iOS momentum scrolling (`-webkit-overflow-scrolling: touch`)
+- Smoother snap behavior with `scroll-snap-stop`
 
 ---
 
 ## Changes
 
-### 1. Increase Collapsed Card Height
+### 1. Add Smooth Scroll Utility Class
 
-**File:** `src/components/home/StackedShowCard.tsx`
+**File:** `src/index.css`
 
-Increase the padding in the collapsed state from `p-3` to `py-5 px-4` so the card is taller and the artist name has more visual breathing room.
+Add a new utility class for smooth scrolling with iOS momentum:
 
-```tsx
-// Collapsed state CardContent
-<CardContent className="relative py-5 px-4 flex items-center justify-between">
+```css
+/* Smooth scrolling for card stacks */
+.scroll-smooth-momentum {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
 ```
 
-### 2. Overlap Cards with Negative Margin
+### 2. Apply Smooth Scroll to Container
 
 **File:** `src/components/home/StackedShowList.tsx`
 
-Change the margin from `8px` (gap) to `-20px` (overlap) so cards layer on top of each other.
+Add the new utility class to the scroll container:
 
 ```tsx
-style={{
-  marginTop: index === 0 ? 0 : "-20px",  // Negative margin creates overlap
-  ...
-}}
+<div
+  ref={containerRef}
+  className="overflow-y-auto snap-y snap-mandatory max-h-[70vh] scrollbar-hide scroll-smooth-momentum"
+  style={{ scrollSnapType: "y mandatory" }}
+>
 ```
 
-### 3. Dynamic Z-Index Calculation
+### 3. Add Scroll Snap Stop for Better Control
 
 **File:** `src/components/home/StackedShowList.tsx`
 
-Implement z-index logic that makes the expanded card the highest, with cards ascending toward it from above and below:
+Update card wrapper to use `scroll-snap-stop: always` so the scroll always stops at each card (prevents skipping):
 
 ```tsx
-// Calculate z-index based on distance from expanded card
-const getZIndex = (index: number, expandedIndex: number, total: number) => {
-  if (expandedIndex === -1) {
-    // No card expanded - simple descending order
-    return total - index;
-  }
-  
-  if (index === expandedIndex) {
-    // Expanded card is always on top
-    return total + 10;
-  }
-  
-  // Distance from expanded card determines z-index
-  // Cards closer to expanded have higher z-index
-  const distance = Math.abs(index - expandedIndex);
-  return total - distance;
-};
-```
-
-**Usage in the map:**
-
-```tsx
-const expandedIndex = shows.findIndex(s => s.id === expandedId);
-
-{shows.map((show, index) => (
-  <div
-    style={{
-      marginTop: index === 0 ? 0 : "-20px",
-      zIndex: getZIndex(index, expandedIndex, shows.length),
-      position: "relative",
-      pointerEvents: "auto",
-    }}
-  >
+<div
+  key={show.id}
+  className="snap-center will-change-transform isolate"
+  style={{
+    marginTop: index === 0 ? 0 : "-20px",
+    zIndex: getZIndex(index, expandedIndex, shows.length),
+    position: "relative",
+    pointerEvents: "auto",
+    scrollSnapStop: "always",
+  }}
+>
 ```
 
 ---
@@ -109,22 +79,23 @@ const expandedIndex = shows.findIndex(s => s.id === expandedId);
 
 | File | Change |
 |------|--------|
-| `src/components/home/StackedShowCard.tsx` | Increase collapsed card padding from `p-3` to `py-5 px-4` |
-| `src/components/home/StackedShowList.tsx` | Change margin from `8px` to `-20px`, add dynamic z-index calculation |
+| `src/index.css` | Add `.scroll-smooth-momentum` utility class with smooth scroll and iOS momentum |
+| `src/components/home/StackedShowList.tsx` | Apply smooth scroll class to container, add `scrollSnapStop` to cards |
 
 ---
 
 ## Technical Details
 
-**Z-Index Behavior Example** (5 cards, card 3 expanded):
+**Why These Properties:**
 
-| Card | Position | Distance from Expanded | Z-Index |
-|------|----------|------------------------|---------|
-| Card 1 | index 0 | 2 | 3 |
-| Card 2 | index 1 | 1 | 4 |
-| Card 3 | index 2 | 0 (expanded) | 15 |
-| Card 4 | index 3 | 1 | 4 |
-| Card 5 | index 4 | 2 | 3 |
+| Property | Purpose |
+|----------|---------|
+| `scroll-behavior: smooth` | Native CSS smooth scrolling for all scroll actions (swipe, drag, programmatic) |
+| `-webkit-overflow-scrolling: touch` | iOS Safari momentum/inertia scrolling (feels native) |
+| `scroll-snap-stop: always` | Forces scroll to stop at each card, preventing fast-swipe skip-overs |
 
-This creates the "pyramid" effect where cards visually stack toward the expanded card from both directions.
+**Browser Support:**
+- `scroll-behavior: smooth` - 95%+ support
+- `-webkit-overflow-scrolling: touch` - iOS Safari (gracefully ignored elsewhere)
+- `scroll-snap-stop` - 93%+ support
 
