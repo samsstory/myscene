@@ -10,6 +10,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseIS
 import { ShareShowSheet } from "./ShareShowSheet";
 import { ShowReviewSheet } from "./ShowReviewSheet";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
+import { QuickPhotoAddSheet } from "./QuickPhotoAddSheet";
 import MapView from "./MapView";
 import AddShowFlow from "./AddShowFlow";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
@@ -81,6 +82,10 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
   // Direct photo editor state for feed cards
   const [directEditShow, setDirectEditShow] = useState<Show | null>(null);
   const [directEditOpen, setDirectEditOpen] = useState(false);
+  
+  // Quick photo add sheet state for shows without photos
+  const [quickPhotoShow, setQuickPhotoShow] = useState<Show | null>(null);
+  const [quickPhotoOpen, setQuickPhotoOpen] = useState(false);
 
   const { statPills, insight, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   
@@ -97,13 +102,46 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
     venue_vibe: show.venueVibe,
   });
   
-  // Smart share handler - direct to editor if photo exists, otherwise share sheet
+  // Smart share handler - direct to editor if photo exists, otherwise quick photo add
   const handleShareFromCard = (show: Show) => {
     if (show.photo_url) {
       setDirectEditShow(show);
       setDirectEditOpen(true);
     } else {
-      setShareShow(show);
+      setQuickPhotoShow(show);
+      setQuickPhotoOpen(true);
+    }
+  };
+  
+  // Smart tap handler - same routing as share (card body tap = share flow)
+  const handleShowTap = (show: Show) => {
+    handleShareFromCard(show);
+  };
+  
+  // View handler - opens ShowReviewSheet for detail/edit access
+  const handleShowView = (show: Show) => {
+    setReviewShow(show);
+    setReviewSheetOpen(true);
+  };
+  
+  // Handler when photo is added via QuickPhotoAddSheet
+  const handlePhotoAdded = (photoUrl: string) => {
+    if (quickPhotoShow) {
+      const updatedShow = { ...quickPhotoShow, photo_url: photoUrl };
+      setQuickPhotoOpen(false);
+      // Transition to PhotoOverlayEditor with updated show
+      setDirectEditShow(updatedShow);
+      setDirectEditOpen(true);
+      // Refresh shows list
+      fetchShows();
+    }
+  };
+  
+  // Handler for sharing without photo
+  const handleShareWithoutPhoto = () => {
+    if (quickPhotoShow) {
+      setQuickPhotoOpen(false);
+      setShareShow(quickPhotoShow);
       setShareSheetOpen(true);
     }
   };
@@ -337,11 +375,9 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
             <StackedShowList
               shows={recentShows}
               getRankInfo={getShowRankInfo}
-              onShowTap={(show) => {
-                setReviewShow(show);
-                setReviewSheetOpen(true);
-              }}
+              onShowTap={handleShowTap}
               onShowShare={handleShareFromCard}
+              onShowView={handleShowView}
             />
           )}
         </div>
@@ -392,10 +428,7 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
               <Card 
                 key={show.id} 
                 className="border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer relative"
-                onClick={() => {
-                  setReviewShow(show);
-                  setReviewSheetOpen(true);
-                }}
+                onClick={() => handleShowTap(show)}
               >
                 <CardContent className="p-4 relative">
                   <div className="absolute top-2 right-2 flex items-center gap-1">
@@ -405,8 +438,7 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
                       className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={e => {
                         e.stopPropagation();
-                        setShareShow(show);
-                        setShareSheetOpen(true);
+                        handleShareFromCard(show);
                       }}
                     >
                       <Instagram className="h-4 w-4" />
@@ -535,10 +567,7 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
                           key={show.id}
                           className="relative hover:scale-110 transition-transform cursor-pointer"
                           title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name}`}
-                          onClick={() => {
-                            setReviewShow(show);
-                            setReviewSheetOpen(true);
-                          }}
+                          onClick={() => handleShowTap(show)}
                         >
                           {show.photo_url ? (
                             <div className="relative w-8 h-8">
@@ -605,6 +634,15 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
       )}
 
       <ShareShowSheet show={shareShow} open={shareSheetOpen} onOpenChange={setShareSheetOpen} allShows={shows} rankings={rankings} />
+      
+      {/* Quick Photo Add Sheet for shows without photos */}
+      <QuickPhotoAddSheet
+        show={quickPhotoShow}
+        open={quickPhotoOpen}
+        onOpenChange={setQuickPhotoOpen}
+        onPhotoAdded={handlePhotoAdded}
+        onShareWithoutPhoto={handleShareWithoutPhoto}
+      />
       
       {/* Direct Photo Overlay Editor for feed cards */}
       <Sheet open={directEditOpen} onOpenChange={setDirectEditOpen}>
