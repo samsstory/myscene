@@ -1,159 +1,154 @@
 
-# Add Photo Option to Edit Show Dialog
+# Edit Show UX Refinement: Pencil Button & Photo Priority
 
 ## Overview
 
-Add a "Photo" option to the "Edit Show" step selector that displays the current show photo as a thumbnail and allows users to replace it with a new photo.
+Streamline the edit flow by making the pencil icon in the ShowReviewSheet open the full edit dialog (AddShowFlow) and reorder the edit options to prioritize photo editing.
 
-## Current State
-
-The Edit Show dialog shows 4 options:
-- Venue
-- Date  
-- Artists
-- Details & Notes
-
-The `photo_url` field is **not** passed to the `AddShowFlow` component, even though shows have this data.
+| Change | Current Behavior | New Behavior |
+|--------|------------------|--------------|
+| Pencil icon (top-left) | Opens file picker for photo change | Opens Edit Show dialog |
+| "Edit Review" button | Visible in bottom actions | Removed |
+| Photo option in Edit dialog | 4th position (after Artists) | 1st position (before Venue) |
 
 ## Changes Required
 
-### 1. Update AddShowFlow Props Interface
+### 1. Update HeroPhotoSection Pencil Button
 
-Add `photo_url` to the `editShow` prop type:
+Change the pencil button from triggering `onChangePhoto` (file upload) to `onEditShow` (open edit dialog).
 
+**File**: `src/components/show-review/HeroPhotoSection.tsx`
+
+**Prop Changes**:
 ```typescript
-interface AddShowFlowProps {
-  // ...existing props
-  editShow?: {
-    id: string;
-    // ...existing fields
-    photo_url?: string | null;  // ADD THIS
-  } | null;
+interface HeroPhotoSectionProps {
+  // Remove: onChangePhoto?: () => void;
+  onEditShow?: () => void;  // NEW: Open edit dialog
+  // ... rest of props
 }
 ```
 
-### 2. Update Home.tsx to Pass photo_url
-
-In the `AddShowFlow` component call, include `photo_url`:
-
+**Button Update** (line 70-75):
 ```typescript
-editShow={editShow ? {
-  id: editShow.id,
-  venue: editShow.venue,
-  // ...existing fields
-  photo_url: editShow.photo_url,  // ADD THIS
-} : null}
+<button
+  onClick={onEditShow}  // Changed from onChangePhoto
+  className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+>
+  <Pencil className="h-4 w-4 text-white/80" />
+</button>
 ```
 
-### 3. Add Photo State to AddShowFlow
+### 2. Update ShowReviewSheet
 
-Add state for photo URL and upload handling:
+Wire up the new `onEditShow` prop and remove the "Edit Review" button from the actions row.
 
+**File**: `src/components/ShowReviewSheet.tsx`
+
+**Changes**:
+
+1. Add `handleEditShow` handler:
 ```typescript
-const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-const [uploading, setUploading] = useState(false);
-const fileInputRef = useRef<HTMLInputElement>(null);
-```
-
-Initialize from `editShow.photo_url` in the existing `useEffect`.
-
-### 4. Add Photo Upload Handler
-
-Reuse the photo upload pattern from `ShowReviewSheet`:
-
-```typescript
-const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file || !editShow) return;
-
-  setUploading(true);
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
-
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${editShow.id}-${Date.now()}.${fileExt}`;
-    const filePath = `${user.id}/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('show-photos')
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('show-photos')
-      .getPublicUrl(filePath);
-
-    await supabase.from('shows')
-      .update({ photo_url: publicUrl })
-      .eq('id', editShow.id);
-
-    setPhotoUrl(publicUrl);
-    setHasUnsavedChanges(true);
-    toast.success("Photo updated!");
-  } catch (error) {
-    console.error('Error uploading photo:', error);
-    toast.error("Failed to upload photo");
-  } finally {
-    setUploading(false);
-  }
+const handleEditShow = () => {
+  onOpenChange(false);
+  onEdit(show);
 };
 ```
 
-### 5. Add Photo Option to Step Selector
-
-Insert new option in the step selector UI (between Artists and Details & Notes):
-
+2. Update HeroPhotoSection props (line 391-405):
 ```typescript
-{/* Photo Option */}
-<button
-  onClick={() => fileInputRef.current?.click()}
-  disabled={uploading}
-  className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
->
-  <div className="flex items-center gap-3">
-    {/* Photo thumbnail or icon */}
-    {photoUrl ? (
-      <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
-        <img 
-          src={photoUrl} 
-          alt="Show photo" 
-          className="w-full h-full object-cover"
-        />
-      </div>
-    ) : (
-      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-        <Camera className="h-5 w-5 text-primary" />
-      </div>
-    )}
-    <div>
-      <div className="font-semibold">
-        {uploading ? "Uploading..." : "Photo"}
-      </div>
-      <div className="text-sm text-muted-foreground">
-        {photoUrl ? "Tap to change" : "Add a photo"}
-      </div>
-    </div>
-  </div>
-</button>
-
-{/* Hidden file input */}
-<input
-  ref={fileInputRef}
-  type="file"
-  accept=".jpg,.jpeg,.png,.webp"
-  className="hidden"
-  onChange={handlePhotoUpload}
+<HeroPhotoSection
+  photoUrl={photoUrl}
+  uploading={uploading}
+  score={score}
+  artists={show.artists}
+  venue={show.venue}
+  date={show.date}
+  rankPosition={rankData.position}
+  rankTotal={rankData.total}
+  comparisonsCount={rankData.comparisons}
+  onPhotoUpload={handlePhotoUpload}
+  fileInputRef={fileInputRef}
+  onEditShow={handleEditShow}  // NEW: Opens edit dialog
+  onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
 />
 ```
 
-## Visual Layout
+3. Remove "Edit Review" button (delete lines 482-493):
+```typescript
+// REMOVE THIS BLOCK:
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={() => {
+    onOpenChange(false);
+    onEdit(show);
+  }}
+  className="text-white/50 hover:text-white hover:bg-white/10"
+>
+  <Pencil className="h-4 w-4 mr-2" />
+  Edit Review
+</Button>
+```
+
+### 3. Reorder Edit Options in AddShowFlow
+
+Move the Photo option to the top of the step selector, making it the first editing option.
+
+**File**: `src/components/AddShowFlow.tsx`
+
+**Reorder step selector buttons** (lines 670-788):
+
+Current order:
+1. Venue
+2. Date
+3. Artists
+4. Photo
+5. Details & Notes
+
+New order:
+1. **Photo** (moved to top)
+2. Venue
+3. Date
+4. Artists
+5. Details & Notes
+
+The Photo button block (lines 724-762) should be moved before the Venue button (line 675).
+
+## Updated Visual Flow
+
+### ShowReviewSheet Actions (After Changes)
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │   [✏️]         HERO PHOTO               [Scene]      │  │
+│  │        ↑                                             │  │
+│  │   Tapping opens                                      │  │
+│  │   Edit Show dialog                                   │  │
+│  │                                                      │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │              [✦ Share to Instagram]                  │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  [📤 Send]  [💾 Save]  [🗑️]                               │  │
+│                    ↑                                        │
+│              "Edit Review" removed                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Edit Show Dialog (After Reorder)
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │                        Edit Show                            │
 │                 What would you like to edit?                │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  [📸 thumbnail]  Photo                              │    │  ← FIRST
+│  │                  Tap to change                      │    │
+│  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  [📍]  Venue                                        │    │
@@ -171,17 +166,8 @@ Insert new option in the step selector UI (between Artists and Details & Notes):
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  [📸 thumbnail]  Photo                              │    │  ← NEW
-│  │                  Tap to change                      │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
 │  │  [⭐]  Details & Notes                              │    │
 │  │        Optional details                             │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              [ Save Changes ]                        │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -191,27 +177,20 @@ Insert new option in the step selector UI (between Artists and Details & Notes):
 
 | File | Changes |
 |------|---------|
-| `src/components/AddShowFlow.tsx` | Add photo_url to props, add upload handler, add Photo option in step selector |
-| `src/components/Home.tsx` | Pass photo_url to editShow prop |
-
-## New Imports (AddShowFlow.tsx)
-
-```typescript
-import { Camera } from "lucide-react";
-import { useRef } from "react";
-```
+| `src/components/show-review/HeroPhotoSection.tsx` | Replace `onChangePhoto` prop with `onEditShow` |
+| `src/components/ShowReviewSheet.tsx` | Wire up `onEditShow`, remove "Edit Review" button |
+| `src/components/AddShowFlow.tsx` | Move Photo option to first position in step selector |
 
 ## Technical Notes
 
-1. **Immediate Upload**: Photo is uploaded immediately when selected (same pattern as ShowReviewSheet), not saved with "Save Changes" button
-2. **Thumbnail Display**: Shows actual photo as 40x40 thumbnail when exists, otherwise shows Camera icon
-3. **Loading State**: Button shows "Uploading..." while photo is being uploaded
-4. **Refresh**: `setHasUnsavedChanges(true)` will show the Save Changes button, but the photo is already saved to the database
+1. **Single Entry Point**: The pencil icon now serves as the only edit entry point, simplifying the UX
+2. **Photo Priority**: Moving Photo to the top reflects that it's often the most important visual element users want to update
+3. **Cleanup**: The hidden file input and upload handler in ShowReviewSheet can remain for now (still used by the "no photo" state upload button)
+4. **Consistent Pattern**: This aligns with the memory note about "Edit Show" dialog including photo management
 
 ## Summary
 
-This adds a "Photo" editing option to the Edit Show dialog that:
-- Shows the current photo as a thumbnail (if exists)
-- Allows users to tap to select a new photo
-- Uploads the photo immediately using the existing show-photos storage bucket
-- Provides visual feedback during upload
+This change creates a cleaner, more intuitive editing experience:
+- **Single edit entry point** via pencil icon
+- **Photo-first editing** matches the visual hierarchy of the review sheet
+- **Reduced button clutter** in the actions row
