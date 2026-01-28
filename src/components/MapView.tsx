@@ -3,7 +3,13 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 import { Edit, MapPin, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -523,7 +529,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer with size based on show count
+      // Add layer with size based on show count (increased for better mobile tap targets)
       map.current.addLayer({
         id: 'country-dots',
         type: 'circle',
@@ -531,10 +537,10 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         paint: {
           'circle-radius': [
             'interpolate', ['linear'], ['get', 'showCount'],
-            1, 18,
-            5, 24,
-            10, 30,
-            50, 40
+            1, 22,
+            5, 28,
+            10, 34,
+            50, 44
           ],
           'circle-color': 'hsl(280, 70%, 55%)',
           'circle-opacity': 0.85,
@@ -671,7 +677,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer with size based on show count
+      // Add layer with size based on show count (increased for better mobile tap targets)
       map.current.addLayer({
         id: 'city-dots',
         type: 'circle',
@@ -679,10 +685,10 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         paint: {
           'circle-radius': [
             'interpolate', ['linear'], ['get', 'showCount'],
-            1, 14,
-            5, 20,
-            10, 26,
-            25, 32
+            1, 18,
+            5, 24,
+            10, 30,
+            25, 36
           ],
           'circle-color': 'hsl(189, 94%, 55%)',
           'circle-opacity': 0.85,
@@ -829,7 +835,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         data: geojson
       });
 
-      // Add layer with size based on show count
+      // Add layer with size based on show count (increased for better mobile tap targets)
       map.current.addLayer({
         id: 'venue-dots',
         type: 'circle',
@@ -837,10 +843,10 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         paint: {
           'circle-radius': [
             'interpolate', ['linear'], ['get', 'showCount'],
-            1, 12,
-            3, 16,
-            5, 20,
-            10, 26
+            1, 16,
+            3, 20,
+            5, 24,
+            10, 30
           ],
           'circle-color': 'hsl(35, 90%, 55%)',
           'circle-opacity': 0.9,
@@ -928,7 +934,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   }, [venueData, viewLevel]);
 
   return (
-    <div className="relative w-full h-[600px]">
+    <div className="relative w-full h-[calc(100vh-180px)] min-h-[400px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
 
       {/* Breadcrumb navigation */}
@@ -1051,25 +1057,28 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
         </Card>
       )}
 
-      {/* Selected venue details */}
-      {selectedVenue && (
-        <Card className="absolute bottom-4 left-4 max-w-sm z-10">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-2">{selectedVenue.venueName}</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              {selectedVenue.location}
-            </p>
-            <p className="text-sm mb-3">
-              {selectedVenue.count} {selectedVenue.count === 1 ? "show" : "shows"}
+      {/* Selected venue details - Bottom Sheet */}
+      <Drawer
+        open={!!selectedVenue}
+        onOpenChange={(open) => !open && setSelectedVenue(null)}
+      >
+        <DrawerContent className="max-h-[60vh]">
+          <DrawerHeader>
+            <DrawerTitle>{selectedVenue?.venueName}</DrawerTitle>
+            <DrawerDescription>{selectedVenue?.location}</DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 pb-6">
+            <p className="text-sm mb-3 text-muted-foreground">
+              {selectedVenue?.count} {selectedVenue?.count === 1 ? "show" : "shows"}
             </p>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {selectedVenue.shows.map((show) => (
+              {selectedVenue?.shows.map((show) => (
                 <div
                   key={show.id}
-                  className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
+                  className="text-sm p-3 bg-muted rounded-lg flex items-center justify-between gap-2"
                 >
-                  <div className="flex-1">
-                    <div className="font-medium">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">
                       {show.artists.map(a => a.name).join(", ")}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -1078,7 +1087,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
                   </div>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => onEditShow(show)}
                   >
                     <Edit className="h-3 w-3" />
@@ -1086,17 +1095,9 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
                 </div>
               ))}
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full mt-3"
-              onClick={() => setSelectedVenue(null)}
-            >
-              Close
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };
