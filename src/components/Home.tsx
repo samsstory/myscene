@@ -116,13 +116,8 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
     }
   };
   
-  // Smart tap handler - same routing as share (card body tap = share flow)
+  // Card tap handler - opens ShowReviewSheet for detail view (review-first UX)
   const handleShowTap = (show: Show) => {
-    handleShareFromCard(show);
-  };
-  
-  // View handler - opens ShowReviewSheet for detail/edit access
-  const handleShowView = (show: Show) => {
     setReviewShow(show);
     setReviewSheetOpen(true);
   };
@@ -380,7 +375,6 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
               getRankInfo={getShowRankInfo}
               onShowTap={handleShowTap}
               onShowShare={handleShareFromCard}
-              onShowView={handleShowView}
             />
           )}
         </div>
@@ -708,7 +702,16 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
         onEdit={show => {
           setEditShow(show);
           setEditDialogOpen(true);
-        }} 
+        }}
+        onShareToEditor={(show) => {
+          if (show.photo_url) {
+            setDirectEditShow(show);
+            setDirectEditOpen(true);
+          } else {
+            setQuickPhotoShow(show);
+            setQuickPhotoOpen(true);
+          }
+        }}
         allShows={shows} 
         rankings={rankings} 
       />
