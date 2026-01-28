@@ -93,27 +93,31 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
     }
   }, []);
 
-  // Calculate z-index based on position relative to expanded card
+  // Calculate z-index based on position relative to expanded card.
+  // Important: cards BELOW the expanded card must always be behind it,
+  // even though they overlap upward via negative margins.
   const getZIndex = (index: number, expandedIndex: number, total: number) => {
     if (expandedIndex === -1) {
       // No card expanded - simple descending order (top cards in front)
       return total - index;
     }
-    
+
     if (index === expandedIndex) {
       // Expanded card is always on top
-      return total + 10;
+      return 1000;
     }
-    
+
     if (index < expandedIndex) {
-      // Cards ABOVE expanded: higher index = closer to expanded = higher z-index
-      // But all should be below the expanded card
-      return index + 1;
-    } else {
-      // Cards BELOW expanded: lower index (closer to expanded) = higher z-index
-      // All below the expanded card
-      return total - index;
+      // Cards ABOVE expanded: closer to expanded => higher z-index
+      // Keep them below the expanded card.
+      const distance = expandedIndex - index;
+      return 500 - distance;
     }
+
+    // Cards BELOW expanded: closer to expanded => higher z-index,
+    // but always behind the expanded card.
+    const distance = index - expandedIndex;
+    return 100 - distance;
   };
 
   const expandedIndex = shows.findIndex(s => s.id === expandedId);
