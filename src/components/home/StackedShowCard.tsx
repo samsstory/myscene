@@ -74,7 +74,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
     const extraArtists = show.artists.length > 2 ? ` +${show.artists.length - 2}` : "";
 
     if (!isExpanded) {
-      // Collapsed State - Peek Header
+      // Collapsed State - Peek Header with photo background
       return (
         <div
           ref={ref}
@@ -83,19 +83,32 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
           onClick={onExpand}
         >
           <Card className="border-border shadow-card overflow-hidden">
-            {/* Score gradient bar at top */}
-            <div className={cn("h-1 bg-gradient-to-r", scoreGradient)} />
-            
-            <CardContent className="p-3 flex items-center justify-between">
-              <span className="font-bold text-base truncate flex-1 pr-2">
-                {artistName}
-              </span>
-              <ShowRankBadge 
-                position={rankInfo.position} 
-                total={rankInfo.total} 
-                comparisonsCount={rankInfo.comparisonsCount}
-              />
-            </CardContent>
+            <div className="relative">
+              {/* Background: Photo or Gradient */}
+              {show.photo_url ? (
+                <div 
+                  className="absolute inset-0 bg-cover bg-top"
+                  style={{ backgroundImage: `url(${show.photo_url})` }}
+                />
+              ) : (
+                <div className={cn("absolute inset-0 bg-gradient-to-r", scoreGradient)} />
+              )}
+              
+              {/* Dark overlay for text legibility */}
+              <div className="absolute inset-0 bg-black/50" />
+              
+              {/* Content */}
+              <CardContent className="relative p-3 flex items-center justify-between">
+                <span className="font-bold text-base truncate flex-1 pr-2 text-white drop-shadow-md">
+                  {artistName}
+                </span>
+                <ShowRankBadge 
+                  position={rankInfo.position} 
+                  total={rankInfo.total} 
+                  comparisonsCount={rankInfo.comparisonsCount}
+                />
+              </CardContent>
+            </div>
           </Card>
         </div>
       );
