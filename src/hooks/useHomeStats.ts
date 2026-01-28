@@ -267,13 +267,12 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       action: 'show-detail' as StatPillAction,
       actionPayload: stats.topShow.id,
     }] : []),
-    // Cities -> Globe View
+    // Geographic stat -> Globe View
+    // Smart display: show cities if single country, otherwise show countries
     ...(stats.uniqueCities > 0 ? [{
       id: 'cities',
-      label: stats.uniqueCountries > 1 ? 'Places' : 'Cities',
-      value: stats.uniqueCountries > 1 
-        ? `${stats.uniqueCities}/${stats.uniqueCountries}` 
-        : stats.uniqueCities,
+      label: stats.uniqueCountries <= 1 ? 'Cities' : 'Countries',
+      value: stats.uniqueCountries <= 1 ? stats.uniqueCities : stats.uniqueCountries,
       icon: Globe,
       action: 'globe' as StatPillAction,
     }] : []),
