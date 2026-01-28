@@ -140,6 +140,31 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
             {/* Floating Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             
+            {/* Top Left: Rank Badge */}
+            <div className="absolute top-3 left-3">
+              <ShowRankBadge 
+                position={rankInfo.position} 
+                total={rankInfo.total} 
+                comparisonsCount={rankInfo.comparisonsCount}
+              />
+            </div>
+            
+            {/* Top Right: Instagram Share Button */}
+            <button
+              className={cn(
+                "absolute top-3 right-3 h-8 w-8 rounded-full flex items-center justify-center",
+                "bg-white/10 backdrop-blur-sm border border-white/10",
+                "hover:bg-white/20 transition-all",
+                show.photo_url ? "text-pink-400 hover:text-pink-300" : "text-white/50 hover:text-white/70"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare();
+              }}
+            >
+              <Instagram className="h-4 w-4" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.3))" }} />
+            </button>
+            
             {/* Content Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-4">
               {/* Score Badge */}
@@ -175,27 +200,6 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
                 <SceneLogo />
               </div>
             </div>
-          </div>
-          
-          {/* Action Buttons - Scene aesthetic */}
-          <div className="p-3 flex justify-between items-center bg-white/[0.02]">
-            <button
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/50 hover:text-white/80 hover:bg-white/[0.05] transition-all text-sm"
-              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onShare();
-              }}
-            >
-              <Instagram className="h-4 w-4" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.2))" }} />
-              <span className="font-medium">Share</span>
-            </button>
-            
-            <ShowRankBadge 
-              position={rankInfo.position} 
-              total={rankInfo.total} 
-              comparisonsCount={rankInfo.comparisonsCount}
-            />
           </div>
         </Card>
       </div>
