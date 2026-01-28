@@ -68,13 +68,25 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "home":
-        return <Home onNavigateToRank={() => setActiveTab("rank")} />;
+        return (
+          <Home 
+            onNavigateToRank={() => setActiveTab("rank")} 
+            onAddFromPhotos={() => setShowBulkUpload(true)}
+            onAddSingleShow={() => setShowAddDialog(true)}
+          />
+        );
       case "rank":
         return <Rank />;
       case "profile":
         return <Profile />;
       default:
-        return <Home onNavigateToRank={() => setActiveTab("rank")} />;
+        return (
+          <Home 
+            onNavigateToRank={() => setActiveTab("rank")} 
+            onAddFromPhotos={() => setShowBulkUpload(true)}
+            onAddSingleShow={() => setShowAddDialog(true)}
+          />
+        );
     }
   };
 
