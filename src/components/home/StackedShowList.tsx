@@ -36,10 +36,9 @@ interface StackedShowListProps {
   getRankInfo: (showId: string) => RankInfo;
   onShowTap: (show: Show) => void;
   onShowShare: (show: Show) => void;
-  onShowView?: (show: Show) => void;
 }
 
-const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare, onShowView }: StackedShowListProps) => {
+const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: StackedShowListProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(shows[0]?.id || null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -173,7 +172,6 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare, onShowVie
               onExpand={() => handleExpand(show.id)}
               onTap={() => onShowTap(show)}
               onShare={() => onShowShare(show)}
-              onView={() => onShowView?.(show)}
             />
           </div>
         ))}

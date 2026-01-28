@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Edit, MapPin, Calendar as CalendarIcon, Music2, Upload, X, Image as ImageIcon, Send, ChevronDown } from "lucide-react";
+import { Edit, MapPin, Calendar as CalendarIcon, Music2, Upload, X, Image as ImageIcon, ChevronDown, Instagram } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -46,6 +46,7 @@ interface ShowReviewSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (show: Show) => void;
+  onShareToEditor?: (show: Show) => void;
   allShows?: Show[];
   rankings?: ShowRanking[];
 }
@@ -74,7 +75,7 @@ const RatingBar = ({ label, value }: { label: string; value: number | null | und
   );
 };
 
-export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit, allShows = [], rankings = [] }: ShowReviewSheetProps) => {
+export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit, onShareToEditor, allShows = [], rankings = [] }: ShowReviewSheetProps) => {
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(show?.photo_url || null);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
@@ -366,12 +367,17 @@ export const ShowReviewSheet = ({ show, open, onOpenChange, onEdit, allShows = [
                   variant="default"
                   className="flex-1"
                   onClick={() => {
-                    onOpenChange(false);
-                    setShareSheetOpen(true);
+                    if (onShareToEditor) {
+                      onOpenChange(false);
+                      onShareToEditor(show);
+                    } else {
+                      onOpenChange(false);
+                      setShareSheetOpen(true);
+                    }
                   }}
                 >
-                  <Send className="h-4 w-4 mr-2" />
-                  Share Photo
+                  <Instagram className="h-4 w-4 mr-2" />
+                  Share to Instagram
                 </Button>
                 <Button
                   size="sm"
