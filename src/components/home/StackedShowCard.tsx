@@ -97,12 +97,12 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               {/* Dark overlay for text legibility */}
               <div className="absolute inset-0 bg-black/50" />
               
-              {/* Content - height matches overlap (20px) + visible area */}
-              <CardContent className="relative h-[56px] px-4 flex items-center justify-between p-0">
+              {/* Content */}
+              <CardContent className="relative py-6 px-4 flex items-center justify-between min-h-[60px]">
                 <span className="font-bold text-base truncate flex-1 pr-2 text-white drop-shadow-md">
                   {artistName}
                 </span>
-                <ShowRankBadge
+                <ShowRankBadge 
                   position={rankInfo.position} 
                   total={rankInfo.total} 
                   comparisonsCount={rankInfo.comparisonsCount}
