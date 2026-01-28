@@ -286,7 +286,7 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
       zoom: defaultZoom,
     });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+    
   }, [homeCoordinates]);
 
   // Filter shows without location - only flag if we can't determine country from location text
