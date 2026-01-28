@@ -1,186 +1,209 @@
 
-# Plan: Equalizer-Style Rating Visualization
+# Plan: Context-Aware Rank Toggle Options
 
 ## Overview
 
-Replace the current cryptic single-letter labels (P, S, L, C, V) with horizontal progress bars with an intuitive **equalizer visualization** using icons + continuous vertical bars. Each rating category will have an icon above 5 stacked segments, where filled segments appear as one continuous bar (no gaps) with empty space above.
+Modify the rank toggle popup in the PhotoOverlayEditor to display context-appropriate time period options based on when the show occurred. Shows from different time periods will have different toggle behaviors:
 
-## Current State
+- **This year's shows**: Show popup with "All Time" and "This Year" options
+- **Last year's shows**: Show popup with "All Time" and "Last Year" options  
+- **Older shows (2+ years ago)**: No popup - tapping rank icon simply toggles rank on/off (always shows "All Time")
 
-The detailed ratings currently display as:
-```
-P     S     L     C     V
-[==] [===] [==] [=] [====]
-```
-- Single letters are cryptic and hard to decode
-- Horizontal progress bars don't communicate "how good" visually
-- No immediate visual hierarchy
+## Current Behavior
 
-## Proposed Design
+The rank toggle currently always shows two static options:
+- "All Time"
+- "This Year"
+
+This doesn't make sense for shows from previous years - a 2023 show can't be ranked for "This Year" (2025).
+
+## Proposed Logic
 
 ```text
-🎤    🔊    💡    👥    ✨
-█     █     █     ▁     █
-█     █     █     ▁     █
-█     █     ▁     ▁     █
-▁     █     ▁     ▁     █
-▁     █     ▁     ▁     █
-─────────────────────────
-3/5   5/5   2/5   1/5   5/5
+┌─────────────────────────────────────────────────────────────┐
+│                    Show Date Analysis                        │
+├─────────────────────────────────────────────────────────────┤
+│  If show_date is in current year (2025):                    │
+│    → Show popup: "All Time" | "This Year"                   │
+│                                                             │
+│  If show_date is in last year (2024):                       │
+│    → Show popup: "All Time" | "Last Year"                   │
+│                                                             │
+│  If show_date is older than last year (2023 or earlier):    │
+│    → No popup - just toggle rank visibility (All Time only) │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-**Key Design Elements:**
-1. **Icons above each bar**: Descriptive emojis (🎤 Performance, 🔊 Sound, 💡 Lighting, 👥 Crowd, ✨ Vibe)
-2. **5 vertical segments per bar**: Each segment represents 1 point
-3. **Continuous fill from bottom**: A rating of 3 fills segments 1-3 as one solid block
-4. **Empty segments above**: Remaining 2 segments show as muted/transparent
-5. **Monochrome styling**: White filled, white/20 empty - works on any background
 
 ## Implementation Details
 
-### DOM Rendering (Screen Preview)
+### 1. Add Helper Function for Show Age Category
 
-**Location:** Lines 848-895 in `src/components/PhotoOverlayEditor.tsx`
-
-Replace the current grid with a new equalizer component:
+Add a new function to determine the show's time category:
 
 ```typescript
-{overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
+// Determine show age category for rank options
+const getShowAgeCategory = (): "this-year" | "last-year" | "older" => {
+  const showDate = new Date(show.show_date);
+  const showYear = showDate.getFullYear();
+  const currentYear = new Date().getFullYear();
+  
+  if (showYear === currentYear) return "this-year";
+  if (showYear === currentYear - 1) return "last-year";
+  return "older";
+};
+
+const showAgeCategory = getShowAgeCategory();
+```
+
+### 2. Update Ranking Time Filter Type
+
+Expand the type to support "last-year":
+
+```typescript
+const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "last-year">("all-time");
+```
+
+### 3. Update filterShowsByTime Function
+
+Add support for "last-year" filter:
+
+```typescript
+const filterShowsByTime = (shows: Show[], timeFilter: string) => {
+  if (timeFilter === "all-time") return shows;
+  
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  
+  return shows.filter(s => {
+    const showDate = new Date(s.show_date);
+    
+    if (timeFilter === "this-year") {
+      return showDate.getFullYear() === currentYear;
+    } else if (timeFilter === "last-year") {
+      return showDate.getFullYear() === currentYear - 1;
+    } else if (timeFilter === "this-month") {
+      return showDate.getFullYear() === currentYear && 
+             showDate.getMonth() === currentMonth;
+    }
+    return true;
+  });
+};
+```
+
+### 4. Update Rank Toggle Click Handler
+
+Modify the rank icon button behavior based on show age:
+
+```typescript
+onClick={(e) => { 
+  e.stopPropagation(); 
+  if (item.key === "showRank") {
+    const ageCategory = getShowAgeCategory();
+    
+    if (ageCategory === "older") {
+      // Old shows: just toggle rank on/off, no popup
+      toggleConfig("showRank");
+      setRankingTimeFilter("all-time"); // Force all-time for old shows
+    } else {
+      // Recent shows: show popup
+      if (!overlayConfig.showRank) {
+        toggleConfig("showRank");
+      }
+      setShowRankOptions(!showRankOptions);
+    }
+  } else {
+    toggleConfig(item.key);
+  }
+}}
+```
+
+### 5. Update Rank Options Popup UI
+
+Render context-appropriate options based on show age:
+
+```typescript
+{/* Rank options - context-aware based on show date */}
+{showRankOptions && overlayConfig.showRank && showAgeCategory !== "older" && (
   <div 
-    className="flex justify-center gap-2 mb-2 cursor-pointer transition-opacity hover:opacity-70"
-    onClick={(e) => { e.stopPropagation(); toggleConfig("showDetailedRatings"); }}
+    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl"
+    onClick={(e) => e.stopPropagation()}
   >
-    {[
-      { icon: "🎤", value: show.artist_performance },
-      { icon: "🔊", value: show.sound },
-      { icon: "💡", value: show.lighting },
-      { icon: "👥", value: show.crowd },
-      { icon: "✨", value: show.venue_vibe },
-    ].filter(r => r.value).map((rating, idx) => (
-      <div key={idx} className="flex flex-col items-center gap-0.5">
-        {/* Icon label */}
-        <span className="text-[10px]">{rating.icon}</span>
-        {/* Equalizer bar - 5 segments, bottom-up fill, NO GAPS */}
-        <div className="flex flex-col-reverse w-3 h-10">
-          {/* Filled portion - continuous block */}
-          <div 
-            className="w-full bg-white rounded-sm"
-            style={{ height: `${(rating.value! / 5) * 100}%` }}
-          />
-          {/* Empty portion above - muted */}
-          <div 
-            className="w-full bg-white/20 rounded-sm"
-            style={{ height: `${((5 - rating.value!) / 5) * 100}%` }}
-          />
-        </div>
-      </div>
-    ))}
+    <button
+      onClick={() => { setRankingTimeFilter("all-time"); setShowRankOptions(false); }}
+      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+        rankingTimeFilter === "all-time" 
+          ? "bg-white/20 text-white shadow-sm" 
+          : "text-white/60 hover:text-white/80"
+      }`}
+    >
+      All Time
+    </button>
+    <button
+      onClick={() => { 
+        setRankingTimeFilter(showAgeCategory === "this-year" ? "this-year" : "last-year"); 
+        setShowRankOptions(false); 
+      }}
+      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+        (showAgeCategory === "this-year" && rankingTimeFilter === "this-year") ||
+        (showAgeCategory === "last-year" && rankingTimeFilter === "last-year")
+          ? "bg-white/20 text-white shadow-sm" 
+          : "text-white/60 hover:text-white/80"
+      }`}
+    >
+      {showAgeCategory === "this-year" ? "This Year" : "Last Year"}
+    </button>
   </div>
 )}
 ```
 
-**Visual Result:**
-- Icons clearly indicate what each bar represents
-- Filled portion is ONE continuous element (no segment gaps)
-- Empty portion sits above as a muted block
-- Tall bars = high ratings, immediately communicative
+### 6. Update Rank Display Text
 
-### Canvas Rendering (Export)
-
-**Location:** Lines 424-464 in `src/components/PhotoOverlayEditor.tsx`
-
-Update the canvas drawing to match the DOM visualization:
+The rank display text in the overlay footer already dynamically shows the filter label. Add support for "last-year":
 
 ```typescript
-// Detailed ratings - Equalizer style with icons
-if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
-  const ratings = [
-    { icon: "🎤", value: show.artist_performance },
-    { icon: "🔊", value: show.sound },
-    { icon: "💡", value: show.lighting },
-    { icon: "👥", value: show.crowd },
-    { icon: "✨", value: show.venue_vibe },
-  ].filter((r) => r.value);
+{overlayConfig.showRank && rankData.total > 0 ? (
+  <span 
+    className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
+    onClick={(e) => { e.stopPropagation(); toggleConfig("showRank"); }}
+  >
+    #{rankData.position} {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time'}
+  </span>
+) : (
+  <span />
+)}
+```
 
-  const barWidth = 10 * scaleX;
-  const barHeight = 40 * scaleY;
-  const gap = 8 * scaleX;
-  const totalWidth = ratings.length * barWidth + (ratings.length - 1) * gap;
-  const startX = centerX - totalWidth / 2;
+### 7. Update Canvas Export
 
-  // Draw each bar
-  ratings.forEach((rating, index) => {
-    const barX = startX + index * (barWidth + gap);
-    
-    // Icon above bar
-    ctx.font = `${10 * overlayScale * scaleX}px system-ui`;
-    ctx.fillStyle = "white";
-    ctx.fillText(rating.icon, barX + barWidth / 2, yPos);
-    
-    const barTop = yPos + 4 * scaleY;
-    const fillHeight = (rating.value! / 5) * barHeight;
-    const emptyHeight = barHeight - fillHeight;
-    
-    // Empty portion (top) - muted
-    if (emptyHeight > 0) {
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.beginPath();
-      ctx.roundRect(barX, barTop, barWidth, emptyHeight, 2 * scaleX);
-      ctx.fill();
-    }
-    
-    // Filled portion (bottom) - solid white, NO GAPS
-    ctx.fillStyle = "rgba(255, 255, 255, 1)";
-    ctx.beginPath();
-    ctx.roundRect(barX, barTop + emptyHeight, barWidth, fillHeight, 2 * scaleX);
-    ctx.fill();
-  });
-  
-  yPos += 48 * scaleY;
-}
+Update the canvas drawing logic to handle "last-year" label:
+
+```typescript
+// Rank text label
+const rankLabel = rankingTimeFilter === 'this-year' 
+  ? 'this year' 
+  : rankingTimeFilter === 'last-year' 
+    ? 'last year' 
+    : 'all time';
+ctx.fillText(`#${rankData.position} ${rankLabel}`, overlayX + padding, bottomY);
 ```
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/PhotoOverlayEditor.tsx` | Update DOM rendering (lines ~848-895) and canvas drawing (lines ~424-464) |
+| `src/components/PhotoOverlayEditor.tsx` | Add show age helper, expand time filter type, update filter function, modify click handler logic, update popup UI, update display text |
 
-## Visual Comparison
+## Visual Behavior Summary
 
-### Before (Current)
-```
-P     S     L     C     V
-[==] [===] [==] [=] [====]
-```
-- Cryptic letters
-- Horizontal bars don't communicate quality hierarchy
-
-### After (Equalizer)
-```
-🎤    🔊    💡    👥    ✨
-┃     ┃     ┃           ┃
-┃     ┃     ┃           ┃
-┃     ┃           ░     ┃
-░     ┃     ░     ░     ┃
-░     ┃     ░     ░     ┃
-```
-- Icons are self-explanatory
-- Taller = better (intuitive)
-- No gaps in filled sections - clean, continuous bars
-- Empty space above shows room for improvement
+| Show Date | Popup Visible? | Options |
+|-----------|---------------|---------|
+| 2025 (this year) | Yes | "All Time" / "This Year" |
+| 2024 (last year) | Yes | "All Time" / "Last Year" |
+| 2023 or earlier | No | Rank toggles on/off (All Time only) |
 
 ## Edge Cases
 
-1. **Single rating only**: Bar still displays with icon, centered
-2. **All ratings maxed (5/5)**: Full bars, no empty space above
-3. **All ratings low (1/5)**: Minimal fill, large empty space above
-4. **Mixed ratings**: Visual hierarchy immediately apparent
-
-## Technical Notes
-
-- Bars use `flex-col-reverse` in DOM to stack bottom-up
-- Canvas draws empty portion first (top), then filled portion (bottom)
-- Both DOM and canvas use rounded corners (2px) for softness
-- Width per bar: 12px in DOM, scaled appropriately for canvas export
-- Height per bar: 40px total (8px per segment conceptually, but rendered as continuous)
+1. **Show from January 1st of current year**: Correctly categorized as "this-year"
+2. **Show from December 31st of last year**: Correctly categorized as "last-year"
+3. **Filter mismatch prevention**: When opening an old show, force `rankingTimeFilter` to "all-time" to prevent stale filter state
