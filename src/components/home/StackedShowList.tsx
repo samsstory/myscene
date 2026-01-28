@@ -121,7 +121,7 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
       className="overflow-y-auto snap-y snap-mandatory max-h-[70vh] scrollbar-hide"
       style={{ scrollSnapType: "y mandatory" }}
     >
-      <div className="relative pb-32">
+      <div className="relative pb-32 pt-2">
         {shows.map((show, index) => (
           <div
             key={show.id}
