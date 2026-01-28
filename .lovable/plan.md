@@ -1,184 +1,202 @@
 
-# Redesign Stat Pills to Match Scene Logo Aesthetic
 
-## Summary
+# Plan: Direct-to-Share Flow (Removing ShowReviewSheet as Middleman)
 
-Transform the current "card-style" stat pills into minimal, elegant typography-driven elements that match the Scene logo's glowing, airy aesthetic—using subtle text shadows, wide tracking, and reduced visual weight instead of heavy borders and backgrounds.
+## Overview
 
----
+This plan removes the `ShowReviewSheet` as a redundant intermediary in the user flow. Instead of requiring users to tap a card → view review sheet → find share option, we'll route taps directly to the appropriate action based on whether the show has a photo.
 
 ## Current State Analysis
 
-**Current Stat Pills:**
-- Solid card backgrounds (`bg-card`) with visible borders
-- Rounded rectangular shapes (`rounded-2xl`)
-- Primary color icons with gradient highlights
-- Chunky, button-like appearance
-
-**Scene Logo Aesthetic:**
-- Text-driven, no heavy backgrounds
-- Multi-layer glow effect (`textShadow`)
-- Wide letter-spacing (`tracking-[0.25em]`)
-- White/translucent coloring (`text-white/75`)
-- Uppercase, bold typography
-- Ethereal, floating appearance
-
----
-
-## Design Direction
-
-Transform pills from "tappable cards" → "glowing typographic elements" that feel like they're part of the same visual system as the logo.
-
-### Visual Changes
-
-| Aspect | Current | Proposed |
-|--------|---------|----------|
-| Background | Solid card color | Transparent or very subtle (`bg-white/5`) |
-| Border | Visible borders | Invisible or ultra-thin glow |
-| Icons | Solid primary color | Subtle, smaller, muted |
-| Label text | Small muted | Uppercase, tracked, glowing |
-| Value text | Large bold | Slightly smaller, glowing white |
-| Spacing | Compact pills | More airy, horizontal flow |
-
----
-
-## Implementation
-
-### 1. Update StatPills Component Styling
-
-**File:** `src/components/home/StatPills.tsx`
-
-Replace the current card-based styling with Scene-logo-inspired typography:
-
-```tsx
-// Current button styling
-className={cn(
-  "flex-shrink-0 px-4 py-3 rounded-2xl bg-card border transition-all text-left",
-  stat.highlight ? "border-primary/30 bg-gradient-to-br from-primary/10 to-card" : "border-border",
-  isInteractive && "hover:border-primary/50 hover:bg-accent/50 active:scale-95 cursor-pointer",
-  !isInteractive && "cursor-default"
-)}
-
-// New minimal glow styling
-className={cn(
-  "flex-shrink-0 px-3 py-2 rounded-xl transition-all text-center",
-  "bg-white/[0.03] backdrop-blur-sm",
-  isInteractive && "hover:bg-white/[0.08] active:scale-95 cursor-pointer",
-  !isInteractive && "cursor-default"
-)}
-
-// Add glow text styling to labels and values
-style={{
-  textShadow: isInteractive 
-    ? "0 0 8px rgba(255,255,255,0.3), 0 0 16px rgba(255,255,255,0.1)"
-    : undefined
-}}
+### Flow Today
+```text
+┌─────────────────┐     ┌──────────────────┐     ┌────────────────────┐
+│  Tap Show Card  │ ──► │ ShowReviewSheet  │ ──► │ PhotoOverlayEditor │
+│                 │     │ (middleman)      │     │ or Edit flow       │
+└─────────────────┘     └──────────────────┘     └────────────────────┘
 ```
 
-### 2. Typography & Layout Updates
+### Problems Identified
+1. **ShowReviewSheet duplicates information** already visible on expanded cards (artist, venue, date, score)
+2. **Missing share actions** - no Instagram/Friends share buttons, creating a "dead end"
+3. **Photo upload competes with share flow** - confusing UX mixing management with sharing
+4. **Extra tap required** to reach the actual destination (editor or share)
 
-**Label styling:**
-```tsx
-// Current
-<span className="text-xs text-muted-foreground">{stat.label}</span>
+## Proposed New Flow
 
-// New - uppercase, tracked, smaller
-<span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">
-  {stat.label}
-</span>
+```text
+┌─────────────────┐            ┌────────────────────┐
+│  Tap Show Card  │ ──photo──► │ PhotoOverlayEditor │
+│  (with photo)   │            │ (Direct!)          │
+└─────────────────┘            └────────────────────┘
+
+┌─────────────────┐            ┌──────────────────────┐
+│  Tap Show Card  │ ──no photo─► │ Add Photo & Share    │
+│  (no photo)     │            │ (Simplified Flow)    │
+└─────────────────┘            └──────────────────────┘
 ```
 
-**Value styling:**
-```tsx
-// Current
-<span className={cn("text-xl font-bold", stat.highlight && "bg-gradient-primary bg-clip-text text-transparent")}>
-  {stat.value}
-</span>
+## Implementation Steps
 
-// New - cleaner, glowing white
-<span 
-  className="text-lg font-bold text-white/90"
-  style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}
->
-  {stat.value}
-</span>
-```
+### Step 1: Update StackedShowCard Tap Behavior
 
-### 3. Simplify Icon Presentation
+**File:** `src/components/home/StackedShowCard.tsx`
 
-Make icons smaller and more subtle:
+**Changes:**
+- The "View" button becomes the edit entry point (for users who want to see details/edit)
+- The card body tap routes directly based on photo status:
+  - **With photo:** Opens PhotoOverlayEditor immediately
+  - **Without photo:** Opens simplified photo-add sheet
 
-```tsx
-// Current
-{stat.icon && <stat.icon className="h-3.5 w-3.5 text-primary" />}
+**The expanded card will have:**
+- **Card body tap** → Share flow (main action)
+- **"View" button** → Opens edit flow (for managing show details)
+- **"Share" button** → Same as card tap (explicit fallback)
 
-// New - smaller, muted, optional glow
-{stat.icon && (
-  <stat.icon 
-    className="h-3 w-3 text-white/40" 
-    style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.2))" }}
-  />
-)}
-```
+### Step 2: Create New `QuickPhotoAddSheet` Component
 
-### 4. Remove Chevron Indicators
+**File:** `src/components/QuickPhotoAddSheet.tsx` (new)
 
-The chevron adds visual clutter. Interactive state is communicated through hover glow instead:
+This lightweight sheet replaces ShowReviewSheet for shows without photos:
+- Large "Add Photo" area with camera/upload prompt
+- Shows minimal context (artist name, venue, date)
+- After photo is added → transitions to PhotoOverlayEditor
+- "Share without photo" option → opens ShareShowSheet for text sharing
 
-```tsx
-// Remove this section entirely
-{isInteractive && (
-  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-)}
-```
+### Step 3: Update Home.tsx Routing Logic
 
-### 5. Adjust Container Layout
+**File:** `src/components/Home.tsx`
 
-Update the flex gap and padding for a more airy feel:
+**Changes:**
+- Replace `onShowTap` handler to route based on photo presence
+- Remove ShowReviewSheet from Home.tsx (or repurpose for edit-only access)
+- Add new state for `quickPhotoAddShow` and `quickPhotoAddOpen`
+- Update all entry points (StackedShowList, Calendar, Rankings) to use new routing
 
-```tsx
-// Current
-<div className="flex gap-3 pb-2">
+### Step 4: Update StackedShowList Interface
 
-// New - tighter gap, centered alignment
-<div className="flex gap-2 pb-2 items-center">
-```
+**File:** `src/components/home/StackedShowList.tsx`
 
----
+**Changes:**
+- Rename `onShowTap` to `onShowAction` (semantic clarity)
+- Add optional `onShowEdit` prop for explicit edit access
 
-## Files to Modify
+### Step 5: Preserve Edit Functionality
 
-| File | Change |
-|------|--------|
-| `src/components/home/StatPills.tsx` | Complete styling overhaul to match Scene logo aesthetic |
+**Where edit access moves:**
+- "View" button on expanded cards → Opens AddShowFlow in edit mode
+- Long-press gesture on cards (future enhancement)
+- Edit button remains in PhotoOverlayEditor for shows with photos
 
----
+### Step 6: Update Calendar and Rankings Views
 
-## Visual Result
+**File:** `src/components/Home.tsx`
 
-**Before:** Heavy, card-like buttons with solid backgrounds and visible borders
+**Changes:**
+- Calendar day clicks → Same routing (photo → editor, no photo → quick add)
+- Rankings list clicks → Same routing
+- Add explicit edit icons to rankings cards for direct edit access
 
-**After:** Floating, typographic elements with:
-- Ultra-subtle glass background (`bg-white/[0.03]`)
-- Glowing text effects matching the Scene logo
-- Uppercase, tracked labels
-- Clean white values with subtle shadow
-- Muted, smaller icons
-- Hover glow effect instead of border changes
+### Step 7: Clean Up ShowReviewSheet Usage
+
+**Options:**
+- **A) Delete entirely:** Remove `ShowReviewSheet.tsx` if all functionality is absorbed
+- **B) Keep as "Detail View":** Accessible only from "View Details" button for power users who want to see the full ranking section, notes, etc.
+
+**Recommendation:** Keep it as a detail view accessible from the "View" button, but deprioritize it in the main flow.
 
 ---
 
 ## Technical Details
 
-**Key CSS properties to match Scene logo:**
+### New Component: QuickPhotoAddSheet
 
-| Property | Value | Purpose |
-|----------|-------|---------|
-| `tracking-[0.15em]` | Wide letter-spacing | Matches logo's airy feel |
-| `text-white/50` | Translucent labels | Subtle hierarchy |
-| `textShadow` | Multi-layer glow | Luminous effect |
-| `bg-white/[0.03]` | Near-invisible background | Floaty appearance |
-| `backdrop-blur-sm` | Subtle blur | Glass effect |
-| `uppercase` | All caps labels | Typography consistency |
+```typescript
+interface QuickPhotoAddSheetProps {
+  show: Show;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPhotoAdded: (photoUrl: string) => void;
+  onShareWithoutPhoto: () => void;
+}
+```
 
-This creates a cohesive visual language where the stat pills feel like they belong to the same design system as the Scene logo watermark.
+**UI Structure:**
+1. Artist name + venue + date (minimal header)
+2. Large photo upload zone (60% of sheet height)
+3. "Share without photo" text link
+4. After upload → auto-transition to PhotoOverlayEditor
+
+### Updated Home.tsx State
+
+```typescript
+// New state additions
+const [quickPhotoShow, setQuickPhotoShow] = useState<Show | null>(null);
+const [quickPhotoOpen, setQuickPhotoOpen] = useState(false);
+
+// Updated tap handler
+const handleShowAction = (show: Show) => {
+  if (show.photo_url) {
+    // Direct to editor
+    setDirectEditShow(show);
+    setDirectEditOpen(true);
+  } else {
+    // Quick photo add flow
+    setQuickPhotoShow(show);
+    setQuickPhotoOpen(true);
+  }
+};
+```
+
+### StackedShowCard Changes
+
+```typescript
+// Updated click handlers
+onClick={onTap} // Card body - share flow
+// "View" button
+onClick={(e) => {
+  e.stopPropagation();
+  onView?.(); // New optional prop for detail view
+}}
+```
+
+---
+
+## Files Changed Summary
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/QuickPhotoAddSheet.tsx` | Create | New lightweight photo-add sheet |
+| `src/components/home/StackedShowCard.tsx` | Modify | Update tap handlers, add View prop |
+| `src/components/home/StackedShowList.tsx` | Modify | Pass through onView prop |
+| `src/components/Home.tsx` | Modify | New routing logic, add QuickPhotoAddSheet |
+| `src/components/ShowReviewSheet.tsx` | Keep | Accessible via "View" button only |
+
+---
+
+## User Experience Impact
+
+### Before (3+ taps to share)
+1. Tap card → ShowReviewSheet opens
+2. Scroll/find share option (often missing)
+3. Tap share → Maybe get to editor
+
+### After (1-2 taps to share)
+1. Tap card → **Immediately** in PhotoOverlayEditor (if photo exists)
+2. OR Tap card → Quick add photo → Editor
+
+### Preserved Functionality
+- **Edit access:** Via "View" button on cards → ShowReviewSheet → Edit button
+- **Photo management:** Upload in QuickPhotoAddSheet, change/remove in editor
+- **Text sharing:** "Share without photo" option for shows lacking images
+- **Ranking display:** Visible on expanded cards, detailed view in ShowReviewSheet
+
+---
+
+## Edge Cases Handled
+
+1. **No photo, user wants text share:** QuickPhotoAddSheet has "Share without photo" link
+2. **User wants to edit, not share:** "View" button provides detail access
+3. **Bulk usage patterns:** Calendar/Rankings use same smart routing
+4. **Photo upload failure:** Graceful error in QuickPhotoAddSheet with retry
+
