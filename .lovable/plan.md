@@ -1,221 +1,206 @@
 
 
-# Review-First UX: Card Tap Opens ShowReviewSheet
+# ShowReviewSheet Redesign: Scene Aesthetic & Viral Optimization
 
 ## Overview
-Update the card tap behavior across the app so that tapping a show card opens the **ShowReviewSheet** (review details) as the primary destination. Sharing to Instagram becomes a secondary action from within the review sheet, or via the dedicated Instagram button on cards (which remains a 1-tap shortcut to PhotoOverlayEditor).
+Completely redesign the ShowReviewSheet to match the "Scene" brand aesthetic (luminous glow effects, glass morphism, wide tracking typography) while optimizing for viral sharing. The sheet will become a "share-ready preview" that immediately celebrates the experience.
 
-## Current vs. Proposed Flow
+## Current Issues Identified
+
+1. **Photo Sync Bug**: `photoUrl` state doesn't update when switching shows (needs `useEffect`)
+2. **Missing Scene Branding**: No SceneLogo, no glow effects, no glass pill styling
+3. **Cluttered Layout**: Separate sections with heavy separators, collapsible sections add friction
+4. **CTA Hierarchy**: Share button buried below photo, not prominent enough
+5. **Dense Information**: Too much scrolling, not immediately "Instagrammable"
+
+## New Design Architecture
 
 ```text
-CURRENT:
-┌─────────────┐     ┌─────────────────────┐
-│ Tap Card    │ ──► │ PhotoOverlayEditor  │  (Share-first)
-└─────────────┘     └─────────────────────┘
-
-PROPOSED:
-┌─────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
-│ Tap Card    │ ──► │ ShowReviewSheet     │ ──► │ PhotoOverlayEditor  │
-└─────────────┘     └─────────────────────┘     └─────────────────────┘
-                           │
-                           └─► View ratings, notes, photo, rank
+┌─────────────────────────────────────────────┐
+│  [X Close]               [Edit] (ghost)     │  ← Minimal header
+├─────────────────────────────────────────────┤
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │                                       │  │
+│  │         HERO PHOTO (60% height)       │  │  ← Dominant visual
+│  │                                       │  │
+│  │   ┌─────┐                 ┌────────┐  │  │
+│  │   │#2   │                 │ 9.2/10 │  │  │  ← Floating badges
+│  │   └─────┘                 └────────┘  │  │
+│  │                                       │  │
+│  │   ┌─────────────────────────────────┐ │  │
+│  │   │  ARTIST NAME                    │ │  │  ← Glass overlay bar
+│  │   │  Venue · Date                   │ │  │
+│  │   └─────────────────────────────────┘ │  │
+│  │                         Scene ✦       │  │  ← Watermark
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │ 🎤 Performance  ████████░░░  Great    │  │  ← Compact rating bars
+│  │ 🔊 Sound        ██████████░  Amazing  │  │
+│  │ 💡 Lighting     ██████░░░░░  Okay     │  │
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │ "The energy was unreal..."            │  │  ← My Take (quote style)
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │   ✦ Share to Instagram (gradient)     │  │  ← Primary CTA (glowing)
+│  └───────────────────────────────────────┘  │
+│  [+ Add Photo]   [Upload New]   [Remove]    │  ← Secondary actions (ghost)
+│                                             │
+└─────────────────────────────────────────────┘
 ```
 
 ## Implementation Details
 
-### 1. Update Card Tap Handler in Home.tsx
-
-Change `handleShowTap()` to open ShowReviewSheet instead of the share flow:
-
-**Current (lines 119-122):**
-```typescript
-const handleShowTap = (show: Show) => {
-  handleShareFromCard(show);
-};
-```
-
-**New:**
-```typescript
-const handleShowTap = (show: Show) => {
-  setReviewShow(show);
-  setReviewSheetOpen(true);
-};
-```
-
-This affects:
-- Stacked memory cards on Home page (body tap)
-- Ranking cards on Top Ranked Shows page (body tap)
-
----
-
-### 2. Update ShowReviewSheet Share Button
-
-The current "Share Photo" button opens `ShareShowSheet`. Update it to open `PhotoOverlayEditor` instead for a seamless photo-editing experience.
-
-**Current approach in ShowReviewSheet:**
-- Has internal `ShareShowSheet` state that opens when "Share Photo" is clicked
-- Opens a text-based sharing modal
-
-**New approach:**
-- Add an `onShareToEditor` callback prop to ShowReviewSheet
-- "Share Photo" button calls `onShareToEditor(show)` and closes the sheet
-- Home.tsx handles this by opening PhotoOverlayEditor
-
-**Props update in ShowReviewSheet:**
-```typescript
-interface ShowReviewSheetProps {
-  show: Show | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onEdit: (show: Show) => void;
-  onShareToEditor?: (show: Show) => void; // NEW
-  allShows?: Show[];
-  rankings?: ShowRanking[];
-}
-```
-
-**Button update in ShowReviewSheet (around line 365-375):**
-```typescript
-<Button
-  variant="default"
-  className="flex-1"
-  onClick={() => {
-    if (onShareToEditor && photoUrl) {
-      onOpenChange(false);
-      onShareToEditor(show);
-    } else if (!photoUrl) {
-      // If no photo, could open QuickPhotoAddSheet flow
-      // For now, fall back to existing ShareShowSheet
-      onOpenChange(false);
-      setShareSheetOpen(true);
-    }
-  }}
->
-  <Instagram className="h-4 w-4 mr-2" />
-  Share to Instagram
-</Button>
-```
-
----
-
-### 3. Add PhotoOverlayEditor Launch from ShowReviewSheet
-
-In Home.tsx, pass the new callback to ShowReviewSheet:
+### 1. Fix Photo Sync Bug
+Add `useEffect` to sync `photoUrl` state when show changes:
 
 ```typescript
-<ShowReviewSheet
-  show={reviewShow}
-  open={reviewSheetOpen}
-  onOpenChange={setReviewSheetOpen}
-  onEdit={handleEditShow}
-  onShareToEditor={(show) => {
-    if (show.photo_url) {
-      setDirectEditShow(show);
-      setDirectEditOpen(true);
-    } else {
-      setQuickPhotoShow(show);
-      setQuickPhotoOpen(true);
-    }
-  }}
-  allShows={shows}
-  rankings={rankings}
-/>
+useEffect(() => {
+  setPhotoUrl(show?.photo_url || null);
+}, [show?.id, show?.photo_url]);
 ```
 
----
+### 2. Hero Photo Section
+Replace current photo section with immersive hero layout:
 
-### 4. Update StackedShowCard for Clarity
+- **Photo container**: `aspect-[4/3]` with rounded corners, full bleed
+- **Gradient overlay**: `bg-gradient-to-t from-black/80 via-black/20 to-transparent`
+- **Floating rank badge**: Top-left using ShowRankBadge component
+- **Floating score badge**: Top-right with gradient pill matching score color
+- **Glass metadata bar**: Bottom overlay with artist, venue, date
+- **SceneLogo watermark**: Bottom-right corner
 
-The current StackedShowCard has two actions on expanded cards:
-- **Share button** (Instagram icon) → PhotoOverlayEditor
-- **View button** (Eye icon) → ShowReviewSheet
+### 3. No-Photo State
+When no photo exists, show an inviting upload prompt:
 
-Since tapping the card now opens ShowReviewSheet (same as View), the View button becomes redundant. We have two options:
+- Gradient background based on score
+- Large "Add a Photo" button with camera icon
+- Subtle pulsing glow effect to draw attention
 
-**Option A: Remove View button entirely**
-- Card tap = ShowReviewSheet
-- Share button = PhotoOverlayEditor
+### 4. Compact Rating Display
+Replace collapsible sections with always-visible compact bars:
 
-**Option B: Keep View button for explicit intent**
-- Both card tap and View button go to ShowReviewSheet
-- Share button = PhotoOverlayEditor
+- Single-line per rating: icon + label + progress bar + text
+- Gradient-filled bars matching score colors
+- Use glass pill container with subtle border
 
-Recommended: **Option A** - Remove the View button to reduce clutter. The card tap is the primary action, and the Share button is the secondary shortcut.
+### 5. Notes Section ("My Take")
+Style as a quotation card:
 
-**Changes to StackedShowCard.tsx:**
-- Remove the `onView` prop and View button
-- The `onTap` handler now opens review details (handled by parent)
-- The `onShare` handler opens PhotoOverlayEditor (unchanged)
+- Glass pill background (`bg-white/5 backdrop-blur-sm`)
+- Quotation marks icon or typography
+- Wide tracking on header text
 
----
+### 6. Rank Display (Simplified)
+Remove complex toggle groups, show inline rank:
+
+- When rank exists: "Ranked #X of Y · Top Z%"
+- Single glass pill, not a collapsible section
+- Time filter as a simple dropdown (tap to change)
+
+### 7. Primary CTA: Share to Instagram
+Make this the dominant action:
+
+- Full-width gradient button (pink-purple-indigo)
+- Glow shadow effect
+- Instagram icon with "Share to Instagram" text
+- Positioned prominently after content
+
+### 8. Secondary Actions
+Consolidate photo management into a compact row:
+
+- Ghost/outline style buttons
+- "Add Photo", "Change", "Remove" as icon buttons or small text links
+- Edit button moves to header (top-right, ghost style)
+
+### 9. Scene Typography & Effects
+Apply consistent Scene aesthetic:
+
+- Headers: `font-black tracking-[0.15em] uppercase`
+- Glow effects: `textShadow: "0 0 8px rgba(255,255,255,0.3)"`
+- Glass containers: `bg-white/5 backdrop-blur-sm border border-white/10`
 
 ## Files to Edit
 
 | File | Changes |
 |------|---------|
-| `src/components/Home.tsx` | Update `handleShowTap()` to open ShowReviewSheet; pass `onShareToEditor` callback to ShowReviewSheet |
-| `src/components/ShowReviewSheet.tsx` | Add `onShareToEditor` prop; update Share button to call it |
-| `src/components/home/StackedShowCard.tsx` | Remove `onView` prop and View button |
+| `src/components/ShowReviewSheet.tsx` | Complete redesign with Scene aesthetic |
 
----
+## Technical Implementation
 
-## Updated User Flows
+### New Component Structure
 
-### Home Page - Stacked Memory Cards
-```text
-User taps expanded card → ShowReviewSheet opens
-  → User sees photo, score, ratings, notes, rank
-  → User taps "Share to Instagram" → PhotoOverlayEditor opens
-  → User customizes and shares
-  
-User taps "Share" button on card → PhotoOverlayEditor opens (shortcut)
+```typescript
+// Key sections in order:
+1. useEffect for photoUrl sync (BUG FIX)
+2. HeroPhotoSection (new sub-component or inline)
+   - Photo with overlays
+   - Floating badges (rank, score)
+   - Glass metadata bar
+   - SceneLogo watermark
+3. CompactRatingsSection
+   - Horizontal gradient bars
+   - No collapsible wrapper
+4. NotesQuoteCard
+   - Glass pill with quote styling
+5. ShareCTA
+   - Gradient Instagram button (primary)
+6. SecondaryActions
+   - Photo management (ghost buttons)
 ```
 
-### Top Ranked Shows Page
-```text
-User taps card → ShowReviewSheet opens
-  → User reviews details
-  → User taps "Share to Instagram" → PhotoOverlayEditor opens
-  
-User taps Instagram icon on card → PhotoOverlayEditor opens (shortcut)
+### Imports to Add
+
+```typescript
+import SceneLogo from "@/components/ui/SceneLogo";
+import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
+import { cn } from "@/lib/utils";
 ```
 
-### #1 Show Pill on Home
-```text
-User taps #1 Show pill → ShowReviewSheet opens (already correct)
+### Removed Elements
+
+- SheetTitle "Show Review" (replace with minimal close button)
+- Collapsible ranking section (simplify to inline badge)
+- Verbose labels with icons (Artists, Venue, Date sections)
+- Heavy Separator components (use spacing instead)
+- Duplicate ShareShowSheet component (keep for fallback only)
+
+## Visual Styling Reference
+
+### Glass Pill Container
+```typescript
+className={cn(
+  "rounded-xl overflow-hidden",
+  "bg-white/[0.03] backdrop-blur-sm",
+  "border border-white/[0.08]"
+)}
 ```
 
----
-
-## Visual Summary
-
-```text
-┌─────────────────────────────────────────────┐
-│           Stacked Show Card                 │
-│  ┌──────────────────────────────────────┐   │
-│  │       [Photo or Gradient]            │   │
-│  │                                      │   │
-│  │    Artist Name                       │   │
-│  │    Venue · Date                      │   │
-│  └──────────────────────────────────────┘   │
-│                                             │
-│  [Instagram Share]              [Rank #3]   │  ← View button removed
-│                                             │
-└─────────────────────────────────────────────┘
-         │                            │
-         │                            │
-    Tap Card                    Tap Share
-         │                            │
-         ▼                            ▼
-┌─────────────────┐       ┌─────────────────────┐
-│ ShowReviewSheet │       │ PhotoOverlayEditor  │
-│                 │       │                     │
-│  Photo          │       │  [Edit & Share]     │
-│  Score: 8.5/10  │       │                     │
-│  Ratings...     │       └─────────────────────┘
-│  Notes...       │
-│                 │
-│ [Share to IG]   │──────►  PhotoOverlayEditor
-└─────────────────┘
+### Glowing Text
+```typescript
+style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
+className="font-bold tracking-wide"
 ```
+
+### Gradient Share Button
+```typescript
+className={cn(
+  "w-full py-4 rounded-xl font-semibold",
+  "bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500",
+  "shadow-lg shadow-purple-500/30",
+  "hover:shadow-purple-500/50 transition-all"
+)}
+```
+
+## Viral Loop Optimization
+
+1. **Share-Ready Preview**: Photo hero with overlays mirrors what gets shared
+2. **Prominent CTA**: Instagram button is impossible to miss
+3. **SceneLogo Watermark**: Brand awareness on every shared image
+4. **Quick Path**: Tap card → See beautiful review → One tap to share
+5. **FOMO Trigger**: Rank badge ("Top 5%") encourages sharing achievements
 
