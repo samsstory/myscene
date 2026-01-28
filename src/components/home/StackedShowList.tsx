@@ -125,11 +125,12 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
         {shows.map((show, index) => (
           <div
             key={show.id}
-            className="snap-center will-change-transform"
+            className="snap-center will-change-transform isolate"
             style={{
               marginTop: index === 0 ? 0 : "8px",
               zIndex: shows.length - index,
               position: "relative",
+              pointerEvents: "auto",
             }}
           >
             <StackedShowCard
