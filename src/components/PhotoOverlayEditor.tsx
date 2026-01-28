@@ -1145,7 +1145,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               className="flex-1 h-10"
             >
               <MessageCircle className="mr-2 h-4 w-4" />
-              Friends
+              Send
             </Button>
             <Button
               onClick={handleDownloadImage}
