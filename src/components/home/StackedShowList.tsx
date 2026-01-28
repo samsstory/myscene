@@ -127,7 +127,7 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
             key={show.id}
             className="snap-center will-change-transform"
             style={{
-              marginTop: index === 0 ? 0 : "-24px",
+              marginTop: index === 0 ? 0 : "8px",
               zIndex: shows.length - index,
               position: "relative",
             }}
