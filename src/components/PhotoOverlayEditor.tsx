@@ -421,55 +421,48 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       yPos += 18 * scaleY;
     }
 
-    // Detailed ratings - Equalizer style with icons
+    // Detailed ratings - Horizontal bar graph with text labels
     if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
       const ratings = [
-        { icon: "🎤", value: show.artist_performance },
-        { icon: "🔊", value: show.sound },
-        { icon: "💡", value: show.lighting },
-        { icon: "👥", value: show.crowd },
-        { icon: "✨", value: show.venue_vibe },
+        { label: "Perf", value: show.artist_performance },
+        { label: "Sound", value: show.sound },
+        { label: "Light", value: show.lighting },
+        { label: "Crowd", value: show.crowd },
+        { label: "Vibe", value: show.venue_vibe },
       ].filter((r) => r.value);
 
-      const barWidth = 12 * scaleX;
-      const barHeight = 40 * scaleY;
-      const gap = 8 * scaleX;
-      const totalWidth = ratings.length * barWidth + (ratings.length - 1) * gap;
-      const startX = centerX - totalWidth / 2;
+      const labelWidth = 32 * scaleX;
+      const barHeight = 6 * scaleY;
+      const rowGap = 4 * scaleY;
+      const barMaxWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
 
-      ctx.textAlign = "center";
+      ctx.font = `${9 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
+      ctx.textAlign = "right";
       
       ratings.forEach((rating, index) => {
-        const barX = startX + index * (barWidth + gap);
-        const barCenterX = barX + barWidth / 2;
+        const rowY = yPos + index * (barHeight + rowGap);
         
-        // Icon above bar
-        ctx.font = `${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-        ctx.fillStyle = "white";
-        ctx.fillText(rating.icon, barCenterX, yPos);
+        // Text label on left
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.fillText(rating.label, overlayX + padding + labelWidth, rowY + barHeight * 0.8);
         
-        const barTop = yPos + 6 * scaleY;
-        const fillHeight = (rating.value! / 5) * barHeight;
-        const emptyHeight = barHeight - fillHeight;
+        // Bar background
+        const barX = overlayX + padding + labelWidth + 8 * scaleX;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.beginPath();
+        ctx.roundRect(barX, rowY, barMaxWidth, barHeight, barHeight / 2);
+        ctx.fill();
         
-        // Empty portion (top) - muted
-        if (emptyHeight > 0) {
-          ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-          ctx.beginPath();
-          ctx.roundRect(barX, barTop, barWidth, emptyHeight, 2 * scaleX);
-          ctx.fill();
-        }
-        
-        // Filled portion (bottom) - solid white, NO GAPS
-        if (fillHeight > 0) {
-          ctx.fillStyle = "rgba(255, 255, 255, 1)";
-          ctx.beginPath();
-          ctx.roundRect(barX, barTop + emptyHeight, barWidth, fillHeight, 2 * scaleX);
-          ctx.fill();
-        }
+        // Bar fill
+        const fillWidth = (rating.value! / 5) * barMaxWidth;
+        ctx.fillStyle = "rgba(255, 255, 255, 1)";
+        ctx.beginPath();
+        ctx.roundRect(barX, rowY, fillWidth, barHeight, barHeight / 2);
+        ctx.fill();
       });
       
-      yPos += 56 * scaleY;
+      ctx.textAlign = "center";
+      yPos += ratings.length * (barHeight + rowGap) + 8 * scaleY;
     }
 
     // Notes - centered, smaller
@@ -854,33 +847,27 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 </p>
               )}
 
-              {/* Detailed ratings - Equalizer style with icons */}
+              {/* Detailed ratings - Horizontal bar graph with text labels */}
               {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
                 <div 
-                  className="flex justify-center gap-2 mb-2 cursor-pointer transition-opacity hover:opacity-70"
+                  className="flex flex-col gap-1 mb-2 w-full cursor-pointer transition-opacity hover:opacity-70"
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showDetailedRatings"); }}
                 >
                   {[
-                    { icon: "🎤", value: show.artist_performance },
-                    { icon: "🔊", value: show.sound },
-                    { icon: "💡", value: show.lighting },
-                    { icon: "👥", value: show.crowd },
-                    { icon: "✨", value: show.venue_vibe },
+                    { label: "Perf", value: show.artist_performance },
+                    { label: "Sound", value: show.sound },
+                    { label: "Light", value: show.lighting },
+                    { label: "Crowd", value: show.crowd },
+                    { label: "Vibe", value: show.venue_vibe },
                   ].filter(r => r.value).map((rating, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-0.5">
-                      {/* Icon label */}
-                      <span className="text-[10px]">{rating.icon}</span>
-                      {/* Equalizer bar - continuous fill from bottom, NO GAPS */}
-                      <div className="flex flex-col w-3 h-10 rounded-sm overflow-hidden">
-                        {/* Empty portion above - muted */}
+                    <div key={idx} className="flex items-center gap-2">
+                      {/* Text label on left */}
+                      <span className="text-[9px] opacity-70 w-8 text-right shrink-0">{rating.label}</span>
+                      {/* Horizontal bar */}
+                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                         <div 
-                          className="w-full bg-white/20"
-                          style={{ height: `${((5 - rating.value!) / 5) * 100}%` }}
-                        />
-                        {/* Filled portion - continuous block from bottom */}
-                        <div 
-                          className="w-full bg-white"
-                          style={{ height: `${(rating.value! / 5) * 100}%` }}
+                          className="h-full bg-white rounded-full"
+                          style={{ width: `${(rating.value! / 5) * 100}%` }}
                         />
                       </div>
                     </div>
