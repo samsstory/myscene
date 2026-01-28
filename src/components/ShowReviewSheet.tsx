@@ -1,6 +1,6 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles } from "lucide-react";
+import { Upload, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles, Send, Pencil, Trash2 } from "lucide-react";
 import { parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -12,6 +12,16 @@ import { cn } from "@/lib/utils";
 import { HeroPhotoSection } from "./show-review/HeroPhotoSection";
 import { CompactRatingBar } from "./show-review/CompactRatingBar";
 import { NotesQuoteCard } from "./show-review/NotesQuoteCard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Artist {
   name: string;
@@ -47,6 +57,7 @@ interface ShowReviewSheetProps {
   onOpenChange: (open: boolean) => void;
   onEdit: (show: Show) => void;
   onShareToEditor?: (show: Show) => void;
+  onDelete?: (showId: string) => void;
   allShows?: Show[];
   rankings?: ShowRanking[];
 }
@@ -56,13 +67,15 @@ export const ShowReviewSheet = ({
   open, 
   onOpenChange, 
   onEdit, 
-  onShareToEditor, 
+  onShareToEditor,
+  onDelete,
   allShows = [], 
   rankings = [] 
 }: ShowReviewSheetProps) => {
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fix: Sync photoUrl state when show changes
@@ -257,6 +270,37 @@ export const ShowReviewSheet = ({
     }
   };
 
+  const handleSendToFriends = async () => {
+    const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
+    const shareText = `Check out this show: ${headliner?.name} at ${show.venue.name}!`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${headliner?.name} at ${show.venue.name}`,
+          text: shareText,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          toast({ title: "Share failed", variant: "destructive" });
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      toast({ title: "Copied to clipboard", description: shareText });
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (onDelete) {
+      onDelete(show.id);
+      onOpenChange(false);
+    }
+    setShowDeleteConfirm(false);
+  };
+
+  const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
@@ -336,9 +380,30 @@ export const ShowReviewSheet = ({
               Share to Instagram
             </Button>
 
-            {/* Secondary Actions */}
-            {photoUrl && (
-              <div className="flex gap-2 justify-center">
+            {/* Secondary Actions - Always visible */}
+            <div className="flex gap-2 justify-center flex-wrap">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSendToFriends}
+                className="text-white/50 hover:text-white hover:bg-white/10"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  onEdit(show);
+                }}
+                className="text-white/50 hover:text-white hover:bg-white/10"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Review
+              </Button>
+              {photoUrl && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -349,17 +414,18 @@ export const ShowReviewSheet = ({
                   <Upload className="h-4 w-4 mr-2" />
                   Change Photo
                 </Button>
+              )}
+              {onDelete && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleRemovePhoto}
-                  className="text-white/50 hover:text-white hover:bg-white/10"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Remove
+                  <Trash2 className="h-4 w-4" />
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Hidden file input for photo changes */}
             <Input
@@ -372,6 +438,28 @@ export const ShowReviewSheet = ({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this show?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{headliner?.name}</strong> at {show.venue.name}.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Separate ShareShowSheet for fallback sharing */}
       <ShareShowSheet
