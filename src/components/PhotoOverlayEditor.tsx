@@ -71,7 +71,20 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     showRank: false,
   });
   
-  const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year">("all-time");
+  const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "last-year">("all-time");
+  
+  // Determine show age category for context-aware rank options
+  const getShowAgeCategory = (): "this-year" | "last-year" | "older" => {
+    const showDate = new Date(show.show_date);
+    const showYear = showDate.getFullYear();
+    const currentYear = new Date().getFullYear();
+    
+    if (showYear === currentYear) return "this-year";
+    if (showYear === currentYear - 1) return "last-year";
+    return "older";
+  };
+  
+  const showAgeCategory = getShowAgeCategory();
 
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -140,6 +153,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       
       if (timeFilter === "this-year") {
         return showDate.getFullYear() === currentYear;
+      } else if (timeFilter === "last-year") {
+        return showDate.getFullYear() === currentYear - 1;
       } else if (timeFilter === "this-month") {
         return showDate.getFullYear() === currentYear && 
                showDate.getMonth() === currentMonth;
@@ -514,7 +529,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       
       ctx.fillStyle = gradient;
       ctx.textAlign = "left";
-      const timePeriodText = rankingTimeFilter === 'this-year' ? 'this year' : 'all time';
+      const timePeriodText = rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time';
       ctx.fillText(`#${rankData.position} ${timePeriodText}`, overlayX + padding, bottomY);
     }
     
@@ -892,7 +907,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                     className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
                     onClick={(e) => { e.stopPropagation(); toggleConfig("showRank"); }}
                   >
-                    #{rankData.position} {rankingTimeFilter === 'this-year' ? 'this year' : 'all time'}
+                    #{rankData.position} {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time'}
                   </span>
                 ) : (
                   <span />
@@ -1013,10 +1028,17 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                         onClick={(e) => { 
                           e.stopPropagation(); 
                           if (item.key === "showRank") {
-                            if (!overlayConfig.showRank) {
+                            if (showAgeCategory === "older") {
+                              // Old shows: just toggle rank on/off, no popup
                               toggleConfig("showRank");
+                              setRankingTimeFilter("all-time"); // Force all-time for old shows
+                            } else {
+                              // Recent shows: show popup
+                              if (!overlayConfig.showRank) {
+                                toggleConfig("showRank");
+                              }
+                              setShowRankOptions(!showRankOptions);
                             }
-                            setShowRankOptions(!showRankOptions);
                           } else {
                             toggleConfig(item.key);
                           }
@@ -1064,8 +1086,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                   </TooltipContent>
                 </Tooltip>
                 
-                {/* Rank options - liquid glass pill toggle */}
-                {showRankOptions && overlayConfig.showRank && (
+                {/* Rank options - context-aware based on show date */}
+                {showRankOptions && overlayConfig.showRank && showAgeCategory !== "older" && (
                   <div 
                     className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl"
                     onClick={(e) => e.stopPropagation()}
@@ -1081,14 +1103,18 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                       All Time
                     </button>
                     <button
-                      onClick={() => { setRankingTimeFilter("this-year"); setShowRankOptions(false); }}
+                      onClick={() => { 
+                        setRankingTimeFilter(showAgeCategory === "this-year" ? "this-year" : "last-year"); 
+                        setShowRankOptions(false); 
+                      }}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        rankingTimeFilter === "this-year" 
+                        (showAgeCategory === "this-year" && rankingTimeFilter === "this-year") ||
+                        (showAgeCategory === "last-year" && rankingTimeFilter === "last-year")
                           ? "bg-white/20 text-white shadow-sm" 
                           : "text-white/60 hover:text-white/80"
                       }`}
                     >
-                      This Year
+                      {showAgeCategory === "this-year" ? "This Year" : "Last Year"}
                     </button>
                   </div>
                 )}
