@@ -1,9 +1,7 @@
-import { useRef } from "react";
-import { Camera, Upload } from "lucide-react";
+import { Camera, Upload, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { getScoreGradient } from "@/lib/utils";
@@ -25,6 +23,7 @@ interface HeroPhotoSectionProps {
   comparisonsCount?: number;
   onPhotoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
+  onEditPhoto?: () => void;
 }
 
 export const HeroPhotoSection = ({
@@ -39,6 +38,7 @@ export const HeroPhotoSection = ({
   comparisonsCount = 0,
   onPhotoUpload,
   fileInputRef,
+  onEditPhoto,
 }: HeroPhotoSectionProps) => {
   const headliner = artists.find(a => a.isHeadliner) || artists[0];
   const formattedDate = format(parseISO(date), "MMM d, yyyy");
@@ -56,49 +56,57 @@ export const HeroPhotoSection = ({
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* Top Left: Rank Badge */}
-        <div className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
-          <ShowRankBadge 
-            position={rankPosition} 
-            total={rankTotal} 
-            comparisonsCount={comparisonsCount}
-          />
-        </div>
-
-        {/* Top Right: Score Badge */}
-        <div 
-          className={cn(
-            "absolute top-3 right-3 px-3 py-1.5 rounded-full",
-            "bg-gradient-to-r backdrop-blur-sm border border-white/20",
-            getScoreGradient(score)
-          )}
-        >
-          <span 
-            className="text-sm font-black text-white tracking-wide"
-            style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}
+        {/* Top Left: Edit Photo Button */}
+        {onEditPhoto && (
+          <button
+            onClick={onEditPhoto}
+            className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
           >
-            {score.toFixed(1)}
-          </span>
+            <Pencil className="h-4 w-4 text-white/80" />
+          </button>
+        )}
+
+        {/* Top Right: Scene Logo */}
+        <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
+          <SceneLogo size="sm" />
         </div>
 
         {/* Bottom: Glass Metadata Bar */}
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
-            <h2 
-              className="font-black text-xl text-white tracking-wide truncate"
-              style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
-            >
-              {headliner?.name}
-            </h2>
-            <p className="text-white/60 text-sm mt-1 truncate">
-              {venue.name} · {formattedDate}
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 
+                  className="font-black text-xl text-white tracking-wide truncate"
+                  style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
+                >
+                  {headliner?.name}
+                </h2>
+                <p className="text-white/60 text-sm mt-1 truncate">
+                  {venue.name} · {formattedDate}
+                </p>
+                {/* Rank with context */}
+                <p className="text-white/50 text-xs mt-1.5">
+                  {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
+                </p>
+              </div>
+              {/* Score Badge */}
+              <div 
+                className={cn(
+                  "px-3 py-1.5 rounded-full flex-shrink-0",
+                  "bg-gradient-to-r border border-white/20",
+                  getScoreGradient(score)
+                )}
+              >
+                <span 
+                  className="text-sm font-black text-white tracking-wide"
+                  style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}
+                >
+                  {score.toFixed(1)}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Watermark */}
-        <div className="absolute bottom-20 right-4">
-          <SceneLogo size="sm" />
         </div>
 
         {/* Hidden file input */}

@@ -1,6 +1,6 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Edit, Upload, X, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles } from "lucide-react";
+import { Upload, X, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles } from "lucide-react";
 import { parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -261,29 +261,7 @@ export const ShowReviewSheet = ({
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl">
-          {/* Minimal Header */}
-          <div className="flex items-center justify-between py-2 mb-4">
-            <button 
-              onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white transition-colors text-sm font-medium"
-            >
-              Close
-            </button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onEdit(show);
-                onOpenChange(false);
-              }}
-              className="text-white/60 hover:text-white hover:bg-white/10"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          </div>
-
-          <div className="space-y-6">
+          <div className="space-y-6 pt-4">
             {/* Hero Photo Section */}
             <HeroPhotoSection
               photoUrl={photoUrl}
@@ -297,6 +275,10 @@ export const ShowReviewSheet = ({
               comparisonsCount={rankData.comparisons}
               onPhotoUpload={handlePhotoUpload}
               fileInputRef={fileInputRef}
+              onEditPhoto={photoUrl && onShareToEditor ? () => {
+                onOpenChange(false);
+                onShareToEditor(show);
+              } : undefined}
             />
 
             {/* Compact Ratings */}
@@ -310,7 +292,7 @@ export const ShowReviewSheet = ({
               >
                 <CompactRatingBar 
                   icon={<Mic2 className="h-4 w-4" />} 
-                  label="Performance" 
+                  label="Show" 
                   value={show.artistPerformance} 
                 />
                 <CompactRatingBar 
