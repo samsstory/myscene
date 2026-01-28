@@ -1,5 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Instagram, Eye, Music2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
@@ -75,7 +74,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
     const extraArtists = show.artists.length > 2 ? ` +${show.artists.length - 2}` : "";
 
     if (!isExpanded) {
-      // Collapsed State - Peek Header with photo background
+      // Collapsed State - Minimal glass peek header
       return (
         <div
           ref={ref}
@@ -83,24 +82,24 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
           className="cursor-pointer"
           onClick={onExpand}
         >
-          <Card className="border-border shadow-card overflow-hidden">
+          <div className="rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-sm border border-white/[0.05] transition-all hover:bg-white/[0.06]">
             <div className="relative">
-              {/* Background: Photo or Gradient */}
+              {/* Subtle background hint */}
               {show.photo_url ? (
                 <div 
-                  className="absolute inset-0 bg-cover bg-top"
+                  className="absolute inset-0 bg-cover bg-center opacity-20"
                   style={{ backgroundImage: `url(${show.photo_url})` }}
                 />
               ) : (
-                <div className={cn("absolute inset-0 bg-gradient-to-r", scoreGradient)} />
+                <div className={cn("absolute inset-0 opacity-10 bg-gradient-to-r", scoreGradient)} />
               )}
               
-              {/* Dark overlay for text legibility */}
-              <div className="absolute inset-0 bg-black/50" />
-              
               {/* Content */}
-              <CardContent className="relative py-6 px-4 flex items-center justify-between min-h-[60px]">
-                <span className="font-bold text-base truncate flex-1 pr-2 text-white drop-shadow-md">
+              <div className="relative py-5 px-4 flex items-center justify-between">
+                <span 
+                  className="font-bold text-base text-white/90 truncate flex-1 pr-3"
+                  style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
+                >
                   {artistName}
                 </span>
                 <ShowRankBadge 
@@ -108,9 +107,9 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
                   total={rankInfo.total} 
                   comparisonsCount={rankInfo.comparisonsCount}
                 />
-              </CardContent>
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
       );
     }
@@ -123,7 +122,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
         className="cursor-pointer"
         onClick={onTap}
       >
-        <Card className="border-border shadow-glow overflow-hidden">
+        <Card className="border-white/[0.08] shadow-glow overflow-hidden bg-white/[0.02]">
           {/* Photo or Gradient Background */}
           <div className="relative aspect-[4/3] overflow-hidden">
             {show.photo_url ? (
@@ -153,7 +152,10 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               </div>
               
               {/* Artist Name */}
-              <div className="font-bold text-xl text-white leading-tight">
+              <div 
+                className="font-bold text-xl text-white leading-tight"
+                style={{ textShadow: "0 0 16px rgba(255,255,255,0.5)" }}
+              >
                 {artistDisplay}
                 {extraArtists && (
                   <span className="text-white/70 font-normal">{extraArtists}</span>
@@ -161,7 +163,10 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               </div>
               
               {/* Venue & Date */}
-              <div className="text-white/80 text-sm mt-1">
+              <div 
+                className="text-white/70 text-sm mt-1"
+                style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+              >
                 {show.venue.name} · {formattedDate}
               </div>
               
@@ -172,40 +177,39 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
             </div>
           </div>
           
-          {/* Action Buttons */}
-          <CardContent className="p-3 flex justify-between items-center bg-card">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-pink-500"
+          {/* Action Buttons - Scene aesthetic */}
+          <div className="p-3 flex justify-between items-center bg-white/[0.02]">
+            <button
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/50 hover:text-white/80 hover:bg-white/[0.05] transition-all text-sm"
+              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
               onClick={(e) => {
                 e.stopPropagation();
                 onShare();
               }}
             >
-              <Instagram className="h-4 w-4 mr-2" />
-              Share
-            </Button>
+              <Instagram className="h-4 w-4" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.2))" }} />
+              <span className="font-medium">Share</span>
+            </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <ShowRankBadge 
                 position={rankInfo.position} 
                 total={rankInfo.total} 
                 comparisonsCount={rankInfo.comparisonsCount}
               />
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/60 hover:text-white/90 hover:bg-white/[0.05] transition-all text-sm border border-white/[0.08]"
+                style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
                 onClick={(e) => {
                   e.stopPropagation();
                   onTap();
                 }}
               >
-                <Eye className="h-4 w-4 mr-2" />
-                View
-              </Button>
+                <Eye className="h-4 w-4" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.2))" }} />
+                <span className="font-medium">View</span>
+              </button>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
     );

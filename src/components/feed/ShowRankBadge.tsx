@@ -1,5 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-
 interface ShowRankBadgeProps {
   position: number | null;
   total: number;
@@ -10,33 +8,41 @@ export const ShowRankBadge = ({ position, total, comparisonsCount = 0 }: ShowRan
   // Show "Unranked" if no comparisons have been made
   if (comparisonsCount === 0 || position === null || position === 0) {
     return (
-      <Badge 
-        variant="outline" 
-        className="text-xs font-medium border-muted-foreground/30 text-muted-foreground"
+      <span 
+        className="text-xs font-medium text-white/40 uppercase tracking-[0.1em]"
+        style={{ textShadow: "0 0 6px rgba(255,255,255,0.15)" }}
       >
         Unranked
-      </Badge>
+      </span>
     );
   }
 
-  // Calculate percentile for gradient
+  // Calculate percentile for glow intensity
   const percentile = ((total - position + 1) / total) * 100;
   
-  // Determine gradient class based on percentile
-  const getGradientClass = () => {
-    if (percentile >= 90) return "from-[hsl(142,76%,45%)] to-[hsl(160,84%,40%)]"; // Green - Top 10%
-    if (percentile >= 75) return "from-[hsl(85,70%,50%)] to-[hsl(142,70%,45%)]"; // Lime - Top 25%
-    if (percentile >= 50) return "from-[hsl(45,93%,55%)] to-[hsl(60,80%,50%)]"; // Gold - Top 50%
-    if (percentile >= 25) return "from-[hsl(30,90%,55%)] to-[hsl(45,90%,50%)]"; // Orange
-    return "from-muted to-muted"; // Default
+  // Determine glow intensity based on rank (top ranks glow brighter)
+  const getGlowIntensity = () => {
+    if (percentile >= 90) return "0 0 12px rgba(255,255,255,0.6), 0 0 20px rgba(255,255,255,0.3)";
+    if (percentile >= 75) return "0 0 10px rgba(255,255,255,0.5), 0 0 16px rgba(255,255,255,0.2)";
+    if (percentile >= 50) return "0 0 8px rgba(255,255,255,0.4), 0 0 12px rgba(255,255,255,0.15)";
+    return "0 0 6px rgba(255,255,255,0.3)";
+  };
+
+  // Determine text opacity based on rank
+  const getOpacity = () => {
+    if (percentile >= 90) return "text-white";
+    if (percentile >= 75) return "text-white/90";
+    if (percentile >= 50) return "text-white/80";
+    return "text-white/70";
   };
 
   return (
-    <div 
-      className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${getGradientClass()} shadow-sm`}
+    <span 
+      className={`text-sm font-bold ${getOpacity()} tracking-wide`}
+      style={{ textShadow: getGlowIntensity() }}
     >
       #{position}
-    </div>
+    </span>
   );
 };
 
