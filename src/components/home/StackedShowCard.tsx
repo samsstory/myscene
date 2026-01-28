@@ -98,7 +98,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               <div className="absolute inset-0 bg-black/50" />
               
               {/* Content */}
-              <CardContent className="relative py-5 px-4 flex items-center justify-between">
+              <CardContent className="relative py-6 px-4 flex items-center justify-between min-h-[60px]">
                 <span className="font-bold text-base truncate flex-1 pr-2 text-white drop-shadow-md">
                   {artistName}
                 </span>
