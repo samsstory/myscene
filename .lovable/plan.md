@@ -1,209 +1,168 @@
 
-# Plan: Context-Aware Rank Toggle Options
+# Plan: Vertical Right-Side Stats Panel for Globe/Map View
 
 ## Overview
 
-Modify the rank toggle popup in the PhotoOverlayEditor to display context-appropriate time period options based on when the show occurred. Shows from different time periods will have different toggle behaviors:
+Rework the Globe page layout to replace the current horizontal bottom stats bar with a vertical stats pill on the right side, positioned below the minimized location notification pin. This creates a more mobile-friendly, cohesive UI that keeps all right-side controls together.
 
-- **This year's shows**: Show popup with "All Time" and "This Year" options
-- **Last year's shows**: Show popup with "All Time" and "Last Year" options  
-- **Older shows (2+ years ago)**: No popup - tapping rank icon simply toggles rank on/off (always shows "All Time")
+## Current Issues
 
-## Current Behavior
+1. **Horizontal stats card** at bottom-right gets cut off or extends off-screen on mobile
+2. **Two separate floating elements** (location pin + stats) compete for attention
+3. **Visual clutter** with overlays in multiple corners of the map
 
-The rank toggle currently always shows two static options:
-- "All Time"
-- "This Year"
-
-This doesn't make sense for shows from previous years - a 2023 show can't be ranked for "This Year" (2025).
-
-## Proposed Logic
+## Proposed Layout
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    Show Date Analysis                        │
-├─────────────────────────────────────────────────────────────┤
-│  If show_date is in current year (2025):                    │
-│    → Show popup: "All Time" | "This Year"                   │
-│                                                             │
-│  If show_date is in last year (2024):                       │
-│    → Show popup: "All Time" | "Last Year"                   │
-│                                                             │
-│  If show_date is older than last year (2023 or earlier):    │
-│    → No popup - just toggle rank visibility (All Time only) │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│  ┌─────────────────────┐                    ┌──┬──┐            │
+│  │ World > USA > NYC   │ (breadcrumb)       │ + │- │ (zoom)    │
+│  └─────────────────────┘                    └──┴──┘            │
+│                                                                │
+│                                                                │
+│                                              ┌─────────────┐   │
+│        ┌──────────┐                          │ 📍    (3)   │   │
+│        │ New York │ (hover card)             ├─────────────┤   │
+│        │ 5 shows  │                          │             │   │
+│        └──────────┘                          │   ♫  17     │   │
+│                                              │  Shows      │   │
+│                                              │             │   │
+│                                              │   🌍  4     │   │
+│                                              │ Countries   │   │
+│                                              │             │   │
+│                                              │   🏙️  8     │   │
+│                                              │  Cities     │   │
+│                                              │             │   │
+│                                              │   📍 12     │   │
+│                                              │  Venues     │   │
+│                                              │             │   │
+│                                              └─────────────┘   │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ## Implementation Details
 
-### 1. Add Helper Function for Show Age Category
+### 1. Create New Unified Right Panel Component
 
-Add a new function to determine the show's time category:
+Create `src/components/map/MapRightPanel.tsx` that combines:
+- Location notification indicator (when shows need location)
+- Vertical stats display
 
 ```typescript
-// Determine show age category for rank options
-const getShowAgeCategory = (): "this-year" | "last-year" | "older" => {
-  const showDate = new Date(show.show_date);
-  const showYear = showDate.getFullYear();
-  const currentYear = new Date().getFullYear();
-  
-  if (showYear === currentYear) return "this-year";
-  if (showYear === currentYear - 1) return "last-year";
-  return "older";
-};
-
-const showAgeCategory = getShowAgeCategory();
+interface MapRightPanelProps {
+  totalShows: number;
+  totalCountries: number;
+  totalCities: number;
+  totalVenues: number;
+  showsWithoutLocation: number;
+  isMinimized: boolean;
+  onToggleLocationCard: () => void;
+}
 ```
 
-### 2. Update Ranking Time Filter Type
+### 2. Vertical Stats Layout
 
-Expand the type to support "last-year":
+Replace the horizontal flex layout with a vertical stack:
 
 ```typescript
-const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "last-year">("all-time");
+const stats = [
+  { icon: Music, value: totalShows, label: "Shows" },
+  { icon: Globe, value: totalCountries, label: "Countries" },
+  { icon: Building2, value: totalCities, label: "Cities" },
+  { icon: MapPin, value: totalVenues, label: "Venues" },
+];
+
+// Vertical layout
+<div className="flex flex-col gap-3">
+  {stats.map((stat) => (
+    <div className="flex flex-col items-center text-center">
+      <div className="p-2 rounded-lg bg-primary/20">
+        <stat.icon className="h-4 w-4 text-primary" />
+      </div>
+      <span className="text-lg font-bold text-white">{stat.value}</span>
+      <span className="text-[9px] text-white/60 uppercase tracking-wider">
+        {stat.label}
+      </span>
+    </div>
+  ))}
+</div>
 ```
 
-### 3. Update filterShowsByTime Function
+### 3. Integrated Location Notification
 
-Add support for "last-year" filter:
-
-```typescript
-const filterShowsByTime = (shows: Show[], timeFilter: string) => {
-  if (timeFilter === "all-time") return shows;
-  
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-  
-  return shows.filter(s => {
-    const showDate = new Date(s.show_date);
-    
-    if (timeFilter === "this-year") {
-      return showDate.getFullYear() === currentYear;
-    } else if (timeFilter === "last-year") {
-      return showDate.getFullYear() === currentYear - 1;
-    } else if (timeFilter === "this-month") {
-      return showDate.getFullYear() === currentYear && 
-             showDate.getMonth() === currentMonth;
-    }
-    return true;
-  });
-};
-```
-
-### 4. Update Rank Toggle Click Handler
-
-Modify the rank icon button behavior based on show age:
+When there are shows without location, display a subtle notification section at the top of the panel:
 
 ```typescript
-onClick={(e) => { 
-  e.stopPropagation(); 
-  if (item.key === "showRank") {
-    const ageCategory = getShowAgeCategory();
-    
-    if (ageCategory === "older") {
-      // Old shows: just toggle rank on/off, no popup
-      toggleConfig("showRank");
-      setRankingTimeFilter("all-time"); // Force all-time for old shows
-    } else {
-      // Recent shows: show popup
-      if (!overlayConfig.showRank) {
-        toggleConfig("showRank");
-      }
-      setShowRankOptions(!showRankOptions);
-    }
-  } else {
-    toggleConfig(item.key);
-  }
-}}
-```
-
-### 5. Update Rank Options Popup UI
-
-Render context-appropriate options based on show age:
-
-```typescript
-{/* Rank options - context-aware based on show date */}
-{showRankOptions && overlayConfig.showRank && showAgeCategory !== "older" && (
-  <div 
-    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl"
-    onClick={(e) => e.stopPropagation()}
+{showsWithoutLocation > 0 && (
+  <button
+    onClick={onToggleLocationCard}
+    className="flex items-center justify-center gap-2 p-2 rounded-lg bg-destructive/20 border border-destructive/30 mb-3 transition-colors hover:bg-destructive/30"
   >
-    <button
-      onClick={() => { setRankingTimeFilter("all-time"); setShowRankOptions(false); }}
-      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-        rankingTimeFilter === "all-time" 
-          ? "bg-white/20 text-white shadow-sm" 
-          : "text-white/60 hover:text-white/80"
-      }`}
-    >
-      All Time
-    </button>
-    <button
-      onClick={() => { 
-        setRankingTimeFilter(showAgeCategory === "this-year" ? "this-year" : "last-year"); 
-        setShowRankOptions(false); 
-      }}
-      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-        (showAgeCategory === "this-year" && rankingTimeFilter === "this-year") ||
-        (showAgeCategory === "last-year" && rankingTimeFilter === "last-year")
-          ? "bg-white/20 text-white shadow-sm" 
-          : "text-white/60 hover:text-white/80"
-      }`}
-    >
-      {showAgeCategory === "this-year" ? "This Year" : "Last Year"}
-    </button>
+    <MapPin className="h-4 w-4 text-destructive" />
+    <span className="text-sm font-semibold text-destructive">
+      {showsWithoutLocation}
+    </span>
+  </button>
+)}
+```
+
+### 4. Panel Positioning
+
+Position the unified panel on the right side, vertically centered:
+
+```typescript
+<div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+  <div className="backdrop-blur-xl bg-black/40 border border-white/10 rounded-2xl p-3 shadow-2xl">
+    {/* Location notification (if needed) */}
+    {/* Vertical stats stack */}
   </div>
-)}
+</div>
 ```
 
-### 6. Update Rank Display Text
+### 5. Update MapView.tsx
 
-The rank display text in the overlay footer already dynamically shows the filter label. Add support for "last-year":
+- Remove the current `MapStatsCard` import and usage
+- Remove the separate minimized location pin element
+- Add the new `MapRightPanel` component
+- Pass the required props including `showsWithoutLocation.length` and toggle handler
 
-```typescript
-{overlayConfig.showRank && rankData.total > 0 ? (
-  <span 
-    className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
-    onClick={(e) => { e.stopPropagation(); toggleConfig("showRank"); }}
-  >
-    #{rankData.position} {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time'}
-  </span>
-) : (
-  <span />
-)}
-```
+### 6. Responsive Considerations
 
-### 7. Update Canvas Export
-
-Update the canvas drawing logic to handle "last-year" label:
-
-```typescript
-// Rank text label
-const rankLabel = rankingTimeFilter === 'this-year' 
-  ? 'this year' 
-  : rankingTimeFilter === 'last-year' 
-    ? 'last year' 
-    : 'all time';
-ctx.fillText(`#${rankData.position} ${rankLabel}`, overlayX + padding, bottomY);
-```
+The vertical layout naturally works better on mobile:
+- Narrow width (fits in right margin)
+- Scrollable if needed on very small screens
+- Consistent with native mobile map controls pattern (right-side controls)
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/PhotoOverlayEditor.tsx` | Add show age helper, expand time filter type, update filter function, modify click handler logic, update popup UI, update display text |
+| `src/components/map/MapRightPanel.tsx` | **New file** - Unified right panel component |
+| `src/components/map/MapStatsCard.tsx` | Can be deleted or kept for reference |
+| `src/components/MapView.tsx` | Replace stats card + minimized pin with new unified panel |
 
-## Visual Behavior Summary
+## Visual Specifications
 
-| Show Date | Popup Visible? | Options |
-|-----------|---------------|---------|
-| 2025 (this year) | Yes | "All Time" / "This Year" |
-| 2024 (last year) | Yes | "All Time" / "Last Year" |
-| 2023 or earlier | No | Rank toggles on/off (All Time only) |
+| Property | Value |
+|----------|-------|
+| Panel background | `bg-black/40 backdrop-blur-xl` |
+| Border | `border border-white/10` |
+| Border radius | `rounded-2xl` |
+| Position | `right-4 top-1/2 -translate-y-1/2` |
+| Icon size | `h-4 w-4` |
+| Value text | `text-lg font-bold text-white` |
+| Label text | `text-[9px] uppercase tracking-wider text-white/60` |
+
+## Interaction Behavior
+
+1. **Location notification tap**: Opens the full "Shows without location" card (existing behavior)
+2. **Stats display**: Static display only (no interactivity needed)
+3. **Panel visibility**: Always visible as an overlay on the map
+4. **When location card is expanded**: Hide the notification badge from the panel (since the full card is visible)
 
 ## Edge Cases
 
-1. **Show from January 1st of current year**: Correctly categorized as "this-year"
-2. **Show from December 31st of last year**: Correctly categorized as "last-year"
-3. **Filter mismatch prevention**: When opening an old show, force `rankingTimeFilter` to "all-time" to prevent stale filter state
+1. **No shows**: Panel still shows with all zeros
+2. **All shows have locations**: Location notification section is hidden, only stats shown
+3. **Very small screens**: Panel maintains minimum width, may need scroll on extremely constrained viewports
