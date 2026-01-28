@@ -41,6 +41,7 @@ export const HeroPhotoSection = ({
   onEditPhoto,
 }: HeroPhotoSectionProps) => {
   const headliner = artists.find(a => a.isHeadliner) || artists[0];
+  const supportingArtists = artists.filter(a => !a.isHeadliner && a.name !== headliner?.name);
   const formattedDate = format(parseISO(date), "MMM d, yyyy");
 
   if (photoUrl) {
@@ -82,12 +83,20 @@ export const HeroPhotoSection = ({
                 >
                   {headliner?.name}
                 </h2>
+                {supportingArtists.length > 0 && (
+                  <p className="text-white/40 text-xs mt-0.5 truncate">
+                    with {supportingArtists.map(a => a.name).join(', ')}
+                  </p>
+                )}
                 <p className="text-white/60 text-sm mt-1 truncate">
                   {venue.name} · {formattedDate}
                 </p>
-                {/* Rank with context */}
+                {/* Rank with comparisons context */}
                 <p className="text-white/50 text-xs mt-1.5">
-                  {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
+                  {rankPosition > 0 
+                    ? `#${rankPosition} All Time${comparisonsCount > 0 ? ` · ${comparisonsCount} comparisons` : ''}`
+                    : "Unranked"
+                  }
                 </p>
               </div>
               {/* Score Badge */}
@@ -180,6 +189,11 @@ export const HeroPhotoSection = ({
           >
             {headliner?.name}
           </h2>
+          {supportingArtists.length > 0 && (
+            <p className="text-white/40 text-xs mt-0.5 truncate">
+              with {supportingArtists.map(a => a.name).join(', ')}
+            </p>
+          )}
           <p className="text-white/60 text-sm mt-1 truncate">
             {venue.name} · {formattedDate}
           </p>
