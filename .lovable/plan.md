@@ -1,215 +1,102 @@
 
-# Plan: Context-Aware Navigation Button with Toggle Behavior
+
+# Touch Feedback Animations for Map Dots
 
 ## Overview
+Add visual feedback animations (scale up + enhanced glow) when users hover over or tap map dots on any device. This will make the dots feel more interactive and responsive, especially important on mobile where there are no cursor changes.
 
-Replace the multi-part breadcrumb (`World > USA > Los Angeles`) with a single context-aware button that:
-- Shows the current location name
-- Clicking navigates "up" one level
-- At World level, clicking navigates back "down" to the last viewed country/city
+## Technical Approach
+
+Mapbox GL JS supports dynamic paint property changes using **feature-state**. We'll use this to:
+1. Track which feature (dot) is currently being interacted with
+2. Apply scaled-up radius and intensified glow when a dot is hovered/touched
+
+### Changes to MapView.tsx
+
+**1. Add feature-state tracking for hover**
+
+For each dot layer (country, city, venue), we'll:
+- Store the currently hovered feature ID
+- Use `map.setFeatureState()` to mark features as "hovered"
+- Update paint properties to use expressions that reference `feature-state.hover`
+
+**2. Update paint properties to react to feature-state**
+
+Replace static `circle-radius` with expressions like:
+```javascript
+'circle-radius': [
+  'case',
+  ['boolean', ['feature-state', 'hover'], false],
+  // Hovered: larger radius (e.g., +6px)
+  ['interpolate', ['linear'], ['get', 'showCount'], 1, 28, 5, 34, 10, 40, 50, 50],
+  // Default radius
+  ['interpolate', ['linear'], ['get', 'showCount'], 1, 22, 5, 28, 10, 34, 50, 44]
+]
+```
+
+Similarly for glow layers:
+- Increase `circle-opacity` from 0.3 to 0.5 on hover
+- Increase glow radius slightly
+
+**3. Add touch event handlers for mobile**
+
+Mapbox treats touch as click events, but we need to handle:
+- `touchstart` on dots → set feature state to hovered
+- `touchend` anywhere → clear hover state
+- This provides visual feedback before the actual click action fires
+
+**4. Add smooth transitions**
+
+Add `circle-radius-transition` and `circle-opacity-transition` paint properties to animate the changes:
+```javascript
+'circle-radius-transition': { duration: 150 },
+'circle-opacity-transition': { duration: 150 }
+```
+
+### Implementation Steps
+
+1. **Modify `addCountryMarkers()` function**
+   - Add unique IDs to GeoJSON features (required for feature-state)
+   - Update circle paint with feature-state expressions for radius and opacity
+   - Add transition properties
+   - Update mouseenter/mouseleave handlers to use `setFeatureState`
+   - Add touchstart handler for mobile feedback
+
+2. **Apply same pattern to `addCityMarkers()`**
+   - Same feature-state logic with city-specific colors and sizes
+
+3. **Apply same pattern to `addVenueMarkers()`**
+   - Same feature-state logic with venue-specific colors and sizes
+
+4. **Add a ref to track hovered feature IDs**
+   - `hoveredFeatureRef` to track current hover state across all layers
+   - Needed for proper cleanup when switching between features
+
+### Visual Effect Summary
+
+| State | Radius | Glow Opacity | Glow Radius |
+|-------|--------|--------------|-------------|
+| Default | Base size | 0.3 | Base + 6px |
+| Hovered/Touched | Base + 6px | 0.5 | Base + 12px |
+
+The transition duration of 150ms will create a smooth, responsive feel without being sluggish.
 
 ---
 
-## Design
+## Technical Details
 
-### Button States and Behavior
+### Feature-State System
+- Each GeoJSON feature needs a unique `id` property (we'll use array index)
+- `map.setFeatureState({ source, id }, { hover: true })` marks a feature
+- Paint expressions read this with `['feature-state', 'hover']`
+- Must call `setFeatureState` with `hover: false` to clear
 
-| Current View | Button Display | Click Action |
-|--------------|----------------|--------------|
-| World (no history) | `🌍 World` | No action (disabled/static) |
-| World (has history) | `🌍 World` | Navigate to last country |
-| Country (e.g., USA) | `← USA` | Navigate to World |
-| City (e.g., Los Angeles) | `← Los Angeles` | Navigate to USA (country level) |
+### Mobile Touch Handling
+- `touchstart` on layer → set hover state (provides immediate feedback)
+- The existing `click` handler still fires after touch
+- Clear hover state on `touchend` (on document, not just layer)
 
-### Visual Design
-- Compact pill-shaped button with glassmorphism styling
-- Arrow icon (←) when there's a "back" action
-- Globe icon (🌍) when at World level
-- Smooth hover/active states matching existing UI
+### Event Handler Cleanup
+- Need to store references to handlers for proper cleanup in useEffect
+- Important to prevent memory leaks when layers are recreated
 
----
-
-## Implementation
-
-### 1. Add Navigation History State
-
-Add state to remember the last visited country and city in `MapView.tsx`:
-
-```typescript
-// Existing state
-const [viewLevel, setViewLevel] = useState<'country' | 'city' | 'venue'>('country');
-const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-const [selectedCity, setSelectedCity] = useState<string | null>(null);
-
-// NEW: History state for "drill back down" functionality
-const [lastCountry, setLastCountry] = useState<string | null>(null);
-const [lastCity, setLastCity] = useState<string | null>(null);
-```
-
-### 2. Update Navigation Logic
-
-Modify `handleBreadcrumbNavigate` to save history before navigating up:
-
-```typescript
-const handleNavButtonClick = () => {
-  if (viewLevel === 'venue') {
-    // At venue level: go back to city level
-    setViewLevel('city');
-    setVenueData([]);
-    setSelectedCity(null);
-    setHoveredVenue(null);
-  } else if (viewLevel === 'city') {
-    // At city level: save current country, go to world
-    setLastCountry(selectedCountry);
-    setLastCity(null); // Clear city history when going to world
-    setViewLevel('country');
-    setSelectedCountry(null);
-    setCityData([]);
-    setHoveredCity(null);
-  } else if (viewLevel === 'country' && lastCountry) {
-    // At world level with history: drill back to last country
-    handleCountryClick(lastCountry);
-  }
-  // At world level without history: do nothing
-};
-```
-
-Also update city selection to save the city name for potential re-drill:
-
-```typescript
-// When user clicks a city, save it to history
-const handleCityClick = (cityName: string) => {
-  setLastCity(cityName);
-  // ... existing city click logic
-};
-```
-
-### 3. Replace MapBreadcrumb Component
-
-Simplify `MapBreadcrumb.tsx` to a single button:
-
-```typescript
-import { ArrowLeft, Globe } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface MapNavButtonProps {
-  viewLevel: 'country' | 'city' | 'venue';
-  selectedCountry: string | null;
-  selectedCity: string | null;
-  hasHistory: boolean;
-  onClick: () => void;
-}
-
-const MapNavButton = ({ 
-  viewLevel, 
-  selectedCountry, 
-  selectedCity, 
-  hasHistory,
-  onClick 
-}: MapNavButtonProps) => {
-  // Determine button text and icon
-  const getButtonContent = () => {
-    if (viewLevel === 'venue' && selectedCity) {
-      return { icon: ArrowLeft, text: selectedCity };
-    }
-    if (viewLevel === 'city' && selectedCountry) {
-      return { icon: ArrowLeft, text: selectedCountry };
-    }
-    // World level
-    return { icon: Globe, text: 'World' };
-  };
-
-  const { icon: Icon, text } = getButtonContent();
-  const isClickable = viewLevel !== 'country' || hasHistory;
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={!isClickable}
-      className={cn(
-        "flex items-center gap-2 px-3 py-2 rounded-xl transition-all",
-        "backdrop-blur-xl bg-black/40 border border-white/10",
-        isClickable 
-          ? "hover:bg-black/60 hover:scale-105 active:scale-95 cursor-pointer" 
-          : "opacity-60 cursor-default"
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      <span className="font-medium">{text}</span>
-    </button>
-  );
-};
-
-export default MapNavButton;
-```
-
-### 4. Update MapView Integration
-
-Replace the breadcrumb usage in `MapView.tsx`:
-
-```typescript
-{/* Navigation button */}
-<div className="absolute top-4 left-4 z-10">
-  <MapNavButton
-    viewLevel={viewLevel}
-    selectedCountry={selectedCountry}
-    selectedCity={selectedCity}
-    hasHistory={!!lastCountry}
-    onClick={handleNavButtonClick}
-  />
-</div>
-```
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/map/MapBreadcrumb.tsx` | Replace with simplified `MapNavButton` component |
-| `src/components/MapView.tsx` | Add history state, update navigation logic, update component usage |
-
----
-
-## User Experience Flow
-
-```text
-Starting at World View:
-┌─────────────────┐
-│ 🌍 World        │  ← Button is static (no history yet)
-└─────────────────┘
-
-User clicks USA dot → drills into country:
-┌─────────────────┐
-│ ← USA           │  ← Click to go back to World
-└─────────────────┘
-
-User clicks Los Angeles dot → drills into city:
-┌─────────────────┐
-│ ← Los Angeles   │  ← Click to go back to USA
-└─────────────────┘
-
-User clicks back → returns to USA level:
-┌─────────────────┐
-│ ← USA           │  ← Click to go back to World
-└─────────────────┘
-
-User clicks back → returns to World:
-┌─────────────────┐
-│ 🌍 World        │  ← Now clickable! (has USA in history)
-└─────────────────┘
-
-User clicks World button → drills back to USA:
-┌─────────────────┐
-│ ← USA           │  ← Right back where they were
-└─────────────────┘
-```
-
----
-
-## Technical Notes
-
-- History is stored in component state, so it resets when leaving the Globe view
-- Only the most recent country is remembered (not a full navigation stack)
-- The button at World level with history acts as a "re-enter" shortcut
-- Matches the existing glassmorphism styling of other map UI elements
