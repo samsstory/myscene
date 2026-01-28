@@ -73,8 +73,6 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [hoveredVenue, setHoveredVenue] = useState<string | null>(null);
   
-  // Navigation history for "drill back down" functionality
-  const [lastCountry, setLastCountry] = useState<string | null>(null);
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -447,26 +445,26 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     setViewLevel('venue');
   };
 
-  // Handle navigation button click - context-aware up/down navigation
-  const handleNavButtonClick = () => {
-    if (viewLevel === 'venue') {
-      // At venue level: go back to city level
-      setViewLevel('city');
-      setVenueData([]);
-      setSelectedCity(null);
-      setHoveredVenue(null);
-    } else if (viewLevel === 'city') {
-      // At city level: save current country, go to world
-      setLastCountry(selectedCountry);
-      setViewLevel('country');
-      setSelectedCountry(null);
-      setCityData([]);
-      setHoveredCity(null);
-    } else if (viewLevel === 'country' && lastCountry) {
-      // At world level with history: drill back to last country
-      handleCountryClick(lastCountry);
+  // Handle reset to world view
+  const handleResetToWorld = () => {
+    // Reset all state
+    setViewLevel('country');
+    setSelectedCountry(null);
+    setSelectedCity(null);
+    setCityData([]);
+    setVenueData([]);
+    setHoveredCity(null);
+    setHoveredVenue(null);
+    
+    // Animate map back to world view
+    if (map.current) {
+      map.current.flyTo({
+        center: [0, 20],
+        zoom: 1.5,
+        duration: 1500,
+        essential: true
+      });
     }
-    // At world level without history: do nothing (button is disabled)
   };
 
   // Calculate stats
@@ -944,14 +942,11 @@ const MapView = ({ shows, onEditShow }: MapViewProps) => {
     <div className="relative w-full h-[calc(100vh-180px)] min-h-[400px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
 
-      {/* Context-aware navigation button */}
+      {/* Reset to world button - only shows when drilled in */}
       <div className="absolute top-4 left-4 z-10">
         <MapNavButton
           viewLevel={viewLevel}
-          selectedCountry={selectedCountry}
-          selectedCity={selectedCity}
-          hasHistory={!!lastCountry}
-          onClick={handleNavButtonClick}
+          onClick={handleResetToWorld}
         />
       </div>
 
