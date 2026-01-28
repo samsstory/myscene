@@ -1,168 +1,253 @@
 
-# Plan: Vertical Right-Side Stats Panel for Globe/Map View
+# Plan: Critical Globe UX Fixes
 
 ## Overview
 
-Rework the Globe page layout to replace the current horizontal bottom stats bar with a vertical stats pill on the right side, positioned below the minimized location notification pin. This creates a more mobile-friendly, cohesive UI that keeps all right-side controls together.
+Implement three high-priority fixes to improve the Globe/Map view experience:
+1. Convert venue details from a Card overlay to a mobile-friendly bottom sheet (Drawer)
+2. Add responsive height to the map container instead of fixed 600px
+3. Fix mobile tap interactions for map markers
 
-## Current Issues
+---
 
-1. **Horizontal stats card** at bottom-right gets cut off or extends off-screen on mobile
-2. **Two separate floating elements** (location pin + stats) compete for attention
-3. **Visual clutter** with overlays in multiple corners of the map
+## Fix 1: Convert Venue Details to Bottom Sheet
 
-## Proposed Layout
+### Problem
+Currently, when you tap a venue marker, the venue details appear as a Card positioned at `bottom-4 left-4`. This overlay:
+- Gets obscured by fingers on touch devices
+- Competes with the map for limited screen space
+- Has an awkward "Close" button that requires precise tapping
 
-```text
-┌────────────────────────────────────────────────────────────────┐
-│  ┌─────────────────────┐                    ┌──┬──┐            │
-│  │ World > USA > NYC   │ (breadcrumb)       │ + │- │ (zoom)    │
-│  └─────────────────────┘                    └──┴──┘            │
-│                                                                │
-│                                                                │
-│                                              ┌─────────────┐   │
-│        ┌──────────┐                          │ 📍    (3)   │   │
-│        │ New York │ (hover card)             ├─────────────┤   │
-│        │ 5 shows  │                          │             │   │
-│        └──────────┘                          │   ♫  17     │   │
-│                                              │  Shows      │   │
-│                                              │             │   │
-│                                              │   🌍  4     │   │
-│                                              │ Countries   │   │
-│                                              │             │   │
-│                                              │   🏙️  8     │   │
-│                                              │  Cities     │   │
-│                                              │             │   │
-│                                              │   📍 12     │   │
-│                                              │  Venues     │   │
-│                                              │             │   │
-│                                              └─────────────┘   │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+### Solution
+Replace the Card-based venue details with the existing Drawer component (vaul-based bottom sheet). This provides:
+- Native swipe-to-dismiss gesture
+- Proper mobile touch interaction
+- Better screen real estate usage
+- Consistent with other detail views in the app
+
+### Implementation
+
+**Update MapView.tsx:**
+
+1. Import the Drawer components:
+```typescript
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 ```
 
-## Implementation Details
-
-### 1. Create New Unified Right Panel Component
-
-Create `src/components/map/MapRightPanel.tsx` that combines:
-- Location notification indicator (when shows need location)
-- Vertical stats display
-
+2. Replace the Card-based venue details (lines 1054-1099) with a Drawer:
 ```typescript
-interface MapRightPanelProps {
-  totalShows: number;
-  totalCountries: number;
-  totalCities: number;
-  totalVenues: number;
-  showsWithoutLocation: number;
-  isMinimized: boolean;
-  onToggleLocationCard: () => void;
-}
-```
-
-### 2. Vertical Stats Layout
-
-Replace the horizontal flex layout with a vertical stack:
-
-```typescript
-const stats = [
-  { icon: Music, value: totalShows, label: "Shows" },
-  { icon: Globe, value: totalCountries, label: "Countries" },
-  { icon: Building2, value: totalCities, label: "Cities" },
-  { icon: MapPin, value: totalVenues, label: "Venues" },
-];
-
-// Vertical layout
-<div className="flex flex-col gap-3">
-  {stats.map((stat) => (
-    <div className="flex flex-col items-center text-center">
-      <div className="p-2 rounded-lg bg-primary/20">
-        <stat.icon className="h-4 w-4 text-primary" />
+<Drawer 
+  open={!!selectedVenue} 
+  onOpenChange={(open) => !open && setSelectedVenue(null)}
+>
+  <DrawerContent className="max-h-[60vh]">
+    <DrawerHeader>
+      <DrawerTitle>{selectedVenue?.venueName}</DrawerTitle>
+      <DrawerDescription>{selectedVenue?.location}</DrawerDescription>
+    </DrawerHeader>
+    <div className="px-4 pb-6">
+      <p className="text-sm mb-3 text-muted-foreground">
+        {selectedVenue?.count} {selectedVenue?.count === 1 ? "show" : "shows"}
+      </p>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {selectedVenue?.shows.map((show) => (
+          <div
+            key={show.id}
+            className="text-sm p-3 bg-muted rounded-lg flex items-center justify-between gap-2"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="font-medium truncate">
+                {show.artists.map(a => a.name).join(", ")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {new Date(show.date).toLocaleDateString()}
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEditShow(show)}
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
       </div>
-      <span className="text-lg font-bold text-white">{stat.value}</span>
-      <span className="text-[9px] text-white/60 uppercase tracking-wider">
-        {stat.label}
-      </span>
     </div>
-  ))}
-</div>
+  </DrawerContent>
+</Drawer>
 ```
 
-### 3. Integrated Location Notification
+---
 
-When there are shows without location, display a subtle notification section at the top of the panel:
+## Fix 2: Responsive Map Height
 
+### Problem
+The map container uses a fixed height of `h-[600px]` (line 931). This causes:
+- Cut-off content on smaller mobile devices
+- Wasted space on larger tablets/desktops
+- No adaptation to device orientation changes
+
+### Solution
+Use CSS viewport-relative units combined with `calc()` to account for the header and navigation elements.
+
+### Implementation
+
+**Update MapView.tsx line 931:**
+
+Change from:
 ```typescript
-{showsWithoutLocation > 0 && (
-  <button
-    onClick={onToggleLocationCard}
-    className="flex items-center justify-center gap-2 p-2 rounded-lg bg-destructive/20 border border-destructive/30 mb-3 transition-colors hover:bg-destructive/30"
-  >
-    <MapPin className="h-4 w-4 text-destructive" />
-    <span className="text-sm font-semibold text-destructive">
-      {showsWithoutLocation}
-    </span>
-  </button>
-)}
+<div className="relative w-full h-[600px]">
 ```
 
-### 4. Panel Positioning
-
-Position the unified panel on the right side, vertically centered:
-
+To:
 ```typescript
-<div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
-  <div className="backdrop-blur-xl bg-black/40 border border-white/10 rounded-2xl p-3 shadow-2xl">
-    {/* Location notification (if needed) */}
-    {/* Vertical stats stack */}
-  </div>
-</div>
+<div className="relative w-full h-[calc(100vh-180px)] min-h-[400px]">
 ```
 
-### 5. Update MapView.tsx
+This calculates:
+- `100vh` = full viewport height
+- Minus `180px` = space for header (~56px), sub-view header (~48px), and bottom padding (~76px)
+- `min-h-[400px]` = ensures map doesn't become unusably small
 
-- Remove the current `MapStatsCard` import and usage
-- Remove the separate minimized location pin element
-- Add the new `MapRightPanel` component
-- Pass the required props including `showsWithoutLocation.length` and toggle handler
+---
 
-### 6. Responsive Considerations
+## Fix 3: Mobile Tap Interactions for Markers
 
-The vertical layout naturally works better on mobile:
-- Narrow width (fits in right margin)
-- Scrollable if needed on very small screens
-- Consistent with native mobile map controls pattern (right-side controls)
+### Problem
+Mapbox's click/hover events are optimized for mouse interactions. On mobile:
+- `mouseenter`/`mouseleave` events may not trigger reliably
+- Tap targets might be too small for touch
+- No visual feedback on tap
+
+### Solution
+Enhance the existing event handlers to better support touch interactions:
+
+1. Add `touchstart` event handling alongside click
+2. Increase minimum tap target size for mobile
+3. Add visual feedback on tap (opacity pulse)
+
+### Implementation
+
+**Update marker layer paint properties (country, city, venue):**
+
+Increase minimum circle radius for better touch targets:
+```typescript
+// Country dots (lines 532-538)
+'circle-radius': [
+  'interpolate', ['linear'], ['get', 'showCount'],
+  1, 22,  // Increased from 18
+  5, 28,  // Increased from 24
+  10, 34, // Increased from 30
+  50, 44  // Increased from 40
+],
+
+// City dots (lines 680-686)
+'circle-radius': [
+  'interpolate', ['linear'], ['get', 'showCount'],
+  1, 18,  // Increased from 14
+  5, 24,  // Increased from 20
+  10, 30, // Increased from 26
+  25, 36  // Increased from 32
+],
+
+// Venue dots (lines 838-844)
+'circle-radius': [
+  'interpolate', ['linear'], ['get', 'showCount'],
+  1, 16,  // Increased from 12
+  3, 20,  // Increased from 16
+  5, 24,  // Increased from 20
+  10, 30  // Increased from 26
+],
+```
+
+**Add touch event listeners alongside mouse events:**
+
+For each marker type, add explicit touch handling:
+```typescript
+// Add alongside existing click handler
+map.current.on('touchstart', 'venue-dots', (e) => {
+  e.preventDefault();
+  if (e.features && e.features.length > 0) {
+    const venueName = e.features[0].properties?.name;
+    const venue = venueData.find(v => v.name === venueName);
+    if (venue) {
+      // Set hovered state briefly for visual feedback
+      setHoveredVenue(venueName);
+      setTimeout(() => setHoveredVenue(null), 300);
+      
+      setSelectedVenue({
+        venueName: venue.name,
+        location: venue.location,
+        count: venue.shows.length,
+        shows: venue.shows
+      });
+    }
+  }
+});
+```
+
+**Apply same pattern to country and city markers.**
+
+---
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/map/MapRightPanel.tsx` | **New file** - Unified right panel component |
-| `src/components/map/MapStatsCard.tsx` | Can be deleted or kept for reference |
-| `src/components/MapView.tsx` | Replace stats card + minimized pin with new unified panel |
+| `src/components/MapView.tsx` | All three fixes: Drawer for venue details, responsive height, touch handlers |
 
-## Visual Specifications
+---
 
-| Property | Value |
-|----------|-------|
-| Panel background | `bg-black/40 backdrop-blur-xl` |
-| Border | `border border-white/10` |
-| Border radius | `rounded-2xl` |
-| Position | `right-4 top-1/2 -translate-y-1/2` |
-| Icon size | `h-4 w-4` |
-| Value text | `text-lg font-bold text-white` |
-| Label text | `text-[9px] uppercase tracking-wider text-white/60` |
+## Visual Summary
 
-## Interaction Behavior
+```text
+BEFORE                           AFTER
+┌────────────────────────┐      ┌────────────────────────┐
+│ h-[600px] fixed        │      │ h-[calc(100vh-180px)]  │
+│                        │      │ (responsive)           │
+│     [Map]              │      │                        │
+│                        │      │      [Map]             │
+│  ┌──────────┐          │      │                        │
+│  │Card      │ ← Overlay│      │                        │
+│  │Venue Info│          │      └────────────────────────┤
+│  └──────────┘          │      │ ═══════════════════ ━━ │
+└────────────────────────┘      │ Venue Name             │
+                                │ Location               │
+                                │ Shows list...          │
+                                │ (Swipe down to close)  │
+                                └────────────────────────┘
+                                     ↑ Bottom Sheet (Drawer)
+```
 
-1. **Location notification tap**: Opens the full "Shows without location" card (existing behavior)
-2. **Stats display**: Static display only (no interactivity needed)
-3. **Panel visibility**: Always visible as an overlay on the map
-4. **When location card is expanded**: Hide the notification badge from the panel (since the full card is visible)
+---
 
-## Edge Cases
+## Technical Details
 
-1. **No shows**: Panel still shows with all zeros
-2. **All shows have locations**: Location notification section is hidden, only stats shown
-3. **Very small screens**: Panel maintains minimum width, may need scroll on extremely constrained viewports
+### Drawer Component Integration
+- The Drawer component from vaul is already installed and configured in the project
+- Uses `shouldScaleBackground` for a native iOS-like feel
+- The handle bar is already styled in DrawerContent
+
+### Responsive Height Calculation
+- 56px: Main navigation/header
+- 48px: Sub-view header ("Show Globe" + back button)
+- 76px: Bottom padding and safe area
+- Total: ~180px reserved, rest goes to map
+
+### Touch Event Considerations
+- `touchstart` fires before `click` on mobile
+- Using `e.preventDefault()` prevents ghost clicks
+- Brief hover state (300ms) provides visual feedback
+- Larger tap targets (4-6px increase per tier) improve accuracy
+
+### Cleanup
+- Remove the explicit "Close" button from venue details (swipe-to-dismiss replaces it)
+- Hover cards can remain for desktop users
+- The MapRightPanel (stats) remains unchanged
