@@ -306,6 +306,11 @@ export const ShowReviewSheet = ({
     onNavigateToRank?.();
   };
 
+  const handleEditShow = () => {
+    onOpenChange(false);
+    onEdit(show);
+  };
+
   const handleDownloadImage = async () => {
     if (photoUrl) {
       // If photo exists, download it directly
@@ -400,7 +405,7 @@ export const ShowReviewSheet = ({
               comparisonsCount={rankData.comparisons}
               onPhotoUpload={handlePhotoUpload}
               fileInputRef={fileInputRef}
-              onChangePhoto={() => fileInputRef.current?.click()}
+              onEditShow={handleEditShow}
               onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
             />
 
@@ -478,18 +483,6 @@ export const ShowReviewSheet = ({
               >
                 <Download className="h-4 w-4 mr-2" />
                 Save
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  onOpenChange(false);
-                  onEdit(show);
-                }}
-                className="text-white/50 hover:text-white hover:bg-white/10"
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit Review
               </Button>
               {onDelete && (
                 <Button
