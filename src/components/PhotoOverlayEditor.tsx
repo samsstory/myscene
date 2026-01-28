@@ -424,7 +424,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     // Detailed ratings - Horizontal bar graph with text labels
     if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
       const ratings = [
-        { label: "Perf", value: show.artist_performance },
+        { label: "Show", value: show.artist_performance },
         { label: "Sound", value: show.sound },
         { label: "Light", value: show.lighting },
         { label: "Crowd", value: show.crowd },
@@ -854,7 +854,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showDetailedRatings"); }}
                 >
                   {[
-                    { label: "Perf", value: show.artist_performance },
+                    { label: "Show", value: show.artist_performance },
                     { label: "Sound", value: show.sound },
                     { label: "Light", value: show.lighting },
                     { label: "Crowd", value: show.crowd },
