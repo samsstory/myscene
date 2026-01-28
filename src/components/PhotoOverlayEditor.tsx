@@ -529,7 +529,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-    ctx.fillText("Scene", overlayX + overlayWidth - padding, bottomY);
+    ctx.fillText("SCENE ✦", overlayX + overlayWidth - padding, bottomY);
     
     // Reset shadow
     ctx.shadowBlur = 0;
@@ -898,12 +898,12 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                   <span />
                 )}
                 <span 
-                  className="font-black tracking-[0.25em] text-white/75"
+                  className="font-black tracking-[0.25em] text-white/75 uppercase"
                   style={{ 
                     textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)" 
                   }}
                 >
-                  Scene
+                  SCENE ✦
                 </span>
               </div>
             </div>
