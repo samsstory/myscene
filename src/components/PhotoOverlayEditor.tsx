@@ -1022,37 +1022,72 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 
                 {/* Meta group - purple (rank with options) */}
                 {toggleItems.filter(i => i.group === "meta").map((item) => (
-                  <Tooltip key={item.key}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          if (item.key === "showRank") {
-                            if (showAgeCategory === "older") {
-                              // Old shows: just toggle rank on/off, no popup
-                              toggleConfig("showRank");
-                              setRankingTimeFilter("all-time"); // Force all-time for old shows
-                            } else {
-                              // Recent shows: show popup
-                              if (!overlayConfig.showRank) {
+                  <div key={item.key} className="relative">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (item.key === "showRank") {
+                              if (showAgeCategory === "older") {
+                                // Old shows: just toggle rank on/off, no popup
                                 toggleConfig("showRank");
+                                setRankingTimeFilter("all-time"); // Force all-time for old shows
+                              } else {
+                                // Recent shows: show popup
+                                if (!overlayConfig.showRank) {
+                                  toggleConfig("showRank");
+                                }
+                                setShowRankOptions(!showRankOptions);
                               }
-                              setShowRankOptions(!showRankOptions);
+                            } else {
+                              toggleConfig(item.key);
                             }
-                          } else {
-                            toggleConfig(item.key);
-                          }
-                        }}
-                        disabled={item.disabled}
-                        className={getToggleStyle(item)}
+                          }}
+                          disabled={item.disabled}
+                          className={getToggleStyle(item)}
+                        >
+                          <item.icon className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Rank options - context-aware based on show date, positioned above this icon */}
+                    {item.key === "showRank" && showRankOptions && overlayConfig.showRank && showAgeCategory !== "older" && (
+                      <div 
+                        className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <item.icon className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
-                      {item.label}
-                    </TooltipContent>
-                  </Tooltip>
+                        <button
+                          onClick={() => { setRankingTimeFilter("all-time"); setShowRankOptions(false); }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            rankingTimeFilter === "all-time" 
+                              ? "bg-white/20 text-white shadow-sm" 
+                              : "text-white/60 hover:text-white/80"
+                          }`}
+                        >
+                          All Time
+                        </button>
+                        <button
+                          onClick={() => { 
+                            setRankingTimeFilter(showAgeCategory === "this-year" ? "this-year" : "last-year"); 
+                            setShowRankOptions(false); 
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            (showAgeCategory === "this-year" && rankingTimeFilter === "this-year") ||
+                            (showAgeCategory === "last-year" && rankingTimeFilter === "last-year")
+                              ? "bg-white/20 text-white shadow-sm" 
+                              : "text-white/60 hover:text-white/80"
+                          }`}
+                        >
+                          {showAgeCategory === "this-year" ? "This Year" : "Last Year"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
                 
                 <div className="w-px h-3 bg-border/30 mx-1" />
@@ -1085,39 +1120,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                     Preview
                   </TooltipContent>
                 </Tooltip>
-                
-                {/* Rank options - context-aware based on show date */}
-                {showRankOptions && overlayConfig.showRank && showAgeCategory !== "older" && (
-                  <div 
-                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => { setRankingTimeFilter("all-time"); setShowRankOptions(false); }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        rankingTimeFilter === "all-time" 
-                          ? "bg-white/20 text-white shadow-sm" 
-                          : "text-white/60 hover:text-white/80"
-                      }`}
-                    >
-                      All Time
-                    </button>
-                    <button
-                      onClick={() => { 
-                        setRankingTimeFilter(showAgeCategory === "this-year" ? "this-year" : "last-year"); 
-                        setShowRankOptions(false); 
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        (showAgeCategory === "this-year" && rankingTimeFilter === "this-year") ||
-                        (showAgeCategory === "last-year" && rankingTimeFilter === "last-year")
-                          ? "bg-white/20 text-white shadow-sm" 
-                          : "text-white/60 hover:text-white/80"
-                      }`}
-                    >
-                      {showAgeCategory === "this-year" ? "This Year" : "Last Year"}
-                    </button>
-                  </div>
-                )}
               </div>
               
               {/* Aspect ratio pill - separate element */}
