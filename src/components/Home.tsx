@@ -60,9 +60,11 @@ type ViewMode = 'home' | 'calendar' | 'rankings' | 'globe';
 
 interface HomeProps {
   onNavigateToRank?: () => void;
+  onAddFromPhotos?: () => void;
+  onAddSingleShow?: () => void;
 }
 
-const Home = ({ onNavigateToRank }: HomeProps) => {
+const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -626,10 +628,15 @@ const Home = ({ onNavigateToRank }: HomeProps) => {
       {viewMode === 'globe' && (
         <>
           {renderSubViewHeader('Show Globe')}
-          <MapView shows={shows} onEditShow={show => {
-            setEditShow(show);
-            setEditDialogOpen(true);
-          }} />
+          <MapView 
+            shows={shows} 
+            onEditShow={show => {
+              setEditShow(show);
+              setEditDialogOpen(true);
+            }}
+            onAddFromPhotos={onAddFromPhotos}
+            onAddSingleShow={onAddSingleShow}
+          />
         </>
       )}
 
