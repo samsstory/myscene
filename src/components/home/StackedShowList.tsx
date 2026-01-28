@@ -74,10 +74,13 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
 
   // Handle card expansion when tapped (scrolls it into view)
   const handleExpand = useCallback((showId: string) => {
+    // Always expand the card first
+    setExpandedId(showId);
+    
+    // Then scroll it into view if we have the ref
     const cardEl = cardRefs.current.get(showId);
     if (cardEl) {
       cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
-      setExpandedId(showId);
     }
   }, []);
 
