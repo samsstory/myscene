@@ -1,120 +1,265 @@
 
 
-# Stylized "SCENE" Logo with Subtle Glow
+# Stacked Memory Cards - "Rolodex" Show Feed
 
 ## Overview
 
-Transform the plain grey "SCENE" text into a memorable, stylized typographic watermark with a soft white glow that floats elegantly over any photo background.
+Replace the current vertical card list with a **stacked, overlapping card interface** where shows layer on top of each other like a deck of cards. Each card shows a "peek" header (artist name only) until scrolled into focus, when it expands to reveal the full photo and metadata.
 
 ---
 
-## Design Approach
-
-### Typography Treatment
-
-| Aspect | Current | New |
-|--------|---------|-----|
-| Case | ALL CAPS | Title Case ("Scene") - matches header |
-| Weight | Bold | Heavy/Black (more presence) |
-| Tracking | Wide | Extra-wide (more air, more premium) |
-| Opacity | 30% grey | 70-80% white (more visible) |
-| Effect | Grayscale filter | Soft drop shadow glow |
-
-### The Glow Effect
+## Visual Design
 
 ```text
-                    ╭─────────────╮
-  Current:          │   SCENE     │  ← Flat, grey, forgettable
-                    ╰─────────────╯
-  
-                    ╭─────────────╮
-  New:              │   Scene     │  ← White with soft luminous halo
-                    │ ░░░░░░░░░░░ │     that adapts to any background
-                    ╰─────────────╯
+┌─────────────────────────────────────────────┐
+│  Stat Pills + Dynamic Insight               │
+├─────────────────────────────────────────────┤
+│                                             │
+│  Recent Shows                               │
+│                                             │
+│  ┌─────────────────────────────────────┐    │
+│  │  ░░░░░░░░░░░░ Collapsed Card ░░░░░░░│◄── Peek header only
+│  │  Tyler, the Creator                 │    (~60px visible)
+│  ├─────────────────────────────────────┤    │
+│  │  ░░░░░░░░░░░░ Collapsed Card ░░░░░░░│    │
+│  │  Kendrick Lamar                     │    │
+│  ├═════════════════════════════════════┤    │
+│  │                                     │    │
+│  │    ╔════════════════════════════╗   │◄── FOCUSED CARD
+│  │    ║                            ║   │    (Full photo + overlay)
+│  │    ║      [    PHOTO    ]       ║   │    
+│  │    ║                            ║   │    
+│  │    ║  ┌──────────────────────┐  ║   │    
+│  │    ║  │ 9.2  Fred Again..    │  ║   │    
+│  │    ║  │ Red Rocks · Dec 15   │  ║   │    
+│  │    ║  └──────────────────────┘  ║   │    
+│  │    ║               Scene ✦     ║   │    
+│  │    ╚════════════════════════════╝   │    
+│  │                                     │    
+│  ├─────────────────────────────────────┤    
+│  │  Bon Iver                           │◄── Next card peeking
+│  └─────────────────────────────────────┘    
+│                                             │
+└─────────────────────────────────────────────┘
 ```
 
-The glow creates a "light source" effect - as if the text is subtly illuminated, making it pop without being aggressive.
+---
+
+## Card States
+
+### Collapsed State (Peek Header)
+
+```text
+┌─────────────────────────────────────────┐
+│  ▓▓▓▓▓  Gradient bar  ▓▓▓▓▓             │  ← 4px colored bar 
+│  Fred Again..                    #3     │  ← Artist + rank badge
+└─────────────────────────────────────────┘
+     │                                │
+     └── Height: ~60px ───────────────┘
+```
+
+- **Top gradient bar**: Score-based color (green for 9+, gold for 7+, etc.)
+- **Artist name**: Bold, truncated to single line
+- **Rank badge**: Small pill on the right
+- **Overlap**: Cards stack with ~20px visible between them
+
+### Expanded State (Focused)
+
+```text
+┌─────────────────────────────────────────┐
+│                                         │
+│  ╭───────────────────────────────────╮  │
+│  │                                   │  │
+│  │         [ SHOW PHOTO ]            │  │  ← 16:9 or native ratio
+│  │                                   │  │
+│  │  ┌─────────────────────────────┐  │  │
+│  │  │ 9.2   Fred Again..          │  │  │  ← Floating overlay
+│  │  │       Red Rocks Amphitheatre│  │  │     (like share image)
+│  │  │       Dec 15, 2025          │  │  │
+│  │  └─────────────────────────────┘  │  │
+│  │                        Scene ✦    │  │  ← Glow logo
+│  ╰───────────────────────────────────╯  │
+│                                         │
+│   [ Share ]                    [ View ] │  ← Action buttons
+│                                         │
+└─────────────────────────────────────────┘
+         │                          │
+         └── Height: ~350-400px ────┘
+```
+
+### No-Photo Fallback
+
+When a show has no photo, the expanded card uses a **gradient background** based on score:
+
+```text
+┌─────────────────────────────────────────┐
+│  ╭───────────────────────────────────╮  │
+│  │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  │
+│  │ ▓▓▓▓▓  SCORE GRADIENT  ▓▓▓▓▓▓▓▓▓▓ │  │  ← Uses getScoreGradient()
+│  │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  │
+│  │  ┌─────────────────────────────┐  │  │
+│  │  │ 7.5   Bon Iver              │  │  │
+│  │  │       The Anthem            │  │  │
+│  │  │       Nov 22, 2025          │  │  │
+│  │  └─────────────────────────────┘  │  │
+│  │                        Scene ✦    │  │
+│  ╰───────────────────────────────────╯  │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## Interaction Model
+
+| Gesture | Action |
+|---------|--------|
+| Scroll | Cards snap into focus position |
+| Tap collapsed card | Scrolls that card into focus |
+| Tap expanded card | Opens ShowReviewSheet for full details |
+| Tap Share button | Opens PhotoOverlayEditor (if photo) or ShareShowSheet |
+| Swipe horizontally | Could trigger quick-share (future enhancement) |
 
 ---
 
 ## Technical Implementation
 
-### DOM Rendering (PhotoOverlayEditor.tsx, ~line 909-914)
+### 1. New Component: `StackedShowCard.tsx`
 
-**Current:**
 ```tsx
-<span 
-  className="font-bold tracking-wider opacity-30" 
-  style={{ filter: "grayscale(100%)" }}
+interface StackedShowCardProps {
+  show: Show;
+  rankInfo: RankInfo;
+  isExpanded: boolean;
+  onExpand: () => void;
+  onTap: () => void;
+  onShare: () => void;
+}
+```
+
+**Collapsed state renders:**
+- Gradient top bar (4px, score-colored)
+- Artist name (single line, bold)
+- Rank badge (right side)
+
+**Expanded state renders:**
+- Full photo with rounded corners
+- Floating overlay (score, artist, venue, date)
+- "Scene" watermark with glow effect
+- Action buttons (Share, View)
+
+### 2. New Component: `StackedShowList.tsx`
+
+**Scroll container with snap behavior:**
+
+```tsx
+<div 
+  className="overflow-y-auto snap-y snap-mandatory"
+  style={{ scrollSnapType: "y mandatory" }}
 >
-  SCENE
-</span>
+  {shows.map((show, index) => (
+    <div 
+      key={show.id}
+      className="snap-center"
+      style={{ 
+        marginTop: index === 0 ? 0 : "-40px", // Overlap
+        zIndex: shows.length - index 
+      }}
+    >
+      <StackedShowCard ... />
+    </div>
+  ))}
+</div>
 ```
 
-**New:**
+**Intersection Observer** to detect which card is in the viewport center:
+
 ```tsx
-<span 
-  className="font-black tracking-[0.25em] text-white/75"
-  style={{ 
-    textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)" 
-  }}
->
-  Scene
-</span>
+const observerRef = useRef<IntersectionObserver | null>(null);
+
+useEffect(() => {
+  observerRef.current = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+          setExpandedId(entry.target.dataset.showId);
+        }
+      });
+    },
+    { threshold: 0.5, rootMargin: "-40% 0px -40% 0px" }
+  );
+  // ... attach to card refs
+}, []);
 ```
 
-Key changes:
-- `font-black` → Maximum weight for presence
-- `tracking-[0.25em]` → Extra-wide letter spacing for premium feel
-- `text-white/75` → Higher opacity for visibility
-- `textShadow` → Two-layer glow: tight inner halo + soft outer bloom
+### 3. Update `Home.tsx`
+
+Replace the current RecentShowCard map with the new StackedShowList:
+
+```tsx
+// Before
+{recentShows.map((show) => (
+  <RecentShowCard key={show.id} ... />
+))}
+
+// After
+<StackedShowList 
+  shows={recentShows}
+  rankings={rankings}
+  onShowTap={(show) => { setReviewShow(show); setReviewSheetOpen(true); }}
+  onShowShare={handleShareFromCard}
+/>
+```
+
+### 4. CSS Additions (index.css or tailwind.config.ts)
+
+Add smooth expansion animation:
+
+```css
+.card-expand {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-collapsed {
+  height: 60px;
+  overflow: hidden;
+}
+
+.card-expanded {
+  height: auto;
+  min-height: 350px;
+}
+```
 
 ---
 
-### Canvas Export (PhotoOverlayEditor.tsx, ~line 519-523)
+## Files to Create/Modify
 
-**Current:**
-```tsx
-ctx.font = `bold ${10 * overlayScale * scaleX}px system-ui`;
-ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-ctx.fillText("SCENE", ...);
-```
-
-**New:**
-```tsx
-// Set up font
-ctx.font = `900 ${10 * overlayScale * scaleX}px system-ui`;
-ctx.textAlign = "right";
-
-// Multi-layer glow effect (painted bottom to top)
-// Outer soft glow
-ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
-ctx.shadowBlur = 16 * scaleX;
-ctx.shadowOffsetX = 0;
-ctx.shadowOffsetY = 0;
-ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-ctx.fillText("Scene", ...);
-
-// Reset shadow
-ctx.shadowBlur = 0;
-```
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/home/StackedShowCard.tsx` | **Create** | Individual card with collapsed/expanded states |
+| `src/components/home/StackedShowList.tsx` | **Create** | Scroll container with snap + intersection observer |
+| `src/components/Home.tsx` | **Modify** | Replace RecentShowCard usage with StackedShowList |
+| `src/lib/utils.ts` | **Modify** | Add solid gradient helper for no-photo fallback |
+| `src/index.css` | **Modify** | Add card expansion keyframes |
+| `src/components/home/RecentShowCard.tsx` | **Delete** | No longer needed (replaced by StackedShowCard) |
 
 ---
 
-## Visual Result
+## Edge Cases
 
-The new logo will:
-
-1. **Feel premium** - Heavy weight + wide tracking = luxury brand vibes
-2. **Pop on any background** - The glow creates natural contrast against both dark and light areas
-3. **Stay subtle** - It's still semi-transparent and doesn't compete with the show content
-4. **Match brand consistency** - Title case "Scene" matches the app header
+| Scenario | Handling |
+|----------|----------|
+| 0 shows | Show empty state with CTA to add first show |
+| 1 show | Single expanded card, no stacking |
+| No photo | Use score-based gradient background |
+| Long artist name | Truncate with ellipsis in collapsed state |
+| Multiple artists | Show headliner only in collapsed, full list in expanded |
 
 ---
 
-## Files to Modify
+## Performance Considerations
 
-| File | Changes |
-|------|---------|
-| `src/components/PhotoOverlayEditor.tsx` | Update logo styling in DOM (~line 909-914) and canvas export (~line 519-523) |
+- **Lazy load photos**: Only load images for cards near viewport
+- **Virtualization**: For users with 100+ shows, consider virtualizing the list
+- **Reduce repaints**: Use `will-change: transform` on cards during scroll
 
