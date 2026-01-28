@@ -23,7 +23,7 @@ interface HeroPhotoSectionProps {
   comparisonsCount?: number;
   onPhotoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
-  onEditPhoto?: () => void;
+  onChangePhoto?: () => void;
   onRankThisShow?: () => void;
 }
 
@@ -39,7 +39,7 @@ export const HeroPhotoSection = ({
   comparisonsCount = 0,
   onPhotoUpload,
   fileInputRef,
-  onEditPhoto,
+  onChangePhoto,
   onRankThisShow,
 }: HeroPhotoSectionProps) => {
   const headliner = artists.find(a => a.isHeadliner) || artists[0];
@@ -66,15 +66,13 @@ export const HeroPhotoSection = ({
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* Top Left: Edit Photo Button */}
-        {onEditPhoto && (
-          <button
-            onClick={onEditPhoto}
-            className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-          >
-            <Pencil className="h-4 w-4 text-white/80" />
-          </button>
-        )}
+        {/* Top Left: Change Photo Button */}
+        <button
+          onClick={onChangePhoto}
+          className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+        >
+          <Pencil className="h-4 w-4 text-white/80" />
+        </button>
 
         {/* Top Right: Scene Logo */}
         <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
