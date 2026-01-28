@@ -83,4 +83,14 @@ All colors MUST be HSL.
   .rotate-y-180 {
     transform: rotateY(180deg);
   }
+
+  /* Hide scrollbar for stacked cards */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
