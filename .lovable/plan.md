@@ -1,206 +1,183 @@
 
 
-# ShowReviewSheet Redesign: Scene Aesthetic & Viral Optimization
+# ShowReviewSheet UI Refinements
 
-## Overview
-Completely redesign the ShowReviewSheet to match the "Scene" brand aesthetic (luminous glow effects, glass morphism, wide tracking typography) while optimizing for viral sharing. The sheet will become a "share-ready preview" that immediately celebrates the experience.
+## Summary of Changes
 
-## Current Issues Identified
+Based on your feedback, I'll make the following adjustments to the ShowReviewSheet and HeroPhotoSection:
 
-1. **Photo Sync Bug**: `photoUrl` state doesn't update when switching shows (needs `useEffect`)
-2. **Missing Scene Branding**: No SceneLogo, no glow effects, no glass pill styling
-3. **Cluttered Layout**: Separate sections with heavy separators, collapsible sections add friction
-4. **CTA Hierarchy**: Share button buried below photo, not prominent enough
-5. **Dense Information**: Too much scrolling, not immediately "Instagrammable"
-
-## New Design Architecture
-
-```text
-┌─────────────────────────────────────────────┐
-│  [X Close]               [Edit] (ghost)     │  ← Minimal header
-├─────────────────────────────────────────────┤
-│                                             │
-│  ┌───────────────────────────────────────┐  │
-│  │                                       │  │
-│  │         HERO PHOTO (60% height)       │  │  ← Dominant visual
-│  │                                       │  │
-│  │   ┌─────┐                 ┌────────┐  │  │
-│  │   │#2   │                 │ 9.2/10 │  │  │  ← Floating badges
-│  │   └─────┘                 └────────┘  │  │
-│  │                                       │  │
-│  │   ┌─────────────────────────────────┐ │  │
-│  │   │  ARTIST NAME                    │ │  │  ← Glass overlay bar
-│  │   │  Venue · Date                   │ │  │
-│  │   └─────────────────────────────────┘ │  │
-│  │                         Scene ✦       │  │  ← Watermark
-│  └───────────────────────────────────────┘  │
-│                                             │
-│  ┌───────────────────────────────────────┐  │
-│  │ 🎤 Performance  ████████░░░  Great    │  │  ← Compact rating bars
-│  │ 🔊 Sound        ██████████░  Amazing  │  │
-│  │ 💡 Lighting     ██████░░░░░  Okay     │  │
-│  └───────────────────────────────────────┘  │
-│                                             │
-│  ┌───────────────────────────────────────┐  │
-│  │ "The energy was unreal..."            │  │  ← My Take (quote style)
-│  └───────────────────────────────────────┘  │
-│                                             │
-│  ┌───────────────────────────────────────┐  │
-│  │   ✦ Share to Instagram (gradient)     │  │  ← Primary CTA (glowing)
-│  └───────────────────────────────────────┘  │
-│  [+ Add Photo]   [Upload New]   [Remove]    │  ← Secondary actions (ghost)
-│                                             │
-└─────────────────────────────────────────────┘
-```
+| Issue | Current | Fix |
+|-------|---------|-----|
+| 1. Share button missing | Button exists at line 343-355 but may not be visible | Verify it's rendering; check for conditional issues |
+| 2. Scene logo placement | Bottom-right at `bottom-20 right-4` | Move to top-right corner |
+| 3. Rank needs context | Shows only `#1` | Change to `#1 All Time` and reposition under venue/date |
+| 4. "Performance" label | Says "Performance" | Change to "Show" |
+| 5. Edit button on photo | Not present on photo | Add pencil icon button to top-left of photo |
+| 6. Remove header | Has "Close" and "Edit" buttons | Delete the header row entirely (X exists on Sheet, edit moves to photo) |
 
 ## Implementation Details
 
-### 1. Fix Photo Sync Bug
-Add `useEffect` to sync `photoUrl` state when show changes:
+### 1. Verify Share Button Rendering
 
+The Share to Instagram button exists in ShowReviewSheet at lines 343-355. I'll verify it's properly positioned and visible. The button should render correctly as a full-width gradient CTA.
+
+### 2. Move Scene Logo to Top-Right
+
+**File:** `src/components/show-review/HeroPhotoSection.tsx`
+
+Current (line 99-102):
 ```typescript
-useEffect(() => {
-  setPhotoUrl(show?.photo_url || null);
-}, [show?.id, show?.photo_url]);
+<div className="absolute bottom-20 right-4">
+  <SceneLogo size="sm" />
+</div>
 ```
 
-### 2. Hero Photo Section
-Replace current photo section with immersive hero layout:
+New position - top-right (replacing score badge position, score moves elsewhere):
+```typescript
+<div className="absolute top-3 right-3">
+  <SceneLogo size="sm" />
+</div>
+```
 
-- **Photo container**: `aspect-[4/3]` with rounded corners, full bleed
-- **Gradient overlay**: `bg-gradient-to-t from-black/80 via-black/20 to-transparent`
-- **Floating rank badge**: Top-left using ShowRankBadge component
-- **Floating score badge**: Top-right with gradient pill matching score color
-- **Glass metadata bar**: Bottom overlay with artist, venue, date
-- **SceneLogo watermark**: Bottom-right corner
+Since the score badge is currently at top-right, I'll move the score into the glass metadata bar at the bottom alongside the artist name.
 
-### 3. No-Photo State
-When no photo exists, show an inviting upload prompt:
+### 3. Add Context to Rank Badge + Reposition
 
-- Gradient background based on score
-- Large "Add a Photo" button with camera icon
-- Subtle pulsing glow effect to draw attention
+**File:** `src/components/show-review/HeroPhotoSection.tsx`
 
-### 4. Compact Rating Display
-Replace collapsible sections with always-visible compact bars:
+Current (line 59-66):
+- Position: Top-left
+- Display: Just `#1`
 
-- Single-line per rating: icon + label + progress bar + text
-- Gradient-filled bars matching score colors
-- Use glass pill container with subtle border
+New approach:
+- Position: Inside the bottom glass metadata bar, below venue/date
+- Display: `#1 All Time` with the existing glow styling
 
-### 5. Notes Section ("My Take")
-Style as a quotation card:
+Updated glass metadata bar:
+```typescript
+<div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
+  <h2 className="font-black text-xl text-white tracking-wide truncate">
+    {headliner?.name}
+  </h2>
+  <p className="text-white/60 text-sm mt-1 truncate">
+    {venue.name} · {formattedDate}
+  </p>
+  {/* Rank with context */}
+  <div className="mt-2 flex items-center gap-2">
+    <span className="text-white/80 text-sm font-bold">#{position} All Time</span>
+  </div>
+</div>
+```
 
-- Glass pill background (`bg-white/5 backdrop-blur-sm`)
-- Quotation marks icon or typography
-- Wide tracking on header text
+The score badge will also move into this bar, creating a complete info section.
 
-### 6. Rank Display (Simplified)
-Remove complex toggle groups, show inline rank:
+### 4. Change "Performance" to "Show"
 
-- When rank exists: "Ranked #X of Y · Top Z%"
-- Single glass pill, not a collapsible section
-- Time filter as a simple dropdown (tap to change)
+**File:** `src/components/ShowReviewSheet.tsx`
 
-### 7. Primary CTA: Share to Instagram
-Make this the dominant action:
+Current (line 311-315):
+```typescript
+<CompactRatingBar 
+  icon={<Mic2 className="h-4 w-4" />} 
+  label="Performance" 
+  value={show.artistPerformance} 
+/>
+```
 
-- Full-width gradient button (pink-purple-indigo)
-- Glow shadow effect
-- Instagram icon with "Share to Instagram" text
-- Positioned prominently after content
+Change to:
+```typescript
+<CompactRatingBar 
+  icon={<Mic2 className="h-4 w-4" />} 
+  label="Show" 
+  value={show.artistPerformance} 
+/>
+```
 
-### 8. Secondary Actions
-Consolidate photo management into a compact row:
+### 5. Add Edit Pencil Button to Photo (Top-Left)
 
-- Ghost/outline style buttons
-- "Add Photo", "Change", "Remove" as icon buttons or small text links
-- Edit button moves to header (top-right, ghost style)
+**File:** `src/components/show-review/HeroPhotoSection.tsx`
 
-### 9. Scene Typography & Effects
-Apply consistent Scene aesthetic:
+Add new prop `onEditPhoto` to open the PhotoOverlayEditor:
+```typescript
+interface HeroPhotoSectionProps {
+  // ... existing props
+  onEditPhoto?: () => void;
+}
+```
 
-- Headers: `font-black tracking-[0.15em] uppercase`
-- Glow effects: `textShadow: "0 0 8px rgba(255,255,255,0.3)"`
-- Glass containers: `bg-white/5 backdrop-blur-sm border border-white/10`
+Add edit button at top-left when photo exists:
+```typescript
+{/* Top Left: Edit Photo Button */}
+{photoUrl && onEditPhoto && (
+  <button
+    onClick={onEditPhoto}
+    className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+  >
+    <Pencil className="h-4 w-4 text-white/80" />
+  </button>
+)}
+```
+
+### 6. Remove Header Row
+
+**File:** `src/components/ShowReviewSheet.tsx`
+
+Delete lines 264-284 (the entire header div with "Close" and "Edit" buttons):
+```typescript
+// DELETE THIS ENTIRE BLOCK
+<div className="flex items-center justify-between py-2 mb-4">
+  <button onClick={() => onOpenChange(false)} ...>Close</button>
+  <Button onClick={() => onEdit(show)} ...>Edit</Button>
+</div>
+```
+
+The SheetContent already has a built-in X close button, and edit functionality moves to the photo's pencil icon.
+
+## Updated Visual Layout
+
+```text
+┌─────────────────────────────────────────────┐
+│  (Sheet's built-in X button in corner)      │
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │                                       │  │
+│  │         HERO PHOTO                    │  │
+│  │                                       │  │
+│  │   ┌─────┐                 ┌─────────┐ │  │
+│  │   │ ✏️  │                 │Scene ✦  │ │  │  ← Edit (top-left), Logo (top-right)
+│  │   └─────┘                 └─────────┘ │  │
+│  │                                       │  │
+│  │   ┌─────────────────────────────────┐ │  │
+│  │   │  ARTIST NAME              9.2   │ │  │  ← Score moves here
+│  │   │  Venue · Date                   │ │  │
+│  │   │  #1 All Time                    │ │  │  ← Rank with context
+│  │   └─────────────────────────────────┘ │  │
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │ 🎤 Show         ████████░░░  Great    │  │  ← "Show" not "Performance"
+│  │ 🔊 Sound        ██████████░  Amazing  │  │
+│  │ ...                                   │  │
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │   ✦ Share to Instagram                │  │  ← Gradient CTA
+│  └───────────────────────────────────────┘  │
+│                                             │
+└─────────────────────────────────────────────┘
+```
 
 ## Files to Edit
 
 | File | Changes |
 |------|---------|
-| `src/components/ShowReviewSheet.tsx` | Complete redesign with Scene aesthetic |
+| `src/components/show-review/HeroPhotoSection.tsx` | Move Scene logo to top-right, add edit pencil to top-left, move rank badge into metadata bar with "All Time" context, move score into metadata bar |
+| `src/components/ShowReviewSheet.tsx` | Remove header row, change "Performance" to "Show", pass `onEditPhoto` callback to HeroPhotoSection |
 
-## Technical Implementation
+## Technical Notes
 
-### New Component Structure
-
-```typescript
-// Key sections in order:
-1. useEffect for photoUrl sync (BUG FIX)
-2. HeroPhotoSection (new sub-component or inline)
-   - Photo with overlays
-   - Floating badges (rank, score)
-   - Glass metadata bar
-   - SceneLogo watermark
-3. CompactRatingsSection
-   - Horizontal gradient bars
-   - No collapsible wrapper
-4. NotesQuoteCard
-   - Glass pill with quote styling
-5. ShareCTA
-   - Gradient Instagram button (primary)
-6. SecondaryActions
-   - Photo management (ghost buttons)
-```
-
-### Imports to Add
-
-```typescript
-import SceneLogo from "@/components/ui/SceneLogo";
-import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
-import { cn } from "@/lib/utils";
-```
-
-### Removed Elements
-
-- SheetTitle "Show Review" (replace with minimal close button)
-- Collapsible ranking section (simplify to inline badge)
-- Verbose labels with icons (Artists, Venue, Date sections)
-- Heavy Separator components (use spacing instead)
-- Duplicate ShareShowSheet component (keep for fallback only)
-
-## Visual Styling Reference
-
-### Glass Pill Container
-```typescript
-className={cn(
-  "rounded-xl overflow-hidden",
-  "bg-white/[0.03] backdrop-blur-sm",
-  "border border-white/[0.08]"
-)}
-```
-
-### Glowing Text
-```typescript
-style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
-className="font-bold tracking-wide"
-```
-
-### Gradient Share Button
-```typescript
-className={cn(
-  "w-full py-4 rounded-xl font-semibold",
-  "bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500",
-  "shadow-lg shadow-purple-500/30",
-  "hover:shadow-purple-500/50 transition-all"
-)}
-```
-
-## Viral Loop Optimization
-
-1. **Share-Ready Preview**: Photo hero with overlays mirrors what gets shared
-2. **Prominent CTA**: Instagram button is impossible to miss
-3. **SceneLogo Watermark**: Brand awareness on every shared image
-4. **Quick Path**: Tap card → See beautiful review → One tap to share
-5. **FOMO Trigger**: Rank badge ("Top 5%") encourages sharing achievements
+1. **Edit button callback**: The `onEditPhoto` will call the existing `onShareToEditor` prop since that opens the PhotoOverlayEditor
+2. **Rank display**: Will show "Unranked" if no comparisons, otherwise `#X All Time`
+3. **Score placement**: Moving score into the glass bar keeps the visual hierarchy clean while freeing up space for the logo
+4. **No-photo state**: Will maintain similar layout but without the edit pencil (no photo to edit)
 
