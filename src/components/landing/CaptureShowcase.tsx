@@ -148,7 +148,7 @@ const CaptureShowcase = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Capture how the show, sound, lighting, crowd, and vibe actually felt.
+              Capture how the show, sound, lighting, crowd, and energy actually felt.
             </p>
             
             <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
