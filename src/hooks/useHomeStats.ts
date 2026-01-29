@@ -167,6 +167,14 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         .eq('user_id', userId);
 
       const rankedShowIds = new Set(rankings?.filter(r => r.comparisons_count > 0).map(r => r.show_id) || []);
+      
+      // Count shows with <3 comparisons (under-ranked, need more data for stable rankings)
+      const COMPARISON_THRESHOLD = 3;
+      const underRankedCount = shows?.filter(show => {
+        const ranking = rankings?.find(r => r.show_id === show.id);
+        return !ranking || ranking.comparisons_count < COMPARISON_THRESHOLD;
+      }).length || 0;
+      
       const unrankedCount = totalShows - rankedShowIds.size;
 
       // Get top ranked show by ELO
@@ -232,11 +240,11 @@ export const useHomeStats = (): UseHomeStatsReturn => {
           actionable: true,
           action: 'incomplete-ratings' as InsightAction,
         };
-      } else if (unrankedCount >= 3) {
+      } else if (underRankedCount >= 1) {
         generatedInsight = {
           type: 'ranking_reminder',
-          title: `${unrankedCount} Shows to Rank`,
-          message: 'Tap to compare your recent shows.',
+          title: `${underRankedCount} ${underRankedCount === 1 ? 'Show' : 'Shows'} to Rank`,
+          message: 'Compare a few shows to lock in your rankings.',
           actionable: true,
           action: 'rank-tab' as InsightAction,
         };
