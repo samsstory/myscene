@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { cn } from "@/lib/utils";
-import { format, parseISO, formatDistanceToNow } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { getScoreGradient } from "@/lib/utils";
 
 interface Artist {
@@ -44,8 +44,7 @@ export const HeroPhotoSection = ({
 }: HeroPhotoSectionProps) => {
   const headliner = artists.find(a => a.isHeadliner) || artists[0];
   const supportingArtists = artists.filter(a => !a.isHeadliner && a.name !== headliner?.name);
-  const formattedDate = format(parseISO(date), "MMM d, yyyy");
-  const timeAgo = formatDistanceToNow(parseISO(date), { addSuffix: true });
+  const formattedDate = format(parseISO(date), "MMMM yyyy");
   const needsMoreRanking = comparisonsCount < 5 && rankTotal > 1;
 
   const openInMaps = () => {
@@ -91,8 +90,8 @@ export const HeroPhotoSection = ({
                   {headliner?.name}
                 </h2>
                 {supportingArtists.length > 0 && (
-                  <p className="text-white/40 text-xs mt-0.5 truncate">
-                    with {supportingArtists.map(a => a.name).join(', ')}
+                  <p className="text-white/50 text-xs mt-0.5 truncate">
+                    + {supportingArtists.map(a => a.name).join(', ')}
                   </p>
                 )}
                 <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
@@ -103,44 +102,43 @@ export const HeroPhotoSection = ({
                     <MapPin className="h-3 w-3 flex-shrink-0" />
                     <span className="truncate">{venue.name}</span>
                   </button>
-                  <span className="flex-shrink-0">· {formattedDate}</span>
                 </div>
-                <p className="text-white/40 text-xs mt-0.5">{timeAgo}</p>
-                {/* Rank with comparisons context */}
-                <div className="flex items-center gap-2 mt-1.5">
-                  <p className="text-white/50 text-xs">
-                    {rankPosition > 0 
-                      ? `#${rankPosition} All Time${comparisonsCount > 0 ? ` · ${comparisonsCount} comparisons` : ''}`
-                      : "Unranked"
-                    }
-                  </p>
+                <p className="text-white/50 text-xs mt-0.5">{formattedDate}</p>
+              </div>
+              {/* Score & Rank Column */}
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                {/* Score Badge */}
+                <div 
+                  className={cn(
+                    "px-3 py-1.5 rounded-full",
+                    "bg-gradient-to-r border border-white/20",
+                    getScoreGradient(score)
+                  )}
+                >
+                  <span 
+                    className="text-sm font-black text-white tracking-wide"
+                    style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}
+                  >
+                    {score.toFixed(1)}
+                  </span>
+                </div>
+                {/* Rank Badge */}
+                <div className="flex items-center gap-1">
+                  <span className="text-white/50 text-xs">
+                    {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
+                  </span>
                   {needsMoreRanking && onRankThisShow && (
                     <button
                       onClick={onRankThisShow}
-                      className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 
-                                 text-amber-400/80 text-xs font-medium hover:bg-amber-500/20 transition-colors
-                                 flex items-center gap-1"
+                      className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
+                                 text-amber-400/80 text-[10px] font-medium hover:bg-amber-500/20 transition-colors
+                                 flex items-center gap-0.5"
                     >
-                      <Scale className="h-3 w-3" />
+                      <Scale className="h-2.5 w-2.5" />
                       Rank
                     </button>
                   )}
                 </div>
-              </div>
-              {/* Score Badge */}
-              <div 
-                className={cn(
-                  "px-3 py-1.5 rounded-full flex-shrink-0",
-                  "bg-gradient-to-r border border-white/20",
-                  getScoreGradient(score)
-                )}
-              >
-                <span 
-                  className="text-sm font-black text-white tracking-wide"
-                  style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}
-                >
-                  {score.toFixed(1)}
-                </span>
               </div>
             </div>
           </div>
@@ -217,23 +215,22 @@ export const HeroPhotoSection = ({
           >
             {headliner?.name}
           </h2>
-          {supportingArtists.length > 0 && (
-            <p className="text-white/40 text-xs mt-0.5 truncate">
-              with {supportingArtists.map(a => a.name).join(', ')}
-            </p>
-          )}
-          <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
-            <button 
-              onClick={openInMaps}
-              className="flex items-center gap-1 hover:text-white/80 transition-colors truncate"
-            >
-              <MapPin className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{venue.name}</span>
-            </button>
-            <span className="flex-shrink-0">· {formattedDate}</span>
+            {supportingArtists.length > 0 && (
+              <p className="text-white/50 text-xs mt-0.5 truncate">
+                + {supportingArtists.map(a => a.name).join(', ')}
+              </p>
+            )}
+            <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
+              <button 
+                onClick={openInMaps}
+                className="flex items-center gap-1 hover:text-white/80 transition-colors truncate"
+              >
+                <MapPin className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{venue.name}</span>
+              </button>
+            </div>
+            <p className="text-white/50 text-xs mt-0.5">{formattedDate}</p>
           </div>
-          <p className="text-white/40 text-xs mt-0.5">{timeAgo}</p>
-        </div>
       </div>
 
       {/* Hidden file input */}

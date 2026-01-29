@@ -409,55 +409,74 @@ export const ShowReviewSheet = ({
               onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
             />
 
-            {/* Compact Ratings */}
+            {/* HOW IT FELT Section - Full width bars without container */}
             {hasDetailedRatings && (
-              <div 
-                className={cn(
-                  "rounded-xl p-4 space-y-3",
-                  "bg-white/[0.03] backdrop-blur-sm",
-                  "border border-white/[0.08]"
-                )}
-              >
-                <CompactRatingBar 
-                  icon={<Mic2 className="h-4 w-4" />} 
-                  label="Show" 
-                  value={show.artistPerformance} 
-                />
-                <CompactRatingBar 
-                  icon={<Volume2 className="h-4 w-4" />} 
-                  label="Sound" 
-                  value={show.sound} 
-                />
-                <CompactRatingBar 
-                  icon={<Lightbulb className="h-4 w-4" />} 
-                  label="Lighting" 
-                  value={show.lighting} 
-                />
-                <CompactRatingBar 
-                  icon={<Users className="h-4 w-4" />} 
-                  label="Crowd" 
-                  value={show.crowd} 
-                />
-                <CompactRatingBar 
-                  icon={<Sparkles className="h-4 w-4" />} 
-                  label="Vibe" 
-                  value={show.venueVibe} 
-                />
+              <div className="space-y-4">
+                {/* Section Header */}
+                <h3 
+                  className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40"
+                  style={{ textShadow: "0 0 8px rgba(255,255,255,0.1)" }}
+                >
+                  How It Felt
+                </h3>
+                
+                {/* Rating Bars - No container, full breathing room */}
+                <div className="space-y-3">
+                  <CompactRatingBar 
+                    icon={<Mic2 className="h-4 w-4" />} 
+                    label="Show" 
+                    value={show.artistPerformance} 
+                  />
+                  <CompactRatingBar 
+                    icon={<Volume2 className="h-4 w-4" />} 
+                    label="Sound" 
+                    value={show.sound} 
+                  />
+                  <CompactRatingBar 
+                    icon={<Lightbulb className="h-4 w-4" />} 
+                    label="Lighting" 
+                    value={show.lighting} 
+                  />
+                  <CompactRatingBar 
+                    icon={<Users className="h-4 w-4" />} 
+                    label="Crowd" 
+                    value={show.crowd} 
+                  />
+                  <CompactRatingBar 
+                    icon={<Sparkles className="h-4 w-4" />} 
+                    label="Vibe" 
+                    value={show.venueVibe} 
+                  />
+                </div>
               </div>
             )}
 
             {/* Notes Quote Card */}
             <NotesQuoteCard notes={show.notes} />
 
-            {/* Primary CTA: Share to Instagram */}
+            {/* Primary CTA: Save to my Scene */}
             <Button
-              onClick={handleShareClick}
+              onClick={handleDownloadImage}
               className={cn(
                 "w-full py-6 rounded-xl font-semibold text-base",
-                "bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500",
-                "shadow-lg shadow-purple-500/30",
-                "hover:shadow-purple-500/50 hover:scale-[1.02] transition-all duration-200",
+                "bg-gradient-to-r from-cyan-500 via-primary to-coral",
+                "shadow-lg shadow-primary/30",
+                "hover:shadow-primary/50 hover:scale-[1.02] transition-all duration-200",
                 "border-0"
+              )}
+            >
+              Save to my Scene
+            </Button>
+
+            {/* Secondary CTA: Share to Instagram */}
+            <Button
+              onClick={handleShareClick}
+              variant="ghost"
+              className={cn(
+                "w-full py-5 rounded-xl font-medium text-base",
+                "bg-white/[0.03] border border-white/[0.1]",
+                "text-white/70 hover:text-white hover:bg-white/[0.08]",
+                "transition-all duration-200"
               )}
             >
               <Instagram className="h-5 w-5 mr-2" />
