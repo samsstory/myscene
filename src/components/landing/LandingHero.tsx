@@ -47,10 +47,10 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
     <div className="px-4 py-2 flex justify-between items-center">
       <SceneLogo size="sm" />
       <div className="w-6 h-6 rounded-full bg-white/10" style={{
-        backgroundImage: "url('/images/scene-profile.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center"
-      }} />
+      backgroundImage: "url('/images/scene-profile.png')",
+      backgroundSize: "cover",
+      backgroundPosition: "center"
+    }} />
     </div>
 
     {/* Stacked show cards */}
@@ -171,7 +171,7 @@ const LandingHero = () => {
 
             <div className="flex flex-col gap-4 justify-center lg:justify-start pt-2">
               <WaitlistSignup source="hero" />
-              <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")} className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10 w-fit">
+              <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")} className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10 w-fit mx-[100px]">
                 Try Live Demo
               </Button>
             </div>
@@ -179,18 +179,15 @@ const LandingHero = () => {
             {/* Social proof */}
             <div className="flex items-center gap-3 justify-center lg:justify-start pt-2">
               <div className="flex -space-x-2">
-                <div 
-                  className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" 
-                  style={{ backgroundImage: "url('/images/waitlist-1.png')" }}
-                />
-                <div 
-                  className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" 
-                  style={{ backgroundImage: "url('/images/waitlist-2.png')" }}
-                />
-                <div 
-                  className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" 
-                  style={{ backgroundImage: "url('/images/waitlist-3.png')" }}
-                />
+                <div className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" style={{
+                backgroundImage: "url('/images/waitlist-1.png')"
+              }} />
+                <div className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" style={{
+                backgroundImage: "url('/images/waitlist-2.png')"
+              }} />
+                <div className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" style={{
+                backgroundImage: "url('/images/waitlist-3.png')"
+              }} />
               </div>
               <span className="text-sm text-muted-foreground">
                 Join 1,200+ music lovers
