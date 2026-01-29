@@ -100,14 +100,17 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   const [userHomeCity, setUserHomeCity] = useState<string>("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   
+  // Track if we've already initialized edit data for this dialog open
+  const [editInitialized, setEditInitialized] = useState(false);
+  
   // Photo editing state for edit mode
   const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null);
   const [editPhotoUploading, setEditPhotoUploading] = useState(false);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // Populate form with edit data
+  // Populate form with edit data - only run ONCE when dialog opens with editShow
   useEffect(() => {
-    if (editShow && open) {
+    if (editShow && open && !editInitialized) {
       const showDate = new Date(editShow.date);
       const months = [
         "January", "February", "March", "April", "May", "June",
@@ -137,13 +140,22 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setShowStepSelector(true);
       setStep(0);
       setEntryPoint(null);
-    } else if (open) {
+      setEditInitialized(true);
+    } else if (open && !editShow) {
       setShowStepSelector(false);
       setStep(1);
       setEntryPoint(null);
       setEditPhotoUrl(null);
+      setEditInitialized(false);
     }
-  }, [editShow, open]);
+  }, [editShow, open, editInitialized]);
+  
+  // Reset editInitialized when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setEditInitialized(false);
+    }
+  }, [open]);
 
   // Fetch user's home city from profile
   useEffect(() => {
