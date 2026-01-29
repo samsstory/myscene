@@ -10,6 +10,7 @@ import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
+import BrandedLoader from "@/components/ui/BrandedLoader";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -74,19 +75,7 @@ const Dashboard = () => {
   }, [navigate]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-accent flex items-center justify-center px-8">
-        <div className="text-center">
-          <div className="animate-pulse mb-6">
-            <SceneLogo size="lg" className="text-2xl" />
-          </div>
-          <p className="text-muted-foreground text-sm italic max-w-xs mx-auto leading-relaxed">
-            "Very often a change of self is needed more than a change of scene."
-            <span className="block mt-1 text-xs not-italic opacity-70">— Arthur Christopher Benson</span>
-          </p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader fullScreen />;
   }
 
   if (!session) {

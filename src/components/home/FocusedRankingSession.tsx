@@ -9,6 +9,7 @@ import confetti from "canvas-confetti";
 import RankingCard from "../rankings/RankingCard";
 import RankingProgressBar from "../rankings/RankingProgressBar";
 import SceneLogo from "../ui/SceneLogo";
+import BrandedLoader from "../ui/BrandedLoader";
 import ConfirmationRing from "../ui/ConfirmationRing";
 import { 
   selectSmartPair as selectSmartPairUtil, 
@@ -395,11 +396,7 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
 
   const renderContent = () => {
     if (loading) {
-      return (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
+      return <BrandedLoader />;
     }
 
     if (!shows || shows.length < 2) {
