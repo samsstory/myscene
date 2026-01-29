@@ -1225,8 +1225,12 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
       )}
 
       {/* Map Container - takes remaining space with rounded corners */}
-      <div className="relative flex-1 min-h-0">
-        <div ref={mapContainer} className="absolute inset-0 rounded-xl overflow-hidden" />
+  <div className="relative flex-1 min-h-0">
+    <div 
+      ref={mapContainer} 
+      className="absolute inset-0 rounded-xl overflow-hidden" 
+      style={{ backgroundColor: 'hsl(222, 47%, 11%)' }}
+    />
 
         {/* Empty state when no shows */}
         {shows.length === 0 && (
