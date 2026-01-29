@@ -5,8 +5,11 @@ import { Instagram } from "lucide-react";
 // Show Review Sheet Mockup
 const ShowReviewMockup = () => (
   <div className="h-full w-full bg-background flex flex-col">
-    {/* 4:3 Hero Photo Section */}
-    <div className="relative" style={{ aspectRatio: "4/3" }}>
+    {/* Spacer for dynamic island */}
+    <div className="h-6" />
+
+    {/* 16:10 Hero Photo Section - positioned below notch */}
+    <div className="relative mx-3 rounded-xl overflow-hidden" style={{ aspectRatio: "16/10" }}>
       <div 
         className="absolute inset-0"
         style={{
@@ -17,26 +20,26 @@ const ShowReviewMockup = () => (
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
       
-      {/* Scene watermark */}
+      {/* Scene watermark - positioned below notch area */}
       <div className="absolute top-2 right-2">
-        <div className="bg-black/30 backdrop-blur-sm rounded-full px-2 py-1 border border-white/10">
+        <div className="bg-black/30 backdrop-blur-sm rounded-full px-1.5 py-0.5 border border-white/10">
           <SceneLogo size="sm" />
         </div>
       </div>
 
       {/* Glass metadata bar at bottom of photo */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md p-3 border-t border-white/10">
+      <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md p-2 border-t border-white/10">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-white font-bold text-sm">Rufus Du Sol</h3>
-            <p className="text-white/70 text-xs">Red Rocks Amphitheatre</p>
-            <p className="text-white/50 text-[10px] mt-0.5">September 14, 2024</p>
+            <h3 className="text-white font-bold text-xs">Rufus Du Sol</h3>
+            <p className="text-white/70 text-[10px]">Red Rocks Amphitheatre</p>
+            <p className="text-white/50 text-[9px] mt-0.5">September 14, 2024</p>
           </div>
           <div className="text-right">
-            <div className="inline-flex items-center justify-center bg-white/90 text-black font-bold rounded-full px-2 py-0.5 text-sm">
+            <div className="inline-flex items-center justify-center bg-white/90 text-black font-bold rounded-full px-1.5 py-0.5 text-xs">
               9.4
             </div>
-            <p className="text-white/50 text-[10px] mt-0.5">#1 All Time</p>
+            <p className="text-white/50 text-[9px] mt-0.5">#1 All Time</p>
           </div>
         </div>
       </div>
