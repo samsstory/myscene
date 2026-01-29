@@ -131,7 +131,7 @@ interface PillarProps {
 
 const Pillar = ({ title, description, children }: PillarProps) => (
   <div className="flex flex-col items-center text-center space-y-4">
-    <PhoneMockup className="w-44 md:w-48" showHand={false}>
+    <PhoneMockup className="w-44 md:w-48">
       {children}
     </PhoneMockup>
     <h3 
