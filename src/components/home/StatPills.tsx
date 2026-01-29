@@ -63,14 +63,11 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
                     showLabel={false}
                   />
                   <div className="flex flex-col items-start">
-                    <span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">
-                      {stat.label}
-                    </span>
                     <span 
                       className="text-sm font-bold text-white/90"
                       style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}
                     >
-                      {Math.round(stat.confirmationPercentage || 0)}%
+                      {Math.round(stat.confirmationPercentage || 0)}% Ranked
                     </span>
                   </div>
                 </div>
