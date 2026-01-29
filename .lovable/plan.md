@@ -1,196 +1,229 @@
 
-# Standardize Bottom Navigation Across Landing Page Mockups
+# Bias-Free Ranking Mockup: Hybrid Approach
 
 ## Overview
-Update all phone mockups on the landing page to use the consistent "glass pill + FAB" navigation style shown in the GlobeShowcase. Each mockup will highlight the appropriate navigation item based on its context.
+Redesign the RankingSpotlight mockup to eliminate all ranking-related data and create a pure "gut feeling" comparison experience. Users see only their own logged details (photo, artists, venue, date, aspect ratings, and notes) with no ELO scores, comparison counts, or current standings that could bias their decision.
 
-## Navigation Style Reference (from GlobeShowcase)
-- **Glass pill**: `bg-white/[0.06] backdrop-blur-md border border-white/[0.08]` containing Home, Globe, Crown icons
-- **Active icon**: Primary color with glow effect `filter: drop-shadow(0 0 4px hsl(var(--primary)))`
-- **Inactive icons**: `text-white/40`
-- **FAB**: Separate circular button with primary background and glow shadow
+## Design Principles
+- **Zero ranking context** - No ELO, no "Current #1", no comparison counts
+- **Memory-first** - Surface the user's own ratings and notes to help them remember how the show felt
+- **Clean progress indicator** - Simple visual progress without numbers
+- **Gut decisions** - The UI encourages instinctive choices based on memory
 
 ---
 
-## Changes by Mockup
+## Changes to RankingSpotlight.tsx
 
-### 1. RankingSpotlight.tsx - Crown Selected
-**File**: `src/components/landing/RankingSpotlight.tsx`
+### 1. Header: Minimal Progress Bar
+Replace "Power Rankings / 12 comparisons" with a subtle progress bar:
 
-Add bottom navigation with Crown icon highlighted:
+```text
+┌─────────────────────────────────────────────┐
+│  Rank Your Shows                            │
+│  ═══════════════░░░░░░░░  (progress bar)    │
+└─────────────────────────────────────────────┘
+```
 
+- Title: "Rank Your Shows" (action-oriented, no "Power Rankings" gamification)
+- Progress bar: Thin horizontal bar showing visual progress (no numbers)
+- Styling: `h-1 bg-white/10` track with `bg-primary` fill
+
+### 2. Cards: Full Memory Context
+Expand each VS card to include:
+
+```text
+┌─────────────────────────────────────────────┐
+│  ┌───────────────────────────────────────┐  │
+│  │         [Photo 4:3 ratio]             │  │
+│  │                                        │  │
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  Odesza                                     │
+│  The Gorge · Aug 2024                       │
+│                                             │
+│  ┌─ Compact Aspect Ratings ─────────────┐   │
+│  │ Show  ████████░░  Great              │   │
+│  │ Sound ██████████  Amazing            │   │
+│  │ Crowd ██████░░░░  Okay               │   │
+│  └──────────────────────────────────────┘   │
+│                                             │
+│  "Best sunset I've ever seen at a show.     │
+│   Crowd energy was incredible."             │
+└─────────────────────────────────────────────┘
+```
+
+Components per card:
+- **Photo**: 4:3 aspect ratio (existing)
+- **Artist name**: Headliner in semibold
+- **Venue + Date**: Single line with bullet separator
+- **Aspect ratings**: Compact mini-bars (using existing gradient logic)
+  - Only show ratings that have values
+  - Icons removed for space - just label + bar
+- **Notes**: Truncated to 2-3 lines, italic styling
+
+### 3. Footer: Remove Entirely
+Delete the "Current #1: Fred again.. @ Ally Pally" section completely.
+
+### 4. VS Badge
+Keep the existing centered VS badge - it works well.
+
+---
+
+## Detailed Implementation
+
+### File: `src/components/landing/RankingSpotlight.tsx`
+
+**Imports to add:**
 ```tsx
-// Add imports
-import { Home, Globe, Crown, Plus } from "lucide-react";
+import { Music, Volume2, Lightbulb, Users, Building2 } from "lucide-react";
+```
 
-// Add bottom nav after ranking preview
-<div className="px-4 py-2.5 flex items-center justify-center gap-4">
-  <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
-    <Home className="w-4 h-4 text-white/40" />
-    <Globe className="w-4 h-4 text-white/40" />
-    <Crown
-      className="w-4 h-4 text-primary"
-      style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }}
+**New MiniRatingBar component (inline):**
+```tsx
+const MiniRatingBar = ({ label, value }: { label: string; value: number }) => {
+  const gradient = value >= 4 ? "from-emerald-500 to-cyan-400" 
+                 : value >= 3 ? "from-amber-500 to-yellow-400"
+                 : "from-orange-500 to-amber-400";
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-white/50 w-10">{label}</span>
+      <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+        <div 
+          className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
+          style={{ width: `${(value / 5) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+**Mock data structure for cards:**
+```tsx
+const leftShow = {
+  photo: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&q=80",
+  artist: "Odesza",
+  venue: "The Gorge",
+  date: "Aug 2024",
+  ratings: { show: 4, sound: 5, crowd: 3 },
+  notes: "Best sunset I've ever seen. The Gorge is magical."
+};
+
+const rightShow = {
+  photo: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80",
+  artist: "Rufus Du Sol",
+  venue: "Red Rocks",
+  date: "Jun 2023", 
+  ratings: { show: 5, sound: 4, lighting: 5 },
+  notes: "Absolutely transcendent. Red Rocks amplified everything."
+};
+```
+
+**New card rendering:**
+```tsx
+const renderShowCard = (show: typeof leftShow) => (
+  <div className="flex-1 group cursor-pointer">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.08] p-2.5 
+                    transition-all group-hover:border-primary/50 group-hover:bg-white/[0.06]">
+      {/* Photo */}
+      <div 
+        className="w-full aspect-[4/3] rounded-lg mb-2"
+        style={{
+          backgroundImage: `url('${show.photo}')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      
+      {/* Artist & Venue */}
+      <div className="text-white text-xs font-semibold">{show.artist}</div>
+      <div className="text-white/50 text-[10px] mb-2">
+        {show.venue} · {show.date}
+      </div>
+      
+      {/* Compact Ratings */}
+      <div className="space-y-1 mb-2">
+        {show.ratings.show && <MiniRatingBar label="Show" value={show.ratings.show} />}
+        {show.ratings.sound && <MiniRatingBar label="Sound" value={show.ratings.sound} />}
+        {show.ratings.lighting && <MiniRatingBar label="Light" value={show.ratings.lighting} />}
+        {show.ratings.crowd && <MiniRatingBar label="Crowd" value={show.ratings.crowd} />}
+      </div>
+      
+      {/* Notes */}
+      <p className="text-[9px] text-white/40 italic line-clamp-2 leading-relaxed">
+        "{show.notes}"
+      </p>
+    </div>
+  </div>
+);
+```
+
+**New header with progress bar:**
+```tsx
+{/* Header - Progress focused */}
+<div className="px-4 py-3 space-y-2">
+  <span className="text-white/80 text-sm font-medium">Rank Your Shows</span>
+  {/* Minimal progress bar - no numbers */}
+  <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+    <div 
+      className="h-full bg-primary rounded-full transition-all"
+      style={{ width: "60%" }}
     />
   </div>
-  <div
-    className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg"
-    style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}
-  >
-    <Plus className="w-4 h-4 text-primary-foreground" />
-  </div>
 </div>
 ```
 
 ---
 
-### 2. CaptureShowcase.tsx (Rating Screen) - Plus FAB Selected
-**File**: `src/components/landing/CaptureShowcase.tsx`
+## Visual Layout Summary
 
-This mockup shows the "Add Show" review process, so the + FAB should be selected/glowing more prominently.
-
-**Changes needed:**
-- Move the action buttons (Save to Scene, Share to Instagram) and logged timestamp up into the rating bars area
-- Add bottom glass pill nav with + FAB highlighted (more glow, different styling to show "active")
-
-```tsx
-// Add imports
-import { Home, Globe, Crown, Plus } from "lucide-react";
-
-// Restructured layout:
-// 1. Combine rating bars with action context
-// 2. Add bottom nav with FAB highlighted
-
-<div className="px-4 py-2.5 flex items-center justify-center gap-4">
-  <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
-    <Home className="w-4 h-4 text-white/40" />
-    <Globe className="w-4 h-4 text-white/40" />
-    <Crown className="w-4 h-4 text-white/40" />
-  </div>
-  {/* FAB with enhanced glow to show "selected" state */}
-  <div
-    className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30"
-    style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.6)" }}
-  >
-    <Plus className="w-4 h-4 text-primary-foreground" />
-  </div>
-</div>
+```text
+┌─────────────────────────────────────────────────────┐
+│  Rank Your Shows                                    │
+│  ══════════════════════░░░░░░░░░░  (progress bar)   │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌─────────────┐          ┌─────────────┐          │
+│  │   Photo     │   VS     │   Photo     │          │
+│  │             │          │             │          │
+│  ├─────────────┤          ├─────────────┤          │
+│  │ Odesza      │          │ Rufus Du Sol│          │
+│  │ Gorge · '24 │          │ Rocks · '23 │          │
+│  │             │          │             │          │
+│  │ Show ████░  │          │ Show █████  │          │
+│  │ Sound█████  │          │ Sound████░  │          │
+│  │ Crowd███░░  │          │ Light█████  │          │
+│  │             │          │             │          │
+│  │ "Best       │          │ "Absolutely │          │
+│  │  sunset..." │          │  transcen..." │         │
+│  └─────────────┘          └─────────────┘          │
+│                                                     │
+│              Tap to choose the winner               │
+│                                                     │
+├─────────────────────────────────────────────────────┤
+│     [Home] [Globe] [Crown*]      [+]               │
+└─────────────────────────────────────────────────────┘
 ```
 
----
+**Key removals:**
+- ~~"Power Rankings"~~ → "Rank Your Shows"
+- ~~"12 comparisons"~~ → Visual progress bar only
+- ~~"Current #1: Fred again.."~~ → Removed entirely
 
-### 3. LogShowcase.tsx - Plus FAB Selected
-**File**: `src/components/landing/LogShowcase.tsx`
-
-Replace the current simple row of icons with the glass pill + FAB layout, with FAB highlighted.
-
-**Current** (lines 64-75):
-```tsx
-<div className="px-4 py-2 flex justify-around items-center border-t border-white/10">
-  <Home className="w-4 h-4 text-white/40" />
-  <Globe className="w-4 h-4 text-white/40" />
-  <Crown className="w-4 h-4 text-white/40" />
-  <div className="w-6 h-6 rounded-full ...">
-    <Plus className="w-3 h-3 text-white" />
-  </div>
-</div>
-```
-
-**New**:
-```tsx
-<div className="px-4 py-2.5 flex items-center justify-center gap-4">
-  <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
-    <Home className="w-4 h-4 text-white/40" />
-    <Globe className="w-4 h-4 text-white/40" />
-    <Crown className="w-4 h-4 text-white/40" />
-  </div>
-  <div
-    className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30"
-    style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.6)" }}
-  >
-    <Plus className="w-4 h-4 text-primary-foreground" />
-  </div>
-</div>
-```
-
----
-
-### 4. LandingHero.tsx - Home Selected
-**File**: `src/components/landing/LandingHero.tsx`
-
-Replace the current simple row (lines 122-133) with the glass pill + FAB layout, with Home highlighted.
-
-**Current**:
-```tsx
-<div className="px-4 py-2 flex justify-around items-center border-t border-white/10">
-  <Home className="w-4 h-4 text-primary" style={{ filter: "drop-shadow..." }} />
-  <Globe className="w-4 h-4 text-white/40" />
-  <Crown className="w-4 h-4 text-white/40" />
-  <div className="w-6 h-6 rounded-full bg-primary ...">
-    <Plus className="w-3 h-3 text-white" />
-  </div>
-</div>
-```
-
-**New**:
-```tsx
-<div className="px-4 py-2.5 flex items-center justify-center gap-4">
-  <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
-    <Home
-      className="w-4 h-4 text-primary"
-      style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }}
-    />
-    <Globe className="w-4 h-4 text-white/40" />
-    <Crown className="w-4 h-4 text-white/40" />
-  </div>
-  <div
-    className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg"
-    style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}
-  >
-    <Plus className="w-4 h-4 text-primary-foreground" />
-  </div>
-</div>
-```
+**Key additions:**
+- Compact aspect rating bars on each card
+- Truncated notes (user's own words) in italics
+- Pure memory-based decision making
 
 ---
 
 ## Files to Modify
 
-| File | Change | Selected Icon |
-|------|--------|---------------|
-| `src/components/landing/RankingSpotlight.tsx` | Add glass pill nav + FAB | Crown |
-| `src/components/landing/CaptureShowcase.tsx` | Add glass pill nav, move content up | Plus FAB |
-| `src/components/landing/LogShowcase.tsx` | Replace simple nav with glass pill + FAB | Plus FAB |
-| `src/components/landing/LandingHero.tsx` | Replace simple nav with glass pill + FAB | Home |
+| File | Changes |
+|------|---------|
+| `src/components/landing/RankingSpotlight.tsx` | Complete mockup redesign with progress bar header, expanded memory cards with ratings/notes, footer removal |
 
-**No changes needed:**
-- `GlobeShowcase.tsx` - Already has correct styling (Globe selected)
-- `ShareExperience.tsx` - Instagram story view, no app nav appropriate
-
----
-
-## Visual Summary
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Consistent Nav Layout                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│    ┌─────────────────────────┐     ┌──────┐                    │
-│    │  🏠    🌐    👑         │     │  +   │                    │
-│    │  Glass Pill (3 icons)  │     │ FAB  │                    │
-│    └─────────────────────────┘     └──────┘                    │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│ Mockup           │ Home │ Globe │ Crown │ FAB                   │
-├──────────────────┼──────┼───────┼───────┼───────────────────────┤
-│ Hero             │  ●   │       │       │                       │
-│ Log              │      │       │       │ ● (ring glow)         │
-│ Capture/Rating   │      │       │       │ ● (ring glow)         │
-│ Ranking          │      │       │   ●   │                       │
-│ Globe            │      │   ●   │       │                       │
-└──────────────────┴──────┴───────┴───────┴───────────────────────┘
-
-● = Selected (primary color + glow)
-FAB ring glow = ring-2 ring-primary/30 + enhanced boxShadow
-```
+## Technical Notes
+- All data in the mockup is static/hardcoded (this is a landing page showcase)
+- The actual `Rank.tsx` component already has the infrastructure for displaying ratings
+- This mockup design can inform future updates to the real ranking interface
