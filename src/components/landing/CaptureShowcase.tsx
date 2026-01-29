@@ -116,7 +116,7 @@ const CaptureShowcase = () => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: Phone Mockup */}
           <div className="flex justify-center order-2 lg:order-1">
-            <PhoneMockup className="w-72 md:w-80 lg:w-96" tilt="left">
+            <PhoneMockup className="w-64 md:w-72 lg:w-80" tilt="left">
               <ShowReviewMockup />
             </PhoneMockup>
           </div>
