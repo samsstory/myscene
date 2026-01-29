@@ -976,7 +976,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
 
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[70vh] sm:max-h-[85vh] flex flex-col fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
+      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[70vh] sm:max-h-[85vh] flex flex-col fixed top-4 sm:top-[50%] left-[50%] translate-x-[-50%] sm:translate-y-[-50%] translate-y-0">
         {/* Back button - absolute positioned (hide on success/quick compare steps) */}
         {step > 1 && step < 5 && (
           <Button
