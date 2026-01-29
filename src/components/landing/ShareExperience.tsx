@@ -54,7 +54,7 @@ const StoryMockup = () => (
     </div>
 
     {/* Show info overlay - positioned below light trussing, reduced size */}
-    <div className="absolute top-[45%] left-3 right-3">
+    <div className="absolute top-[35%] left-3 right-3">
       <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10 transform scale-[0.7] origin-top-left">
         <div className="flex justify-between items-start mb-2">
           <div>
