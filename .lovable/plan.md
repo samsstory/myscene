@@ -1,110 +1,169 @@
 
 
-# WelcomeCarousel Mockup Update Plan
+# Interactive Spotlight Tour Implementation Plan
 
 ## Overview
-Replace the current placeholder visuals in the WelcomeCarousel with cropped, straight (no tilt) versions of the existing landing page mockups. Each mockup will be tightly framed to show only the most critical UI elements.
+Implement Phase 2 of the onboarding experience: an Interactive Spotlight Tour using `react-joyride` that guides new users through the core navigation elements of the Scene app immediately after the Welcome Carousel completes.
 
-## Slide-by-Slide Implementation
+## Tour Steps Breakdown
 
-### Slide 1: "Never forget a show"
-**Source**: LandingHero.tsx `MockShowCard` component
-
-**What to show** (based on your cropping reference):
-- Scene logo header
-- Fred again.. expanded show card (#1 All Time)
-- Stacked collapsed cards (Odesza through T-Pain)
-- No bottom navigation bar (cropped out)
-
-**Cropping approach**:
-- Show from header down through the stacked cards
-- Exclude the bottom nav pill + FAB to focus on the show collection
-
----
-
-### Slide 2: "Rate and rank your top moments"  
-**Source**: CaptureShowcase.tsx `ShowReviewMockup` component
-
-**What to show** (based on your cropping reference):
-- Scene logo watermark on photo
-- Rufus Du Sol hero image with glass metadata bar
-- "HOW IT FELT" rating bars (Show, Sound, Lighting, Crowd, Vibe)
-- Notes quote card
-- No header navigation, no bottom nav (cropped out)
-
-**Cropping approach**:
-- Start from the photo section (below dynamic island area)
-- Show through the notes quote
-- Exclude action buttons and bottom nav
-
----
-
-### Slide 3: "Share and compare your stories"
-**Source**: ShareExperience.tsx `StoryMockup` component
-
-**What to show** (based on your cropping reference):
-- Instagram story header (@jamie__xx speechless..)
-- Jamie xx photo with light trussing
-- Glass overlay card (#3 All Time, rating bar, score)
-- No Scene logo footer (cropped out)
-
-**Cropping approach**:
-- Full-height Instagram story feel
-- Focus on the photo + overlay card area
-- Show the caption text at top
-
----
+| Step | Target | Message |
+|------|--------|---------|
+| 1 | FAB (+) button | "Tap here to log your first show" |
+| 2 | Add From Photos button | "Upload multiple shows at once by adding 1 photo per show" |
+| 3 | Add Single Show button | "No Photo? Add by artist/venue" |
+| 4 | Rank nav button | "Rank shows against each other" |
+| 5 | Rankings/Shows link | "See all your shows ranked in order" |
+| 6 | Share to Instagram button | "Add your show review to your photo and share to Instagram or send to friends" |
+| 7 | Globe nav button | "See everywhere you've been" |
+| 8 | Scale nav button | "Your personal rankings live here" |
 
 ## Technical Implementation
 
-### Component Structure
-Create inline mockup components within WelcomeCarousel that:
-1. Replicate the exact UI from landing page mockups
-2. Use `overflow-hidden` containers to crop
-3. Apply no rotation (unlike PhoneMockup's tilt prop)
-4. Size appropriately for the carousel aspect ratio (4:3)
+### 1. Install react-joyride dependency
+Add `react-joyride` to package.json for the guided tour functionality.
 
-### Visual Container
+### 2. Create SpotlightTour Component
+New file: `src/components/onboarding/SpotlightTour.tsx`
+
+**Component responsibilities:**
+- Accept `run` prop to control tour activation
+- Accept `onComplete` callback for when tour finishes
+- Define tour steps with glassmorphism-styled tooltips matching Scene aesthetic
+- Handle FAB menu opening automatically when reaching step 2/3
+- Target elements using `data-tour` attributes
+
+**Glassmorphism tooltip styling:**
 ```text
-+------------------------+
-|   Cropped mockup area  |
-|   (4:3 aspect ratio)   |
-|   rounded corners      |
-|   subtle shadow        |
-+------------------------+
++----------------------------------+
+|  bg-black/40 backdrop-blur-xl    |
+|  border border-white/20          |
+|  rounded-xl shadow-2xl           |
+|  Text with Scene glow effects    |
++----------------------------------+
 ```
 
-- **Container**: `rounded-2xl overflow-hidden shadow-2xl` with subtle border glow
-- **No phone chrome**: Direct UI content without device frame
-- **Aspect ratio**: Maintain 4:3 for consistent slide layout
+### 3. Add data-tour attributes to Dashboard.tsx
+Target elements need identification for react-joyride:
 
-### Files to Modify
-| File | Changes |
-|------|---------|
-| `src/components/onboarding/WelcomeCarousel.tsx` | Replace placeholder visuals with cropped mockup components |
+| Element | Attribute |
+|---------|-----------|
+| FAB button | `data-tour="fab"` |
+| Add from Photos button | `data-tour="add-photos"` |
+| Add Single Show button | `data-tour="add-single"` |
+| Rank nav button | `data-tour="nav-rank"` |
+| Globe nav button | `data-tour="nav-globe"` |
 
-### Code Changes
+### 4. Add data-tour attributes to Home.tsx
+For the rankings view target:
+| Element | Attribute |
+|---------|-----------|
+| Rankings section header/link | `data-tour="shows-ranked"` |
 
-The slide visual rendering will be replaced with inline components that mirror the landing page mockups but are cropped to show only the critical UI:
+### 5. Add data-tour attributes to ShowReviewSheet.tsx
+For the share button:
+| Element | Attribute |
+|---------|-----------|
+| Share to Instagram button | `data-tour="share-instagram"` |
 
-**Slide 1 mockup**: Stacked cards from header to last collapsed card
-- Reuse collapsedCards data structure
-- Fred again.. expanded card with photo
-- Stack of 5 collapsed artist cards
+### 6. Update onboarding state machine in Dashboard.tsx
 
-**Slide 2 mockup**: Review sheet content only
-- 16:10 hero photo with Rufus Du Sol
-- Glass metadata overlay
-- Rating bars section with cyan-to-coral gradients
-- Notes quote card
+**Current flow:**
+```text
+welcome_carousel -> completed
+```
 
-**Slide 3 mockup**: Instagram story share
-- Full-bleed Jamie xx concert photo
-- @jamie__xx speechless.. caption
-- Glass overlay with ranking + score
+**New flow:**
+```text
+welcome_carousel -> spotlight_tour -> completed
+```
 
-Each mockup will be wrapped in a container with:
-- `aspect-[4/3]` to match existing layout
-- `rounded-2xl overflow-hidden` for clean edges
-- Subtle `boxShadow` with primary color glow
+**State changes:**
+- Add `showSpotlightTour` state
+- When carousel completes, set `onboarding_step` to `spotlight_tour` and trigger tour
+- When tour completes, set `onboarding_step` to `completed`
+- Need to ensure FAB menu opens programmatically when tour reaches step 2
+
+### 7. Subtle pulse animation on targets
+Add CSS keyframes for a subtle glowing pulse effect on tour targets:
+- Use `box-shadow` animation with primary color
+- 2-second cycle, gentle opacity pulsing
+
+## Files to Create/Modify
+
+| File | Action | Changes |
+|------|--------|---------|
+| `package.json` | Modify | Add `react-joyride` dependency |
+| `src/components/onboarding/SpotlightTour.tsx` | Create | New component with tour logic and glassmorphism tooltips |
+| `src/pages/Dashboard.tsx` | Modify | Add tour state, data-tour attributes, integrate SpotlightTour component |
+| `src/components/Home.tsx` | Modify | Add data-tour attribute to rankings section |
+| `src/components/ShowReviewSheet.tsx` | Modify | Add data-tour attribute to Share to Instagram button |
+| `src/index.css` | Modify | Add pulse animation keyframes for tour targets |
+
+## Tour Flow Logic
+
+```text
+User completes Welcome Carousel
+         |
+         v
+Dashboard sets onboarding_step = 'spotlight_tour'
+         |
+         v
+SpotlightTour mounts with run=true
+         |
+         v
+Step 1: Highlight FAB -> User sees "Tap here to log your first show"
+         |
+         v
+Step 2: Programmatically open FAB menu, highlight Add Photos
+         |
+         v
+Step 3: Highlight Add Single Show
+         |
+         v
+Step 4: Close FAB menu, highlight Rank nav
+         |
+         v
+Step 5: Highlight rankings section (or skip if not visible)
+         |
+         v
+Step 6: Open a sample show review sheet, highlight Share button
+         |
+         v
+Step 7: Highlight Globe nav
+         |
+         v
+Step 8: Highlight Scale nav
+         |
+         v
+Tour complete -> set onboarding_step = 'completed'
+```
+
+## Simplified Alternative Approach
+
+Given the complexity of opening sheets/dialogs mid-tour, a simpler approach focusing only on the persistent navigation elements:
+
+| Step | Target | Message |
+|------|--------|---------|
+| 1 | FAB (+) button | "Tap here to log your first show" |
+| 2 | Globe nav | "See everywhere you've been" |
+| 3 | Rank nav (Scale) | "Your personal rankings live here" |
+
+This ensures all targets are always visible and the tour runs smoothly without needing to programmatically open menus or sheets.
+
+## Styling Details
+
+**Tooltip component customization:**
+- Background: `bg-black/60 backdrop-blur-xl`
+- Border: `border border-white/20`
+- Border radius: `rounded-xl`
+- Shadow: `shadow-2xl` with primary color glow
+- Text: White with subtle textShadow glow effect
+- Buttons: Primary gradient styling matching Scene CTA buttons
+- Arrow: Styled to match glassmorphism theme
+
+**Spotlight overlay:**
+- Dark overlay with ~60% opacity
+- Primary color glow around target element
+- Subtle pulsing animation on the target
 
