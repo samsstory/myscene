@@ -1,201 +1,272 @@
 
 
-# Smart Pairing Algorithm Upgrade
+# Bulk Upload UI Redesign - Scene Aesthetic Alignment
 
-## Overview
+## Current State Analysis
 
-Upgrade the ranking pairing algorithm to use **transitive inference** and **ELO gap thresholds**, reducing required swipes by 40-60% while making the app feel smarter and more respectful of user time.
+Based on my review of the screenshot you provided and the codebase, here are the issues:
 
-## What You'll Get
+### Visual Problems
 
-- Algorithm skips predictable comparisons (e.g., won't ask A vs. C if A > B > C is already known)
-- Pairs focus on "high information" matchups where the outcome is genuinely uncertain
-- Large ELO gaps (>200 points) are deprioritized as the outcome is already implied
-- Rankings converge faster, meaning users reach "locked in" status with fewer swipes
-- Same behavior across Rank tab, Focused Session, and Quick Compare
+1. **Generic Card Styling**: The current `PhotoReviewCard` uses basic `bg-card` with dashed borders - lacks the premium glassmorphism treatment seen in other Scene components
 
-## How It Works
+2. **No Mesh Gradient Background**: The dialog/cards don't have the signature cyan/coral mesh gradients that define Scene's aesthetic
 
-### Current Algorithm (Naive)
-```text
-Score = (ELO proximity × 0.6) + (low comparisons × 0.4)
-```
-This prioritizes close ELO scores but still presents matchups that are already "decided" by transitive inference.
+3. **Yellow Accent Color Mismatch**: The artist search dropdown uses a bright yellow (`bg-yellow-500`) for selected items - this clashes with Scene's cyan/coral palette
 
-### New Algorithm (Smart)
+4. **Flat Input Fields**: Standard shadcn inputs without the glass effect or subtle glows
 
-```text
-1. Build transitive inference graph from all comparisons
-2. For each candidate pair:
-   - Skip if already compared directly
-   - Skip if transitively implied (A > B > C means skip A vs C)
-   - Calculate uncertainty score based on:
-     a) ELO proximity (closer = more uncertain = higher value)
-     b) Comparison count (fewer = more uncertain)
-     c) Information gain (would this comparison resolve ambiguity?)
-3. Select from top candidates with randomization
-```
+5. **Missing Noise Texture**: The tactile 3% opacity fractal noise overlay is absent from cards
 
-### Transitive Inference Logic
+6. **No Luminous Effects**: Text and icons lack the soft glow (`textShadow`) that gives Scene its premium feel
 
-```text
-Given comparisons: A > B, B > C, B > D
-Inferred: A > C, A > D
-Skip pairs: (A,C), (A,D) - outcomes are predictable
-Keep pairs: (C,D) - genuinely uncertain
-```
+7. **Plain Progress Indicator**: "0 of 2 ready" text is plain - could be a visual progress element
 
-## Technical Implementation
+### UX Problems
 
-### 1. Create Shared Pairing Utility
+1. **"Add Info" Label Confusion**: When collapsed, empty cards show "Add Info" in orange - not immediately clear what needs to be done
 
-**New File: `src/lib/smart-pairing.ts`**
+2. **Hidden Photo Actions**: Edit/delete photo overlay only appears on hover - not discoverable on mobile
 
-A utility module that provides smart pair selection across all ranking contexts:
+3. **Buried Rating Section**: The "+ Add rating & notes" toggle is easy to miss and takes extra taps to expand
 
-```typescript
-interface PairCandidate {
-  show1: Show;
-  show2: Show;
-  score: number;
-  reason: 'high_information' | 'uncertainty' | 'new_show';
-}
+4. **No Visual Hierarchy**: All cards look the same weight - completed vs incomplete states aren't immediately obvious
 
-interface SmartPairingOptions {
-  shows: Show[];
-  rankings: ShowRanking[];
-  comparisons: Comparison[];
-  comparedPairs: Set<string>;
-  focusOnUnderRanked?: boolean;
-  comparisonThreshold?: number;
-}
+5. **Progress Feels Invisible**: Users can't quickly scan which shows are ready vs need attention
 
-// Main functions
-export function buildTransitiveGraph(comparisons): Map<string, Set<string>>;
-export function isTransitivelyImplied(a, b, graph): boolean;
-export function selectSmartPair(options: SmartPairingOptions): [Show, Show] | null;
-export function calculatePairScore(show1, show2, rankings, graph): number;
+---
+
+## Proposed Design Changes
+
+### 1. Dialog Container Enhancement
+
+**File:** `src/components/BulkUploadFlow.tsx`
+
+Add mesh gradient background and noise texture to the dialog:
+
+```tsx
+<DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto relative">
+  {/* Mesh gradient background */}
+  <div className="absolute inset-0 overflow-hidden rounded-lg">
+    <div className="absolute inset-0 animate-pulse-glow"
+      style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} />
+    <div className="absolute inset-0"
+      style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} />
+    {/* Noise texture */}
+    <div className="absolute inset-0 opacity-[0.03]"
+      style={{ backgroundImage: `url("data:image/svg+xml,...")` }} />
+  </div>
+  {/* Content with relative positioning */}
+  <div className="relative z-10">
+    ...
+  </div>
+</DialogContent>
 ```
 
-**Key Algorithm Components:**
+### 2. Glassmorphism Review Cards
 
-1. **Transitive Graph Builder**: Creates a directed graph of "beats" relationships
-2. **Transitive Checker**: Uses BFS/DFS to check if A > C is implied through intermediate wins
-3. **Information Gain Calculator**: Scores pairs by how much uncertainty they resolve
-4. **ELO Gap Threshold**: Pairs with >200 ELO difference get heavily penalized (outcome predictable)
+**File:** `src/components/bulk-upload/PhotoReviewCard.tsx`
 
-### 2. Update Rank.tsx
+Transform cards to match Scene's glass aesthetic:
 
-**File: `src/components/Rank.tsx`**
-
-Replace `selectSmartPair` with the new utility:
-
-```typescript
-import { selectSmartPair, buildTransitiveGraph } from '@/lib/smart-pairing';
-
-// In fetchShows, after loading comparisons:
-const transitiveGraph = buildTransitiveGraph(comparisonsData);
-
-// Replace current selectSmartPair with:
-const nextPair = selectSmartPair({
-  shows: showsWithArtists,
-  rankings: rankingsData,
-  comparisons: comparisonsData,
-  comparedPairs: comparedSet,
-});
-
-if (!nextPair) {
-  // All meaningful comparisons done
-  triggerConfetti();
-  toast.success("Rankings locked in!");
-} else {
-  setShowPair(nextPair);
-}
+**Before:**
+```tsx
+<div className={cn(
+  "rounded-xl border bg-card transition-all",
+  isValid ? "border-primary/50" : "border-border border-dashed"
+)}>
 ```
 
-### 3. Update FocusedRankingSession.tsx
-
-**File: `src/components/home/FocusedRankingSession.tsx`**
-
-Use the same utility with focused mode:
-
-```typescript
-import { selectSmartPair } from '@/lib/smart-pairing';
-
-const nextPair = selectSmartPair({
-  shows: showsWithArtists,
-  rankings: allRankings,
-  comparisons: comparisonsData,
-  comparedPairs: pairsSet,
-  focusOnUnderRanked: true,
-  comparisonThreshold: COMPARISON_THRESHOLD,
-});
+**After:**
+```tsx
+<div className={cn(
+  "rounded-xl transition-all duration-300",
+  "bg-white/[0.03] backdrop-blur-sm border",
+  isValid 
+    ? "border-primary/40 shadow-[0_0_20px_hsl(189_94%_55%/0.15)]" 
+    : "border-white/[0.08] border-dashed"
+)}>
 ```
 
-### 4. Update QuickCompareStep.tsx
+### 3. Enhanced Thumbnail with Status Ring
 
-**File: `src/components/add-show-steps/QuickCompareStep.tsx`**
+Add a colored ring around thumbnails to show completion status:
 
-For new shows, select an "anchor" show that maximizes information:
-
-```typescript
-import { selectBestAnchor } from '@/lib/smart-pairing';
-
-// Instead of random selection:
-const anchorShow = selectBestAnchor({
-  newShow: { id: newShowId, elo: 1200 },
-  existingShows: showsData,
-  rankings: rankingsData,
-});
+```tsx
+<div className={cn(
+  "relative flex-shrink-0",
+  isValid && "ring-2 ring-primary/60 ring-offset-2 ring-offset-background rounded-lg"
+)}>
+  <img src={previewUrl} className="w-12 h-12 object-cover rounded-lg" />
+  {/* Checkmark badge for complete */}
+  {isValid && (
+    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+      <Check className="h-3 w-3 text-primary-foreground" />
+    </div>
+  )}
+</div>
 ```
 
-The anchor selection prioritizes:
-1. Shows near median ELO (most informative for placing new show)
-2. Shows with stable rankings (many comparisons = reliable anchor)
+### 4. Fix Yellow Selection Color
 
-## Scoring Formula Details
+**File:** `src/components/bulk-upload/ArtistTagInput.tsx`
 
-```text
-For candidate pair (A, B):
+Replace yellow with cyan brand color for selected search results:
 
-1. ELO Proximity Score (0-1):
-   proximity = max(0, 1 - (|eloA - eloB| / 400))
-   If gap > 200: proximity *= 0.3  // Heavy penalty for predictable outcomes
-
-2. Uncertainty Score (0-1):
-   avgComparisons = (comparisonsA + comparisonsB) / 2
-   uncertainty = max(0, (10 - avgComparisons) / 10)
-
-3. Transitive Check:
-   If isTransitivelyImplied(A, B): return -1  // Skip entirely
-
-4. Information Gain Bonus:
-   If neither A nor B has been compared to the other's "neighbors":
-     bonus = 0.2
-
-Final Score = (proximity × 0.5) + (uncertainty × 0.3) + (bonus × 0.2)
+**Before:**
+```tsx
+className="...hover:bg-accent text-sm transition-colors"
 ```
 
-## File Changes Summary
+**After:**
+```tsx
+className={cn(
+  "w-full text-left px-3 py-2.5 text-sm transition-all duration-150",
+  "hover:bg-primary/10 hover:border-l-2 hover:border-primary"
+)}
+```
 
-| File | Action |
-|------|--------|
-| `src/lib/smart-pairing.ts` | Create - new utility for smart pair selection |
-| `src/components/Rank.tsx` | Modify - use smart-pairing utility |
-| `src/components/home/FocusedRankingSession.tsx` | Modify - use smart-pairing utility |
-| `src/components/add-show-steps/QuickCompareStep.tsx` | Modify - use anchor selection for new shows |
+### 5. Glowing Input Fields
 
-## Expected Results
+Add subtle glow on focus to input fields matching Scene aesthetic:
 
-- **40-60% fewer swipes** to reach stable rankings
-- **Faster convergence** for new shows (smarter anchor selection)
-- **No redundant questions** (transitive pairs skipped)
-- **Smarter "all done"** detection when remaining pairs are low-value
+```tsx
+<Input
+  className={cn(
+    "h-10 bg-white/[0.03] border-white/[0.1]",
+    "focus:ring-primary/30 focus:border-primary/50",
+    "focus:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+  )}
+/>
+```
 
-## Edge Cases Handled
+### 6. Visual Progress Bar
 
-1. **New user with 2 shows**: Direct comparison (no transitive inference possible)
-2. **Many ties/skips**: Graph treats skips as non-edges, doesn't infer from them
-3. **Circular preferences**: Algorithm handles cycles gracefully (A > B > C > A are rare but valid)
-4. **Large collections (50+ shows)**: Graph operations are O(n²) worst case but optimized with early termination
+Replace "0 of 2 ready" text with a styled progress indicator:
+
+```tsx
+<div className="flex items-center gap-3">
+  {/* Progress dots */}
+  <div className="flex gap-1.5">
+    {photos.map((_, idx) => (
+      <div 
+        key={idx}
+        className={cn(
+          "w-2 h-2 rounded-full transition-all duration-300",
+          reviewedShows.get(photos[idx].id)?.isValid
+            ? "bg-primary shadow-[0_0_8px_hsl(189_94%_55%/0.6)]"
+            : "bg-white/20"
+        )}
+      />
+    ))}
+  </div>
+  <span className={cn(
+    "text-sm font-medium",
+    validShows.length > 0 ? "text-primary" : "text-muted-foreground"
+  )}>
+    {validShows.length} of {photos.length} ready
+  </span>
+</div>
+```
+
+### 7. Better Empty State Label
+
+Change "Add Info" to clearer language with icon:
+
+```tsx
+<div className="flex items-center gap-2">
+  <span className="text-base" style={{ textShadow: '0 0 8px rgba(255,255,255,0.2)' }}>
+    ✦
+  </span>
+  <span className="text-sm text-white/60">
+    {artists.length > 0 ? artists.map(a => a.name).join(", ") : "Who'd you see?"}
+  </span>
+</div>
+```
+
+### 8. Always-Visible Photo Actions on Mobile
+
+Make edit/delete icons always visible on expanded cards:
+
+```tsx
+{isExpanded && (
+  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 rounded-lg">
+    <button className="p-1.5 rounded-full bg-white/20 backdrop-blur-sm">
+      <Pencil className="h-3.5 w-3.5 text-white" />
+    </button>
+    <button className="p-1.5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-destructive/80">
+      <X className="h-3.5 w-3.5 text-white" />
+    </button>
+  </div>
+)}
+```
+
+### 9. Inline Rating Preview
+
+Show rating summary in collapsed state if ratings exist:
+
+```tsx
+{/* Show mini rating pills in collapsed state */}
+{hasRatings && !isExpanded && (
+  <div className="flex gap-1 mt-1">
+    {[artistPerformance, sound, lighting, crowd, venueVibe]
+      .filter(v => v !== null)
+      .slice(0, 3)
+      .map((val, idx) => (
+        <span key={idx} className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center">
+          {val}
+        </span>
+      ))}
+  </div>
+)}
+```
+
+### 10. Enhanced CTA Button
+
+Apply Scene's signature gradient to the primary action button:
+
+```tsx
+<Button
+  onClick={handleAddAll}
+  disabled={validShows.length === 0 || isSubmitting}
+  className={cn(
+    "w-full py-6 text-base font-semibold rounded-xl",
+    "bg-gradient-to-r from-cyan-500 via-primary to-coral",
+    "shadow-lg shadow-primary/25",
+    "hover:shadow-primary/40 hover:scale-[1.01]",
+    "disabled:opacity-50 disabled:shadow-none",
+    "transition-all duration-200"
+  )}
+  size="lg"
+>
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/BulkUploadFlow.tsx` | Add mesh gradient background + noise texture |
+| `src/components/bulk-upload/BulkReviewStep.tsx` | Visual progress dots, enhanced CTA button |
+| `src/components/bulk-upload/PhotoReviewCard.tsx` | Glassmorphism cards, status rings, better labels, always-visible photo actions |
+| `src/components/bulk-upload/ArtistTagInput.tsx` | Fix yellow color → cyan, add glow effects to input |
+
+---
+
+## Summary of Improvements
+
+**Visual:**
+- Mesh gradient backgrounds matching Scene brand
+- Glassmorphism cards with subtle blur and glow
+- Fixed color palette (cyan/coral, no yellow)
+- Luminous text effects
+- Noise texture for tactile feel
+
+**UX:**
+- Visual progress dots showing completion at a glance
+- Status rings on thumbnails for quick scanning
+- Always-visible photo edit/delete on mobile
+- Clearer empty state labeling
+- Rating preview in collapsed state
 
