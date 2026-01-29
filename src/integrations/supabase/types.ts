@@ -50,6 +50,9 @@ export type Database = {
           home_latitude: number | null
           home_longitude: number | null
           id: string
+          onboarding_completed_at: string | null
+          onboarding_step: string | null
+          pwa_installed: boolean | null
           referral_code: string | null
           updated_at: string
           username: string | null
@@ -62,6 +65,9 @@ export type Database = {
           home_latitude?: number | null
           home_longitude?: number | null
           id: string
+          onboarding_completed_at?: string | null
+          onboarding_step?: string | null
+          pwa_installed?: boolean | null
           referral_code?: string | null
           updated_at?: string
           username?: string | null
@@ -74,6 +80,9 @@ export type Database = {
           home_latitude?: number | null
           home_longitude?: number | null
           id?: string
+          onboarding_completed_at?: string | null
+          onboarding_step?: string | null
+          pwa_installed?: boolean | null
           referral_code?: string | null
           updated_at?: string
           username?: string | null
