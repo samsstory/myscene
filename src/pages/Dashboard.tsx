@@ -252,6 +252,7 @@ const Dashboard = () => {
                 {/* Add from Photos */}
                 <button
                   onClick={() => {
+                    if (showSpotlightTour) return; // Don't trigger during tour
                     setShowFabMenu(false);
                     setShowBulkUpload(true);
                   }}
@@ -270,6 +271,7 @@ const Dashboard = () => {
                 {/* Add Single Show */}
                 <button
                   onClick={() => {
+                    if (showSpotlightTour) return; // Don't trigger during tour
                     setShowFabMenu(false);
                     setShowAddDialog(true);
                   }}
@@ -328,6 +330,7 @@ const Dashboard = () => {
         onComplete={handleSpotlightTourComplete}
         onOpenFabMenu={() => setShowFabMenu(true)}
         onCloseFabMenu={() => setShowFabMenu(false)}
+        fabMenuOpen={showFabMenu}
       />
 
     </div>
