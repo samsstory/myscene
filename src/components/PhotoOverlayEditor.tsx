@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { 
-  Download, MapPin, Instagram, Move, Eye, EyeOff,
-  Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, 
-  Trophy, RotateCcw, SunDim, MessageCircle, Camera, Upload
-} from "lucide-react";
+import { Download, MapPin, Instagram, Move, Eye, EyeOff, Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, Trophy, RotateCcw, SunDim, MessageCircle, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
@@ -15,7 +11,6 @@ interface Artist {
   name: string;
   is_headliner: boolean;
 }
-
 interface Show {
   id: string;
   artists: Artist[];
@@ -30,20 +25,17 @@ interface Show {
   notes?: string;
   photo_url?: string;
 }
-
 interface ShowRanking {
   show_id: string;
   elo_score: number;
   comparisons_count: number;
 }
-
 interface PhotoOverlayEditorProps {
   show: Show;
   onClose: () => void;
   allShows?: Show[];
   rankings?: ShowRanking[];
 }
-
 const getRatingGradient = (rating: number): string => {
   // Darker, more muted gradients that blend better with photos
   if (rating >= 4.5) return "linear-gradient(135deg, rgba(45, 55, 72, 0.85), rgba(26, 32, 44, 0.90))";
@@ -51,7 +43,6 @@ const getRatingGradient = (rating: number): string => {
   if (rating >= 2.5) return "linear-gradient(135deg, rgba(55, 48, 45, 0.85), rgba(28, 25, 23, 0.90))";
   return "linear-gradient(135deg, rgba(60, 35, 35, 0.85), rgba(30, 20, 20, 0.90))";
 };
-
 const getRatingAccent = (rating: number): string => {
   // Subtle accent colors for text highlights
   if (rating >= 4.5) return "hsl(45, 93%, 58%)"; // Gold
@@ -59,8 +50,12 @@ const getRatingAccent = (rating: number): string => {
   if (rating >= 2.5) return "hsl(17, 88%, 60%)"; // Orange
   return "hsl(0, 84%, 60%)"; // Red
 };
-
-export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = [] }: PhotoOverlayEditorProps) => {
+export const PhotoOverlayEditor = ({
+  show,
+  onClose,
+  allShows = [],
+  rankings = []
+}: PhotoOverlayEditorProps) => {
   const [overlayConfig, setOverlayConfig] = useState({
     showArtists: true,
     showVenue: true,
@@ -69,72 +64,88 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     showDetailedRatings: true,
     showNotes: true,
     showBackground: true,
-    showRank: false,
+    showRank: false
   });
-  
   const [rankingTimeFilter, setRankingTimeFilter] = useState<"all-time" | "this-year" | "last-year">("all-time");
-  
+
   // Determine show age category for context-aware rank options
   const getShowAgeCategory = (): "this-year" | "last-year" | "older" => {
     const showDate = new Date(show.show_date);
     const showYear = showDate.getFullYear();
     const currentYear = new Date().getFullYear();
-    
     if (showYear === currentYear) return "this-year";
     if (showYear === currentYear - 1) return "last-year";
     return "older";
   };
-  
   const showAgeCategory = getShowAgeCategory();
-
   const [overlayOpacity, setOverlayOpacity] = useState<number>(90);
   const [isGenerating, setIsGenerating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(45, 93%, 58%)");
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [imageDimensions, setImageDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showRankOptions, setShowRankOptions] = useState(false);
-  
+
   // Photo upload state - allows adding photos from this view
   const [uploading, setUploading] = useState(false);
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(show.photo_url || null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Effective photo URL (local upload takes precedence)
   const effectivePhotoUrl = localPhotoUrl || show.photo_url;
-  
+
   // Aspect ratio mode: 'story' (9:16) or 'native' (original image ratio)
   const [aspectMode, setAspectMode] = useState<"story" | "native">("story");
-  
+
   // Multi-touch transform for Instagram-style overlay manipulation
-  const { transform, setTransform, handlers, handleWheel } = useMultiTouchTransform({
-    initialTransform: { x: 20, y: 60, scale: 1, rotation: 0 },
+  const {
+    transform,
+    setTransform,
+    handlers,
+    handleWheel
+  } = useMultiTouchTransform({
+    initialTransform: {
+      x: 20,
+      y: 60,
+      scale: 1,
+      rotation: 0
+    },
     minScale: 0.3,
-    maxScale: 1.5,
+    maxScale: 1.5
   });
-  
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Reset overlay position
   const handleReset = () => {
-    setTransform({ x: 20, y: 60, scale: 1, rotation: 0 });
+    setTransform({
+      x: 20,
+      y: 60,
+      scale: 1,
+      rotation: 0
+    });
   };
-  
+
   // Toggle helper for tap-to-toggle
   const toggleConfig = (key: keyof typeof overlayConfig) => {
-    setOverlayConfig(prev => ({ ...prev, [key]: !prev[key] }));
+    setOverlayConfig(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
-  
+
   // Attach wheel handler for desktop zoom
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    
     const wheelHandler = (e: WheelEvent) => {
       e.preventDefault();
       handleWheel(e);
     };
-    
-    container.addEventListener('wheel', wheelHandler, { passive: false });
+    container.addEventListener('wheel', wheelHandler, {
+      passive: false
+    });
     return () => container.removeEventListener('wheel', wheelHandler);
   }, [handleWheel]);
 
@@ -144,7 +155,10 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height });
+        setImageDimensions({
+          width: img.width,
+          height: img.height
+        });
       };
       img.src = effectivePhotoUrl;
     }
@@ -152,21 +166,17 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   // Helper: Filter shows by time period
   const filterShowsByTime = (shows: Show[], timeFilter: string) => {
     if (timeFilter === "all-time") return shows;
-    
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    
     return shows.filter(s => {
       const showDate = new Date(s.show_date);
-      
       if (timeFilter === "this-year") {
         return showDate.getFullYear() === currentYear;
       } else if (timeFilter === "last-year") {
         return showDate.getFullYear() === currentYear - 1;
       } else if (timeFilter === "this-month") {
-        return showDate.getFullYear() === currentYear && 
-               showDate.getMonth() === currentMonth;
+        return showDate.getFullYear() === currentYear && showDate.getMonth() === currentMonth;
       }
       return true;
     });
@@ -175,26 +185,29 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   // Calculate rank data (always ELO-based)
   const calculateRankData = () => {
     const filteredShows = filterShowsByTime(allShows, rankingTimeFilter);
-    
     if (filteredShows.length === 0) {
-      return { position: 0, total: 0, percentile: 0 };
+      return {
+        position: 0,
+        total: 0,
+        percentile: 0
+      };
     }
 
     // ELO-based ranking
     const filteredShowIds = new Set(filteredShows.map(s => s.id));
     const filteredRankings = rankings.filter(r => filteredShowIds.has(r.show_id));
-    
     const sorted = [...filteredRankings].sort((a, b) => b.elo_score - a.elo_score);
-    
     const position = sorted.findIndex(r => r.show_id === show.id) + 1;
     const total = sorted.length;
-    const percentile = position > 0 ? ((total - position + 1) / total) * 100 : 0;
-    
-    return { position, total, percentile };
+    const percentile = position > 0 ? (total - position + 1) / total * 100 : 0;
+    return {
+      position,
+      total,
+      percentile
+    };
   };
-
   const rankData = calculateRankData();
-  
+
   // Debug logging
   console.log('PhotoOverlayEditor - Rank Debug:', {
     showRankEnabled: overlayConfig.showRank,
@@ -203,7 +216,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     rankData,
     rankingTimeFilter
   });
-  
+
   // Rank gradient aligned with score tier colors (red→orange→gold→green→teal)
   const getRankGradient = (percentile: number) => {
     if (percentile >= 90) return "from-[hsl(170,80%,50%)] to-[hsl(189,94%,55%)]"; // Top 10% - Teal (exceptional)
@@ -221,25 +234,25 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
-      
+
       // Sample colors from the image (every 10th pixel for performance)
-      const colorCounts: { [key: string]: number } = {};
+      const colorCounts: {
+        [key: string]: number;
+      } = {};
       for (let i = 0; i < data.length; i += 40) {
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
         const a = data[i + 3];
-        
+
         // Skip transparent and very dark/light pixels
-        if (a < 128 || (r + g + b) < 50 || (r + g + b) > 700) continue;
-        
+        if (a < 128 || r + g + b < 50 || r + g + b > 700) continue;
+
         // Round to nearest 32 for grouping similar colors
         const key = `${Math.round(r / 32) * 32},${Math.round(g / 32) * 32},${Math.round(b / 32) * 32}`;
         colorCounts[key] = (colorCounts[key] || 0) + 1;
@@ -254,31 +267,36 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           dominantColor = color;
         }
       }
-
       const [r, g, b] = dominantColor.split(",").map(Number);
-      
+
       // Convert RGB to HSL for better color matching
       const rNorm = r / 255;
       const gNorm = g / 255;
       const bNorm = b / 255;
       const max = Math.max(rNorm, gNorm, bNorm);
       const min = Math.min(rNorm, gNorm, bNorm);
-      let h = 0, s = 0, l = (max + min) / 2;
-
+      let h = 0,
+        s = 0,
+        l = (max + min) / 2;
       if (max !== min) {
         const d = max - min;
         s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
         switch (max) {
-          case rNorm: h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6; break;
-          case gNorm: h = ((bNorm - rNorm) / d + 2) / 6; break;
-          case bNorm: h = ((rNorm - gNorm) / d + 4) / 6; break;
+          case rNorm:
+            h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
+            break;
+          case gNorm:
+            h = ((bNorm - rNorm) / d + 2) / 6;
+            break;
+          case bNorm:
+            h = ((rNorm - gNorm) / d + 4) / 6;
+            break;
         }
       }
 
       // Boost saturation and adjust lightness for better visibility
       s = Math.min(s * 1.3, 1);
       l = Math.max(0.55, Math.min(0.7, l));
-      
       setPrimaryColor(`hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`);
     };
     img.src = imageUrl;
@@ -299,7 +317,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     if (!effectivePhotoUrl) {
       throw new Error("No photo available");
     }
-
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas not supported");
@@ -307,10 +324,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     // Load background photo with error handling
     const img = new Image();
     img.crossOrigin = "anonymous";
-    
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Image loading timeout')), 10000);
-      
       img.onload = () => {
         clearTimeout(timeout);
         resolve(null);
@@ -335,13 +350,10 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     const overlayElement = document.getElementById("rating-overlay");
     const canvasContainer = document.getElementById("canvas-container");
     if (!overlayElement || !canvasContainer) throw new Error("Elements not found");
-    
     const containerRect = canvasContainer.getBoundingClientRect();
     const overlayRect = overlayElement.getBoundingClientRect();
-
     const scaleX = canvas.width / containerRect.width;
     const scaleY = canvas.height / containerRect.height;
-
     const overlayX = (overlayRect.left - containerRect.left) * scaleX;
     const overlayY = (overlayRect.top - containerRect.top) * scaleY;
     const overlayWidth = overlayRect.width * scaleX;
@@ -351,7 +363,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     if (overlayOpacity > 0) {
       const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
       const ratingValue = show.rating;
-      
       if (ratingValue >= 4.5) {
         gradient.addColorStop(0, "hsl(220, 90%, 56%)");
         gradient.addColorStop(1, "hsl(280, 70%, 55%)");
@@ -365,7 +376,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
         gradient.addColorStop(0, "hsl(0, 70%, 50%)");
         gradient.addColorStop(1, "hsl(30, 100%, 55%)");
       }
-
       ctx.globalAlpha = overlayOpacity / 100;
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -377,7 +387,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     // Draw text matching screen layout exactly - VERTICAL STACKED LAYOUT
     const padding = 16 * scaleX;
     let yPos = overlayY + padding;
-    
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     const centerX = overlayX + overlayWidth / 2;
@@ -386,7 +395,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     if (overlayConfig.showRating) {
       const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
       ctx.font = `900 ${48 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      
+
       // Score gradient
       const scoreGradient = ctx.createLinearGradient(centerX - 30 * scaleX, yPos, centerX + 30 * scaleX, yPos);
       if (score >= 9) {
@@ -405,7 +414,6 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
         scoreGradient.addColorStop(0, "hsl(0, 84%, 55%)");
         scoreGradient.addColorStop(1, "hsl(20, 90%, 50%)");
       }
-      
       ctx.fillStyle = scoreGradient;
       ctx.fillText(score.toFixed(1), centerX, yPos + 36 * scaleY);
       yPos += 52 * scaleY;
@@ -413,8 +421,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
 
     // Artist name below score
     if (overlayConfig.showArtists) {
-      const headliners = show.artists.filter((a) => a.is_headliner);
-      const artistText = headliners.map((a) => a.name).join(", ");
+      const headliners = show.artists.filter(a => a.is_headliner);
+      const artistText = headliners.map(a => a.name).join(", ");
       ctx.font = `bold ${16 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = overlayOpacity > 0 ? primaryColor : "white";
       if (overlayOpacity === 0) {
@@ -440,51 +448,60 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     if (overlayConfig.showDate) {
       ctx.font = `${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      const dateStr = new Date(show.show_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const dateStr = new Date(show.show_date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
       ctx.fillText(dateStr, centerX, yPos);
       yPos += 18 * scaleY;
     }
 
     // Detailed ratings - Horizontal bar graph with text labels
     if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
-      const ratings = [
-        { label: "Show", value: show.artist_performance },
-        { label: "Sound", value: show.sound },
-        { label: "Light", value: show.lighting },
-        { label: "Crowd", value: show.crowd },
-        { label: "Vibe", value: show.venue_vibe },
-      ].filter((r) => r.value);
-
+      const ratings = [{
+        label: "Show",
+        value: show.artist_performance
+      }, {
+        label: "Sound",
+        value: show.sound
+      }, {
+        label: "Light",
+        value: show.lighting
+      }, {
+        label: "Crowd",
+        value: show.crowd
+      }, {
+        label: "Vibe",
+        value: show.venue_vibe
+      }].filter(r => r.value);
       const labelWidth = 32 * scaleX;
       const barHeight = 6 * scaleY;
       const rowGap = 4 * scaleY;
       const barMaxWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
-
       ctx.font = `${9 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
       ctx.textAlign = "right";
-      
       ratings.forEach((rating, index) => {
         const rowY = yPos + index * (barHeight + rowGap);
-        
+
         // Text label on left
         ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
         ctx.fillText(rating.label, overlayX + padding + labelWidth, rowY + barHeight * 0.8);
-        
+
         // Bar background
         const barX = overlayX + padding + labelWidth + 8 * scaleX;
         ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
         ctx.beginPath();
         ctx.roundRect(barX, rowY, barMaxWidth, barHeight, barHeight / 2);
         ctx.fill();
-        
+
         // Bar fill
-        const fillWidth = (rating.value! / 5) * barMaxWidth;
+        const fillWidth = rating.value! / 5 * barMaxWidth;
         ctx.fillStyle = "rgba(255, 255, 255, 1)";
         ctx.beginPath();
         ctx.roundRect(barX, rowY, fillWidth, barHeight, barHeight / 2);
         ctx.fill();
       });
-      
       ctx.textAlign = "center";
       yPos += ratings.length * (barHeight + rowGap) + 8 * scaleY;
     }
@@ -497,8 +514,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       const words = `"${show.notes}"`.split(" ");
       let line = "";
       let lineCount = 0;
-
-      words.forEach((word) => {
+      words.forEach(word => {
         const testLine = line + word + " ";
         const metrics = ctx.measureText(testLine);
         if (metrics.width > maxWidth && line !== "") {
@@ -517,36 +533,33 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       }
       yPos += 10 * scaleY;
     }
-    
+
     // Footer: Rank on left, Scene logo on right
     const bottomY = overlayY + overlayHeight - 10 * scaleY;
-    
+
     // Rank on the left
     if (overlayConfig.showRank && rankData.total > 0) {
       ctx.font = `600 ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      
       const rankGradientColors = (() => {
         if (rankData.percentile >= 90) return ["hsl(45, 93%, 58%)", "hsl(189, 94%, 55%)"];
         if (rankData.percentile >= 75) return ["hsl(189, 94%, 55%)", "hsl(260, 80%, 60%)"];
         if (rankData.percentile >= 50) return ["hsl(260, 80%, 60%)", "hsl(330, 85%, 65%)"];
         return ["hsl(330, 85%, 65%)", "hsl(0, 84%, 60%)"];
       })();
-      
       const gradient = ctx.createLinearGradient(overlayX + padding, bottomY, overlayX + overlayWidth - padding, bottomY);
       gradient.addColorStop(0, rankGradientColors[0]);
       gradient.addColorStop(1, rankGradientColors[1]);
-      
       ctx.fillStyle = gradient;
       ctx.textAlign = "left";
       const timePeriodText = rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time';
       ctx.fillText(`#${rankData.position} ${timePeriodText}`, overlayX + padding, bottomY);
     }
-    
+
     // Scene logo on the right - stylized with glow
     ctx.font = `900 ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
     ctx.textAlign = "right";
     ctx.letterSpacing = `${0.25 * scaleX}em`;
-    
+
     // Add soft glow effect
     ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
     ctx.shadowBlur = 8 * scaleX;
@@ -554,25 +567,22 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     ctx.shadowOffsetY = 0;
     ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
     ctx.fillText("SCENE ✦", overlayX + overlayWidth - padding, bottomY);
-    
+
     // Reset shadow
     ctx.shadowBlur = 0;
-
     return canvas;
   };
-
   const handleDownloadImage = async () => {
     if (!effectivePhotoUrl) {
       toast.error("No photo available");
       return;
     }
-
     setIsGenerating(true);
     try {
       const canvas = await generateCanvas();
-      
+
       // Download
-      canvas.toBlob((blob) => {
+      canvas.toBlob(blob => {
         if (!blob) {
           toast.error("Failed to generate image");
           return;
@@ -580,16 +590,13 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        
         const artistName = show.artists[0]?.name || "show";
         const date = new Date(show.show_date).toISOString().split('T')[0];
         a.download = `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${date}.png`;
-        
         a.click();
         URL.revokeObjectURL(url);
         toast.success("Image downloaded!");
       }, "image/png");
-
     } catch (error) {
       console.error("Error generating image:", error);
       toast.error("Failed to generate image");
@@ -597,35 +604,33 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
       setIsGenerating(false);
     }
   };
-
   const handleShareToInstagram = async () => {
     if (!effectivePhotoUrl) {
       toast.error("No photo available");
       return;
     }
-
     setIsGenerating(true);
     try {
       const canvas = await generateCanvas();
-      
-      canvas.toBlob(async (blob) => {
+      canvas.toBlob(async blob => {
         if (!blob) {
           toast.error("Failed to generate image");
           setIsGenerating(false);
           return;
         }
-        
         const artistName = show.artists[0]?.name || "show";
-        const file = new File([blob], `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`, { 
-          type: 'image/png' 
+        const file = new File([blob], `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`, {
+          type: 'image/png'
         });
-        
+
         // Check if Web Share API with files is supported
-        if (navigator.canShare?.({ files: [file] })) {
+        if (navigator.canShare?.({
+          files: [file]
+        })) {
           try {
             await navigator.share({
               files: [file],
-              title: 'My Show on Scene',
+              title: 'My Show on Scene'
             });
             toast.success("Shared successfully!");
           } catch (err) {
@@ -642,17 +647,14 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           toast.info("Share not supported on this device. Downloading instead...");
           downloadBlob(blob, artistName);
         }
-        
         setIsGenerating(false);
       }, "image/png");
-
     } catch (error) {
       console.error("Error generating image:", error);
       toast.error("Failed to generate image");
       setIsGenerating(false);
     }
   };
-
   const downloadBlob = (blob: Blob, artistName: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -663,38 +665,36 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     URL.revokeObjectURL(url);
     toast.success("Image downloaded!");
   };
-
   const handleShareWithFriends = async () => {
     if (!effectivePhotoUrl) {
       toast.error("No photo available");
       return;
     }
-
     setIsGenerating(true);
     try {
       const canvas = await generateCanvas();
-      
-      canvas.toBlob(async (blob) => {
+      canvas.toBlob(async blob => {
         if (!blob) {
           toast.error("Failed to generate image");
           setIsGenerating(false);
           return;
         }
-        
         const artistName = show.artists[0]?.name || "show";
         const headliners = show.artists.filter(a => a.is_headliner);
         const artistNames = headliners.map(a => a.name).join(", ");
-        const file = new File([blob], `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`, { 
-          type: 'image/png' 
+        const file = new File([blob], `scene-${artistName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`, {
+          type: 'image/png'
         });
-        
+
         // Check if Web Share API with files is supported
-        if (navigator.canShare?.({ files: [file] })) {
+        if (navigator.canShare?.({
+          files: [file]
+        })) {
           try {
             await navigator.share({
               files: [file],
               title: `${artistNames} at ${show.venue_name}`,
-              text: `Check out my show: ${artistNames} at ${show.venue_name}! 🎵`,
+              text: `Check out my show: ${artistNames} at ${show.venue_name}! 🎵`
             });
             toast.success("Shared successfully!");
           } catch (err) {
@@ -710,10 +710,8 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           toast.info("Share not supported on this device. Downloading instead...");
           downloadBlob(blob, artistName);
         }
-        
         setIsGenerating(false);
       }, "image/png");
-
     } catch (error) {
       console.error("Error generating image:", error);
       toast.error("Failed to generate image");
@@ -726,7 +724,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = (e) => {
+      reader.onload = e => {
         const img = new Image();
         img.src = e.target?.result as string;
         img.onload = () => {
@@ -736,94 +734,83 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             reject(new Error('Canvas not supported'));
             return;
           }
-
           let width = img.width;
           let height = img.height;
           const maxWidth = 2000;
-
           if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
+            height = Math.round(height * maxWidth / width);
             width = maxWidth;
           }
-
           canvas.width = width;
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error('Compression failed'));
-                return;
-              }
-
-              if (blob.size > 2 * 1024 * 1024) {
-                canvas.toBlob(
-                  (smallerBlob) => {
-                    if (!smallerBlob) {
-                      reject(new Error('Compression failed'));
-                      return;
-                    }
-                    resolve(new File([smallerBlob], file.name, { type: 'image/jpeg' }));
-                  },
-                  'image/jpeg',
-                  0.7
-                );
-              } else {
-                resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-              }
-            },
-            'image/jpeg',
-            0.85
-          );
+          canvas.toBlob(blob => {
+            if (!blob) {
+              reject(new Error('Compression failed'));
+              return;
+            }
+            if (blob.size > 2 * 1024 * 1024) {
+              canvas.toBlob(smallerBlob => {
+                if (!smallerBlob) {
+                  reject(new Error('Compression failed'));
+                  return;
+                }
+                resolve(new File([smallerBlob], file.name, {
+                  type: 'image/jpeg'
+                }));
+              }, 'image/jpeg', 0.7);
+            } else {
+              resolve(new File([blob], file.name, {
+                type: 'image/jpeg'
+              }));
+            }
+          }, 'image/jpeg', 0.85);
         };
         img.onerror = () => reject(new Error('Failed to load image'));
       };
       reader.onerror = () => reject(new Error('Failed to read file'));
     });
   };
-
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       toast.error("Please upload a JPG, PNG, or WEBP image");
       return;
     }
-
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Please upload an image smaller than 10MB");
       return;
     }
-
     setUploading(true);
     try {
       const compressedFile = await compressImage(file);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/${show.id}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('show-photos')
-        .upload(filePath, compressedFile, { upsert: true });
-
+      const {
+        error: uploadError
+      } = await supabase.storage.from('show-photos').upload(filePath, compressedFile, {
+        upsert: true
+      });
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('show-photos')
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from('shows')
-        .update({ photo_url: publicUrl })
-        .eq('id', show.id);
-
+      const {
+        data: {
+          publicUrl
+        }
+      } = supabase.storage.from('show-photos').getPublicUrl(filePath);
+      const {
+        error: updateError
+      } = await supabase.from('shows').update({
+        photo_url: publicUrl
+      }).eq('id', show.id);
       if (updateError) throw updateError;
-
       setLocalPhotoUrl(publicUrl);
       toast.success("Photo uploaded! You can now customize and share.");
     } catch (error) {
@@ -839,56 +826,38 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   const artistName = headlinerForDisplay?.name || "Unknown Artist";
   const supportingArtists = show.artists.filter(a => !a.is_headliner && a.name !== headlinerForDisplay?.name);
   const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
-  const formattedDateForDisplay = new Date(show.show_date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
+  const formattedDateForDisplay = new Date(show.show_date).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric"
+  });
   if (!effectivePhotoUrl) {
-    return (
-      <TooltipProvider>
+    return <TooltipProvider>
         <div className="flex flex-col h-full">
           {/* Card-style no-photo state */}
           <div className="flex-1 flex items-center justify-center bg-black/20 rounded-lg overflow-hidden">
-            <div 
-              className="relative w-full h-full overflow-hidden rounded-xl border border-white/10"
-              style={{
-                background: `linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--background)), hsl(var(--primary-glow) / 0.1))`,
-              }}
-            >
+            <div className="relative w-full h-full overflow-hidden rounded-xl border border-white/10" style={{
+            background: `linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--background)), hsl(var(--primary-glow) / 0.1))`
+          }}>
               {/* Upload CTA area - centered above metadata */}
               <div className="absolute inset-0 bottom-[120px] flex flex-col items-center justify-center gap-4">
-                <input
-                  ref={uploadInputRef}
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
+                <input ref={uploadInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handlePhotoUpload} />
                 
-                <Button
-                  onClick={() => uploadInputRef.current?.click()}
-                  disabled={uploading}
-                  variant="outline"
-                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 text-white font-medium px-6 py-5 rounded-xl"
-                >
-                  {uploading ? (
-                    <>
+                <Button onClick={() => uploadInputRef.current?.click()} disabled={uploading} variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 text-white font-medium px-6 py-5 rounded-xl">
+                  {uploading ? <>
                       <Upload className="h-5 w-5 mr-2 animate-pulse" />
                       Uploading...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Camera className="h-5 w-5 mr-2" />
                       Add Photo
-                    </>
-                  )}
+                    </>}
                 </Button>
               </div>
               
               {/* Scene logo - top right */}
               <div className="absolute top-3 right-3 z-10">
-                <span 
-                  className="text-xs font-black tracking-[0.25em] text-white/60 uppercase"
-                  style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}
-                >
+                <span className="text-xs font-black tracking-[0.25em] text-white/60 uppercase" style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.3)"
+              }}>
                   SCENE ✦
                 </span>
               </div>
@@ -898,17 +867,14 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 <div className="bg-white/[0.08] rounded-xl border border-white/[0.1] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <h2 
-                        className="font-black text-xl text-white tracking-wide truncate"
-                        style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
-                      >
+                      <h2 className="font-black text-xl text-white tracking-wide truncate" style={{
+                      textShadow: "0 0 12px rgba(255,255,255,0.4)"
+                    }}>
                         {artistName}
                       </h2>
-                      {supportingArtists.length > 0 && (
-                        <p className="text-white/50 text-xs mt-0.5 truncate">
+                      {supportingArtists.length > 0 && <p className="text-white/50 text-xs mt-0.5 truncate">
                           + {supportingArtists.map(a => a.name).join(', ')}
-                        </p>
-                      )}
+                        </p>}
                       <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
                         <MapPin className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{show.venue_name}</span>
@@ -922,10 +888,9 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                           {score.toFixed(1)}
                         </span>
                       </div>
-                      <span 
-                        className="text-xs font-bold text-primary tracking-wide"
-                        style={{ textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)" }}
-                      >
+                      <span className="text-xs font-bold text-primary tracking-wide" style={{
+                      textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
+                    }}>
                         {rankData.position > 0 ? `#${rankData.position} All Time` : "Unranked"}
                       </span>
                     </div>
@@ -937,220 +902,206 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
           
           {/* Instagram share button - bottom of sheet */}
           <div className="pt-4 pb-2">
-            <Button
-              onClick={() => uploadInputRef.current?.click()}
-              disabled={uploading}
-              className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:opacity-90 text-white font-semibold py-6 rounded-xl shadow-lg"
-              style={{
-                boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)",
-              }}
-            >
+            <Button onClick={() => uploadInputRef.current?.click()} disabled={uploading} className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:opacity-90 text-white font-semibold py-6 rounded-xl shadow-lg" style={{
+            boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)"
+          }}>
               <Camera className="h-5 w-5 mr-2" />
               Add Photo to Share
             </Button>
           </div>
         </div>
-      </TooltipProvider>
-    );
+      </TooltipProvider>;
   }
-
   const headliners = show.artists.filter(a => a.is_headliner);
 
   // Toolbar toggle items with color-coded groups
   const toggleItems = [
-    // Content group - cyan
-    { key: "showArtists" as const, icon: Mic2, label: "Artist", active: overlayConfig.showArtists, group: "content" as const },
-    { key: "showVenue" as const, icon: Building2, label: "Venue", active: overlayConfig.showVenue, group: "content" as const },
-    { key: "showDate" as const, icon: Calendar, label: "Date", active: overlayConfig.showDate, group: "content" as const },
-    // Ratings group - amber
-    { key: "showRating" as const, icon: Star, label: "Score", active: overlayConfig.showRating, group: "ratings" as const },
-    { key: "showDetailedRatings" as const, icon: BarChart3, label: "Details", active: overlayConfig.showDetailedRatings, group: "ratings" as const },
-    { key: "showNotes" as const, icon: MessageSquareQuote, label: "Notes", active: overlayConfig.showNotes, disabled: !show.notes, group: "ratings" as const },
-    // Meta group - purple
-    { key: "showRank" as const, icon: Trophy, label: "Rank", active: overlayConfig.showRank, group: "meta" as const },
-  ];
-  
+  // Content group - cyan
+  {
+    key: "showArtists" as const,
+    icon: Mic2,
+    label: "Artist",
+    active: overlayConfig.showArtists,
+    group: "content" as const
+  }, {
+    key: "showVenue" as const,
+    icon: Building2,
+    label: "Venue",
+    active: overlayConfig.showVenue,
+    group: "content" as const
+  }, {
+    key: "showDate" as const,
+    icon: Calendar,
+    label: "Date",
+    active: overlayConfig.showDate,
+    group: "content" as const
+  },
+  // Ratings group - amber
+  {
+    key: "showRating" as const,
+    icon: Star,
+    label: "Score",
+    active: overlayConfig.showRating,
+    group: "ratings" as const
+  }, {
+    key: "showDetailedRatings" as const,
+    icon: BarChart3,
+    label: "Details",
+    active: overlayConfig.showDetailedRatings,
+    group: "ratings" as const
+  }, {
+    key: "showNotes" as const,
+    icon: MessageSquareQuote,
+    label: "Notes",
+    active: overlayConfig.showNotes,
+    disabled: !show.notes,
+    group: "ratings" as const
+  },
+  // Meta group - purple
+  {
+    key: "showRank" as const,
+    icon: Trophy,
+    label: "Rank",
+    active: overlayConfig.showRank,
+    group: "meta" as const
+  }];
+
   // Color-coded styling based on group
   const getToggleStyle = (item: typeof toggleItems[number]) => {
     const base = "p-1.5 transition-all";
     if (item.disabled) return `${base} opacity-20 cursor-not-allowed`;
-    
     const styles = {
-      content: item.active 
-        ? "text-cyan-400" 
-        : "text-cyan-400/30 hover:text-cyan-400/60",
-      ratings: item.active 
-        ? "text-amber-400" 
-        : "text-amber-400/30 hover:text-amber-400/60",
-      meta: item.active 
-        ? "text-purple-400" 
-        : "text-purple-400/30 hover:text-purple-400/60",
+      content: item.active ? "text-cyan-400" : "text-cyan-400/30 hover:text-cyan-400/60",
+      ratings: item.active ? "text-amber-400" : "text-amber-400/30 hover:text-amber-400/60",
+      meta: item.active ? "text-purple-400" : "text-purple-400/30 hover:text-purple-400/60"
     };
-    
     return `${base} ${styles[item.group]}`;
   };
-  
+
   // Determine if background should show based on opacity (0 = no background)
   const showBackground = overlayOpacity > 0;
-
-  return (
-    <TooltipProvider delayDuration={300}>
+  return <TooltipProvider delayDuration={300}>
       <div className="flex flex-col h-full">
         {/* Hero image area - takes remaining space */}
         <div className="flex-1 flex flex-col items-center justify-center bg-black/20 rounded-lg relative min-h-0 overflow-hidden">
           {/* Main image container - fills available space */}
-          <div
-            ref={containerRef}
-            id="canvas-container"
-            className="relative bg-black overflow-hidden rounded-lg h-full w-full flex items-center justify-center"
-          >
+          <div ref={containerRef} id="canvas-container" className="relative bg-black overflow-hidden rounded-lg h-full w-full flex items-center justify-center">
             {/* Photo wrapper - scales to fit, handlers here constrain overlay to image bounds */}
-            <div 
-              className="relative touch-none overflow-hidden"
-              style={{
-                width: aspectMode === "story" ? "auto" : "100%",
-                height: aspectMode === "story" ? "100%" : "auto",
-                aspectRatio: aspectMode === "story" ? "9/16" : (imageDimensions 
-                  ? `${imageDimensions.width}/${imageDimensions.height}` 
-                  : "9/16"),
-                maxWidth: "100%",
-                maxHeight: "100%",
-              }}
-              {...handlers}
-            >
+            <div className="relative touch-none overflow-hidden" style={{
+            width: aspectMode === "story" ? "auto" : "100%",
+            height: aspectMode === "story" ? "100%" : "auto",
+            aspectRatio: aspectMode === "story" ? "9/16" : imageDimensions ? `${imageDimensions.width}/${imageDimensions.height}` : "9/16",
+            maxWidth: "100%",
+            maxHeight: "100%"
+          }} {...handlers}>
             {/* Background Photo */}
-            <img
-              src={effectivePhotoUrl}
-              alt="Show"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-              crossOrigin="anonymous"
-              onError={(e) => {
-                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EPhoto Unavailable%3C/text%3E%3C/svg%3E';
-              }}
-            />
+            <img src={effectivePhotoUrl} alt="Show" className="absolute inset-0 w-full h-full object-cover pointer-events-none" crossOrigin="anonymous" onError={e => {
+              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EPhoto Unavailable%3C/text%3E%3C/svg%3E';
+            }} />
 
             {/* Touch-controlled Overlay - Vertical Stacked Layout */}
-            <div
-              id="rating-overlay"
-              className="absolute rounded-2xl p-4 text-white text-center shadow-2xl backdrop-blur-sm border border-white/10 cursor-move select-none"
-              style={{
-                left: transform.x,
-                top: transform.y,
-                transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
-                transformOrigin: "top left",
-                background: showBackground ? getRatingGradient(show.rating) : "transparent",
-                opacity: showBackground ? overlayOpacity / 100 : 1,
-                width: 160,
-                touchAction: "none",
-              }}
-            >
+            <div id="rating-overlay" className="absolute rounded-2xl p-4 text-white text-center shadow-2xl backdrop-blur-sm border border-white/10 cursor-move select-none" style={{
+              left: transform.x,
+              top: transform.y,
+              transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
+              transformOrigin: "top left",
+              background: showBackground ? getRatingGradient(show.rating) : "transparent",
+              opacity: showBackground ? overlayOpacity / 100 : 1,
+              width: 160,
+              touchAction: "none"
+            }}>
               {/* Large score at top - the visual anchor */}
-              {overlayConfig.showRating && (
-                <div 
-                  className="text-5xl font-black text-white leading-none mb-2 cursor-pointer transition-opacity hover:opacity-70"
-                  style={{
-                    textShadow: "0 0 12px rgba(255,255,255,0.6), 0 0 24px rgba(255,255,255,0.3)"
-                  }}
-                  onClick={(e) => { e.stopPropagation(); toggleConfig("showRating"); }}
-                >
+              {overlayConfig.showRating && <div className="text-5xl font-black text-white leading-none mb-2 cursor-pointer transition-opacity hover:opacity-70" style={{
+                textShadow: "0 0 12px rgba(255,255,255,0.6), 0 0 24px rgba(255,255,255,0.3)"
+              }} onClick={e => {
+                e.stopPropagation();
+                toggleConfig("showRating");
+              }}>
                   {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
-                </div>
-              )}
+                </div>}
               
               {/* Artist name below score */}
-              {overlayConfig.showArtists && (
-                <h2 
-                  className="text-base font-bold mb-1 cursor-pointer transition-opacity hover:opacity-70 leading-tight text-white" 
-                  style={{ 
-                    textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 16px rgba(255,255,255,0.25)"
-                  }}
-                  onClick={(e) => { e.stopPropagation(); toggleConfig("showArtists"); }}
-                >
+              {overlayConfig.showArtists && <h2 className="text-base font-bold mb-1 cursor-pointer transition-opacity hover:opacity-70 leading-tight text-white" style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 16px rgba(255,255,255,0.25)"
+              }} onClick={e => {
+                e.stopPropagation();
+                toggleConfig("showArtists");
+              }}>
                   {headliners.map(a => a.name).join(", ")}
-                </h2>
-              )}
+                </h2>}
               
               {/* Venue - centered compact */}
-              {overlayConfig.showVenue && (
-                <p 
-                  className="text-xs mb-0.5 flex items-center justify-center gap-1 cursor-pointer transition-opacity hover:opacity-70"
-                  onClick={(e) => { e.stopPropagation(); toggleConfig("showVenue"); }}
-                >
+              {overlayConfig.showVenue && <p className="text-xs mb-0.5 flex items-center justify-center gap-1 cursor-pointer transition-opacity hover:opacity-70" onClick={e => {
+                e.stopPropagation();
+                toggleConfig("showVenue");
+              }}>
                   <MapPin className="h-3 w-3 flex-shrink-0" />
                   <span className="truncate">{show.venue_name}</span>
-                </p>
-              )}
+                </p>}
               
               {/* Date - centered compact */}
-              {overlayConfig.showDate && (
-                <p 
-                  className="text-[10px] opacity-80 mb-2 cursor-pointer transition-opacity hover:opacity-70"
-                  onClick={(e) => { e.stopPropagation(); toggleConfig("showDate"); }}
-                >
+              {overlayConfig.showDate && <p className="text-[10px] opacity-80 mb-2 cursor-pointer transition-opacity hover:opacity-70" onClick={e => {
+                e.stopPropagation();
+                toggleConfig("showDate");
+              }}>
                   {new Date(show.show_date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              )}
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric"
+                })}
+                </p>}
 
               {/* Detailed ratings - Horizontal bar graph with text labels */}
-              {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && (
-                <div 
-                  className="flex flex-col gap-1 mb-2 w-full cursor-pointer transition-opacity hover:opacity-70"
-                  onClick={(e) => { e.stopPropagation(); toggleConfig("showDetailedRatings"); }}
-                >
-                  {[
-                    { label: "Show", value: show.artist_performance },
-                    { label: "Sound", value: show.sound },
-                    { label: "Light", value: show.lighting },
-                    { label: "Crowd", value: show.crowd },
-                    { label: "Vibe", value: show.venue_vibe },
-                  ].filter(r => r.value).map((rating, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+              {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && <div className="flex flex-col gap-1 mb-2 w-full cursor-pointer transition-opacity hover:opacity-70" onClick={e => {
+                e.stopPropagation();
+                toggleConfig("showDetailedRatings");
+              }}>
+                  {[{
+                  label: "Show",
+                  value: show.artist_performance
+                }, {
+                  label: "Sound",
+                  value: show.sound
+                }, {
+                  label: "Light",
+                  value: show.lighting
+                }, {
+                  label: "Crowd",
+                  value: show.crowd
+                }, {
+                  label: "Vibe",
+                  value: show.venue_vibe
+                }].filter(r => r.value).map((rating, idx) => <div key={idx} className="gap-2 flex items-center justify-start">
                       {/* Text label on left */}
                       <span className="text-[9px] opacity-70 w-8 text-right shrink-0">{rating.label}</span>
                       {/* Horizontal bar */}
                       <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-white rounded-full"
-                          style={{ width: `${(rating.value! / 5) * 100}%` }}
-                        />
+                        <div className="h-full bg-white rounded-full" style={{
+                      width: `${rating.value! / 5 * 100}%`
+                    }} />
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
 
               {/* Notes - centered, smaller */}
-              {overlayConfig.showNotes && show.notes && (
-                <p 
-                  className="text-[10px] italic opacity-80 line-clamp-2 mb-2 cursor-pointer transition-opacity hover:opacity-70"
-                  onClick={(e) => { e.stopPropagation(); toggleConfig("showNotes"); }}
-                >
+              {overlayConfig.showNotes && show.notes && <p className="text-[10px] italic opacity-80 line-clamp-2 mb-2 cursor-pointer transition-opacity hover:opacity-70" onClick={e => {
+                e.stopPropagation();
+                toggleConfig("showNotes");
+              }}>
                   "{show.notes}"
-                </p>
-              )}
+                </p>}
               
               {/* Footer - rank and logo */}
-              <div className="mt-2 flex items-center justify-between text-[10px]">
-                {overlayConfig.showRank && rankData.total > 0 ? (
-                  <span 
-                    className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`}
-                    onClick={(e) => { e.stopPropagation(); toggleConfig("showRank"); }}
-                  >
+              <div className="mt-2 text-[10px] flex-col flex items-center justify-between">
+                {overlayConfig.showRank && rankData.total > 0 ? <span className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`} onClick={e => {
+                  e.stopPropagation();
+                  toggleConfig("showRank");
+                }}>
                     #{rankData.position} {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time'}
-                  </span>
-                ) : (
-                  <span />
-                )}
-                <span 
-                  className="font-black tracking-[0.25em] text-white/75 uppercase"
-                  style={{ 
-                    textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)" 
-                  }}
-                >
+                  </span> : <span />}
+                <span className="font-black tracking-[0.25em] text-white/75 uppercase" style={{
+                  textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)"
+                }}>
                   SCENE ✦
                 </span>
               </div>
@@ -1158,128 +1109,85 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             </div>{/* Close photo wrapper */}
             
             {/* Vertical Opacity Slider - inside image on right edge, hidden in preview mode */}
-            {!isPreviewMode && (
-              <div 
-                className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5"
-                onClick={(e) => e.stopPropagation()}
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-                onTouchEnd={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                onMouseMove={(e) => e.stopPropagation()}
-                onMouseUp={(e) => e.stopPropagation()}
-              >
+            {!isPreviewMode && <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5" onClick={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onMouseMove={e => e.stopPropagation()} onMouseUp={e => e.stopPropagation()}>
                 <SunDim className="h-3.5 w-3.5 text-white/60" />
                 <div className="relative h-20 w-4 flex items-center justify-center">
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={overlayOpacity}
-                    onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-                    className="absolute h-1 w-16 cursor-pointer origin-center"
-                    style={{ 
-                      transform: 'rotate(-90deg)',
-                      WebkitAppearance: 'none',
-                      appearance: 'none',
-                      background: `linear-gradient(to right, rgba(255,255,255,0.9) ${overlayOpacity}%, rgba(255,255,255,0.2) ${overlayOpacity}%)`,
-                      borderRadius: '4px'
-                    }}
-                  />
+                  <input type="range" min={0} max={100} step={5} value={overlayOpacity} onChange={e => setOverlayOpacity(Number(e.target.value))} className="absolute h-1 w-16 cursor-pointer origin-center" style={{
+                transform: 'rotate(-90deg)',
+                WebkitAppearance: 'none',
+                appearance: 'none',
+                background: `linear-gradient(to right, rgba(255,255,255,0.9) ${overlayOpacity}%, rgba(255,255,255,0.2) ${overlayOpacity}%)`,
+                borderRadius: '4px'
+              }} />
                 </div>
-              </div>
-            )}
+              </div>}
             
             {/* Exit preview mode button - inside container */}
-            {isPreviewMode && (
-              <button
-                onClick={() => setIsPreviewMode(false)}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white/80 hover:text-white transition-colors"
-              >
+            {isPreviewMode && <button onClick={() => setIsPreviewMode(false)} className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white/80 hover:text-white transition-colors">
                 <EyeOff className="h-4 w-4" />
                 <span className="text-sm">Exit Preview</span>
-              </button>
-            )}
+              </button>}
           </div>
           
           {/* Floating Toolbar - Color-coded with separators */}
-          {!isPreviewMode && (
-            <div className="flex items-center justify-center gap-1 mt-3">
+          {!isPreviewMode && <div className="flex items-center justify-center gap-1 mt-3">
               <div className="flex items-center gap-0.5 bg-card/80 backdrop-blur-md px-2 py-1.5 rounded-full border border-border/50 relative">
                 {/* Content group - cyan */}
-                {toggleItems.filter(i => i.group === "content").map((item) => (
-                  <Tooltip key={item.key}>
+                {toggleItems.filter(i => i.group === "content").map(item => <Tooltip key={item.key}>
                     <TooltipTrigger asChild>
-                      <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          toggleConfig(item.key);
-                        }}
-                        disabled={item.disabled}
-                        className={getToggleStyle(item)}
-                      >
+                      <button onClick={e => {
+                  e.stopPropagation();
+                  toggleConfig(item.key);
+                }} disabled={item.disabled} className={getToggleStyle(item)}>
                         <item.icon className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">
                       {item.label}
                     </TooltipContent>
-                  </Tooltip>
-                ))}
+                  </Tooltip>)}
                 
                 <div className="w-px h-3 bg-border/50 mx-1" />
                 
                 {/* Ratings group - amber */}
-                {toggleItems.filter(i => i.group === "ratings").map((item) => (
-                  <Tooltip key={item.key}>
+                {toggleItems.filter(i => i.group === "ratings").map(item => <Tooltip key={item.key}>
                     <TooltipTrigger asChild>
-                      <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          toggleConfig(item.key);
-                        }}
-                        disabled={item.disabled}
-                        className={getToggleStyle(item)}
-                      >
+                      <button onClick={e => {
+                  e.stopPropagation();
+                  toggleConfig(item.key);
+                }} disabled={item.disabled} className={getToggleStyle(item)}>
                         <item.icon className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">
                       {item.label}
                     </TooltipContent>
-                  </Tooltip>
-                ))}
+                  </Tooltip>)}
                 
                 <div className="w-px h-3 bg-border/50 mx-1" />
                 
                 {/* Meta group - purple (rank with options) */}
-                {toggleItems.filter(i => i.group === "meta").map((item) => (
-                  <div key={item.key} className="relative">
+                {toggleItems.filter(i => i.group === "meta").map(item => <div key={item.key} className="relative">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            if (item.key === "showRank") {
-                              if (showAgeCategory === "older") {
-                                // Old shows: just toggle rank on/off, no popup
-                                toggleConfig("showRank");
-                                setRankingTimeFilter("all-time"); // Force all-time for old shows
-                              } else {
-                                // Recent shows: show popup
-                                if (!overlayConfig.showRank) {
-                                  toggleConfig("showRank");
-                                }
-                                setShowRankOptions(!showRankOptions);
-                              }
-                            } else {
-                              toggleConfig(item.key);
-                            }
-                          }}
-                          disabled={item.disabled}
-                          className={getToggleStyle(item)}
-                        >
+                        <button onClick={e => {
+                    e.stopPropagation();
+                    if (item.key === "showRank") {
+                      if (showAgeCategory === "older") {
+                        // Old shows: just toggle rank on/off, no popup
+                        toggleConfig("showRank");
+                        setRankingTimeFilter("all-time"); // Force all-time for old shows
+                      } else {
+                        // Recent shows: show popup
+                        if (!overlayConfig.showRank) {
+                          toggleConfig("showRank");
+                        }
+                        setShowRankOptions(!showRankOptions);
+                      }
+                    } else {
+                      toggleConfig(item.key);
+                    }
+                  }} disabled={item.disabled} className={getToggleStyle(item)}>
                           <item.icon className="h-3.5 w-3.5" />
                         </button>
                       </TooltipTrigger>
@@ -1289,49 +1197,31 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                     </Tooltip>
                     
                     {/* Rank options - context-aware based on show date, positioned above this icon */}
-                    {item.key === "showRank" && showRankOptions && overlayConfig.showRank && showAgeCategory !== "older" && (
-                      <div 
-                        className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() => { setRankingTimeFilter("all-time"); setShowRankOptions(false); }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                            rankingTimeFilter === "all-time" 
-                              ? "bg-white/20 text-white shadow-sm" 
-                              : "text-white/60 hover:text-white/80"
-                          }`}
-                        >
+                    {item.key === "showRank" && showRankOptions && overlayConfig.showRank && showAgeCategory !== "older" && <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => {
+                  setRankingTimeFilter("all-time");
+                  setShowRankOptions(false);
+                }} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${rankingTimeFilter === "all-time" ? "bg-white/20 text-white shadow-sm" : "text-white/60 hover:text-white/80"}`}>
                           All Time
                         </button>
-                        <button
-                          onClick={() => { 
-                            setRankingTimeFilter(showAgeCategory === "this-year" ? "this-year" : "last-year"); 
-                            setShowRankOptions(false); 
-                          }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                            (showAgeCategory === "this-year" && rankingTimeFilter === "this-year") ||
-                            (showAgeCategory === "last-year" && rankingTimeFilter === "last-year")
-                              ? "bg-white/20 text-white shadow-sm" 
-                              : "text-white/60 hover:text-white/80"
-                          }`}
-                        >
+                        <button onClick={() => {
+                  setRankingTimeFilter(showAgeCategory === "this-year" ? "this-year" : "last-year");
+                  setShowRankOptions(false);
+                }} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${showAgeCategory === "this-year" && rankingTimeFilter === "this-year" || showAgeCategory === "last-year" && rankingTimeFilter === "last-year" ? "bg-white/20 text-white shadow-sm" : "text-white/60 hover:text-white/80"}`}>
                           {showAgeCategory === "this-year" ? "This Year" : "Last Year"}
                         </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      </div>}
+                  </div>)}
                 
                 <div className="w-px h-3 bg-border/30 mx-1" />
                 
                 {/* Utilities - muted */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                      className="p-1.5 rounded-full text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all"
-                    >
+                    <button onClick={e => {
+                  e.stopPropagation();
+                  handleReset();
+                }} className="p-1.5 rounded-full text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all">
                       <RotateCcw className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
@@ -1342,10 +1232,11 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setIsPreviewMode(true); setShowRankOptions(false); }}
-                      className="p-1.5 rounded-full text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all"
-                    >
+                    <button onClick={e => {
+                  e.stopPropagation();
+                  setIsPreviewMode(true);
+                  setShowRankOptions(false);
+                }} className="p-1.5 rounded-full text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all">
                       <Eye className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
@@ -1356,51 +1247,32 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               </div>
               
               {/* Aspect ratio pill - separate element */}
-              <button
-                onClick={() => setAspectMode(aspectMode === "story" ? "native" : "story")}
-                className="text-[10px] bg-muted/50 px-2 py-1 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <button onClick={() => setAspectMode(aspectMode === "story" ? "native" : "story")} className="text-[10px] bg-muted/50 px-2 py-1 rounded-full text-muted-foreground hover:text-foreground transition-colors">
                 {aspectMode === "story" ? "9:16" : "1:1"}
               </button>
-            </div>
-          )}
+            </div>}
         </div>
         
         {/* Bottom controls - fixed height */}
         <div className="flex-shrink-0 pt-3 space-y-3 px-1">
           {/* Instagram Hero Button */}
-          <Button
-            onClick={handleShareToInstagram}
-            disabled={isGenerating}
-            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 border-0 shadow-lg shadow-purple-500/25"
-          >
+          <Button onClick={handleShareToInstagram} disabled={isGenerating} className="w-full h-12 text-base font-semibold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 border-0 shadow-lg shadow-purple-500/25">
             <Instagram className="mr-2 h-5 w-5" />
             {isGenerating ? "Generating..." : "Share to Instagram"}
           </Button>
           
           {/* Secondary actions - compact row */}
           <div className="flex gap-2">
-            <Button
-              onClick={handleShareWithFriends}
-              disabled={isGenerating}
-              variant="secondary"
-              className="flex-1 h-10"
-            >
+            <Button onClick={handleShareWithFriends} disabled={isGenerating} variant="secondary" className="flex-1 h-10">
               <MessageCircle className="mr-2 h-4 w-4" />
               Send
             </Button>
-            <Button
-              onClick={handleDownloadImage}
-              disabled={isGenerating}
-              variant="ghost"
-              className="flex-1 h-10"
-            >
+            <Button onClick={handleDownloadImage} disabled={isGenerating} variant="ghost" className="flex-1 h-10">
               <Download className="mr-2 h-4 w-4" />
               Save
             </Button>
           </div>
         </div>
       </div>
-    </TooltipProvider>
-  );
+    </TooltipProvider>;
 };
