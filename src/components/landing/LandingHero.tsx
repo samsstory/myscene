@@ -167,7 +167,7 @@ const LandingHero = () => {
             </h1>
             
             <p className="text-base md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
-              The app to capture, review, rank, and share your favorite music memories.
+              The app to capture, review, rank, and share your favorite shows.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
