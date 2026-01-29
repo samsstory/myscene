@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram } from "lucide-react";
+import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ShareShowSheet } from "./ShareShowSheet";
@@ -473,8 +473,19 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
                             <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
                           </div>
                         ) : (
-                          <div className="w-20 h-20 rounded-xl bg-white/[0.05] flex items-center justify-center flex-shrink-0 border border-white/[0.08]">
-                            <Music2 className="h-8 w-8 text-white/30" />
+                          <div 
+                            className="relative w-20 h-20 rounded-xl bg-white/[0.05] flex items-center justify-center flex-shrink-0 border border-white/[0.08] group cursor-pointer hover:bg-white/[0.08] transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickPhotoShow(show);
+                              setQuickPhotoOpen(true);
+                            }}
+                          >
+                            <Music2 className="h-8 w-8 text-white/30 group-hover:text-white/20 transition-colors" />
+                            {/* Quick add photo button */}
+                            <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-primary/80 flex items-center justify-center shadow-lg opacity-70 group-hover:opacity-100 transition-opacity">
+                              <Plus className="h-3 w-3 text-primary-foreground" />
+                            </div>
                           </div>
                         )}
 
