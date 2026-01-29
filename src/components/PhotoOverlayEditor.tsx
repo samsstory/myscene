@@ -1004,7 +1004,7 @@ export const PhotoOverlayEditor = ({
               left: transform.x,
               top: transform.y,
               transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
-              transformOrigin: "top left",
+              transformOrigin: "center center",
               background: showBackground ? getRatingGradient(show.rating) : "transparent",
               opacity: showBackground ? overlayOpacity / 100 : 1,
               width: 160,
