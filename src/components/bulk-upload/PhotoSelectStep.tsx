@@ -43,14 +43,14 @@ const PhotoSelectStep = ({
   const handleContinue = () => {
     onPhotosSelected(selectedPhotos);
   };
-  return <div className="space-y-6">
+  return <div className="space-y-6 pb-4">
       {/* Instructions */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2 pt-2">
         <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
           <Camera className="h-8 w-8 text-primary" />
         </div>
         <h2 className="text-xl font-semibold">1 Photo Per Show</h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Add as many as you'd like!
         </p>
         <p className="text-xs text-muted-foreground/70 mt-1">
