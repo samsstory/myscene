@@ -1,155 +1,101 @@
 
+# Improve Map View UI with Year Toggle and Stats Pill
 
-# Unify ShowReviewSheet UI for Shows With and Without Photos
-
-## Problem Identified
-The `HeroPhotoSection` component has **two separate rendering paths**:
-
-1. **With photo** (lines 53-128): Recently updated with:
-   - White background/black text score badge
-   - Edit pencil button in top-left
-   - Rank badge with cyan glow effect
-   - Full glass metadata bar
-
-2. **Without photo** (lines 130-181): **Still using OLD styling** with:
-   - Colored gradient score badge (yellow/green)
-   - No edit pencil button
-   - No rank badge at all
-   - Simpler metadata bar layout
-
-Your screenshot shows a show without a photo, which is why it looks different from the updated design.
+This plan adds a year toggle selector and a dynamic stats pill to the Map View (Show Globe) feature to match the design shown on the landing page preview.
 
 ---
 
-## Proposed Changes
+## What You'll Get
 
-### File: `src/components/show-review/HeroPhotoSection.tsx`
-
-Update the "no photo" state (lines 130-181) to match the "with photo" state:
-
-1. **Add Edit Pencil Button** (top-left)
-   - Same glass pill styling as the photo version
-   - Calls `onEditShow` handler
-
-2. **Update Score Badge to White Background/Black Text**
-   - Replace `getScoreGradient(score)` gradient with `bg-white`
-   - Change text from white to black
-   - Remove text shadow
-
-3. **Add Rank Badge with Cyan Glow**
-   - Add the `#X All Time` text below the score
-   - Apply primary color with glow effect
-   - Include the "Rank" button for shows needing more comparisons
-
-4. **Move Score/Rank to Bottom-Right of Metadata Bar**
-   - Mirror the layout structure from the photo version
-   - Score and rank positioned at bottom-right of the glass bar
+1. **Year Toggle Bar** - Horizontal selector buttons (2024, 2025, 2026, All) positioned at the top of the map
+2. **Dynamic Stats Pill** - A compact stats display showing Countries, Cities, Venues, and Shows that updates based on the selected year
+3. **Filtered Map Data** - The map markers and data will filter to show only shows from the selected year
 
 ---
 
-## Visual Comparison
+## Implementation Approach
 
-| Element | With Photo (Current) | Without Photo (Before) | Without Photo (After) |
-|---------|---------------------|----------------------|----------------------|
-| Score Badge | White bg, black text | Gradient bg, white text | White bg, black text ✓ |
-| Edit Pencil | Top-left glass button | Missing | Top-left glass button ✓ |
-| Rank Badge | Cyan glow, bottom-right | Missing | Cyan glow, bottom-right ✓ |
-| Rank Button | Shown if < 5 comparisons | Missing | Shown if < 5 comparisons ✓ |
+### 1. Add Year State and Filtering Logic to MapView
+
+- Add `selectedYear` state to track the currently selected year filter ("all" | specific year)
+- Calculate the unique years from the user's show data to dynamically populate the toggle options
+- Filter shows based on the selected year before processing country/city/venue data
+
+### 2. Create Year Toggle Component
+
+- Position at the top-center of the map (similar to GlobeShowcase mockup)
+- Use the same styling from the landing page: rounded pill buttons with active state highlighting
+- Include "All" option for viewing all shows across years
+
+### 3. Update Stats Calculation
+
+- The existing `mapStats` useMemo will be updated to filter based on selected year
+- Stats will dynamically recalculate when year changes: Countries, Cities, Venues, Shows
+
+### 4. Create Stats Pill Component
+
+- Replace or update the existing `MapStatsCard` component
+- Use the compact horizontal pill design from the preview (Countries · Cities · Shows format)
+- Position below the year toggle, centered
+
+### 5. Remove Old Stats Card
+
+- The existing bottom-right positioned `MapStatsCard` will be removed or repurposed
+- The new stats will be integrated into the top overlay area
 
 ---
 
-## Technical Changes
+## Technical Details
 
-### Lines to Update: 131-177
+### Files to Create
+- `src/components/map/MapYearToggle.tsx` - New component for year selection buttons
 
-```tsx
-// No Photo State - updated to match photo version
-return (
-  <div className={cn(
-    "relative aspect-[4/3] rounded-xl overflow-hidden",
-    "bg-gradient-to-br from-primary/20 via-background to-primary-glow/10",
-    "border border-white/10"
-  )}>
-    {/* Animated glow effect */}
-    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+### Files to Modify
+- `src/components/MapView.tsx` - Add year state, filtering logic, and integrate new components
+- `src/components/map/MapStatsCard.tsx` - Restyle to match the compact horizontal pill design from the preview
 
-    {/* Top Left: Edit Show Button */}
-    <button 
-      onClick={onEditShow} 
-      className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-    >
-      <Pencil className="h-4 w-4 text-white/80" />
-    </button>
-
-    {/* Top Right: Scene Logo */}
-    <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
-      <SceneLogo size="sm" />
-    </div>
-
-    {/* Center: Upload Prompt */}
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-      <div className="p-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/20" style={{
-        animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        boxShadow: "0 0 20px rgba(255,255,255,0.1)"
-      }}>
-        <Camera className="h-8 w-8 text-white/60" />
-      </div>
-      <Button variant="outline" className="..." onClick={() => fileInputRef.current?.click()}>
-        <Upload className="h-4 w-4 mr-2" />
-        {uploading ? "Uploading..." : "Add Photo"}
-      </Button>
-    </div>
-
-    {/* Bottom: Glass Metadata Bar - matching photo version layout */}
-    <div className="absolute bottom-0 left-0 right-0 p-4">
-      <div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
-        <div className="flex items-start justify-between gap-3">
-          {/* Left: Artist/Venue/Date info */}
-          <div className="flex-1 min-w-0">
-            <h2 className="font-black text-xl text-white tracking-wide truncate">{headliner?.name}</h2>
-            {supportingArtists.length > 0 && <p className="text-white/50 text-xs">+ {supportingArtists...}</p>}
-            <button onClick={openInMaps}>...</button>
-            <p className="text-white/50 text-xs">{formattedDate}</p>
-          </div>
-          
-          {/* Right: Score & Rank Column - NEW */}
-          <div className="gap-2 flex-shrink-0 flex-col flex items-end justify-center py-[12px]">
-            {/* Score Badge - White background, black text */}
-            <div className="px-3 py-1.5 rounded-full bg-white border border-white/20">
-              <span className="text-sm font-black text-black tracking-wide">{score.toFixed(1)}</span>
-            </div>
-            {/* Rank Badge - Prominent with glow */}
-            <span className="text-sm font-bold text-primary tracking-wide" style={{
-              textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
-            }}>
-              {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
-            </span>
-            {/* Rank Button if needed */}
-            {needsMoreRanking && onRankThisShow && (
-              <button onClick={onRankThisShow} className="...">
-                <Scale className="h-2.5 w-2.5" />
-                Rank
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Hidden file input */}
-    <Input ref={fileInputRef} ... />
-  </div>
-);
+### Data Flow
+```text
+User's Shows (from props)
+    ↓
+Extract Unique Years → Populate Year Toggle Options
+    ↓
+Filter Shows by Selected Year
+    ↓
+Calculate Stats (Countries, Cities, Venues, Shows)
+    ↓
+Display in Stats Pill
+    ↓
+Process Country/City Data for Map Markers
 ```
 
+### Key Logic Changes
+
+1. **Year Extraction**:
+   - Parse `show.date` to extract years from user's actual show data
+   - Sort years descending (newest first)
+   - Add "All" option at the end
+
+2. **Show Filtering**:
+   - Filter `shows` prop before processing country/city groupings
+   - When year is "all", use all shows
+   - When specific year is selected, filter to shows matching that year
+
+3. **Stats Recalculation**:
+   - The `mapStats` useMemo dependency array will include `selectedYear`
+   - All derived data (countryData, cityData) will use filtered shows
+
+### Styling
+
+- Year toggle pills: `bg-white/[0.04] text-white/50` (inactive), `bg-primary text-primary-foreground` (active)
+- Stats pill: `bg-white/[0.03] backdrop-blur-sm` with subtle separator dots
+- Positioned in a centered column layout at the top of the map
+
 ---
 
-## Result
-After this change, both the "with photo" and "without photo" states of the ShowReviewSheet will have:
-- ✅ Edit pencil button (top-left)
-- ✅ Scene logo (top-right)  
-- ✅ White score badge with black text
-- ✅ Cyan glowing rank badge
-- ✅ Rank button for shows needing comparisons
-- ✅ Consistent glass metadata bar layout
+## Expected Result
 
+The Map View will have a cohesive header overlay containing:
+- Year toggle buttons matching the user's actual show years plus "All"
+- Dynamic stats that update instantly when switching years
+- Clean, minimal glass-morphism styling matching the landing page preview
