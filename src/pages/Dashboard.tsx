@@ -135,7 +135,10 @@ const Dashboard = () => {
       case "rank":
         return <Rank />;
       case "profile":
-        return <Profile />;
+        return <Profile onStartTour={() => {
+          setActiveTab("home");
+          setShowSpotlightTour(true);
+        }} />;
       default:
         return (
           <Home 

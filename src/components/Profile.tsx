@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles } from "lucide-react";
+import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 
-const Profile = () => {
+const Profile = ({ onStartTour }: { onStartTour?: () => void }) => {
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,7 +192,7 @@ const Profile = () => {
 
         {/* Welcome to Scene Card */}
         <Card className="border-border shadow-card bg-gradient-to-br from-primary/10 via-transparent to-secondary/10">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-1">
             <Button 
               onClick={() => setShowWelcomeCarousel(true)}
               variant="ghost"
@@ -204,6 +204,20 @@ const Profile = () => {
               <div className="text-left">
                 <p className="font-semibold">Welcome to Scene</p>
                 <p className="text-sm text-muted-foreground">View the intro again</p>
+              </div>
+            </Button>
+            
+            <Button 
+              onClick={() => onStartTour?.()}
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto py-3"
+            >
+              <div className="h-10 w-10 rounded-full bg-secondary/20 flex items-center justify-center">
+                <Navigation className="h-5 w-5 text-secondary" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Interactive Tour</p>
+                <p className="text-sm text-muted-foreground">Learn your way around</p>
               </div>
             </Button>
           </CardContent>
