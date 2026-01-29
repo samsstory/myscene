@@ -1,7 +1,7 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Upload, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles, Send, Pencil, Trash2, Download } from "lucide-react";
-import { parseISO } from "date-fns";
+import { Upload, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles, Send, Trash2 } from "lucide-react";
+import { parseISO, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
@@ -469,39 +469,40 @@ export const ShowReviewSheet = ({
             </Button>
 
             {/* Secondary CTA: Share to Instagram */}
-            <Button
-              onClick={handleShareClick}
-              variant="ghost"
-              className={cn(
-                "w-full py-5 rounded-xl font-medium text-base",
-                "bg-white/[0.03] border border-white/[0.1]",
-                "text-white/70 hover:text-white hover:bg-white/[0.08]",
-                "transition-all duration-200"
-              )}
-            >
-              <Instagram className="h-5 w-5 mr-2" />
-              Share to Instagram
-            </Button>
+            <div className="space-y-2">
+              <Button
+                onClick={handleShareClick}
+                variant="ghost"
+                className={cn(
+                  "w-full py-5 rounded-xl font-medium text-base",
+                  "bg-white/[0.03] border border-white/[0.1]",
+                  "text-white/70 hover:text-white hover:bg-white/[0.08]",
+                  "transition-all duration-200"
+                )}
+              >
+                <Instagram className="h-5 w-5 mr-2" />
+                Share to Instagram
+              </Button>
+              
+              {/* Added to Scene date */}
+              <p className="text-center text-white/40 text-xs">
+                Added to Scene on {format(parseISO(show.date), "MMMM d, yyyy")}
+              </p>
+            </div>
 
             {/* Secondary Actions - Always visible */}
             <div className="flex gap-2 justify-center flex-wrap">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleSendToFriends}
-                className="text-white/50 hover:text-white hover:bg-white/10"
+                disabled
+                className="text-white/30 cursor-not-allowed flex flex-col items-center gap-0.5 h-auto py-2"
               >
-                <Send className="h-4 w-4 mr-2" />
-                Send
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDownloadImage}
-                className="text-white/50 hover:text-white hover:bg-white/10"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Save
+                <div className="flex items-center">
+                  <Send className="h-4 w-4 mr-2" />
+                  Invite friend to compare
+                </div>
+                <span className="text-[10px] text-white/20">Coming soon</span>
               </Button>
               {onDelete && (
                 <Button
