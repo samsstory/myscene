@@ -4,70 +4,73 @@ import { Check, MapPin, Home, Globe, Crown, Plus } from "lucide-react";
 
 const SmartCaptureMockup = () => (
   <div className="h-full w-full bg-background flex flex-col">
-    {/* App Header */}
-    <div className="px-4 py-3 flex justify-between items-center">
+    {/* Spacer for dynamic island */}
+    <div className="h-6" />
+
+    {/* App Header - aligned below notch */}
+    <div className="px-4 py-2 flex justify-between items-center">
       <SceneLogo size="sm" />
       <div className="w-6 h-6 rounded-full bg-white/10" />
     </div>
 
     {/* Photo Preview */}
     <div className="px-3">
-      <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
+      <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "16/10" }}>
         <img 
           src="/images/circoloco-concert.png" 
           alt="Concert photo"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-        <div className="absolute top-2 left-2 flex items-center gap-1 bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm">
-          <Check className="h-3 w-3" />
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-green-500/20 text-green-400 text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+          <Check className="h-2.5 w-2.5" />
           Photo added
         </div>
       </div>
     </div>
 
     {/* Smart Detection Card */}
-    <div className="px-3 py-4 flex-1">
-      <div className="bg-white/[0.03] rounded-xl border border-white/[0.08] p-4 space-y-3">
-        <div className="flex items-start gap-3">
-          <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+    <div className="px-3 py-3 flex-1 min-h-0">
+      <div className="bg-white/[0.03] rounded-xl border border-white/[0.08] p-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
           <div>
-            <p className="text-white/60 text-sm">Was this at</p>
-            <p className="text-white font-semibold">Factory Town</p>
-            <p className="text-white font-semibold">during Art Basel?</p>
+            <p className="text-white/60 text-xs">Was this at</p>
+            <p className="text-white font-semibold text-sm">Factory Town</p>
+            <p className="text-white font-semibold text-sm">during Art Basel?</p>
           </div>
         </div>
         
-        <p className="text-white/40 text-xs pl-8">
+        <p className="text-white/40 text-[10px] pl-6">
           Dec 6, 2024 · Miami, FL
         </p>
         
         <button 
-          className="w-full py-2.5 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-2"
+          className="w-full py-2 rounded-lg text-white text-xs font-medium flex items-center justify-center gap-1.5"
           style={{
             background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))"
           }}
         >
-          <Check className="h-4 w-4" />
+          <Check className="h-3 w-3" />
           Yes, that's right
         </button>
         
-        <button className="w-full text-white/50 text-xs hover:text-white/70 transition-colors">
+        <button className="w-full text-white/50 text-[10px] hover:text-white/70 transition-colors">
           No, let me search...
         </button>
       </div>
     </div>
 
     {/* Bottom Nav */}
-    <div className="px-4 py-3 flex justify-around items-center border-t border-white/10">
-      <Home className="w-5 h-5 text-white/40" />
-      <Globe className="w-5 h-5 text-white/40" />
-      <Crown className="w-5 h-5 text-white/40" />
+    <div className="px-4 py-2 flex justify-around items-center border-t border-white/10">
+      <Home className="w-4 h-4 text-white/40" />
+      <Globe className="w-4 h-4 text-white/40" />
+      <Crown className="w-4 h-4 text-white/40" />
       <div 
-        className="w-7 h-7 rounded-full flex items-center justify-center"
+        className="w-6 h-6 rounded-full flex items-center justify-center"
         style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))" }}
       >
-        <Plus className="w-4 h-4 text-white" />
+        <Plus className="w-3 h-3 text-white" />
       </div>
     </div>
   </div>
