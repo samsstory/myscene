@@ -132,7 +132,7 @@ const LandingHero = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="min-h-screen flex items-center relative overflow-hidden">
+    <section className="min-h-screen flex items-start md:items-center relative overflow-hidden pt-12 md:pt-0">
       {/* Background glow effects */}
       <div 
         className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20"
@@ -143,7 +143,7 @@ const LandingHero = () => {
         style={{ background: "hsl(var(--secondary))" }}
       />
 
-      <div className="container mx-auto px-4 py-16 md:py-24">
+      <div className="container mx-auto px-4 py-8 md:py-24">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: Copy */}
           <div className="space-y-8 text-center lg:text-left">
