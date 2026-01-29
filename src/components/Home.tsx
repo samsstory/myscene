@@ -63,12 +63,13 @@ interface HomeProps {
   onNavigateToRank?: () => void;
   onAddFromPhotos?: () => void;
   onAddSingleShow?: () => void;
+  initialView?: ViewMode;
 }
 
-const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps) => {
+const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("home");
+  const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [shareShow, setShareShow] = useState<Show | null>(null);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
