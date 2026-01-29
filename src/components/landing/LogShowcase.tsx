@@ -61,16 +61,18 @@ const SmartCaptureMockup = () => (
       </div>
     </div>
 
-    {/* Bottom Nav */}
-    <div className="px-4 py-2 flex justify-around items-center border-t border-white/10">
-      <Home className="w-4 h-4 text-white/40" />
-      <Globe className="w-4 h-4 text-white/40" />
-      <Crown className="w-4 h-4 text-white/40" />
-      <div 
-        className="w-6 h-6 rounded-full flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))" }}
+    {/* Bottom Nav - Glass Pill + FAB (selected) */}
+    <div className="px-4 py-2.5 flex items-center justify-center gap-4">
+      <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
+        <Home className="w-4 h-4 text-white/40" />
+        <Globe className="w-4 h-4 text-white/40" />
+        <Crown className="w-4 h-4 text-white/40" />
+      </div>
+      <div
+        className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30"
+        style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.6)" }}
       >
-        <Plus className="w-3 h-3 text-white" />
+        <Plus className="w-4 h-4 text-primary-foreground" />
       </div>
     </div>
   </div>

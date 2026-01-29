@@ -118,17 +118,21 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
         </div>)}
     </div>
 
-    {/* Bottom nav with proper icons */}
-    <div className="px-4 py-2 flex justify-around items-center border-t border-white/10">
-      <Home className="w-4 h-4 text-primary" style={{
-      filter: "drop-shadow(0 0 4px hsl(var(--primary)))"
-    }} />
-      <Globe className="w-4 h-4 text-white/40" />
-      <Crown className="w-4 h-4 text-white/40" />
-      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{
-      boxShadow: "0 0 12px hsl(var(--primary) / 0.5)"
-    }}>
-        <Plus className="w-3 h-3 text-white" />
+    {/* Bottom Nav - Glass Pill + FAB */}
+    <div className="px-4 py-2.5 flex items-center justify-center gap-4">
+      <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
+        <Home
+          className="w-4 h-4 text-primary"
+          style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }}
+        />
+        <Globe className="w-4 h-4 text-white/40" />
+        <Crown className="w-4 h-4 text-white/40" />
+      </div>
+      <div
+        className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg"
+        style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}
+      >
+        <Plus className="w-4 h-4 text-primary-foreground" />
       </div>
     </div>
   </div>;

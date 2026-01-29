@@ -1,6 +1,6 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { Instagram } from "lucide-react";
+import { Instagram, Home, Globe, Crown, Plus } from "lucide-react";
 
 // Show Review Sheet Mockup
 const ShowReviewMockup = () => (
@@ -80,28 +80,36 @@ const ShowReviewMockup = () => (
       </div>
     </div>
 
-    {/* Action Buttons - Capture-first hierarchy */}
-    <div className="px-3 pb-2 space-y-2 mt-auto">
-      {/* Primary: Save/Log button */}
+    {/* Action Buttons - Compact */}
+    <div className="px-3 pb-1.5 space-y-1.5">
       <button 
-        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-white text-xs font-medium"
+        className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-white text-[10px] font-medium"
         style={{
           background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))"
         }}
       >
         <span>Save to my Scene</span>
       </button>
-      
-      {/* Secondary: Share button */}
-      <button className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/70 text-xs">
-        <Instagram className="w-3.5 h-3.5" />
+      <button className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/70 text-[10px]">
+        <Instagram className="w-3 h-3" />
         <span>Share to Instagram</span>
       </button>
+      <p className="text-white/30 text-[8px] text-center">Logged on Oct 12, 2024</p>
     </div>
 
-    {/* Logged timestamp */}
-    <div className="px-3 pb-3">
-      <p className="text-white/30 text-[9px] text-center">Logged on Oct 12, 2024</p>
+    {/* Bottom Nav - Glass Pill + FAB (selected) */}
+    <div className="px-4 py-2.5 flex items-center justify-center gap-4">
+      <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
+        <Home className="w-4 h-4 text-white/40" />
+        <Globe className="w-4 h-4 text-white/40" />
+        <Crown className="w-4 h-4 text-white/40" />
+      </div>
+      <div
+        className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30"
+        style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.6)" }}
+      >
+        <Plus className="w-4 h-4 text-primary-foreground" />
+      </div>
     </div>
   </div>
 );
