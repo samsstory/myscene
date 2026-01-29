@@ -10,6 +10,7 @@ import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
+import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSpotlightTour, setShowSpotlightTour] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -86,10 +88,22 @@ const Dashboard = () => {
     if (session) {
       await supabase
         .from("profiles")
-        .update({ onboarding_step: "completed" })
+        .update({ onboarding_step: "spotlight_tour" })
         .eq("id", session.user.id);
     }
     setShowOnboarding(false);
+    // Start the spotlight tour after carousel
+    setShowSpotlightTour(true);
+  };
+
+  const handleSpotlightTourComplete = async () => {
+    if (session) {
+      await supabase
+        .from("profiles")
+        .update({ onboarding_step: "completed" })
+        .eq("id", session.user.id);
+    }
+    setShowSpotlightTour(false);
   };
 
   // Show onboarding carousel for new users
@@ -187,6 +201,7 @@ const Dashboard = () => {
             {/* Globe */}
             <button
               onClick={() => setActiveTab("globe")}
+              data-tour="nav-globe"
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1.5",
                 activeTab === "globe" 
@@ -200,6 +215,7 @@ const Dashboard = () => {
             {/* Rank */}
             <button
               onClick={() => setActiveTab("rank")}
+              data-tour="nav-rank"
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1.5",
                 activeTab === "rank" 
@@ -230,6 +246,7 @@ const Dashboard = () => {
                     setShowFabMenu(false);
                     setShowBulkUpload(true);
                   }}
+                  data-tour="add-photos"
                   className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
                 >
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -244,6 +261,7 @@ const Dashboard = () => {
                     setShowFabMenu(false);
                     setShowAddDialog(true);
                   }}
+                  data-tour="add-single"
                   className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
                 >
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -258,6 +276,7 @@ const Dashboard = () => {
           {/* FAB Button */}
           <button
             onClick={() => setShowFabMenu(!showFabMenu)}
+            data-tour="fab"
             className={cn(
               "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95 z-50",
               showFabMenu && "rotate-45 bg-white/20"
@@ -285,6 +304,14 @@ const Dashboard = () => {
         onOpenChange={setShowBulkUpload}
         onNavigateToFeed={() => setActiveTab("home")}
         onNavigateToRank={() => setActiveTab("rank")}
+      />
+
+      {/* Spotlight Tour */}
+      <SpotlightTour
+        run={showSpotlightTour}
+        onComplete={handleSpotlightTourComplete}
+        onOpenFabMenu={() => setShowFabMenu(true)}
+        onCloseFabMenu={() => setShowFabMenu(false)}
       />
 
     </div>
