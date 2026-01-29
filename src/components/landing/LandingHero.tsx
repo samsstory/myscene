@@ -39,23 +39,20 @@ const collapsedCards = [{
 
 // Mock show card for the phone display
 const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex flex-col">
-    {/* Status bar mock */}
-    <div className="flex justify-between items-center px-4 py-2 text-[8px] text-white/60">
-      
-      
-    </div>
+    {/* Spacer for dynamic island */}
+    <div className="h-6" />
 
-    {/* App header */}
-    <div className="px-4 py-3 flex justify-between items-center">
+    {/* App header - aligned below notch */}
+    <div className="px-4 py-2 flex justify-between items-center">
       <SceneLogo size="sm" />
       <div className="w-6 h-6 rounded-full bg-white/10" />
     </div>
 
     {/* Stacked show cards */}
-    <div className="flex-1 px-3 py-2 flex flex-col">
+    <div className="flex-1 px-3 py-1 flex flex-col min-h-0">
       {/* Card 1 - Top ranked (Expanded) - Fred again.. */}
         <div className="relative rounded-xl overflow-hidden shadow-lg z-[60]" style={{
-      aspectRatio: "4/3"
+      aspectRatio: "16/10"
     }}>
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30" style={{
         backgroundImage: "url('https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&q=80')",
@@ -67,7 +64,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
         
         {/* Rank badge */}
         <div className="absolute top-2 left-2">
-          <span className="text-xs font-bold text-white bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full" style={{
+          <span className="text-[10px] font-bold text-white bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-full" style={{
           textShadow: "0 0 10px rgba(255,255,255,0.5)"
         }}>
             #1 All Time
@@ -76,7 +73,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
 
         {/* Scene watermark */}
         <div className="absolute top-2 right-2">
-          <span className="text-[8px] text-white/60 font-black tracking-widest" style={{
+          <span className="text-[7px] text-white/60 font-black tracking-widest" style={{
           textShadow: "0 0 6px rgba(255,255,255,0.3)"
         }}>
             SCENE ✦
@@ -84,22 +81,22 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
         </div>
 
         {/* Content overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-3">
+        <div className="absolute bottom-0 left-0 right-0 p-2">
           {/* White score badge */}
-          <div className="inline-flex items-center justify-center bg-white/90 text-black font-bold rounded-full px-2 py-0.5 text-xs mb-1.5 shadow-md">
+          <div className="inline-flex items-center justify-center bg-white/90 text-black font-bold rounded-full px-1.5 py-0.5 text-[10px] mb-1 shadow-md">
             9.2
           </div>
-          <div className="text-white font-bold text-sm" style={{
+          <div className="text-white font-bold text-xs" style={{
           textShadow: "0 0 12px rgba(255,255,255,0.4)"
         }}>
             Fred again..
           </div>
-          <div className="text-white/70 text-[10px]">Alexandra Palace · London</div>
+          <div className="text-white/70 text-[9px]">Alexandra Palace · London</div>
         </div>
       </div>
 
       {/* Collapsed Cards Stack - each overlapping the one below */}
-      {collapsedCards.map((card, index) => <div key={card.artist} className="relative mt-[-12px]" style={{
+      {collapsedCards.map((card, index) => <div key={card.artist} className="relative mt-[-10px]" style={{
       zIndex: card.zIndex
     }}>
           <div className="relative rounded-xl overflow-hidden bg-white/[0.05] backdrop-blur-sm border border-white/[0.08]">
@@ -108,30 +105,30 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
           backgroundImage: `url('${card.photo}')`,
           filter: "brightness(1.2)"
         }} />
-            <div className="relative py-5 px-3 flex items-center justify-between">
-              <span className="font-bold text-xs" style={{
+            <div className="relative py-4 px-3 flex items-center justify-between">
+              <span className="font-bold text-[10px]" style={{
             color: `rgba(255, 255, 255, ${card.opacity / 100})`,
             textShadow: "0 0 8px rgba(255,255,255,0.3)"
           }}>
                 {card.artist}
               </span>
-              <span className="text-[9px] text-white/40">#{card.rank} All Time</span>
+              <span className="text-[8px] text-white/40">#{card.rank} All Time</span>
             </div>
           </div>
         </div>)}
     </div>
 
     {/* Bottom nav with proper icons */}
-    <div className="px-4 py-3 flex justify-around items-center border-t border-white/10">
-      <Home className="w-5 h-5 text-primary" style={{
+    <div className="px-4 py-2 flex justify-around items-center border-t border-white/10">
+      <Home className="w-4 h-4 text-primary" style={{
       filter: "drop-shadow(0 0 4px hsl(var(--primary)))"
     }} />
-      <Globe className="w-5 h-5 text-white/40" />
-      <Crown className="w-5 h-5 text-white/40" />
-      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{
+      <Globe className="w-4 h-4 text-white/40" />
+      <Crown className="w-4 h-4 text-white/40" />
+      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{
       boxShadow: "0 0 12px hsl(var(--primary) / 0.5)"
     }}>
-        <Plus className="w-4 h-4 text-white" />
+        <Plus className="w-3 h-3 text-white" />
       </div>
     </div>
   </div>;
