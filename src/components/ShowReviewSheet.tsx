@@ -468,6 +468,7 @@ export const ShowReviewSheet = ({
             <div className="space-y-2">
               <Button
                 onClick={handleShareClick}
+                data-tour="share-instagram"
                 variant="ghost"
                 className={cn(
                   "w-full py-5 rounded-xl font-medium text-base",
