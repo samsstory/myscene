@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import MapNavButton from "./map/MapNavButton";
 import MapRightPanel from "./map/MapRightPanel";
 import MapHoverCard from "./map/MapHoverCard";
+import MapYearToggle from "./map/MapYearToggle";
+import MapStatsCard from "./map/MapStatsCard";
 
 interface Show {
   id: string;
@@ -74,9 +76,32 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
   const [venueData, setVenueData] = useState<VenueData[]>([]);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [hoveredVenue, setHoveredVenue] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
   
   // Track hovered feature for feature-state system
   const hoveredFeatureRef = useRef<{ source: string; id: number | string | undefined } | null>(null);
+
+  // Extract unique years from shows and sort descending
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    shows.forEach(show => {
+      if (show.date) {
+        const year = new Date(show.date).getFullYear().toString();
+        years.add(year);
+      }
+    });
+    const sortedYears = Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
+    return [...sortedYears, "all"];
+  }, [shows]);
+
+  // Filter shows by selected year
+  const filteredShows = useMemo(() => {
+    if (selectedYear === "all") return shows;
+    return shows.filter(show => {
+      if (!show.date) return false;
+      return new Date(show.date).getFullYear().toString() === selectedYear;
+    });
+  }, [shows, selectedYear]);
   
 
   // Fetch user's home city coordinates
@@ -322,12 +347,15 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
   // Process shows and create country heat map data
   useEffect(() => {
     const processCountryData = async () => {
-      if (!shows.length) return;
+      if (!filteredShows.length) {
+        setCountryData([]);
+        return;
+      }
 
       // Group shows by country
       const countryMap = new Map<string, number>();
       
-      shows.forEach(show => {
+      filteredShows.forEach(show => {
         if (show.venue.location) {
           const country = getCountryFromLocation(show.venue.location);
           countryMap.set(country, (countryMap.get(country) || 0) + 1);
@@ -351,12 +379,12 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
     };
 
     processCountryData();
-  }, [shows]);
+  }, [filteredShows]);
 
   // Handle country click - drill down to cities
   const handleCountryClick = async (countryName: string) => {
-    // Filter shows for this country
-    const countryShows = shows.filter(show => {
+    // Filter shows for this country (using filteredShows to respect year filter)
+    const countryShows = filteredShows.filter(show => {
       if (show.venue.location) {
         const country = getCountryFromLocation(show.venue.location);
         return country === countryName;
@@ -481,13 +509,13 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
     }
   };
 
-  // Calculate stats
+  // Calculate stats based on filtered shows
   const mapStats = useMemo(() => {
     const countries = new Set<string>();
     const cities = new Set<string>();
     const venues = new Set<string>();
 
-    shows.forEach(show => {
+    filteredShows.forEach(show => {
       if (show.venue.location) {
         countries.add(getCountryFromLocation(show.venue.location));
         cities.add(getCityFromLocation(show.venue.location));
@@ -496,12 +524,12 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
     });
 
     return {
-      totalShows: shows.length,
+      totalShows: filteredShows.length,
       totalCountries: countries.size,
       totalCities: cities.size,
       totalVenues: venues.size,
     };
-  }, [shows]);
+  }, [filteredShows]);
 
   // Add country markers to map
   useEffect(() => {
@@ -1226,6 +1254,25 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
                 or add manually
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Year Toggle + Stats Pill - top center */}
+      {shows.length > 0 && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+          <div className="flex flex-col items-center gap-2">
+            <MapYearToggle
+              years={availableYears}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+            />
+            <MapStatsCard
+              totalShows={mapStats.totalShows}
+              totalCountries={mapStats.totalCountries}
+              totalCities={mapStats.totalCities}
+              totalVenues={mapStats.totalVenues}
+            />
           </div>
         </div>
       )}

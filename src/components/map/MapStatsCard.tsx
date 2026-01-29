@@ -1,5 +1,3 @@
-import { Globe, Building2, MapPin, Music } from "lucide-react";
-
 interface MapStatsCardProps {
   totalShows: number;
   totalCountries: number;
@@ -13,30 +11,23 @@ const MapStatsCard = ({
   totalCities, 
   totalVenues 
 }: MapStatsCardProps) => {
-  const stats = [
-    { icon: Music, value: totalShows, label: "Shows" },
-    { icon: Globe, value: totalCountries, label: "Countries" },
-    { icon: Building2, value: totalCities, label: "Cities" },
-    { icon: MapPin, value: totalVenues, label: "Venues" },
-  ];
-
   return (
-    <div className="absolute bottom-4 right-4 z-10">
-      <div className="backdrop-blur-xl bg-black/40 border border-white/10 rounded-xl p-3 shadow-2xl">
-        <div className="flex items-center gap-4">
-          {stats.map((stat, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/20">
-                <stat.icon className="h-3.5 w-3.5 text-primary" />
-              </div>
-              <div className="text-left">
-                <p className="text-lg font-bold text-white leading-none">{stat.value}</p>
-                <p className="text-[10px] text-white/60 uppercase tracking-wider">{stat.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/[0.03] backdrop-blur-sm">
+      <span className="text-white/70 text-[11px] font-medium">
+        {totalCountries} <span className="text-white/40">countries</span>
+      </span>
+      <span className="text-white/20">·</span>
+      <span className="text-white/70 text-[11px] font-medium">
+        {totalCities} <span className="text-white/40">cities</span>
+      </span>
+      <span className="text-white/20">·</span>
+      <span className="text-white/70 text-[11px] font-medium">
+        {totalVenues} <span className="text-white/40">venues</span>
+      </span>
+      <span className="text-white/20">·</span>
+      <span className="text-white/70 text-[11px] font-medium">
+        {totalShows} <span className="text-white/40">shows</span>
+      </span>
     </div>
   );
 };
