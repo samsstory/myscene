@@ -82,14 +82,14 @@ export default {
           from: { opacity: "0", transform: "translateX(100%)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
-        "winner-pulse": {
-          "0%": { transform: "scale(1)" },
-          "50%": { transform: "scale(1.05)" },
-          "100%": { transform: "scale(1)" },
+        "winner-glow": {
+          "0%": { transform: "scale(1)", boxShadow: "0 0 0 rgba(34, 197, 94, 0)" },
+          "50%": { transform: "scale(1.03)", boxShadow: "0 0 30px rgba(34, 197, 94, 0.6)" },
+          "100%": { transform: "scale(1)", boxShadow: "0 0 20px rgba(34, 197, 94, 0.4)" },
         },
-        "fade-scale-out": {
-          from: { opacity: "1", transform: "scale(1)" },
-          to: { opacity: "0.3", transform: "scale(0.95)" },
+        "loser-shrink": {
+          "0%": { opacity: "1", transform: "scale(1)" },
+          "100%": { opacity: "0", transform: "scale(0.8)" },
         },
       },
       animation: {
@@ -97,8 +97,8 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "slide-in-left": "slide-in-left 0.3s ease-out forwards",
         "slide-in-right": "slide-in-right 0.3s ease-out forwards",
-        "winner-pulse": "winner-pulse 0.4s ease-out",
-        "fade-scale-out": "fade-scale-out 0.3s ease-out forwards",
+        "winner-glow": "winner-glow 0.5s ease-out forwards",
+        "loser-shrink": "loser-shrink 0.4s ease-out forwards",
       },
     },
   },
