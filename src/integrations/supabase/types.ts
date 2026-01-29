@@ -373,6 +373,42 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          country_code: string
+          created_at: string
+          discovery_source: string | null
+          id: string
+          notified_at: string | null
+          phone_number: string
+          shows_per_year: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          country_code?: string
+          created_at?: string
+          discovery_source?: string | null
+          id?: string
+          notified_at?: string | null
+          phone_number: string
+          shows_per_year?: string | null
+          source?: string
+          status?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          discovery_source?: string | null
+          id?: string
+          notified_at?: string | null
+          phone_number?: string
+          shows_per_year?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
