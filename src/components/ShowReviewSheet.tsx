@@ -450,9 +450,9 @@ export const ShowReviewSheet = ({
             {/* Notes Quote Card */}
             <NotesQuoteCard notes={show.notes} />
 
-            {/* Primary CTA: Save to my Scene */}
+            {/* Primary CTA: Close the review sheet */}
             <Button
-              onClick={handleDownloadImage}
+              onClick={() => onOpenChange(false)}
               className={cn(
                 "w-full py-6 rounded-xl font-semibold text-base",
                 "bg-gradient-to-r from-cyan-500 via-primary to-coral",
@@ -461,7 +461,7 @@ export const ShowReviewSheet = ({
                 "border-0"
               )}
             >
-              Save to my Scene
+              Done
             </Button>
 
             {/* Secondary CTA: Share to Instagram */}
