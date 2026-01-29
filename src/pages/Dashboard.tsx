@@ -232,7 +232,7 @@ const Dashboard = () => {
         </nav>
 
         {/* Floating FAB */}
-        <div className="relative">
+        <div className={cn("relative", showSpotlightTour && "z-[10001]")}>
           {showFabMenu && (
             <>
               {/* Backdrop */}
@@ -242,7 +242,10 @@ const Dashboard = () => {
               />
               
               {/* Menu Options */}
-              <div className="absolute bottom-16 right-0 z-50 flex flex-col gap-3 items-end">
+              <div className={cn(
+                "absolute bottom-16 right-0 flex flex-col gap-3 items-end",
+                showSpotlightTour ? "z-[10001]" : "z-50"
+              )}>
                 {/* Add from Photos */}
                 <button
                   onClick={() => {
@@ -250,7 +253,10 @@ const Dashboard = () => {
                     setShowBulkUpload(true);
                   }}
                   data-tour="add-photos"
-                  className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                  className={cn(
+                    "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
+                    showSpotlightTour && "z-[10001]"
+                  )}
                 >
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <Camera className="h-5 w-5 text-primary" />
@@ -265,7 +271,10 @@ const Dashboard = () => {
                     setShowAddDialog(true);
                   }}
                   data-tour="add-single"
-                  className="flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2"
+                  className={cn(
+                    "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
+                    showSpotlightTour && "z-[10001]"
+                  )}
                 >
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <Music className="h-5 w-5 text-primary" />
@@ -281,7 +290,8 @@ const Dashboard = () => {
             onClick={() => setShowFabMenu(!showFabMenu)}
             data-tour="fab"
             className={cn(
-              "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95 z-50",
+              "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95",
+              showSpotlightTour ? "z-[10001]" : "z-50",
               showFabMenu && "rotate-45 bg-white/20"
             )}
           >
