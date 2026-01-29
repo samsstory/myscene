@@ -1206,62 +1206,11 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
   }, [venueData, viewLevel]);
 
   return (
-    <div className="relative w-full h-[calc(100vh-180px)] min-h-[400px]">
-      <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
-
-      {/* Empty state when no shows */}
-      {shows.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-black/20 to-black/40 z-20 rounded-lg">
-          <div className="text-center px-6 max-w-sm">
-            {/* Decorative globe illustration */}
-            <div className="relative mx-auto mb-6 w-24 h-24">
-              <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" />
-              <div className="absolute inset-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <Globe className="h-12 w-12 text-primary/60" />
-              </div>
-              {/* Decorative dots around the globe */}
-              <div className="absolute top-0 right-2 w-2 h-2 rounded-full bg-primary/40" />
-              <div className="absolute bottom-2 left-0 w-1.5 h-1.5 rounded-full bg-cyan-500/40" />
-              <div className="absolute top-1/2 -right-1 w-1 h-1 rounded-full bg-amber-500/40" />
-            </div>
-            
-            {/* Headline and description */}
-            <h3 className="text-xl font-bold text-white mb-2">
-              Your Show Globe is empty
-            </h3>
-            <p className="text-white/60 text-sm mb-6">
-              Start logging shows to see them appear on your personal concert map
-            </p>
-            
-            {/* Primary CTA - Add from Photos */}
-            {onAddFromPhotos && (
-              <Button 
-                onClick={onAddFromPhotos}
-                className="mb-3 w-full"
-                size="lg"
-              >
-                <Camera className="h-5 w-5 mr-2" />
-                Add from Photos
-              </Button>
-            )}
-            
-            {/* Secondary option */}
-            {onAddSingleShow && (
-              <button
-                onClick={onAddSingleShow}
-                className="text-white/40 text-sm hover:text-white/60 transition-colors"
-              >
-                or add manually
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Year Toggle + Stats Pill - top center */}
+    <div className="flex flex-col h-full">
+      {/* Year Toggle + Stats Header - sits above the map */}
       {shows.length > 0 && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 py-3 px-4 shrink-0">
+          <div className="flex items-center gap-3">
             <MapYearToggle
               years={availableYears}
               selectedYear={selectedYear}
@@ -1276,6 +1225,59 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
           </div>
         </div>
       )}
+
+      {/* Map Container - takes remaining space */}
+      <div className="relative flex-1 min-h-0">
+        <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
+
+        {/* Empty state when no shows */}
+        {shows.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-black/20 to-black/40 z-20 rounded-lg">
+            <div className="text-center px-6 max-w-sm">
+              {/* Decorative globe illustration */}
+              <div className="relative mx-auto mb-6 w-24 h-24">
+                <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" />
+                <div className="absolute inset-2 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Globe className="h-12 w-12 text-primary/60" />
+                </div>
+                {/* Decorative dots around the globe */}
+                <div className="absolute top-0 right-2 w-2 h-2 rounded-full bg-primary/40" />
+                <div className="absolute bottom-2 left-0 w-1.5 h-1.5 rounded-full bg-cyan-500/40" />
+                <div className="absolute top-1/2 -right-1 w-1 h-1 rounded-full bg-amber-500/40" />
+              </div>
+              
+              {/* Headline and description */}
+              <h3 className="text-xl font-bold text-white mb-2">
+                Your Show Globe is empty
+              </h3>
+              <p className="text-white/60 text-sm mb-6">
+                Start logging shows to see them appear on your personal concert map
+              </p>
+              
+              {/* Primary CTA - Add from Photos */}
+              {onAddFromPhotos && (
+                <Button 
+                  onClick={onAddFromPhotos}
+                  className="mb-3 w-full"
+                  size="lg"
+                >
+                  <Camera className="h-5 w-5 mr-2" />
+                  Add from Photos
+                </Button>
+              )}
+              
+              {/* Secondary option */}
+              {onAddSingleShow && (
+                <button
+                  onClick={onAddSingleShow}
+                  className="text-white/40 text-sm hover:text-white/60 transition-colors"
+                >
+                  or add manually
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
       {/* Reset to world button - only shows when drilled in */}
       <div className="absolute top-4 left-4 z-10">
@@ -1388,6 +1390,7 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
           </CardContent>
         </Card>
       )}
+      </div>
 
       {/* Selected venue details - Bottom Sheet */}
       <Drawer
