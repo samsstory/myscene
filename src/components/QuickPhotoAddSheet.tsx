@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, Share2 } from "lucide-react";
+import { Camera, Check } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -145,14 +145,14 @@ export const QuickPhotoAddSheet = ({
           />
         </div>
 
-        {/* Share without photo option */}
+        {/* Save button - closes sheet */}
         <div className="flex-shrink-0 pb-4">
           <button
-            onClick={onShareWithoutPhoto}
+            onClick={() => onOpenChange(false)}
             className="w-full py-3 text-center text-white/50 hover:text-white/70 transition-colors text-sm flex items-center justify-center gap-2"
           >
-            <Share2 className="h-4 w-4" />
-            <span>Share without photo</span>
+            <Check className="h-4 w-4" />
+            <span>Save</span>
           </button>
         </div>
       </SheetContent>
