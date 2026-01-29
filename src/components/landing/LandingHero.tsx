@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import SceneLogo from "@/components/ui/SceneLogo";
 import PhoneMockup from "./PhoneMockup";
+import WaitlistSignup from "./WaitlistSignup";
 import { Home, Globe, Crown, Plus } from "lucide-react";
 
 // Collapsed card data with photo backgrounds
@@ -168,11 +169,9 @@ const LandingHero = () => {
               The app to capture, review, rank, and share your favorite shows.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
-              <Button size="lg" onClick={() => navigate("/auth")} className="shadow-glow text-base px-8 py-5 hover:scale-105 transition-transform">
-                Join The Waitlist
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")} className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10">
+            <div className="flex flex-col gap-4 justify-center lg:justify-start pt-2">
+              <WaitlistSignup source="hero" />
+              <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")} className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10 w-fit">
                 Try Live Demo
               </Button>
             </div>
