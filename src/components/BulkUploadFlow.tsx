@@ -40,6 +40,15 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     onOpenChange(false);
   };
 
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    // Allow the parent to open the dialog; only run cleanup when closing.
+    if (nextOpen) {
+      onOpenChange(true);
+      return;
+    }
+    handleClose();
+  };
+
   const handlePhotosSelected = (selectedPhotos: PhotoWithExif[]) => {
     setPhotos(selectedPhotos);
     setStep('review');
@@ -130,8 +139,8 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto relative pb-8 top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto relative pb-8">
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
           <div 
