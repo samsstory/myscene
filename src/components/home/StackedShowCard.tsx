@@ -1,7 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Instagram } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
 import { cn, getScoreGradient, calculateShowScore } from "@/lib/utils";
 import { forwardRef } from "react";
 import SceneLogo from "@/components/ui/SceneLogo";
@@ -102,11 +101,12 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
                 >
                   {artistName}
                 </span>
-                <ShowRankBadge 
-                  position={rankInfo.position} 
-                  total={rankInfo.total} 
-                  comparisonsCount={rankInfo.comparisonsCount}
-                />
+                <span 
+                  className="text-xs font-medium text-white/60 tracking-wide"
+                  style={{ textShadow: "0 0 6px rgba(255,255,255,0.2)" }}
+                >
+                  {rankInfo.comparisonsCount > 0 && rankInfo.position ? `#${rankInfo.position} All Time` : "Unranked"}
+                </span>
               </div>
             </div>
           </div>
@@ -141,12 +141,13 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             
             {/* Top Left: Rank Badge */}
-            <div className="absolute top-3 left-3">
-              <ShowRankBadge 
-                position={rankInfo.position} 
-                total={rankInfo.total} 
-                comparisonsCount={rankInfo.comparisonsCount}
-              />
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-sm">
+              <span 
+                className="text-xs font-bold text-white tracking-wide"
+                style={{ textShadow: "0 0 8px rgba(255,255,255,0.4)" }}
+              >
+                {rankInfo.comparisonsCount > 0 && rankInfo.position ? `#${rankInfo.position} All Time` : "Unranked"}
+              </span>
             </div>
             
             {/* Top Right: Instagram Share Button */}
@@ -167,12 +168,8 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
             
             {/* Content Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-4">
-              {/* Score Badge */}
-              <div className={cn(
-                "inline-flex items-center justify-center px-3 py-1 rounded-full text-lg font-black text-white mb-2",
-                "bg-gradient-to-r shadow-lg",
-                scoreGradient
-              )}>
+              {/* Score Badge - White background */}
+              <div className="inline-flex items-center justify-center px-3 py-1 rounded-full text-lg font-black text-black mb-2 bg-white shadow-lg">
                 {score.toFixed(1)}
               </div>
               
