@@ -96,8 +96,7 @@ const RankingCard = ({
       }}
     >
       <div className={cn(
-        "bg-white/[0.04] backdrop-blur-sm border-2 rounded-2xl overflow-hidden transition-all duration-300",
-        isWinner ? "border-green-500/80" : "border-white/[0.08]"
+        "bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl overflow-hidden transition-all duration-300"
       )}>
         {/* Photo Section */}
         <div className="relative aspect-[4/3] overflow-hidden">
