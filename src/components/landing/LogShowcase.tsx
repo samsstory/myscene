@@ -100,7 +100,7 @@ const LogShowcase = () => {
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
               style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
             >
-              Collect it before you forget.
+              Capture it before you forget.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
