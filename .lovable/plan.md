@@ -1,169 +1,100 @@
 
+# Fix: FAB Button Not Visible in Spotlight Tour
 
-# Interactive Spotlight Tour Implementation Plan
+## Problem Analysis
 
-## Overview
-Implement Phase 2 of the onboarding experience: an Interactive Spotlight Tour using `react-joyride` that guides new users through the core navigation elements of the Scene app immediately after the Welcome Carousel completes.
+The FAB button is not visible inside the spotlight because of a **z-index stacking context conflict**:
 
-## Tour Steps Breakdown
+1. **React-joyride overlay** uses `zIndex: 10000`
+2. **FAB container** has `z-50` (which equals 50 in Tailwind)
+3. The spotlight creates a visual "hole" in the overlay, but the **target element must render ABOVE the overlay** to be seen through that hole
+4. Since 50 < 10000, the FAB renders behind the dark overlay and is invisible
 
-| Step | Target | Message |
-|------|--------|---------|
-| 1 | FAB (+) button | "Tap here to log your first show" |
-| 2 | Add From Photos button | "Upload multiple shows at once by adding 1 photo per show" |
-| 3 | Add Single Show button | "No Photo? Add by artist/venue" |
-| 4 | Rank nav button | "Rank shows against each other" |
-| 5 | Rankings/Shows link | "See all your shows ranked in order" |
-| 6 | Share to Instagram button | "Add your show review to your photo and share to Instagram or send to friends" |
-| 7 | Globe nav button | "See everywhere you've been" |
-| 8 | Scale nav button | "Your personal rankings live here" |
+The gray area visible in the spotlight is actually the underlying page content bleeding through - not the FAB button.
 
-## Technical Implementation
+## Solution
 
-### 1. Install react-joyride dependency
-Add `react-joyride` to package.json for the guided tour functionality.
+Increase the FAB button's z-index to be higher than the Joyride overlay (10000) when the spotlight tour is active.
 
-### 2. Create SpotlightTour Component
-New file: `src/components/onboarding/SpotlightTour.tsx`
+### Approach: Conditional Z-Index During Tour
 
-**Component responsibilities:**
-- Accept `run` prop to control tour activation
-- Accept `onComplete` callback for when tour finishes
-- Define tour steps with glassmorphism-styled tooltips matching Scene aesthetic
-- Handle FAB menu opening automatically when reaching step 2/3
-- Target elements using `data-tour` attributes
-
-**Glassmorphism tooltip styling:**
-```text
-+----------------------------------+
-|  bg-black/40 backdrop-blur-xl    |
-|  border border-white/20          |
-|  rounded-xl shadow-2xl           |
-|  Text with Scene glow effects    |
-+----------------------------------+
-```
-
-### 3. Add data-tour attributes to Dashboard.tsx
-Target elements need identification for react-joyride:
-
-| Element | Attribute |
-|---------|-----------|
-| FAB button | `data-tour="fab"` |
-| Add from Photos button | `data-tour="add-photos"` |
-| Add Single Show button | `data-tour="add-single"` |
-| Rank nav button | `data-tour="nav-rank"` |
-| Globe nav button | `data-tour="nav-globe"` |
-
-### 4. Add data-tour attributes to Home.tsx
-For the rankings view target:
-| Element | Attribute |
-|---------|-----------|
-| Rankings section header/link | `data-tour="shows-ranked"` |
-
-### 5. Add data-tour attributes to ShowReviewSheet.tsx
-For the share button:
-| Element | Attribute |
-|---------|-----------|
-| Share to Instagram button | `data-tour="share-instagram"` |
-
-### 6. Update onboarding state machine in Dashboard.tsx
-
-**Current flow:**
-```text
-welcome_carousel -> completed
-```
-
-**New flow:**
-```text
-welcome_carousel -> spotlight_tour -> completed
-```
-
-**State changes:**
-- Add `showSpotlightTour` state
-- When carousel completes, set `onboarding_step` to `spotlight_tour` and trigger tour
-- When tour completes, set `onboarding_step` to `completed`
-- Need to ensure FAB menu opens programmatically when tour reaches step 2
-
-### 7. Subtle pulse animation on targets
-Add CSS keyframes for a subtle glowing pulse effect on tour targets:
-- Use `box-shadow` animation with primary color
-- 2-second cycle, gentle opacity pulsing
-
-## Files to Create/Modify
-
-| File | Action | Changes |
-|------|--------|---------|
-| `package.json` | Modify | Add `react-joyride` dependency |
-| `src/components/onboarding/SpotlightTour.tsx` | Create | New component with tour logic and glassmorphism tooltips |
-| `src/pages/Dashboard.tsx` | Modify | Add tour state, data-tour attributes, integrate SpotlightTour component |
-| `src/components/Home.tsx` | Modify | Add data-tour attribute to rankings section |
-| `src/components/ShowReviewSheet.tsx` | Modify | Add data-tour attribute to Share to Instagram button |
-| `src/index.css` | Modify | Add pulse animation keyframes for tour targets |
-
-## Tour Flow Logic
+Pass a prop or use a CSS class to elevate the FAB's z-index only when the tour is running:
 
 ```text
-User completes Welcome Carousel
-         |
-         v
-Dashboard sets onboarding_step = 'spotlight_tour'
-         |
-         v
-SpotlightTour mounts with run=true
-         |
-         v
-Step 1: Highlight FAB -> User sees "Tap here to log your first show"
-         |
-         v
-Step 2: Programmatically open FAB menu, highlight Add Photos
-         |
-         v
-Step 3: Highlight Add Single Show
-         |
-         v
-Step 4: Close FAB menu, highlight Rank nav
-         |
-         v
-Step 5: Highlight rankings section (or skip if not visible)
-         |
-         v
-Step 6: Open a sample show review sheet, highlight Share button
-         |
-         v
-Step 7: Highlight Globe nav
-         |
-         v
-Step 8: Highlight Scale nav
-         |
-         v
-Tour complete -> set onboarding_step = 'completed'
+Normal state:    FAB z-index = 50
+Tour active:     FAB z-index = 10001 (above overlay)
 ```
 
-## Simplified Alternative Approach
+## Files to Modify
 
-Given the complexity of opening sheets/dialogs mid-tour, a simpler approach focusing only on the persistent navigation elements:
+| File | Changes |
+|------|---------|
+| `src/pages/Dashboard.tsx` | Add conditional z-index class to FAB button when `showSpotlightTour` is true |
 
-| Step | Target | Message |
-|------|--------|---------|
-| 1 | FAB (+) button | "Tap here to log your first show" |
-| 2 | Globe nav | "See everywhere you've been" |
-| 3 | Rank nav (Scale) | "Your personal rankings live here" |
+## Implementation Details
 
-This ensures all targets are always visible and the tour runs smoothly without needing to programmatically open menus or sheets.
+### Dashboard.tsx Changes
 
-## Styling Details
+Update the FAB button container and button to use a higher z-index when the tour is running:
 
-**Tooltip component customization:**
-- Background: `bg-black/60 backdrop-blur-xl`
-- Border: `border border-white/20`
-- Border radius: `rounded-xl`
-- Shadow: `shadow-2xl` with primary color glow
-- Text: White with subtle textShadow glow effect
-- Buttons: Primary gradient styling matching Scene CTA buttons
-- Arrow: Styled to match glassmorphism theme
+**Container div** (line 235):
+```tsx
+<div className={cn("relative", showSpotlightTour && "z-[10001]")}>
+```
 
-**Spotlight overlay:**
-- Dark overlay with ~60% opacity
-- Primary color glow around target element
-- Subtle pulsing animation on the target
+**FAB Button** (line 280-289):
+```tsx
+<button
+  onClick={() => setShowFabMenu(!showFabMenu)}
+  data-tour="fab"
+  className={cn(
+    "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95",
+    showSpotlightTour ? "z-[10001]" : "z-50",
+    showFabMenu && "rotate-45 bg-white/20"
+  )}
+>
+```
 
+### Alternative: Also Elevate FAB Menu Items
+
+When steps 2-3 target the FAB menu options, those buttons also need elevated z-index:
+
+**Add from Photos button** (line 247):
+```tsx
+className={cn(
+  "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
+  showSpotlightTour && "z-[10001]"
+)}
+```
+
+**Add Single Show button** (line 262):
+```tsx
+className={cn(
+  "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
+  showSpotlightTour && "z-[10001]"
+)}
+```
+
+### FAB Menu Container
+
+Also elevate the menu options container when tour is active:
+
+**Menu Options div** (line 245):
+```tsx
+<div className={cn(
+  "absolute bottom-16 right-0 flex flex-col gap-3 items-end",
+  showSpotlightTour ? "z-[10001]" : "z-50"
+)}>
+```
+
+## Summary of Changes
+
+| Element | Current Z-Index | Tour Active Z-Index |
+|---------|-----------------|---------------------|
+| FAB container div | `relative` | `relative z-[10001]` |
+| FAB button | `z-50` | `z-[10001]` |
+| Menu options container | `z-50` | `z-[10001]` |
+| Add from Photos button | none | `z-[10001]` |
+| Add Single Show button | none | `z-[10001]` |
+
+This ensures all tour target elements render above the Joyride overlay (z-index 10000) while maintaining normal z-index behavior when the tour is not active.
