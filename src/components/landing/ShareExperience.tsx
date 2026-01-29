@@ -53,6 +53,11 @@ const StoryMockup = () => (
       </div>
     </div>
 
+    {/* Instagram story text caption */}
+    <div className="absolute top-[28%] right-[10%] text-white text-sm font-medium" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
+      <span className="text-white/90">@jamie__xx</span> speechless..
+    </div>
+
     {/* Show info overlay - positioned below light trussing, reduced size */}
     <div className="absolute top-[35%] left-3 right-3">
       <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10 transform scale-[0.7] origin-top-left">
