@@ -23,6 +23,7 @@ import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
 import IncompleteRatingsSheet from "./home/IncompleteRatingsSheet";
 import FocusedRankingSession from "./home/FocusedRankingSession";
+import RankingProgressCard from "./home/RankingProgressCard";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
 
@@ -106,7 +107,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   // Focused ranking session state
   const [focusedRankingOpen, setFocusedRankingOpen] = useState(false);
 
-  const { statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
+  const { stats, statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -368,6 +369,15 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
       <div className="space-y-6">
         {/* Stat Pills */}
         <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} />
+
+        {/* Ranking Progress Card - Always visible when user has 2+ shows */}
+        {shows.length >= 2 && (
+          <RankingProgressCard
+            percentage={stats.globalConfirmationPercentage}
+            totalShows={shows.length}
+            onTap={() => setFocusedRankingOpen(true)}
+          />
+        )}
 
         {/* Dynamic Insights - stacked cards */}
         <DynamicInsight 
