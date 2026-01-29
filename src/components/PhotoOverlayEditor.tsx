@@ -1073,7 +1073,7 @@ export const PhotoOverlayEditor = ({
                   value: show.venue_vibe
                 }].filter(r => r.value).map((rating, idx) => <div key={idx} className="gap-2 flex items-center justify-start">
                       {/* Text label on left */}
-                      <span className="text-[9px] opacity-70 w-8 text-right shrink-0">{rating.label}</span>
+                      <span className="text-[9px] opacity-70 w-8 shrink-0 text-left">{rating.label}</span>
                       {/* Horizontal bar */}
                       <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                         <div className="h-full bg-white rounded-full" style={{
