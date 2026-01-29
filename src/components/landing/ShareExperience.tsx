@@ -1,6 +1,7 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { Instagram, X, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Instagram, X, Plus, Share2 } from "lucide-react";
 
 // Story overlay mockup
 const StoryMockup = () => <div className="h-full w-full relative bg-black">
@@ -96,16 +97,23 @@ const ShareExperience = () => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: Copy */}
           <div className="space-y-6 text-center lg:text-left">
-            
+            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </Badge>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
-            textShadow: "0 0 50px rgba(255,255,255,0.1)"
-          }}>
+              textShadow: "0 0 50px rgba(255,255,255,0.1)"
+            }}>
               Share and compare.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Share your ratings, reviews, and rankings on social and with friends.
+              One-tap sharing to Instagram Stories, Messages, and more.
+            </p>
+
+            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
+              Your Shows. Your Story.
             </p>
           </div>
 
