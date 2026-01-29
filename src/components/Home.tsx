@@ -680,6 +680,10 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
             }}
             onAddFromPhotos={onAddFromPhotos}
             onAddSingleShow={onAddSingleShow}
+            onShowTap={(show) => {
+              setReviewShow(show);
+              setReviewSheetOpen(true);
+            }}
           />
         </>
       )}

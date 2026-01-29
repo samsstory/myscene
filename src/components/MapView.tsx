@@ -28,21 +28,32 @@ interface Show {
   photo_url?: string | null;
 }
 
+interface VenueGroup {
+  venueKey: string;
+  venueName: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  shows: Show[];
+  primaryPhoto?: string | null;
+}
+
 interface MapViewProps {
   shows: Show[];
   onEditShow: (show: Show) => void;
   onAddFromPhotos?: () => void;
   onAddSingleShow?: () => void;
+  onShowTap?: (show: Show) => void;
 }
 
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
 
-const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapViewProps) => {
+const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTap }: MapViewProps) => {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const [selectedShow, setSelectedShow] = useState<Show | null>(null);
+  const [selectedVenueGroup, setSelectedVenueGroup] = useState<VenueGroup | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
   const [isBackfilling, setIsBackfilling] = useState(false);
@@ -75,6 +86,39 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
   const mappableShows = useMemo(() => {
     return filteredShows.filter(show => show.latitude && show.longitude);
   }, [filteredShows]);
+
+  // Group shows by venue (same lat/lng coordinates)
+  const venueGroups = useMemo(() => {
+    const groups = new Map<string, VenueGroup>();
+    
+    mappableShows.forEach(show => {
+      // Create a key based on rounded coordinates (to group nearby venues)
+      const lat = show.latitude!.toFixed(5);
+      const lng = show.longitude!.toFixed(5);
+      const venueKey = `${lat},${lng}`;
+      
+      if (groups.has(venueKey)) {
+        const group = groups.get(venueKey)!;
+        group.shows.push(show);
+        // Update primary photo if this show has one and current doesn't
+        if (!group.primaryPhoto && show.photo_url) {
+          group.primaryPhoto = show.photo_url;
+        }
+      } else {
+        groups.set(venueKey, {
+          venueKey,
+          venueName: show.venue.name,
+          location: show.venue.location,
+          latitude: show.latitude!,
+          longitude: show.longitude!,
+          shows: [show],
+          primaryPhoto: show.photo_url
+        });
+      }
+    });
+    
+    return Array.from(groups.values());
+  }, [mappableShows]);
 
   // Extract country from location string
   const getCountryFromLocation = (location: string): string => {
@@ -443,6 +487,12 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
           const show = mappableShows.find(s => s.id === showId);
           if (!show) return;
 
+          // Find the venue group for this show
+          const lat = show.latitude!.toFixed(5);
+          const lng = show.longitude!.toFixed(5);
+          const venueKey = `${lat},${lng}`;
+          const venueGroup = venueGroups.find(g => g.venueKey === venueKey);
+
           const geometry = feature.geometry as GeoJSON.Point;
           const el = createPhotoMarker(show);
           
@@ -451,7 +501,9 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
             .addTo(map.current!);
           
           el.addEventListener('click', () => {
-            setSelectedShow(show);
+            if (venueGroup) {
+              setSelectedVenueGroup(venueGroup);
+            }
           });
           
           markersRef.current.push(marker);
@@ -487,7 +539,7 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
     };
 
     updateMap();
-  }, [mappableShows, createPhotoMarker]);
+  }, [mappableShows, venueGroups, createPhotoMarker]);
 
   // Inject CSS for custom markers
   useEffect(() => {
@@ -742,37 +794,77 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
         )}
       </div>
 
-      {/* Selected show details - Bottom Sheet */}
+      {/* Selected venue shows - Bottom Sheet */}
       <Drawer
-        open={!!selectedShow}
-        onOpenChange={(open) => !open && setSelectedShow(null)}
+        open={!!selectedVenueGroup}
+        onOpenChange={(open) => !open && setSelectedVenueGroup(null)}
       >
-        <DrawerContent className="max-h-[60vh]">
-          <DrawerHeader>
-            <DrawerTitle>
-              {selectedShow?.artists.map(a => a.name).join(", ")}
+        <DrawerContent className="max-h-[70vh]">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="text-lg">
+              {selectedVenueGroup?.venueName}
             </DrawerTitle>
-            <DrawerDescription>
-              {selectedShow?.venue.name} • {selectedShow?.date && new Date(selectedShow.date).toLocaleDateString()}
+            <DrawerDescription className="text-sm">
+              {selectedVenueGroup?.location} • {selectedVenueGroup?.shows.length} show{selectedVenueGroup?.shows.length !== 1 ? 's' : ''}
             </DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 pb-6">
-            {selectedShow?.photo_url && (
-              <img 
-                src={selectedShow.photo_url} 
-                alt="" 
-                className="w-full h-48 object-cover rounded-lg mb-4"
-              />
-            )}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => selectedShow && onEditShow(selectedShow)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Show
-              </Button>
-            </div>
+          <div className="px-4 pb-6 space-y-3 overflow-y-auto max-h-[50vh]">
+            {selectedVenueGroup?.shows
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((show) => {
+                const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
+                return (
+                  <div
+                    key={show.id}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                    onClick={() => {
+                      setSelectedVenueGroup(null);
+                      onShowTap?.(show);
+                    }}
+                  >
+                    {/* Photo or gradient dot */}
+                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-white/20">
+                      {show.photo_url ? (
+                        <img src={show.photo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {headliner?.name?.charAt(0) || '♪'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Show info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white truncate">
+                        {headliner?.name || 'Unknown Artist'}
+                      </div>
+                      <div className="text-sm text-white/60">
+                        {new Date(show.date).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* Edit button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedVenueGroup(null);
+                        onEditShow(show);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
           </div>
         </DrawerContent>
       </Drawer>
