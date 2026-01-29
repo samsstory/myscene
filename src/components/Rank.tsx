@@ -7,6 +7,7 @@ import confetti from "canvas-confetti";
 import RankingCard from "./rankings/RankingCard";
 import RankingProgressBar from "./rankings/RankingProgressBar";
 import SceneLogo from "./ui/SceneLogo";
+import ConfirmationRing from "./ui/ConfirmationRing";
 
 interface Show {
   id: string;
@@ -445,10 +446,20 @@ export default function Rank() {
     );
   }
 
+  // Calculate global confirmation percentage
+  const calculateGlobalConfirmation = () => {
+    if (shows.length === 0) return 0;
+    const MAX_BACK_TO_BACKS = 10;
+    const totalCapped = rankings.reduce((sum, r) => sum + Math.min(r.comparisons_count, MAX_BACK_TO_BACKS), 0);
+    return (totalCapped / (shows.length * MAX_BACK_TO_BACKS)) * 100;
+  };
+
+  const globalConfirmation = calculateGlobalConfirmation();
+
   return (
     <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
-      {/* Header with brand glow */}
-      <div className="text-center">
+      {/* Header with brand glow and confirmation ring */}
+      <div className="text-center space-y-3">
         <h1 
           className="text-lg font-black tracking-[0.15em] uppercase"
           style={{
@@ -457,6 +468,16 @@ export default function Rank() {
         >
           Show Ranker
         </h1>
+        
+        {/* Confirmation Ring - centered below title */}
+        <div className="flex justify-center">
+          <ConfirmationRing 
+            percentage={globalConfirmation} 
+            size="md" 
+            showLabel={true}
+            labelPosition="right"
+          />
+        </div>
       </div>
 
       {/* Progress Bar */}

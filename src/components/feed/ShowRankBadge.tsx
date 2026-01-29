@@ -1,10 +1,21 @@
+import ConfirmationRing from "@/components/ui/ConfirmationRing";
+
 interface ShowRankBadgeProps {
   position: number | null;
   total: number;
   comparisonsCount?: number;
+  showConfirmation?: boolean;
 }
 
-export const ShowRankBadge = ({ position, total, comparisonsCount = 0 }: ShowRankBadgeProps) => {
+// Calculate per-show confirmation percentage
+const calculateShowConfirmation = (comparisons: number): number => {
+  const MAX_BACK_TO_BACKS = 10;
+  return (Math.min(comparisons, MAX_BACK_TO_BACKS) / MAX_BACK_TO_BACKS) * 100;
+};
+
+export const ShowRankBadge = ({ position, total, comparisonsCount = 0, showConfirmation = true }: ShowRankBadgeProps) => {
+  const confirmationPercentage = calculateShowConfirmation(comparisonsCount);
+  
   // Show "Unranked" if no comparisons have been made
   if (comparisonsCount === 0 || position === null || position === 0) {
     return (
@@ -37,12 +48,23 @@ export const ShowRankBadge = ({ position, total, comparisonsCount = 0 }: ShowRan
   };
 
   return (
-    <span 
-      className={`text-sm font-bold ${getOpacity()} tracking-wide`}
-      style={{ textShadow: getGlowIntensity() }}
-    >
-      #{position}
-    </span>
+    <div className="flex items-center gap-2">
+      {/* Confirmation ring */}
+      {showConfirmation && total > 1 && (
+        <ConfirmationRing 
+          percentage={confirmationPercentage} 
+          size="sm" 
+          showLabel={false}
+        />
+      )}
+      {/* Rank number */}
+      <span 
+        className={`text-sm font-bold ${getOpacity()} tracking-wide`}
+        style={{ textShadow: getGlowIntensity() }}
+      >
+        #{position}
+      </span>
+    </div>
   );
 };
 
