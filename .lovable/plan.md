@@ -1,101 +1,84 @@
 
-# Improve Map View UI with Year Toggle and Stats Pill
 
-This plan adds a year toggle selector and a dynamic stats pill to the Map View (Show Globe) feature to match the design shown on the landing page preview.
+## Link Instagram Share to Photo Editor & Remove ShareShowSheet
 
----
+### Overview
+This change will simplify the sharing flow by:
+1. Making the "Share to Instagram" button on the ShowReviewSheet always go directly to the PhotoOverlayEditor
+2. Completely removing the now-obsolete `ShareShowSheet` component from the codebase
 
-## What You'll Get
+### Current Behavior
+- **ShowReviewSheet**: When "Share to Instagram" is clicked:
+  - If `onShareToEditor` prop exists AND photo exists → Goes to PhotoOverlayEditor
+  - Otherwise → Opens the `ShareShowSheet` (the page in your second screenshot)
+- **ShareShowSheet**: A separate "Share Show" page with "Download Share Image" and "Copy Share Text" buttons
 
-1. **Year Toggle Bar** - Horizontal selector buttons (2024, 2025, 2026, All) positioned at the top of the map
-2. **Dynamic Stats Pill** - A compact stats display showing Countries, Cities, Venues, and Shows that updates based on the selected year
-3. **Filtered Map Data** - The map markers and data will filter to show only shows from the selected year
-
----
-
-## Implementation Approach
-
-### 1. Add Year State and Filtering Logic to MapView
-
-- Add `selectedYear` state to track the currently selected year filter ("all" | specific year)
-- Calculate the unique years from the user's show data to dynamically populate the toggle options
-- Filter shows based on the selected year before processing country/city/venue data
-
-### 2. Create Year Toggle Component
-
-- Position at the top-center of the map (similar to GlobeShowcase mockup)
-- Use the same styling from the landing page: rounded pill buttons with active state highlighting
-- Include "All" option for viewing all shows across years
-
-### 3. Update Stats Calculation
-
-- The existing `mapStats` useMemo will be updated to filter based on selected year
-- Stats will dynamically recalculate when year changes: Countries, Cities, Venues, Shows
-
-### 4. Create Stats Pill Component
-
-- Replace or update the existing `MapStatsCard` component
-- Use the compact horizontal pill design from the preview (Countries · Cities · Shows format)
-- Position below the year toggle, centered
-
-### 5. Remove Old Stats Card
-
-- The existing bottom-right positioned `MapStatsCard` will be removed or repurposed
-- The new stats will be integrated into the top overlay area
+### New Behavior
+- **ShowReviewSheet**: When "Share to Instagram" is clicked → Always goes to PhotoOverlayEditor (regardless of photo)
+- **ShareShowSheet**: Deleted entirely - no longer used anywhere
 
 ---
 
-## Technical Details
+### Changes Required
 
-### Files to Create
-- `src/components/map/MapYearToggle.tsx` - New component for year selection buttons
+#### 1. Update ShowReviewSheet.tsx
+**Purpose**: Change share button behavior to always call `onShareToEditor`
 
-### Files to Modify
-- `src/components/MapView.tsx` - Add year state, filtering logic, and integrate new components
-- `src/components/map/MapStatsCard.tsx` - Restyle to match the compact horizontal pill design from the preview
+- Remove the `shareSheetOpen` state variable
+- Remove the `ShareShowSheet` import and component usage
+- Modify `handleShareClick()` to always call `onShareToEditor(show)` - no fallback to ShareShowSheet
+- The PhotoOverlayEditor can already handle shows without photos by generating a text-based card
 
-### Data Flow
+#### 2. Update Home.tsx
+**Purpose**: Ensure `onShareToEditor` prop is always passed to ShowReviewSheet
+
+- The `handleShareFromCard` function already routes correctly:
+  - Shows with photos → PhotoOverlayEditor
+  - Shows without photos → QuickPhotoAddSheet
+- Remove unused `ShareShowSheet` import and component usage (currently only used for `handleShareWithoutPhoto`)
+- Update `handleShareWithoutPhoto` to go to PhotoOverlayEditor instead
+
+#### 3. Update Dashboard.tsx
+**Purpose**: Remove ShareShowSheet usage from success flow
+
+- Remove `ShareShowSheet` import
+- Remove `shareShow` and `shareSheetOpen` state
+- Update the success flow callback to use PhotoOverlayEditor instead
+
+#### 4. Delete ShareShowSheet.tsx
+**Purpose**: Remove the obsolete component file entirely
+
+- Delete `src/components/ShareShowSheet.tsx`
+
+---
+
+### Technical Details
+
 ```text
-User's Shows (from props)
-    ↓
-Extract Unique Years → Populate Year Toggle Options
-    ↓
-Filter Shows by Selected Year
-    ↓
-Calculate Stats (Countries, Cities, Venues, Shows)
-    ↓
-Display in Stats Pill
-    ↓
-Process Country/City Data for Map Markers
+Files to modify:
+├── src/components/ShowReviewSheet.tsx
+│   ├── Remove: import { ShareShowSheet }
+│   ├── Remove: shareSheetOpen state
+│   ├── Update: handleShareClick → always use onShareToEditor
+│   └── Remove: <ShareShowSheet /> component at bottom
+│
+├── src/components/Home.tsx
+│   ├── Remove: import { ShareShowSheet }
+│   ├── Remove: shareShow, shareSheetOpen state
+│   ├── Update: handleShareWithoutPhoto → use PhotoOverlayEditor
+│   └── Remove: <ShareShowSheet /> component
+│
+├── src/pages/Dashboard.tsx
+│   ├── Remove: import { ShareShowSheet }
+│   ├── Remove: shareShow, shareSheetOpen state
+│   ├── Update: onShareShow callback in success flow
+│   └── Remove: <ShareShowSheet /> component
+│
+└── src/components/ShareShowSheet.tsx
+    └── DELETE entire file
 ```
 
-### Key Logic Changes
+### Edge Cases
+- **Shows without photos**: The PhotoOverlayEditor will still open and can generate a text-based overlay card
+- **QuickPhotoAddSheet flow**: When user clicks "Save" after not uploading a photo, they simply return to the list (current behavior is correct)
 
-1. **Year Extraction**:
-   - Parse `show.date` to extract years from user's actual show data
-   - Sort years descending (newest first)
-   - Add "All" option at the end
-
-2. **Show Filtering**:
-   - Filter `shows` prop before processing country/city groupings
-   - When year is "all", use all shows
-   - When specific year is selected, filter to shows matching that year
-
-3. **Stats Recalculation**:
-   - The `mapStats` useMemo dependency array will include `selectedYear`
-   - All derived data (countryData, cityData) will use filtered shows
-
-### Styling
-
-- Year toggle pills: `bg-white/[0.04] text-white/50` (inactive), `bg-primary text-primary-foreground` (active)
-- Stats pill: `bg-white/[0.03] backdrop-blur-sm` with subtle separator dots
-- Positioned in a centered column layout at the top of the map
-
----
-
-## Expected Result
-
-The Map View will have a cohesive header overlay containing:
-- Year toggle buttons matching the user's actual show years plus "All"
-- Dynamic stats that update instantly when switching years
-- Clean, minimal glass-morphism styling matching the landing page preview
