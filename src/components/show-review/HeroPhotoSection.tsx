@@ -98,25 +98,17 @@ export const HeroPhotoSection = ({
                   </span>
                 </div>
                 {/* Rank Badge - Prominent with glow */}
-                <span 
-                  className="text-sm font-bold text-primary tracking-wide"
-                  style={{
-                    textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
-                  }}
-                >
+                <span className="text-sm font-bold text-primary tracking-wide" style={{
+                textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
+              }}>
                   {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
                 </span>
-                {needsMoreRanking && onRankThisShow && (
-                  <button 
-                    onClick={onRankThisShow} 
-                    className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
+                {needsMoreRanking && onRankThisShow && <button onClick={onRankThisShow} className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
                                text-amber-400/80 text-[10px] font-medium hover:bg-amber-500/20 transition-colors
-                               flex items-center gap-0.5"
-                  >
+                               flex items-center gap-0.5">
                     <Scale className="h-2.5 w-2.5" />
                     Rank
-                  </button>
-                )}
+                  </button>}
               </div>
             </div>
           </div>
@@ -128,20 +120,12 @@ export const HeroPhotoSection = ({
   }
 
   // No Photo State - updated to match photo version
-  return (
-    <div className={cn(
-      "relative aspect-[4/3] rounded-xl overflow-hidden",
-      "bg-gradient-to-br from-primary/20 via-background to-primary-glow/10",
-      "border border-white/10"
-    )}>
+  return <div className={cn("relative aspect-[4/3] rounded-xl overflow-hidden", "bg-gradient-to-br from-primary/20 via-background to-primary-glow/10", "border border-white/10")}>
       {/* Animated glow effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
       {/* Top Left: Edit Show Button */}
-      <button 
-        onClick={onEditShow} 
-        className="absolute top-3 left-3 z-10 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-      >
+      <button onClick={onEditShow} className="absolute top-3 left-3 z-10 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
         <Pencil className="h-4 w-4 text-white/80" />
       </button>
 
@@ -152,10 +136,10 @@ export const HeroPhotoSection = ({
 
       {/* Center: Upload Prompt */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-        <div className="p-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/20" style={{
-          animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-          boxShadow: "0 0 20px rgba(255,255,255,0.1)"
-        }}>
+        <div className="p-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 py-[14px] my-0" style={{
+        animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        boxShadow: "0 0 20px rgba(255,255,255,0.1)"
+      }}>
           <Camera className="h-8 w-8 text-white/60" />
         </div>
         <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
@@ -170,15 +154,13 @@ export const HeroPhotoSection = ({
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <h2 className="font-black text-xl text-white tracking-wide truncate" style={{
-                textShadow: "0 0 12px rgba(255,255,255,0.4)"
-              }}>
+              textShadow: "0 0 12px rgba(255,255,255,0.4)"
+            }}>
                 {headliner?.name}
               </h2>
-              {supportingArtists.length > 0 && (
-                <p className="text-white/50 text-xs mt-0.5 truncate">
+              {supportingArtists.length > 0 && <p className="text-white/50 text-xs mt-0.5 truncate">
                   + {supportingArtists.map(a => a.name).join(', ')}
-                </p>
-              )}
+                </p>}
               <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
                 <button onClick={openInMaps} className="flex items-center gap-1 hover:text-white/80 transition-colors truncate">
                   <MapPin className="h-3 w-3 flex-shrink-0" />
@@ -196,25 +178,17 @@ export const HeroPhotoSection = ({
                 </span>
               </div>
               {/* Rank Badge - Prominent with glow */}
-              <span 
-                className="text-sm font-bold text-primary tracking-wide"
-                style={{
-                  textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
-                }}
-              >
+              <span className="text-sm font-bold text-primary tracking-wide" style={{
+              textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
+            }}>
                 {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
               </span>
-              {needsMoreRanking && onRankThisShow && (
-                <button 
-                  onClick={onRankThisShow} 
-                  className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
+              {needsMoreRanking && onRankThisShow && <button onClick={onRankThisShow} className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
                              text-amber-400/80 text-[10px] font-medium hover:bg-amber-500/20 transition-colors
-                             flex items-center gap-0.5"
-                >
+                             flex items-center gap-0.5">
                   <Scale className="h-2.5 w-2.5" />
                   Rank
-                </button>
-              )}
+                </button>}
             </div>
           </div>
         </div>
@@ -222,7 +196,6 @@ export const HeroPhotoSection = ({
 
       {/* Hidden file input */}
       <Input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={onPhotoUpload} />
-    </div>
-  );
+    </div>;
 };
 export default HeroPhotoSection;
