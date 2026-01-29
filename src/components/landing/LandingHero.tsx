@@ -132,7 +132,7 @@ const LandingHero = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="min-h-screen flex items-start md:items-center relative overflow-hidden pt-12 md:pt-0">
+    <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background glow effects */}
       <div 
         className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20"
@@ -143,10 +143,10 @@ const LandingHero = () => {
         style={{ background: "hsl(var(--secondary))" }}
       />
 
-      <div className="container mx-auto px-4 py-8 md:py-24">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div className="container mx-auto px-4 py-8 md:py-16">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left: Copy */}
-          <div className="space-y-8 text-center lg:text-left">
+          <div className="space-y-6 text-center lg:text-left order-1">
             <SceneLogo size="lg" className="justify-center lg:justify-start" />
             
             {/* Micro-tag */}
@@ -157,21 +157,21 @@ const LandingHero = () => {
             </div>
             
             <h1 
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-4"
+              className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-2"
               style={{ textShadow: "0 0 60px rgba(255,255,255,0.15)" }}
             >
               Your love of concerts deserves more than a ticket stub.
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
+            <p className="text-base md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
               The app to capture, review, rank, and share your favorite music memories.
             </p>
 
-            <div className="flex gap-4 justify-center lg:justify-start pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
               <Button 
                 size="lg" 
                 onClick={() => navigate("/auth")} 
-                className="shadow-glow text-lg px-10 py-6 hover:scale-105 transition-transform"
+                className="shadow-glow text-base px-8 py-5 hover:scale-105 transition-transform"
               >
                 Join The Waitlist
               </Button>
@@ -179,7 +179,7 @@ const LandingHero = () => {
                 size="lg" 
                 variant="outline" 
                 onClick={() => navigate("/dashboard")} 
-                className="text-base px-6 border-white/20 text-foreground hover:bg-white/10"
+                className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10"
               >
                 Try Live Demo
               </Button>
@@ -199,8 +199,8 @@ const LandingHero = () => {
           </div>
 
           {/* Right: Phone Mockup */}
-          <div className="flex justify-center lg:justify-end">
-            <PhoneMockup className="w-64 md:w-72 lg:w-80" tilt="right">
+          <div className="flex justify-center lg:justify-end order-2 mt-4 lg:mt-0">
+            <PhoneMockup className="w-56 md:w-72 lg:w-80" tilt="right">
               <MockShowCard />
             </PhoneMockup>
           </div>
