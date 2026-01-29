@@ -84,8 +84,7 @@ const ShowCard = ({
   </div>;
 
 // Large ranking mockup - bias-free design
-const RankingMockup = () => (
-  <div className="h-full w-full flex flex-col relative overflow-hidden">
+const RankingMockup = () => <div className="h-full w-full flex flex-col relative overflow-hidden">
     {/* Static gradient background */}
     <div 
       className="absolute inset-0"
@@ -153,9 +152,7 @@ const RankingMockup = () => (
         <Plus className="w-4 h-4 text-primary-foreground" />
       </div>
     </div>
-  </div>
-);
-
+  </div>;
 const RankingSpotlight = () => {
   return <section className="py-24 md:py-32 relative overflow-hidden">
       {/* Background accent */}
