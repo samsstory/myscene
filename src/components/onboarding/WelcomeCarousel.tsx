@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Instagram, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -319,6 +319,23 @@ const WelcomeCarousel = ({ onComplete }: WelcomeCarouselProps) => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
 
+  // Subscribe to carousel select events
+  useEffect(() => {
+    if (!api) return;
+    
+    setCurrent(api.selectedScrollSnap());
+    
+    const onSelect = () => {
+      setCurrent(api.selectedScrollSnap());
+    };
+    
+    api.on("select", onSelect);
+    
+    return () => {
+      api.off("select", onSelect);
+    };
+  }, [api]);
+
   const handleNext = () => {
     if (current === slides.length - 1) {
       onComplete();
@@ -363,14 +380,6 @@ const WelcomeCarousel = ({ onComplete }: WelcomeCarouselProps) => {
                 <CarouselSlide 
                   slide={slide} 
                   isActive={current === index}
-                  onApiChange={() => {
-                    if (api) {
-                      setCurrent(api.selectedScrollSnap());
-                      api.on("select", () => {
-                        setCurrent(api.selectedScrollSnap());
-                      });
-                    }
-                  }}
                 />
               </CarouselItem>
             ))}
@@ -426,13 +435,9 @@ const WelcomeCarousel = ({ onComplete }: WelcomeCarouselProps) => {
 interface CarouselSlideProps {
   slide: typeof slides[0];
   isActive: boolean;
-  onApiChange: () => void;
 }
 
-const CarouselSlide = ({ slide, isActive, onApiChange }: CarouselSlideProps) => {
-  useState(() => {
-    onApiChange();
-  });
+const CarouselSlide = ({ slide, isActive }: CarouselSlideProps) => {
 
   return (
     <div className="flex flex-col items-center text-center px-4">
