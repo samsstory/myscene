@@ -15,7 +15,7 @@ const collapsedCards = [{
 }, {
   artist: "Mau P",
   rank: 3,
-  photo: "https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=400&q=80",
+  photo: "/images/mau-p-concert.png",
   zIndex: 40,
   opacity: 80
 }, {
