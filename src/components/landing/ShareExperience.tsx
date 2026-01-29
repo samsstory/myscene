@@ -53,29 +53,29 @@ const StoryMockup = () => (
       </div>
     </div>
 
-    {/* Bottom: Show info overlay */}
-    <div className="absolute bottom-0 left-0 right-0 p-4">
-      <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-        <div className="flex justify-between items-start mb-3">
+    {/* Show info overlay - positioned in upper area, reduced size */}
+    <div className="absolute top-20 left-3 right-3">
+      <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10 transform scale-[0.7] origin-top-left">
+        <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="text-white text-lg font-bold">Jamie xx</h3>
-            <p className="text-white/70 text-sm">Printworks · London</p>
-            <p className="text-white/50 text-xs mt-1">December 14, 2024</p>
+            <h3 className="text-white text-base font-bold">Jamie xx</h3>
+            <p className="text-white/70 text-xs">Printworks · London</p>
+            <p className="text-white/50 text-[10px] mt-0.5">December 14, 2024</p>
           </div>
           <div className="text-right">
             <span 
-              className="text-xl font-bold text-white block"
+              className="text-lg font-bold text-white block"
               style={{ textShadow: "0 0 12px rgba(255,255,255,0.5)" }}
             >
               #3
             </span>
-            <span className="text-white/50 text-xs">All Time</span>
+            <span className="text-white/50 text-[10px]">All Time</span>
           </div>
         </div>
         
         {/* Rating bar */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-2 rounded-full bg-white/20 overflow-hidden">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
             <div 
               className="h-full rounded-full"
               style={{
@@ -84,7 +84,7 @@ const StoryMockup = () => (
               }}
             />
           </div>
-          <span className="text-white font-bold text-sm">9.1</span>
+          <span className="text-white font-bold text-xs">9.1</span>
         </div>
       </div>
     </div>
