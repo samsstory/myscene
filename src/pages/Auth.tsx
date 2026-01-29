@@ -114,7 +114,7 @@ const Auth = () => {
               textShadow: "0 0 20px rgba(255,255,255,0.1)"
             }}
           >
-            Track every show, live every moment
+            Capture every show, relive every moment
           </p>
         </div>
 
