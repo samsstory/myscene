@@ -1,25 +1,69 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
 
-// Static city markers to display on the globe
-const CITY_MARKERS = [
-  { coordinates: [-118.24, 34.05], count: 12 },  // Los Angeles
-  { coordinates: [-122.42, 37.77], count: 8 },   // San Francisco
-  { coordinates: [-73.99, 40.73], count: 15 },   // New York
-  { coordinates: [-0.12, 51.51], count: 6 },     // London
-  { coordinates: [4.90, 52.37], count: 3 },      // Amsterdam
-  { coordinates: [2.35, 48.85], count: 2 },      // Paris
-  { coordinates: [139.69, 35.69], count: 1 },    // Tokyo
-  { coordinates: [-43.17, -22.91], count: 2 },   // Rio de Janeiro
-  { coordinates: [151.21, -33.87], count: 1 },   // Sydney
+// City markers with year data for progressive growth visualization
+export const CITY_MARKERS = [
+  // === CORE CITIES (appear in all years) ===
+  { coordinates: [-73.99, 40.73], count: 4, years: [2024, 2025, 2026], country: "US" },   // New York
+  { coordinates: [-118.24, 34.05], count: 3, years: [2024, 2025, 2026], country: "US" },  // Los Angeles
+  { coordinates: [-0.12, 51.51], count: 3, years: [2024, 2025, 2026], country: "UK" },    // London
+  { coordinates: [13.40, 52.52], count: 2, years: [2024, 2025, 2026], country: "DE" },    // Berlin
+  { coordinates: [139.69, 35.69], count: 2, years: [2024, 2025, 2026], country: "JP" },   // Tokyo
+  { coordinates: [151.21, -33.87], count: 2, years: [2024, 2025, 2026], country: "AU" },  // Sydney
+  { coordinates: [-46.63, -23.55], count: 2, years: [2024, 2025, 2026], country: "BR" },  // São Paulo
+  
+  // === 2024 ONLY ===
+  { coordinates: [-97.74, 30.27], count: 2, years: [2024], country: "US" },               // Austin
+  { coordinates: [-87.63, 41.88], count: 1, years: [2024], country: "US" },               // Chicago
+  { coordinates: [4.90, 52.37], count: 1, years: [2024], country: "NL" },                 // Amsterdam
+  
+  // === 2025+ (new in 2025) ===
+  { coordinates: [2.35, 48.85], count: 2, years: [2025, 2026], country: "FR" },           // Paris
+  { coordinates: [2.17, 41.39], count: 2, years: [2025, 2026], country: "ES" },           // Barcelona
+  { coordinates: [126.98, 37.57], count: 1, years: [2025, 2026], country: "KR" },         // Seoul
+  { coordinates: [-58.38, -34.60], count: 1, years: [2025, 2026], country: "AR" },        // Buenos Aires
+  { coordinates: [144.96, -37.81], count: 1, years: [2025, 2026], country: "AU" },        // Melbourne
+  
+  // === 2026 ONLY (new in 2026) ===
+  { coordinates: [-122.42, 37.77], count: 2, years: [2026], country: "US" },              // San Francisco
+  { coordinates: [-79.38, 43.65], count: 1, years: [2026], country: "CA" },               // Toronto
+  { coordinates: [1.40, 38.91], count: 3, years: [2026], country: "ES" },                 // Ibiza
+  { coordinates: [100.50, 13.76], count: 1, years: [2026], country: "TH" },               // Bangkok
+  { coordinates: [103.82, 1.35], count: 1, years: [2026], country: "SG" },                // Singapore
+  { coordinates: [18.42, -33.93], count: 1, years: [2026], country: "ZA" },               // Cape Town
+  { coordinates: [-99.13, 19.43], count: 2, years: [2026], country: "MX" },               // Mexico City
 ];
 
-const LandingGlobe = () => {
+interface LandingGlobeProps {
+  selectedYear: number | 'all';
+}
+
+const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+
+  const filteredMarkers = useMemo(() => {
+    if (selectedYear === 'all') return CITY_MARKERS;
+    return CITY_MARKERS.filter(m => m.years.includes(selectedYear as number));
+  }, [selectedYear]);
+
+  const createGeoJSON = (markers: typeof CITY_MARKERS): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: markers.map((city, index) => ({
+      type: "Feature" as const,
+      id: index,
+      geometry: {
+        type: "Point" as const,
+        coordinates: city.coordinates,
+      },
+      properties: {
+        count: city.count,
+      },
+    })),
+  });
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -30,8 +74,8 @@ const LandingGlobe = () => {
       container: containerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       projection: "globe",
-      center: [-40, 25], // Atlantic-centered view showing Americas and Europe
-      zoom: 1.3,
+      center: [-40, 25],
+      zoom: 0.9,
       interactive: false,
       attributionControl: false,
     });
@@ -39,7 +83,6 @@ const LandingGlobe = () => {
     mapRef.current = map;
 
     map.on("style.load", () => {
-      // Enable 3D atmosphere/fog effect
       map.setFog({
         color: "hsl(222, 47%, 8%)",
         "high-color": "hsl(222, 47%, 12%)",
@@ -48,25 +91,9 @@ const LandingGlobe = () => {
         "star-intensity": 0.15,
       });
 
-      // Add GeoJSON source for city markers
-      const geojsonData: GeoJSON.FeatureCollection = {
-        type: "FeatureCollection",
-        features: CITY_MARKERS.map((city, index) => ({
-          type: "Feature" as const,
-          id: index,
-          geometry: {
-            type: "Point" as const,
-            coordinates: city.coordinates,
-          },
-          properties: {
-            count: city.count,
-          },
-        })),
-      };
-
       map.addSource("city-markers", {
         type: "geojson",
-        data: geojsonData,
+        data: createGeoJSON(filteredMarkers),
       });
 
       // Outer glow layer
@@ -113,6 +140,16 @@ const LandingGlobe = () => {
       mapRef.current = null;
     };
   }, []);
+
+  // Update markers when year changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    const source = mapRef.current.getSource("city-markers") as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData(createGeoJSON(filteredMarkers));
+    }
+  }, [filteredMarkers]);
 
   return (
     <div 
