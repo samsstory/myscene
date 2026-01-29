@@ -1,205 +1,183 @@
 
 
-# Auth Page Redesign Plan
+# SMS Waitlist Signup with Follow-up Questions
 
-## Current State Analysis
-The current Auth page is functional but generic:
-- Basic gradient background (gradient-accent)
-- Standard Card component with default styling
-- Plain text "Scene" header with gradient clip
-- Generic Tabs with muted styling
-- No visual connection to the premium Scene brand aesthetic
-
-## Scene Brand Aesthetic (Reference)
-Based on the landing page and app components:
-- **Background**: Mesh gradients with cyan (top-left) and coral (bottom-right) radial glows + noise texture
-- **Logo**: SceneLogo component with luminous glow (textShadow), font-black, tracking-[0.25em], uppercase
-- **Cards**: Glassmorphism (bg-white/[0.04], backdrop-blur-sm, border-white/[0.08])
-- **Buttons**: Primary with shadow-glow, hover:scale-105 transitions
-- **Typography**: Bold headlines with textShadow glow effects
-- **Accents**: Cyan (primary) and coral (secondary) color pops
+## Overview
+Replace the "Join Waitlist" buttons with an inline phone number input that collects SMS-capable phone numbers, followed by optional quick-tap questions for marketing insights.
 
 ---
 
-## Redesign Overview
-
-Transform the Auth page into an immersive, brand-consistent experience that feels like entering a premium concert venue.
-
-### Visual Changes
-
-| Element | Current | New Design |
-|---------|---------|------------|
-| Background | Simple gradient | Animated mesh gradient with noise texture |
-| Logo | Plain gradient text | SceneLogo component with glow |
-| Tagline | Plain text | Luminous glow effect |
-| Card | Standard border | Glassmorphism with blur + subtle border |
-| Tabs | Muted bg | Glass pill styling matching app nav |
-| Inputs | Standard | Dark glass styling with glow focus ring |
-| Button | Default primary | Gradient with shadow-glow, scale animation |
-| Social Proof | None | Avatar stack + "Join 1,200+ music lovers" |
-
----
-
-## Implementation Details
-
-### 1. Full-Screen Mesh Gradient Background
-Replace the simple `bg-gradient-accent` with an immersive concert-like atmosphere:
+## User Flow
 
 ```text
-Container:
-- min-h-screen relative overflow-hidden
-- Base: bg-background
+Step 1: Phone Input
++-------------------------------------------------------+
+| 🇺🇸 +1 ▼ | (555) 123-4567          | Get Early Access |
++-------------------------------------------------------+
 
-Radial Glows (animated):
-- Cyan: top-left, 40% size, 15-20% opacity, animate-pulse-glow
-- Coral: bottom-right, 35% size, 12-15% opacity
-
-Noise Texture:
-- 3% opacity SVG fractal noise overlay for premium tactile feel
-```
-
-### 2. Scene Logo Header
-Replace plain text with the official SceneLogo component:
-
-```text
-- Use SceneLogo size="lg" for proper brand treatment
-- Add supporting tagline below with luminous glow
-- Center alignment with proper spacing
-```
-
-### 3. Glassmorphism Auth Card
-Transform the card to match the app's glassmorphism aesthetic:
-
-```text
-Card styling:
-- bg-white/[0.03] backdrop-blur-md
-- border border-white/[0.08]
-- rounded-2xl (larger radius)
-- shadow-2xl shadow-black/20
-
-Remove CardHeader CardTitle/Description:
-- More minimal, let the form speak
-```
-
-### 4. Glass Pill Tab Toggle
-Style the tabs like the app's bottom navigation glass pill:
-
-```text
-TabsList:
-- bg-white/[0.06] backdrop-blur-sm
-- border border-white/[0.08]
-- rounded-full (pill shape)
-- p-1 for proper padding
-
-TabsTrigger:
-- rounded-full
-- data-[state=active]:bg-white/[0.12]
-- data-[state=active]:text-white
-- data-[state=active]:shadow (subtle inner glow)
-```
-
-### 5. Enhanced Input Styling
-Style inputs to match the premium dark theme:
-
-```text
-Custom input class:
-- bg-white/[0.04]
-- border-white/[0.08]
-- placeholder:text-white/30
-- focus:border-primary/50
-- focus:ring-primary/20
-- focus:shadow-[0_0_12px_hsl(var(--primary)/0.15)]
-- text-base for mobile zoom prevention
-```
-
-### 6. Gradient CTA Button
-Style the submit button with brand gradient and glow:
-
-```text
-- bg-gradient-to-r from-primary to-primary/80
-- shadow-glow
-- hover:scale-105 transition-transform
-- Active state: scale-[0.98]
-```
-
-### 7. Social Proof Section
-Add trust indicator below the card (matching landing page):
-
-```text
-- Avatar stack (3 avatars from /images/waitlist-*.png)
-- "Join 1,200+ music lovers" text
-- Subtle text-muted-foreground styling
+Step 2: Success + Follow-up Questions (Optional)
++-------------------------------------------------------+
+| ✓ You're in! We'll text you when Scene launches.     |
+|                                                       |
+| How did you hear about us? (optional)                 |
+| [I was invited] [Instagram/TikTok] [Friend told me] [Other] |
+|                                                       |
+| How many shows do you go to per year?                 |
+| [1-3] [4-10] [11-20] [20+]                           |
+|                                                       |
+|                              [Skip] [Done →]          |
++-------------------------------------------------------+
 ```
 
 ---
 
-## Files to Modify
+## Database Schema
+
+### New Table: `waitlist`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| phone_number | text | E.164 format (+15551234567), unique |
+| country_code | text | Country code (US, GB, etc.) |
+| source | text | Page location (hero, cta) |
+| discovery_source | text | How they heard about Scene (nullable) |
+| shows_per_year | text | Frequency bucket (nullable) |
+| status | text | pending, notified, converted |
+| created_at | timestamp | When they signed up |
+| notified_at | timestamp | When launch SMS was sent |
+
+### RLS Policy
+- Public INSERT allowed (no auth required for signup)
+- Public UPDATE allowed only for same phone_number (to add follow-up answers)
+- No SELECT/DELETE from frontend
+
+---
+
+## Follow-up Questions
+
+### Question 1: Discovery Source
+**"How did you hear about us?"**
+
+| Option | Value stored |
+|--------|--------------|
+| I was invited | `invited` |
+| Instagram/TikTok | `social` |
+| Friend told me | `friend` |
+| Other | `other` |
+
+### Question 2: Show Frequency
+**"How many shows do you go to per year?"**
+
+| Option | Value stored |
+|--------|--------------|
+| 1-3 | `1-3` |
+| 4-10 | `4-10` |
+| 11-20 | `11-20` |
+| 20+ | `20+` |
+
+---
+
+## Component Structure
+
+### New Components
+
+| Component | Purpose |
+|-----------|---------|
+| `WaitlistPhoneInput.tsx` | Phone input with country selector |
+| `WaitlistFollowUp.tsx` | Optional follow-up questions UI |
+| `WaitlistSuccess.tsx` | Success state wrapper |
+
+### Modified Files
 
 | File | Changes |
 |------|---------|
-| `src/pages/Auth.tsx` | Complete redesign with mesh gradient background, SceneLogo, glassmorphism card, styled tabs, enhanced inputs, gradient button, social proof |
+| `LandingHero.tsx` | Replace button with waitlist components |
+| `LandingCTA.tsx` | Replace button with waitlist components |
 
 ---
 
-## Technical Details
+## UI Design Details
 
-### Complete Auth.tsx Structure
+### Phone Input State
+- Country dropdown (US default, plus UK, CA, AU)
+- Auto-formatting phone display
+- Glassmorphism styling (bg-white/5, backdrop-blur)
+- Primary "Get Early Access" button with glow
 
+### Success + Questions State
+- Checkmark animation with confetti burst
+- "You're in!" confirmation message
+- Pill-style buttons for answer options
+- Single-select for each question
+- Skip button to dismiss without answering
+- Done button appears after any selection
+
+### Visual Styling
+- Answer pills: `bg-white/5 hover:bg-white/10 border-white/10`
+- Selected pill: `bg-primary/20 border-primary/50 text-primary`
+- Smooth transitions between states
+- Matches Scene's dark glassmorphism aesthetic
+
+---
+
+## Technical Implementation
+
+### State Management
 ```text
-<div> {/* Full screen container */}
-  {/* Mesh gradient backgrounds */}
-  <div> Cyan radial glow - animated </div>
-  <div> Coral radial glow </div>
-  <div> Noise texture overlay </div>
+WaitlistPhoneInput
+├── phone: string
+├── countryCode: string
+├── isSubmitting: boolean
+├── isSuccess: boolean
+└── waitlistId: string (for updates)
 
-  <div> {/* Content container */}
-    {/* Header */}
-    <SceneLogo size="lg" />
-    <p> Tagline with glow </p>
-
-    {/* Glass card */}
-    <div> {/* Glassmorphism card */}
-      <Tabs>
-        <TabsList> {/* Glass pill */}
-          <TabsTrigger>Sign In</TabsTrigger>
-          <TabsTrigger>Sign Up</TabsTrigger>
-        </TabsList>
-
-        <TabsContent> {/* Sign In form */}
-          <form>
-            <Input /> {/* Email - glass styled */}
-            <Input /> {/* Password - glass styled */}
-            <Button /> {/* Gradient with glow */}
-          </form>
-        </TabsContent>
-
-        <TabsContent> {/* Sign Up form */}
-          <form>
-            <Input /> {/* Username */}
-            <Input /> {/* Email */}
-            <Input /> {/* Password */}
-            <Button />
-          </form>
-        </TabsContent>
-      </Tabs>
-    </div>
-
-    {/* Social proof */}
-    <div>
-      <AvatarStack />
-      <span>Join 1,200+ music lovers</span>
-    </div>
-  </div>
-</div>
+WaitlistFollowUp
+├── discoverySource: string | null
+├── showsPerYear: string | null
+├── isUpdating: boolean
+└── isDone: boolean
 ```
+
+### Database Flow
+1. User submits phone → INSERT into waitlist → return id
+2. User answers questions → UPDATE waitlist WHERE id = returned_id
+3. User skips → No update needed
+
+---
+
+## Phone Validation
+
+- Format: Accept various formats, normalize to E.164
+- Length: 10 digits for US (after country code)
+- Duplicates: Check if phone exists, show "You're already on the list!"
+
+---
+
+## Success Animation Sequence
+
+1. Button transforms to checkmark (scale animation)
+2. Confetti burst from center
+3. Success message fades in
+4. Follow-up questions slide up after 500ms delay
+5. Questions remain until Skip/Done or auto-dismiss after 10s
+
+---
+
+## Mobile Responsiveness
+
+- Phone input stacks vertically on small screens
+- Answer pills wrap to multiple rows
+- Touch-friendly tap targets (min 44px)
 
 ---
 
 ## Summary
-This redesign transforms the Auth page from a generic form into an immersive brand experience that:
-- Immediately communicates the Scene aesthetic
-- Uses consistent glassmorphism styling
-- Creates anticipation with concert venue atmosphere
-- Builds trust with social proof
-- Maintains excellent mobile UX with proper input sizing
+
+This implementation:
+- Collects phone numbers with zero friction (no account needed)
+- Gathers optional marketing insights without blocking signup
+- Stores data ready for SMS campaigns via Twilio or marketing platforms
+- Maintains Scene's premium dark aesthetic throughout
+- Celebrates signup with confetti animation
 
