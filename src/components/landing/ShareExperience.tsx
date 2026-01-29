@@ -113,25 +113,17 @@ const ShareExperience = () => {
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
               style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
             >
-              Made for stories.
+              Share and compare.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Every show becomes shareable content. Scene overlays your rating, rank, and details on your concert photos — ready for Instagram in one tap.
+              Share your ratings, reviews, and rankings on social.
             </p>
 
             <ul className="space-y-3 text-muted-foreground text-left max-w-lg mx-auto lg:mx-0">
               <li className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Automatic rating and rank overlays</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Venue and date context included</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Scene watermark for that authentic flex</span>
+                <span>Compare ratings with your friends (coming soon)</span>
               </li>
             </ul>
           </div>

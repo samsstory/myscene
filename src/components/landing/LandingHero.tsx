@@ -152,11 +152,11 @@ const LandingHero = () => {
               className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
               style={{ textShadow: "0 0 60px rgba(255,255,255,0.15)" }}
             >
-              Your concert memories, beautifully curated, ranked, and shared.
+              Your love of concerts deserves more than a ticket stub.
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
-              The app for music lovers who want more than a ticket stub.
+              The app to capture, review, rank, and share your favorite music memories.
             </p>
 
             <div className="flex gap-4 justify-center lg:justify-start pt-4">

@@ -21,12 +21,8 @@ const LandingCTA = () => {
             className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
             style={{ textShadow: "0 0 60px rgba(255,255,255,0.15)" }}
           >
-            Start building your concert legacy.
+            Your love for music deserves to be remembered.
           </h2>
-
-          <p className="text-lg text-muted-foreground">
-            Free to use. No account needed to explore.
-          </p>
 
           <div className="pt-4">
             <Button 
@@ -34,7 +30,7 @@ const LandingCTA = () => {
               onClick={() => navigate("/auth")} 
               className="shadow-glow text-lg px-10 py-6 hover:scale-105 transition-transform"
             >
-              Get Started Free
+              Add my first show
             </Button>
           </div>
         </div>
