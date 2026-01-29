@@ -23,10 +23,10 @@ const MockShowCard = () => (
     </div>
 
     {/* Stacked show cards */}
-    <div className="flex-1 px-3 py-2 space-y-[-8px]">
-      {/* Card 1 - Top ranked */}
+    <div className="flex-1 px-3 py-2 flex flex-col">
+      {/* Card 1 - Top ranked (Expanded) */}
       <div 
-        className="relative rounded-xl overflow-hidden shadow-lg"
+        className="relative rounded-xl overflow-hidden shadow-lg z-10"
         style={{ aspectRatio: "4/3" }}
       >
         <div 
@@ -66,29 +66,32 @@ const MockShowCard = () => (
         </div>
       </div>
 
-      {/* Card 2 - Peek */}
-      <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] p-2 z-[-1]">
-        <div className="text-white/80 text-xs font-medium">Odesza</div>
-      </div>
+      {/* Collapsed Cards Stack */}
+      <div className="relative mt-[-6px] z-0">
+        {/* Card 2 - Odesza */}
+        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3">
+          <div className="text-white/80 text-xs font-medium">Odesza</div>
+        </div>
 
-      {/* Card 3 - Peek */}
-      <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] p-2 z-[-2]">
-        <div className="text-white/60 text-xs font-medium">Mau P</div>
-      </div>
+        {/* Card 3 - Mau P */}
+        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
+          <div className="text-white/60 text-xs font-medium">Mau P</div>
+        </div>
 
-      {/* Card 4 - Peek */}
-      <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] p-2 z-[-3]">
-        <div className="text-white/50 text-xs font-medium">Post Malone</div>
-      </div>
+        {/* Card 4 - Post Malone */}
+        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
+          <div className="text-white/50 text-xs font-medium">Post Malone</div>
+        </div>
 
-      {/* Card 5 - Peek */}
-      <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] p-2 z-[-4]">
-        <div className="text-white/40 text-xs font-medium">The Blaze</div>
-      </div>
+        {/* Card 5 - The Blaze */}
+        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
+          <div className="text-white/40 text-xs font-medium">The Blaze</div>
+        </div>
 
-      {/* Card 6 - Peek */}
-      <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] p-2 z-[-5]">
-        <div className="text-white/30 text-xs font-medium">T-Pain</div>
+        {/* Card 6 - T-Pain */}
+        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
+          <div className="text-white/30 text-xs font-medium">T-Pain</div>
+        </div>
       </div>
     </div>
 
