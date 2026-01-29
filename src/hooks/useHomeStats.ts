@@ -315,7 +315,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     // Confirmation Ring -> Rank Tab
     ...(stats.allTimeShows >= 2 ? [{
       id: 'confirmation',
-      label: 'Confirmed',
+      label: 'Ranked',
       value: `${Math.round(stats.globalConfirmationPercentage)}%`,
       isConfirmationRing: true,
       confirmationPercentage: stats.globalConfirmationPercentage,
