@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, CalendarDays, Sparkles, SkipForward } from "lucide-react";
+import { MapPin, CalendarDays, Sparkles, SkipForward } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { selectBestAnchor } from "@/lib/smart-pairing";
+import BrandedLoader from "@/components/ui/BrandedLoader";
 
 interface QuickCompareStepProps {
   newShowId: string;
@@ -238,12 +239,7 @@ const QuickCompareStep = ({
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">Finding a show to compare...</p>
-      </div>
-    );
+    return <BrandedLoader showQuote={false} />;
   }
 
   if (!existingShow) {
