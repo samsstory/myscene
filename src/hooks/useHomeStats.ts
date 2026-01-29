@@ -312,15 +312,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       highlight: true,
       action: 'rankings' as StatPillAction,
     },
-    // Confirmation Ring -> Rank Tab
-    ...(stats.allTimeShows >= 2 ? [{
-      id: 'confirmation',
-      label: 'Ranked',
-      value: `${Math.round(stats.globalConfirmationPercentage)}%`,
-      isConfirmationRing: true,
-      confirmationPercentage: stats.globalConfirmationPercentage,
-      action: 'rank-tab' as StatPillAction,
-    }] : []),
+    // Note: Confirmation Ring removed from pills - now shown as prominent card in Home
     // #1 Show -> Show Detail (if exists)
     ...(stats.topShow ? [{
       id: 'top-show',
