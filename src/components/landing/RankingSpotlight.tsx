@@ -106,12 +106,12 @@ const RankingMockup = () => <div className="h-full w-full flex flex-col relative
       }}
     />
     {/* Title below notch */}
-    <div className="px-4 pt-8 pb-2">
+    <div className="px-4 pt-8 pb-2 relative z-10">
       <SceneLogo size="sm" />
     </div>
 
     {/* VS Interface */}
-    <div className="flex-1 flex flex-col items-center justify-center p-4 gap-3">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 gap-3 relative z-10">
       {/* Progress bar directly above headline */}
       <div className="w-full max-w-[200px] h-2 bg-white/10 rounded-full overflow-hidden mb-1">
         <div className="h-full bg-primary rounded-full transition-all" style={{
@@ -138,7 +138,8 @@ const RankingMockup = () => <div className="h-full w-full flex flex-col relative
     </div>
 
     {/* Bottom Nav - Glass Pill + FAB (no footer with ranking info) */}
-    <div className="px-4 py-2.5 flex items-center justify-center gap-4">
+    {/* Added relative z-10 to ensure it appears above background */}
+    <div className="px-4 py-2.5 flex items-center justify-center gap-4 relative z-10">
       <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
         <Home className="w-4 h-4 text-white/40" />
         <Globe className="w-4 h-4 text-white/40" />
