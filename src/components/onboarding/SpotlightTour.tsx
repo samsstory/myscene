@@ -7,6 +7,7 @@ interface SpotlightTourProps {
   onComplete: () => void;
   onOpenFabMenu?: () => void;
   onCloseFabMenu?: () => void;
+  fabMenuOpen?: boolean;
 }
 
 // Custom tooltip component with glassmorphism styling
@@ -75,7 +76,7 @@ const GlassTooltip = ({
   );
 };
 
-const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: SpotlightTourProps) => {
+const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenuOpen }: SpotlightTourProps) => {
   const [stepIndex, setStepIndex] = useState(0);
 
   // Reset step index when tour starts
@@ -84,6 +85,13 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
       setStepIndex(0);
     }
   }, [run]);
+
+  // Detect when user taps FAB to open menu during step 1 - auto-advance
+  useEffect(() => {
+    if (run && stepIndex === 0 && fabMenuOpen) {
+      setStepIndex(1);
+    }
+  }, [run, stepIndex, fabMenuOpen]);
 
   const steps: Step[] = [
     {
@@ -208,7 +216,7 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
       tooltipComponent={GlassTooltip}
       disableOverlayClose
       disableCloseOnEsc
-      spotlightClicks={true}
+      spotlightClicks={false}
       spotlightPadding={8}
       styles={{
         options: {
