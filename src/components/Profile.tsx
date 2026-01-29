@@ -14,8 +14,14 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCount, setReferralCount] = useState(0);
+  
+  // Form state
+  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     fetchProfile();
@@ -29,10 +35,13 @@ const Profile = () => {
         return;
       }
 
+      // Set email from auth user
+      setEmail(user.email || "");
+
       // Fetch profile data including referral code
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("avatar_url, referral_code")
+        .select("avatar_url, referral_code, username, full_name")
         .eq("id", user.id)
         .single();
 
@@ -40,11 +49,11 @@ const Profile = () => {
         console.error("Error fetching profile:", error);
       }
 
-      if (profile?.avatar_url) {
+      if (profile) {
         setAvatarUrl(profile.avatar_url);
-      }
-      if (profile?.referral_code) {
         setReferralCode(profile.referral_code);
+        setUsername(profile.username || "");
+        setFullName(profile.full_name || "");
       }
 
       // Fetch referral count
@@ -122,9 +131,39 @@ const Profile = () => {
     navigate("/auth");
   };
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Profile updated! 🎉");
+    setSaving(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Update profile table
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ 
+          username: username.trim() || null,
+          full_name: fullName.trim() || null
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
+
+      // Update email if changed
+      if (email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({ email });
+        if (emailError) throw emailError;
+        toast.success("Profile updated! Check your email to confirm the new address.");
+      } else {
+        toast.success("Profile updated! 🎉");
+      }
+    } catch (error: any) {
+      console.error("Update error:", error);
+      toast.error(error.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const copyReferralLink = async () => {
@@ -240,7 +279,8 @@ const Profile = () => {
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
-                defaultValue="musiclover"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 placeholder="Your username"
               />
             </div>
@@ -249,7 +289,8 @@ const Profile = () => {
               <Label htmlFor="fullname">Full Name</Label>
               <Input
                 id="fullname"
-                defaultValue="Alex Johnson"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
               />
             </div>
@@ -259,13 +300,21 @@ const Profile = () => {
               <Input
                 id="email"
                 type="email"
-                defaultValue="alex@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              Update Profile
+            <Button type="submit" className="w-full" disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Update Profile"
+              )}
             </Button>
           </form>
         </CardContent>
