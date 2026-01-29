@@ -10,28 +10,12 @@ import RankingCard from "../rankings/RankingCard";
 import RankingProgressBar from "../rankings/RankingProgressBar";
 import SceneLogo from "../ui/SceneLogo";
 import ConfirmationRing from "../ui/ConfirmationRing";
-
-interface Show {
-  id: string;
-  venue_name: string;
-  show_date: string;
-  rating: number;
-  artist_performance: number | null;
-  sound: number | null;
-  lighting: number | null;
-  crowd: number | null;
-  venue_vibe: number | null;
-  photo_url: string | null;
-  notes: string | null;
-  artists: Array<{ artist_name: string; is_headliner: boolean }>;
-}
-
-interface ShowRanking {
-  id: string;
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+import { 
+  selectSmartPair as selectSmartPairUtil, 
+  type Show,
+  type ShowRanking,
+  type Comparison 
+} from "@/lib/smart-pairing";
 
 interface FocusedRankingSessionProps {
   open: boolean;
@@ -46,6 +30,7 @@ const K_MIN_COMPARISONS = 10;
 const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankingSessionProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
+  const [comparisons, setComparisons] = useState<Comparison[]>([]);
   const [showPair, setShowPair] = useState<[Show, Show] | null>(null);
   const [loading, setLoading] = useState(true);
   const [comparing, setComparing] = useState(false);
@@ -144,15 +129,22 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
       // Get compared pairs
       const { data: comparisonsData } = await supabase
         .from("show_comparisons")
-        .select("show1_id, show2_id")
+        .select("show1_id, show2_id, winner_id")
         .eq("user_id", user.id);
 
       const comparedSet = new Set<string>();
+      const formattedComparisons: Comparison[] = [];
       comparisonsData?.forEach((comp) => {
         const [id1, id2] = [comp.show1_id, comp.show2_id].sort();
         comparedSet.add(`${id1}-${id2}`);
+        formattedComparisons.push({
+          show1_id: comp.show1_id,
+          show2_id: comp.show2_id,
+          winner_id: comp.winner_id,
+        });
       });
       setComparedPairs(comparedSet);
+      setComparisons(formattedComparisons);
 
       // Load shows with artists
       const showsWithArtists = await Promise.all(
@@ -186,11 +178,10 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
       setInitialUnderRankedCount(underRanked.length);
       
       // Calculate how many are already complete
-      const alreadyComplete = showsWithArtists.length - underRanked.length;
       setCompletedCount(showsWithArtists.length > 0 ? showsWithArtists.length - underRanked.length : 0);
 
-      // Select first pair
-      selectFocusedPair(showsWithArtists, allRankings || [], comparedSet, false);
+      // Select first pair using smart pairing
+      selectNextPair(showsWithArtists, allRankings || [], formattedComparisons, comparedSet, false);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -221,84 +212,37 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
     return { newWinnerElo, newLoserElo };
   };
 
-  const selectFocusedPair = (
-    allShows: Show[], 
-    allRankings: ShowRanking[], 
+  // Use smart pairing to select next pair with focus on under-ranked shows
+  const selectNextPair = useCallback((
+    allShows: Show[],
+    allRankings: ShowRanking[],
+    allComparisons: Comparison[],
     pairsSet: Set<string>,
     shouldCelebrate: boolean = false
   ) => {
     const rankingMap = new Map(allRankings.map(r => [r.show_id, r]));
     
-    // Get shows below threshold
+    // Calculate under-ranked shows for progress tracking
     const needsRanking = allShows.filter(show => {
       const ranking = rankingMap.get(show.id);
       return !ranking || ranking.comparisons_count < COMPARISON_THRESHOLD;
-    }).sort((a, b) => {
-      // Sort by comparison count (lowest first)
-      const aCount = rankingMap.get(a.id)?.comparisons_count || 0;
-      const bCount = rankingMap.get(b.id)?.comparisons_count || 0;
-      return aCount - bCount;
     });
-
+    
     // Update completed count
     const completed = allShows.length - needsRanking.length;
     setCompletedCount(completed);
-
-    if (needsRanking.length === 0) {
-      // All done!
-      setShowPair(null);
-      if (shouldCelebrate) {
-        triggerConfetti();
-        toast.success("Rankings locked in!");
-        setTimeout(() => {
-          onComplete();
-        }, 1500);
-      }
-      return;
-    }
-
-    // Find established shows (>=3 comparisons)
-    const established = allShows.filter(show => {
-      const ranking = rankingMap.get(show.id);
-      return ranking && ranking.comparisons_count >= COMPARISON_THRESHOLD;
+    
+    // Use smart pairing utility with focus on under-ranked
+    const nextPair = selectSmartPairUtil({
+      shows: allShows,
+      rankings: allRankings,
+      comparisons: allComparisons,
+      comparedPairs: pairsSet,
+      focusOnUnderRanked: true,
+      comparisonThreshold: COMPARISON_THRESHOLD,
     });
-
-    // Primary show is the one with fewest comparisons
-    const primaryShow = needsRanking[0];
     
-    // Build pair candidates
-    const pairCandidates: { show: Show; score: number }[] = [];
-    
-    // Prefer pairing with established shows
-    for (const show of established) {
-      const [id1, id2] = [primaryShow.id, show.id].sort();
-      if (pairsSet.has(`${id1}-${id2}`)) continue;
-      
-      const eloDiff = Math.abs(
-        (rankingMap.get(primaryShow.id)?.elo_score || 1200) - 
-        (rankingMap.get(show.id)?.elo_score || 1200)
-      );
-      const proximityScore = Math.max(0, 400 - eloDiff) / 400;
-      pairCandidates.push({ show, score: proximityScore + 1 }); // Bonus for established
-    }
-    
-    // Fallback: pair with other under-ranked shows
-    if (pairCandidates.length === 0) {
-      for (const show of needsRanking.slice(1)) {
-        const [id1, id2] = [primaryShow.id, show.id].sort();
-        if (pairsSet.has(`${id1}-${id2}`)) continue;
-        
-        const eloDiff = Math.abs(
-          (rankingMap.get(primaryShow.id)?.elo_score || 1200) - 
-          (rankingMap.get(show.id)?.elo_score || 1200)
-        );
-        const proximityScore = Math.max(0, 400 - eloDiff) / 400;
-        pairCandidates.push({ show, score: proximityScore });
-      }
-    }
-
-    if (pairCandidates.length === 0) {
-      // No valid pairs - session complete
+    if (!nextPair) {
       setShowPair(null);
       if (shouldCelebrate) {
         triggerConfetti();
@@ -307,17 +251,11 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
           onComplete();
         }, 1500);
       }
-      return;
+    } else {
+      setShowPair(nextPair);
+      setPairKey(prev => prev + 1);
     }
-
-    // Sort by score and pick from top candidates
-    pairCandidates.sort((a, b) => b.score - a.score);
-    const topCandidates = pairCandidates.slice(0, Math.min(3, pairCandidates.length));
-    const randomIndex = Math.floor(Math.random() * topCandidates.length);
-    
-    setShowPair([primaryShow, topCandidates[randomIndex].show]);
-    setPairKey(prev => prev + 1);
-  };
+  }, [triggerConfetti, onComplete]);
 
   const handleChoice = async (winnerId: string | null) => {
     if (!showPair || comparing) return;
@@ -434,9 +372,18 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
       const newPairKey = `${show1Id}-${show2Id}`;
       const newComparedPairs = new Set([...comparedPairs, newPairKey]);
       setComparedPairs(newComparedPairs);
+      
+      // Add new comparison to the list
+      const newComparison: Comparison = {
+        show1_id: show1Id,
+        show2_id: show2Id,
+        winner_id: winnerId,
+      };
+      const newComparisons = [...comparisons, newComparison];
+      setComparisons(newComparisons);
 
       setSelectedWinner(null);
-      selectFocusedPair(shows, updatedRankings, newComparedPairs, true);
+      selectNextPair(shows, updatedRankings, newComparisons, newComparedPairs, true);
       setComparing(false);
     } catch (error) {
       console.error("Error saving comparison:", error);

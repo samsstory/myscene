@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, MapPin, CalendarDays, Sparkles, SkipForward } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
+import { selectBestAnchor } from "@/lib/smart-pairing";
 
 interface QuickCompareStepProps {
   newShowId: string;
@@ -43,7 +44,7 @@ const QuickCompareStep = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get a random existing show (not the one we just added)
+      // Get all existing shows (not the one we just added)
       const { data: showsData, error: showsError } = await supabase
         .from("shows")
         .select("id, venue_name, show_date, photo_url")
@@ -61,18 +62,30 @@ const QuickCompareStep = ({
         return;
       }
 
-      // Pick a random show from the list
-      const randomShow = showsData[Math.floor(Math.random() * showsData.length)];
+      // Get rankings to use smart anchor selection
+      const { data: rankingsData } = await supabase
+        .from("show_rankings")
+        .select("id, show_id, elo_score, comparisons_count")
+        .eq("user_id", user.id);
+
+      // Use smart anchor selection to pick the best show to compare against
+      const anchorShow = selectBestAnchor({
+        newShowId,
+        existingShows: showsData,
+        rankings: rankingsData || [],
+      });
+
+      const selectedShow = anchorShow || showsData[Math.floor(Math.random() * showsData.length)];
 
       // Fetch artists for this show
       const { data: artistsData } = await supabase
         .from("show_artists")
         .select("artist_name, is_headliner")
-        .eq("show_id", randomShow.id)
+        .eq("show_id", selectedShow.id)
         .order("is_headliner", { ascending: false });
 
       setExistingShow({
-        ...randomShow,
+        ...selectedShow,
         artists: artistsData || [],
       });
     } catch (error) {
