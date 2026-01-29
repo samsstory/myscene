@@ -180,9 +180,18 @@ const LandingHero = () => {
             {/* Social proof */}
             <div className="flex items-center gap-3 justify-center lg:justify-start pt-2">
               <div className="flex -space-x-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/60 to-primary border-2 border-background" />
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary/60 to-secondary border-2 border-background" />
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/60 to-accent border-2 border-background" />
+                <div 
+                  className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" 
+                  style={{ backgroundImage: "url('/images/waitlist-1.png')" }}
+                />
+                <div 
+                  className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" 
+                  style={{ backgroundImage: "url('/images/waitlist-2.png')" }}
+                />
+                <div 
+                  className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" 
+                  style={{ backgroundImage: "url('/images/waitlist-3.png')" }}
+                />
               </div>
               <span className="text-sm text-muted-foreground">
                 Join 1,200+ music lovers
