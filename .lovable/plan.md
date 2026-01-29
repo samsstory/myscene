@@ -1,162 +1,271 @@
 
 
-# Replace ShareExperience with CaptureShowcase Section
+# Landing Page Copy & Section Overhaul
 
-## Goal
-Replace the current "Made for stories" section with a new "Capture every show" spotlight section that showcases the Top Ranked Shows list UI, matching the visual pattern of other spotlight sections on the landing page.
+## Overview
+This plan transforms the landing page to clearly communicate the three value props (Capture → Rank → Share) with improved copy, a new globe section, and better messaging that connects emotionally with music lovers.
 
 ---
 
-## Current Page Structure
-```text
-LandingHero → ValuePillars → RankingSpotlight → ShareExperience → LandingCTA
-```
+## Section Order
 
-## New Page Structure
 ```text
-LandingHero → ValuePillars → RankingSpotlight → CaptureShowcase → LandingCTA
+LandingHero → CaptureShowcase → RankingSpotlight → ShareExperience → GlobeShowcase → LandingCTA
 ```
 
 ---
 
-## New Section Design
+## Section 1: LandingHero
 
-### Layout (mirrors RankingSpotlight)
-- Two-column grid on desktop (lg:grid-cols-2)
-- Phone mockup on one side, copy on the other
-- Phone tilted left for visual variety
-- Background glow accent
+### Changes
 
-### Phone Mockup Content: "Top Ranked Shows" List
-
-```text
-┌─────────────────────────────────┐
-│  SCENE ✦                   [👤] │  ← Header
-├─────────────────────────────────┤
-│  ← Top Ranked Shows             │  ← Page title with back arrow
-├─────────────────────────────────┤
-│  [All Time ▼]        [↕ Best]   │  ← Filter bar
-├─────────────────────────────────┤
-│ ┌─────────────────────────────┐ │
-│ │ [📷]  Rufus Du Sol         │ │  ← Photo thumbnail
-│ │       Red Rocks            │ │  ← Venue
-│ │       Sep 2024        #1   │ │  ← Date + Rank
-│ └─────────────────────────────┘ │
-│ ┌─────────────────────────────┐ │
-│ │ [📷]  Odesza               │ │  ← Photo thumbnail
-│ │       The Gorge            │ │
-│ │       Jul 2024        #2   │ │
-│ └─────────────────────────────┘ │
-│ ┌─────────────────────────────┐ │
-│ │ [📷]  Disclosure           │ │
-│ │       Brooklyn Mirage      │ │
-│ │       Aug 2024        #3   │ │
-│ └─────────────────────────────┘ │
-│ ┌─────────────────────────────┐ │
-│ │ [📷]  Bonobo               │ │
-│ │       Hollywood Bowl       │ │
-│ │       Oct 2024        #4   │ │
-│ └─────────────────────────────┘ │
-├─────────────────────────────────┤
-│  [🏠]    [🌐]    [👑]    [➕]   │  ← Bottom nav
-└─────────────────────────────────┘
+**Headline:**
+```
+Before: "Your concert memories, beautifully curated, ranked, and shared."
+After: "Your love of concerts deserves more than a ticket stub."
 ```
 
-**Key clarification:** Every show will have a concert photo thumbnail (no music note placeholders). Using demo concert images from Unsplash.
+**Subhead:**
+```
+Before: "The app for music lovers who want more than a ticket stub."
+After: "The app to capture, review, rank, and share your favorite music memories."
+```
+
+**Buttons:** Keep as-is ("Get Started" / "View Demo")
+
+---
+
+## Section 2: CaptureShowcase
+
+### Changes
+
+**Headline:**
+```
+Before: "Your concert history, ranked."
+After: "Every show. One place."
+```
+
+**Subhead:**
+```
+Before: "Every show you've ever been to, beautifully organized..."
+After: "Never forget who opened for who, which venue had the best sound, or what night changed everything."
+```
+
+**Phone Mockup:** Replace ranked list with **Show Review Sheet** mockup
+
+The Show Review Sheet displays:
+- 4:3 hero photo with concert image
+- Glass metadata bar (artist name, venue, date, score badge)
+- Compact rating bars (Show, Sound, Lighting, Crowd, Vibe)
+- Notes quote card
+- **"Compare with friends" button**
+- "Share to Instagram" button
+
+**Feature List (benefit-driven):**
+```
+• Never forget who opened for who
+• Rate every detail — sound, lighting, crowd, vibe
+• Add photos that capture the moment
+• Your personal concert archive, always with you
+```
+
+---
+
+## Section 3: RankingSpotlight
+
+### Changes
+
+**Headline:** Keep as-is
+```
+"Your #1 show, proven."
+```
+
+**Subhead:**
+```
+Before: "Forget arbitrary star ratings. Scene uses head-to-head comparisons..."
+After: "Finally answer: what's my all-time #1 show? Head-to-head picks reveal your true feelings."
+```
+
+**Second paragraph:**
+```
+"The more you compare, the more accurate your rankings become."
+```
+
+**Coming Soon Teaser:** Keep "Compare with friends"
+
+---
+
+## Section 4: ShareExperience
+
+### Changes
+
+**Headline:**
+```
+Before: "Made for stories."
+After: "Share and compare."
+```
+
+**Subhead:**
+```
+Before: "Your best concert moments, ready to share..."
+After: "Share your ratings, reviews, and rankings on social."
+```
+
+**Feature List:** Single item only
+```
+• Compare ratings with your friends (coming soon)
+```
+
+---
+
+## Section 5: GlobeShowcase (NEW)
+
+### Layout
+- Two-column grid (matches other sections)
+- Phone mockup on LEFT (tilt="left")
+- Copy on RIGHT
+- Placed after ShareExperience, before final CTA
+
+### Phone Mockup Content
+Display a simplified version of the MapView globe with:
+- Dark Mapbox-style world map
+- Glowing dots/bubbles at various cities (NYC, LA, London, Austin, Chicago)
+- "5 countries · 12 cities" stat overlay
+- SCENE logo in header
+
+### Copy
+
+**Headline:**
+```
+"Your global music life."
+```
+
+**Subhead:**
+```
+"See everywhere music has taken you."
+```
+
+**Feature bullets:** None (removed)
+
+---
+
+## Section 6: LandingCTA
+
+### Changes
+
+**Headline:**
+```
+Before: "Start building your concert legacy."
+After: "Your love for music deserves to be remembered."
+```
+
+**Subhead:** Delete entirely
+
+**Button Text:**
+```
+"Add my first show"
+```
 
 ---
 
 ## Technical Implementation
 
-### File Changes
+### Files to Modify
 
-**1. Create new file: `src/components/landing/CaptureShowcase.tsx`**
+**1. `src/components/landing/LandingHero.tsx`**
+- Update headline: "Your love of concerts deserves more than a ticket stub."
+- Update subhead: "The app to capture, review, rank, and share your favorite music memories."
 
-New component with:
-- `TopRankedMockup` - Phone screen showing the list UI
-- Similar structure to `RankingSpotlight` component
-- Uses `PhoneMockup` component with `tilt="left"`
+**2. `src/components/landing/CaptureShowcase.tsx`**
+- Replace `TopRankedMockup` with new `ShowReviewMockup`
+- Update headline: "Every show. One place."
+- Update subhead: "Never forget who opened for who, which venue had the best sound, or what night changed everything."
+- Update feature bullets (benefit-driven)
+- New mockup displays:
+  - 4:3 concert photo
+  - Glass metadata bar with artist, venue, date, score
+  - Compact rating bars (Show, Sound, Lighting, Crowd, Vibe)
+  - Notes quote
+  - **"Compare with friends" button**
+  - Instagram share button
 
-**Mock show data (all with photos):**
-```tsx
-const mockShows = [
-  { 
-    artist: "Rufus Du Sol", 
-    venue: "Red Rocks", 
-    date: "Sep 2024", 
-    rank: 1,
-    photo: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80"
-  },
-  { 
-    artist: "Odesza", 
-    venue: "The Gorge", 
-    date: "Jul 2024", 
-    rank: 2,
-    photo: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&q=80"
-  },
-  { 
-    artist: "Disclosure", 
-    venue: "Brooklyn Mirage", 
-    date: "Aug 2024", 
-    rank: 3,
-    photo: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80"
-  },
-  { 
-    artist: "Bonobo", 
-    venue: "Hollywood Bowl", 
-    date: "Oct 2024", 
-    rank: 4,
-    photo: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=100&q=80"
-  },
-];
+**3. `src/components/landing/RankingSpotlight.tsx`**
+- Update subhead: "Finally answer: what's my all-time #1 show? Head-to-head picks reveal your true feelings."
+- Update second paragraph: "The more you compare, the more accurate your rankings become."
+
+**4. `src/components/landing/ShareExperience.tsx`**
+- Update headline: "Share and compare."
+- Update subhead: "Share your ratings, reviews, and rankings on social."
+- Keep only one feature bullet: "Compare ratings with your friends (coming soon)"
+
+**5. Create `src/components/landing/GlobeShowcase.tsx` (NEW)**
+- New component with globe mockup
+- Static illustration of world map with glowing city markers
+- Headline: "Your global music life."
+- Subhead: "See everywhere music has taken you."
+- No feature bullets
+- Uses PhoneMockup component with tilt="left"
+
+**6. `src/pages/Index.tsx`**
+- Import and add GlobeShowcase after ShareExperience
+- Order: LandingHero → CaptureShowcase → RankingSpotlight → ShareExperience → GlobeShowcase → LandingCTA
+
+**7. `src/components/landing/LandingCTA.tsx`**
+- Update headline: "Your love for music deserves to be remembered."
+- Remove subhead entirely
+- Update button text: "Add my first show"
+
+---
+
+## Visual Summary
+
+```text
+┌─────────────────────────────────────────────────────┐
+│                     HERO                            │
+│  "Your love of concerts deserves more than a        │
+│   ticket stub."                                     │
+│  "The app to capture, review, rank, and share       │
+│   your favorite music memories."                    │
+│  [Phone: Stacked show cards]                        │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                 CAPTURE SHOWCASE                    │
+│  "Every show. One place."                           │
+│  [Phone: Show Review Sheet with photo + ratings     │
+│   + Compare with friends button]                    │
+│  • Never forget who opened for who                  │
+│  • Rate every detail                                │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                RANKING SPOTLIGHT                    │
+│  "Your #1 show, proven."                            │
+│  [Phone: Head-to-head VS comparison]                │
+│  Finally answer: what's my all-time #1 show?        │
+│  Head-to-head picks reveal your true feelings.      │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                SHARE EXPERIENCE                     │
+│  "Share and compare."                               │
+│  [Phone: Instagram story mockup]                    │
+│  Share your ratings, reviews, and rankings on       │
+│  social.                                            │
+│  • Compare ratings with your friends (coming soon)  │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                 GLOBE SHOWCASE                      │
+│  "Your global music life."                          │
+│  [Phone: World map with glowing city markers]       │
+│  See everywhere music has taken you.                │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                      CTA                            │
+│  "Your love for music deserves to be remembered."   │
+│  [Add my first show]                                │
+└─────────────────────────────────────────────────────┘
 ```
-
-**Component structure:**
-- Header bar with SCENE logo and avatar
-- "Top Ranked Shows" title with back arrow icon
-- Filter bar: glass pill with "All Time" dropdown and "Best" sort toggle
-- Show list cards with:
-  - 56x56px rounded photo thumbnail (left)
-  - Artist name (bold white)
-  - Venue (white/60, smaller)
-  - Date (white/40, smaller)
-  - Rank badge "#1" (right-aligned, white/50)
-- Bottom nav with Home, Globe, Crown, and Plus FAB
-
-**Styling details:**
-- Cards: `bg-white/[0.03] border border-white/[0.08] rounded-xl`
-- Glassmorphism filter bar
-- Photo thumbnails: `rounded-lg object-cover`
-- Consistent with Scene aesthetic
-
-**2. Update `src/pages/Index.tsx`**
-- Replace `ShareExperience` import with `CaptureShowcase`
-- Update component usage in the page
-
-**3. Delete `src/components/landing/ShareExperience.tsx`**
-- No longer needed after replacement
-
----
-
-## Copy Content
-
-**Headline:** "Your concert history, ranked."
-
-**Subheadline:** "Every show you've ever been to, beautifully organized and instantly searchable. Scene becomes your personal concert archive."
-
-**Feature list (using bullet points or inline):**
-- Log artists, venues, dates, and your ratings
-- Add photos to remember the night
-- Filter by time period, sort by rank or date
-- Your complete concert timeline in one place
-
----
-
-## Visual Styling
-
-- Background glow: Primary color, positioned to complement RankingSpotlight
-- Phone tilt: "left" 
-- Glassmorphism cards matching Scene aesthetic
-- All shows have photo thumbnails (no placeholder icons)
-- Consistent spacing and typography with other sections
 
