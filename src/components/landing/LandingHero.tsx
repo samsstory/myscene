@@ -98,7 +98,7 @@ const MockShowCard = () => (
               className="absolute inset-0 bg-cover bg-center opacity-20"
               style={{ backgroundImage: `url('${card.photo}')` }}
             />
-            <div className="relative py-3 px-3 flex items-center justify-between">
+            <div className="relative py-5 px-3 flex items-center justify-between">
               <span 
                 className="font-bold text-xs"
                 style={{ 
