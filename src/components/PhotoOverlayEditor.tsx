@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Download, MapPin, Instagram, Move, Eye, EyeOff, Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, Trophy, RotateCcw, SunDim, MessageCircle, Camera, Upload } from "lucide-react";
+import { Download, MapPin, Instagram, Move, Eye, EyeOff, Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, Trophy, RotateCcw, SunDim, MessageCircle, Camera, Upload, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
@@ -93,6 +93,9 @@ export const PhotoOverlayEditor = ({
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(show.photo_url || null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
+  // Referral link state
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+
   // Effective photo URL (local upload takes precedence)
   const effectivePhotoUrl = localPhotoUrl || show.photo_url;
 
@@ -163,6 +166,50 @@ export const PhotoOverlayEditor = ({
       img.src = effectivePhotoUrl;
     }
   }, [effectivePhotoUrl]);
+
+  // Fetch user's referral code
+  useEffect(() => {
+    const fetchReferralCode = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('referral_code')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.referral_code) {
+        setReferralCode(profile.referral_code);
+      }
+    };
+    fetchReferralCode();
+  }, []);
+
+  // Copy referral link handler
+  const handleCopyReferralLink = async () => {
+    if (!referralCode) {
+      toast.error("Referral link not available");
+      return;
+    }
+    
+    const referralUrl = `${window.location.origin}/?ref=${referralCode}`;
+    
+    try {
+      await navigator.clipboard.writeText(referralUrl);
+      toast.success("Referral link copied! Share it with friends.");
+    } catch (err) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = referralUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      toast.success("Referral link copied!");
+    }
+  };
+
   // Helper: Filter shows by time period
   const filterShowsByTime = (shows: Show[], timeFilter: string) => {
     if (timeFilter === "all-time") return shows;
@@ -1277,6 +1324,16 @@ export const PhotoOverlayEditor = ({
               Save
             </Button>
           </div>
+          
+          {/* Referral link */}
+          <Button 
+            onClick={handleCopyReferralLink} 
+            variant="outline" 
+            className="w-full h-9 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Link2 className="mr-2 h-4 w-4" />
+            Copy Invite Link
+          </Button>
         </div>
       </div>
     </TooltipProvider>;
