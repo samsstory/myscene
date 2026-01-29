@@ -1,23 +1,23 @@
 import PhoneMockup from "./PhoneMockup";
-import { Badge } from "@/components/ui/badge";
-import { Home, Globe, Crown, Plus } from "lucide-react";
+import { Sparkles, Home, Globe, Crown, Plus } from "lucide-react";
 
 // Mini rating bar for compact aspect display
-const MiniRatingBar = ({ label, value }: { label: string; value: number }) => {
-  const gradient = value >= 4 ? "from-emerald-500 to-cyan-400" 
-                 : value >= 3 ? "from-amber-500 to-yellow-400"
-                 : "from-orange-500 to-amber-400";
-  return (
-    <div className="flex items-center gap-2">
+const MiniRatingBar = ({
+  label,
+  value
+}: {
+  label: string;
+  value: number;
+}) => {
+  const gradient = value >= 4 ? "from-emerald-500 to-cyan-400" : value >= 3 ? "from-amber-500 to-yellow-400" : "from-orange-500 to-amber-400";
+  return <div className="flex items-center gap-2">
       <span className="text-[10px] text-white/50 w-10">{label}</span>
       <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-        <div 
-          className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
-          style={{ width: `${(value / 5) * 100}%` }}
-        />
+        <div className={`h-full rounded-full bg-gradient-to-r ${gradient}`} style={{
+        width: `${value / 5 * 100}%`
+      }} />
       </div>
-    </div>
-  );
+    </div>;
 };
 
 // Mock show data
@@ -26,32 +26,39 @@ const leftShow = {
   artist: "Odesza",
   venue: "The Gorge",
   date: "Aug 2024",
-  ratings: { show: 4, sound: 5, crowd: 3 } as Record<string, number>,
+  ratings: {
+    show: 4,
+    sound: 5,
+    crowd: 3
+  } as Record<string, number>,
   notes: "Best sunset I've ever seen. The Gorge is magical."
 };
-
 const rightShow = {
   photo: "/images/rufus-du-sol-red-rocks.png",
   artist: "Rufus Du Sol",
   venue: "Red Rocks",
   date: "Jun 2023",
-  ratings: { show: 5, sound: 4, lighting: 5 } as Record<string, number>,
+  ratings: {
+    show: 5,
+    sound: 4,
+    lighting: 5
+  } as Record<string, number>,
   notes: "Absolutely transcendent. Red Rocks amplified everything."
 };
 
 // Show card with full memory context
-const ShowCard = ({ show }: { show: typeof leftShow }) => (
-  <div className="flex-1 group cursor-pointer">
+const ShowCard = ({
+  show
+}: {
+  show: typeof leftShow;
+}) => <div className="flex-1 group cursor-pointer">
     <div className="rounded-xl bg-white/[0.03] border border-white/[0.08] p-2.5 transition-all group-hover:border-primary/50 group-hover:bg-white/[0.06]">
       {/* Photo */}
-      <div 
-        className="w-full aspect-[4/3] rounded-lg mb-2"
-        style={{
-          backgroundImage: `url('${show.photo}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
+      <div className="w-full aspect-[4/3] rounded-lg mb-2" style={{
+      backgroundImage: `url('${show.photo}')`,
+      backgroundSize: "cover",
+      backgroundPosition: "center"
+    }} />
       
       {/* Artist & Venue */}
       <div className="text-white text-xs font-semibold">{show.artist}</div>
@@ -72,12 +79,10 @@ const ShowCard = ({ show }: { show: typeof leftShow }) => (
         "{show.notes}"
       </p>
     </div>
-  </div>
-);
+  </div>;
 
 // Large ranking mockup - bias-free design
-const RankingMockup = () => (
-  <div className="h-full w-full bg-gradient-accent flex flex-col">
+const RankingMockup = () => <div className="h-full w-full bg-gradient-accent flex flex-col">
     {/* Title below notch */}
     <div className="px-4 pt-8 pb-2">
       <span className="text-white/80 text-sm font-medium">Rank Your Shows</span>
@@ -87,13 +92,12 @@ const RankingMockup = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-4 gap-3">
       {/* Progress bar directly above headline */}
       <div className="w-full max-w-[200px] h-1 bg-white/10 rounded-full overflow-hidden mb-1">
-        <div 
-          className="h-full bg-primary rounded-full transition-all"
-          style={{ width: "60%" }}
-        />
+        <div className="h-full bg-primary rounded-full transition-all" style={{
+        width: "60%"
+      }} />
       </div>
       
-      <p className="text-white/60 text-xs">Which was better?</p>
+      
 
       <div className="flex items-center gap-2 w-full">
         {/* Left show */}
@@ -116,29 +120,23 @@ const RankingMockup = () => (
       <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
         <Home className="w-4 h-4 text-white/40" />
         <Globe className="w-4 h-4 text-white/40" />
-        <Crown
-          className="w-4 h-4 text-primary"
-          style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }}
-        />
+        <Crown className="w-4 h-4 text-primary" style={{
+        filter: "drop-shadow(0 0 4px hsl(var(--primary)))"
+      }} />
       </div>
-      <div
-        className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg"
-        style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}
-      >
+      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{
+      boxShadow: "0 0 20px hsl(var(--primary) / 0.4)"
+    }}>
         <Plus className="w-4 h-4 text-primary-foreground" />
       </div>
     </div>
-  </div>
-);
-
+  </div>;
 const RankingSpotlight = () => {
-  return (
-    <section className="py-24 md:py-32 relative overflow-hidden">
+  return <section className="py-24 md:py-32 relative overflow-hidden">
       {/* Background accent */}
-      <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-10"
-        style={{ background: "hsl(var(--primary))" }}
-      />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-10" style={{
+      background: "hsl(var(--primary))"
+    }} />
 
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -151,30 +149,32 @@ const RankingSpotlight = () => {
 
           {/* Right: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
-            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
-              <Crown className="h-3.5 w-3.5" />
-              Rank
-            </Badge>
-            
-            <h2 
-              className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
-              style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
-            >
-              Your #1 show, confirmed.
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
+            textShadow: "0 0 50px rgba(255,255,255,0.1)"
+          }}>
+              Your #1 show, proven.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Head-to-head rankings reveal your true favorites.
+              Head-to-head picks reveal your true feelings.
             </p>
 
-            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
-              The answer you've been searching for.
+            <p className="text-muted-foreground max-w-lg mx-auto lg:mx-0">
+              Finally answer: what's my all-time #1 show?
             </p>
+
+            {/* Coming soon teaser */}
+            <div className="pt-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-primary/30">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-primary text-sm font-medium">
+                  Coming soon: Compare with friends
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default RankingSpotlight;
