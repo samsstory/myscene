@@ -77,20 +77,21 @@ const ShowCard = ({ show }: { show: typeof leftShow }) => (
 // Large ranking mockup - bias-free design
 const RankingMockup = () => (
   <div className="h-full w-full bg-gradient-accent flex flex-col">
-    {/* Header - Progress focused, no numbers */}
-    <div className="px-4 py-3 space-y-2">
+    {/* Title below notch */}
+    <div className="px-4 pt-8 pb-2">
       <span className="text-white/80 text-sm font-medium">Rank Your Shows</span>
-      {/* Minimal progress bar - no numbers */}
-      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+    </div>
+
+    {/* VS Interface */}
+    <div className="flex-1 flex flex-col items-center justify-center p-4 gap-3">
+      {/* Progress bar directly above headline */}
+      <div className="w-full max-w-[200px] h-1 bg-white/10 rounded-full overflow-hidden mb-1">
         <div 
           className="h-full bg-primary rounded-full transition-all"
           style={{ width: "60%" }}
         />
       </div>
-    </div>
-
-    {/* VS Interface */}
-    <div className="flex-1 flex flex-col items-center justify-center p-4 gap-3">
+      
       <p className="text-white/60 text-xs">Which was better?</p>
 
       <div className="flex items-center gap-2 w-full">
