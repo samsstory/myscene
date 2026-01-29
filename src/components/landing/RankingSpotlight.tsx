@@ -1,5 +1,6 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
+import { Badge } from "@/components/ui/badge";
 import { Home, Globe, Crown, Plus } from "lucide-react";
 
 // Mini rating bar for compact aspect display
@@ -150,20 +151,24 @@ const RankingSpotlight = () => {
 
           {/* Right: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
+            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
+              <Crown className="h-3.5 w-3.5" />
+              Rank
+            </Badge>
+
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
           }}>
-              Your #1 show, proven.
+              Your #1 show, confirmed.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Head-to-head picks reveal your true feelings.
+              Head-to-head rankings reveal your true favorites.
             </p>
 
-            <p className="text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Finally answer: what's my all-time #1 show?
+            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
+              The answer you've been searching for.
             </p>
-
           </div>
         </div>
       </div>
