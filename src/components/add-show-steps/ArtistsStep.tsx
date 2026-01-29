@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { X, Loader2, Music } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface ArtistsStepProps {
   artists: Array<{ name: string; isHeadliner: boolean }>;
@@ -90,16 +90,20 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
           {artists.map((artist, index) => (
             <div
               key={index}
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-accent/50"
+              className={cn(
+                "flex items-center justify-between p-3 rounded-lg transition-all duration-200",
+                "bg-white/[0.03] backdrop-blur-sm border border-primary/40",
+                "shadow-[0_0_12px_hsl(189_94%_55%/0.1)]"
+              )}
             >
               <div className="flex items-center gap-2">
-                <Music className="h-4 w-4 text-muted-foreground" />
+                <Music className="h-4 w-4 text-primary" />
                 <span className="font-medium">{artist.name}</span>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 hover:bg-white/10"
                 onClick={() => removeArtist(index)}
               >
                 <X className="h-4 w-4" />
@@ -115,11 +119,16 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
           placeholder="Search for artist..."
           value={currentArtist}
           onChange={(e) => setCurrentArtist(e.target.value)}
-          className="h-12 text-base pr-10"
+          className={cn(
+            "h-12 text-base pr-10",
+            "bg-white/[0.03] border-white/[0.1] transition-all duration-200",
+            "focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
+            "focus:shadow-[0_0_16px_hsl(189_94%_55%/0.2)]"
+          )}
           autoFocus={artists.length === 0}
         />
         {isSearching && (
-          <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-muted-foreground" />
         )}
       </div>
 
@@ -129,7 +138,12 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
           {artistSuggestions.map((suggestion) => (
             <div
               key={suggestion.id}
-              className="p-3 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
+              className={cn(
+                "p-4 rounded-lg transition-all duration-200",
+                "bg-white/[0.03] backdrop-blur-sm border border-white/[0.08]",
+                "hover:border-primary/50 hover:bg-primary/5",
+                "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+              )}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -145,9 +159,12 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
                 </div>
                 <Button
                   size="sm"
-                  variant="default"
                   onClick={() => addArtist(suggestion.name, true)}
-                  className="text-xs h-7 px-2"
+                  className={cn(
+                    "text-xs h-7 px-3",
+                    "bg-primary/20 text-primary border border-primary/40",
+                    "hover:bg-primary/30 hover:border-primary/60"
+                  )}
                 >
                   Add
                 </Button>
@@ -162,7 +179,11 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         <Button
           variant="outline"
           onClick={() => handleManualAdd(true)}
-          className="w-full"
+          className={cn(
+            "w-full",
+            "bg-white/[0.03] border-white/[0.1]",
+            "hover:border-primary/50 hover:bg-primary/5"
+          )}
         >
           Add "{currentArtist}"
         </Button>
