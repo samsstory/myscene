@@ -481,7 +481,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow }: HomeProps)
                               setQuickPhotoOpen(true);
                             }}
                           >
-                            <Music2 className="h-8 w-8 text-white/30 group-hover:text-white/20 transition-colors" />
+                            <span className="text-2xl text-white/40 select-none" style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}>✦</span>
                             {/* Quick add photo button */}
                             <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-primary/80 flex items-center justify-center shadow-lg opacity-70 group-hover:opacity-100 transition-opacity">
                               <Plus className="h-3 w-3 text-primary-foreground" />
