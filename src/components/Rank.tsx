@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import RankingCard from "./rankings/RankingCard";
@@ -41,6 +42,7 @@ export default function Rank() {
   // Animation states
   const [pairKey, setPairKey] = useState(0);
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const K_BASE = 32;
   const K_MIN_COMPARISONS = 10;
@@ -474,6 +476,7 @@ export default function Rank() {
           isWinner={selectedWinner === showPair[0].id}
           isLoser={selectedWinner !== null && selectedWinner !== showPair[0].id}
           animationKey={pairKey}
+          isExpanded={showDetails}
         />
 
         {/* VS Badge */}
@@ -497,11 +500,24 @@ export default function Rank() {
           isWinner={selectedWinner === showPair[1].id}
           isLoser={selectedWinner !== null && selectedWinner !== showPair[1].id}
           animationKey={pairKey}
+          isExpanded={showDetails}
         />
       </div>
 
       {/* Instruction Text */}
       <div className="text-center space-y-3">
+        {/* See Full Details Toggle */}
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="flex items-center justify-center gap-1 mx-auto text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+        >
+          {showDetails ? "Hide details" : "See full details"}
+          <ChevronDown className={cn(
+            "h-3 w-3 transition-transform duration-200",
+            showDetails && "rotate-180"
+          )} />
+        </button>
+        
         <p className="text-sm text-muted-foreground">
           Tap to choose the winner
         </p>
