@@ -18,8 +18,8 @@ const StoryMockup = () => (
     {/* Gradient overlays */}
     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40" />
     
-    {/* Instagram Story Header - "Your story" */}
-    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+    {/* Instagram Story Header - "Your story" - moved down to avoid dynamic island */}
+    <div className="absolute top-8 left-3 right-3 flex items-center justify-between">
       {/* Profile photo and text */}
       <div className="flex items-center gap-2">
         {/* Profile photo with + badge */}
@@ -46,8 +46,8 @@ const StoryMockup = () => (
       <X className="w-6 h-6 text-white/80" />
     </div>
 
-    {/* Top right: Scene logo */}
-    <div className="absolute top-12 right-3">
+    {/* Bottom center: Scene logo */}
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
       <div className="bg-black/30 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/10">
         <SceneLogo size="sm" />
       </div>
