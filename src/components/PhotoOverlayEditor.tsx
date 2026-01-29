@@ -1091,14 +1091,19 @@ export const PhotoOverlayEditor = ({
                   "{show.notes}"
                 </p>}
               
-              {/* Footer - rank and logo */}
-              <div className="mt-2 text-[10px] flex-col flex items-center justify-between">
-                {overlayConfig.showRank && rankData.total > 0 ? <span className={`font-semibold bg-gradient-to-r ${getRankGradient(rankData.percentile)} bg-clip-text text-transparent cursor-pointer transition-opacity hover:opacity-70`} onClick={e => {
-                  e.stopPropagation();
-                  toggleConfig("showRank");
-                }}>
+              {/* Footer - rank and logo - centered */}
+              <div className="mt-2 text-[10px] flex flex-col items-center gap-0.5">
+                {overlayConfig.showRank && rankData.total > 0 ? <span 
+                  className="font-semibold text-white cursor-pointer transition-opacity hover:opacity-70"
+                  style={{
+                    textShadow: "0 0 8px rgba(255,255,255,0.6), 0 0 16px rgba(255,255,255,0.3)"
+                  }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    toggleConfig("showRank");
+                  }}>
                     #{rankData.position} {rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time'}
-                  </span> : <span />}
+                  </span> : null}
                 <span className="font-black tracking-[0.25em] text-white/75 uppercase" style={{
                   textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)"
                 }}>
