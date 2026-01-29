@@ -94,11 +94,11 @@ const RankingSpotlight = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Finally answer: what's my all-time #1 show? Head-to-head picks reveal your true feelings.
+              Head-to-head picks reveal your true feelings.
             </p>
 
             <p className="text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              The more you compare, the more accurate your rankings become.
+              Finally answer: what's my all-time #1 show?
             </p>
 
             {/* Coming soon teaser */}
