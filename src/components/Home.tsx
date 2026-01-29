@@ -78,6 +78,13 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
   const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "last-year" | "this-month">("all-time");
+
+  // Sync viewMode when initialView prop changes
+  useEffect(() => {
+    if (initialView) {
+      setViewMode(initialView);
+    }
+  }, [initialView]);
   const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
