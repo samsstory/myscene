@@ -30,7 +30,7 @@ const leftShow = {
 };
 
 const rightShow = {
-  photo: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80",
+  photo: "/images/rufus-du-sol-red-rocks.png",
   artist: "Rufus Du Sol",
   venue: "Red Rocks",
   date: "Jun 2023",
