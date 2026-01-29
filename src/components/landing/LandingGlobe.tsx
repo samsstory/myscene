@@ -81,8 +81,8 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
 
   const journeySequence = useMemo(() => {
     if (selectedYear === 'all') {
-      // Combine all journeys for "all" view
-      return [...new Set([...JOURNEY_2024, ...JOURNEY_2025, ...JOURNEY_2026])];
+      // For "all" view, use the longest journey (2026) as it contains most cities
+      return JOURNEY_2026;
     }
     switch (selectedYear) {
       case 2024: return JOURNEY_2024;
@@ -173,13 +173,15 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
             visibleArcs.push(state.allArcs[i]);
           }
           
-          // Add current arc progress
-          if (currentArcIndex < state.allArcs.length && arcElapsed <= ARC_DURATION) {
-            const currentArc = state.allArcs[currentArcIndex];
-            const pointsToShow = Math.ceil(arcProgress * currentArc.length);
-            visibleArcs.push(currentArc.slice(0, pointsToShow));
-          } else if (currentArcIndex < state.allArcs.length) {
-            visibleArcs.push(state.allArcs[currentArcIndex]);
+          // Add current arc progress with safety checks
+          const currentArc = state.allArcs[currentArcIndex];
+          if (currentArc && currentArc.length > 0) {
+            if (arcElapsed <= ARC_DURATION) {
+              const pointsToShow = Math.max(1, Math.ceil(arcProgress * currentArc.length));
+              visibleArcs.push(currentArc.slice(0, pointsToShow));
+            } else {
+              visibleArcs.push(currentArc);
+            }
           }
           
           // Update the map source
