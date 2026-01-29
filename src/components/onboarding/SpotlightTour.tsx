@@ -65,67 +65,62 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
     {
       target: '[data-tour="fab"]',
       content: "Tap here to log your first show",
-      placement: "top",
+      placement: "left",
       disableBeacon: true,
-      data: { totalSteps: 8 },
+      data: { totalSteps: 7 },
     },
     {
       target: '[data-tour="add-photos"]',
       content: "Upload multiple shows at once by adding 1 photo per show",
       placement: "left",
       disableBeacon: true,
-      data: { totalSteps: 8 },
+      data: { totalSteps: 7 },
     },
     {
       target: '[data-tour="add-single"]',
       content: "No photo? Add by artist/venue",
       placement: "left",
       disableBeacon: true,
-      data: { totalSteps: 8 },
+      data: { totalSteps: 7 },
     },
     {
       target: '[data-tour="nav-rank"]',
       content: "Rank shows against each other",
       placement: "top",
       disableBeacon: true,
-      data: { totalSteps: 8 },
+      data: { totalSteps: 7 },
     },
     {
-      target: '[data-tour="shows-ranked"]',
+      target: '[data-tour="stat-shows"]',
       content: "See all your shows ranked in order",
       placement: "bottom",
       disableBeacon: true,
-      data: { totalSteps: 8 },
-    },
-    {
-      target: '[data-tour="share-instagram"]',
-      content: "Add your show review to your photo and share to Instagram or send to friends",
-      placement: "top",
-      disableBeacon: true,
-      data: { totalSteps: 8 },
+      data: { totalSteps: 7 },
     },
     {
       target: '[data-tour="nav-globe"]',
       content: "See everywhere you've been",
       placement: "top",
       disableBeacon: true,
-      data: { totalSteps: 8 },
+      data: { totalSteps: 7 },
     },
     {
-      target: '[data-tour="nav-rank"]',
-      content: "Your personal rankings live here",
-      placement: "top",
+      target: '[data-tour="fab"]',
+      content: "Ready to log your first show? Tap here to get started!",
+      placement: "left",
       disableBeacon: true,
-      data: { totalSteps: 8 },
+      data: { totalSteps: 7, isFinal: true },
     },
   ];
 
   const handleCallback = (data: CallBackProps) => {
-    const { status, index, action, type } = data;
+    const { status, index, type } = data;
 
-    // Open FAB menu before step 2 (Add Photos)
+    // Open FAB menu before step 2 (Add Photos) with a small delay for animation
     if (type === "step:before" && index === 1) {
-      onOpenFabMenu?.();
+      setTimeout(() => {
+        onOpenFabMenu?.();
+      }, 100);
     }
 
     // Close FAB menu after step 3 (Add Single Show)

@@ -78,6 +78,7 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
           return (
             <button
               key={stat.id}
+              data-tour={stat.id === 'shows' ? 'stat-shows' : undefined}
               onClick={() => isInteractive && onPillTap?.(stat.action!, stat.actionPayload)}
               disabled={!isInteractive}
               className={cn(
