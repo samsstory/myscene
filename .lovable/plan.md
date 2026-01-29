@@ -1,148 +1,162 @@
 
 
-# Hero Phone Mockup Enhancement Plan
+# Replace ShareExperience with CaptureShowcase Section
 
 ## Goal
-Transform the hero phone mockup into a polished, authentic representation of the Scene app UI that makes a strong first impression.
+Replace the current "Made for stories" section with a new "Capture every show" spotlight section that showcases the Top Ranked Shows list UI, matching the visual pattern of other spotlight sections on the landing page.
 
 ---
 
-## Changes Overview
-
-### 1. Keep Odesza
-Already present - no change needed.
-
-### 2. Add White Score Badge on Expanded Card
-Add a clean white/light score badge (e.g., "9.2") to the Fred again.. expanded card, positioned bottom-left above the artist name.
-
-### 3. No Instagram Icon
-Confirmed - will not add IG icon to expanded card.
-
-### 4. Add Rank Badges to Collapsed Cards
-Each collapsed card will display rank context on the right side (e.g., "#2 All Time", "#3 All Time").
-
-### 5. Add Photo Background to Collapsed Cards
-Match the real app's collapsed state: subtle photo background at 20% opacity behind each collapsed card.
-
-### 6. Remove Hand Styling and Phone Outline
-**File: `src/components/landing/PhoneMockup.tsx`**
-- Set `showHand={false}` default or remove hand entirely
-- Simplify the phone frame to just show the screen content with minimal chrome
-
-**File: `src/components/landing/LandingHero.tsx`**
-- Pass `showHand={false}` to PhoneMockup
-
-### 7. Fix Overlap and Z-Index Order
-Each card should properly overlap the one below it with descending z-index:
-
+## Current Page Structure
 ```text
-Expanded (Fred again..)  → z-[60]
-Odesza                   → z-[50], mt-[-12px]
-Mau P                    → z-[40], mt-[-12px]  
-Post Malone              → z-[30], mt-[-12px]
-The Blaze                → z-[20], mt-[-12px]
-T-Pain                   → z-[10], mt-[-12px]
+LandingHero → ValuePillars → RankingSpotlight → ShareExperience → LandingCTA
 ```
 
-Increase negative margin from `-6px` to `-12px` for more pronounced overlap.
-
-### 8. Add Proper Bottom Nav Icons
-Replace generic circles with actual icons from lucide-react:
-- **Home** icon (active state with primary glow)
-- **Globe** icon
-- **Crown/Medal** icon (for Rankings)
-- **Plus** icon (FAB style)
+## New Page Structure
+```text
+LandingHero → ValuePillars → RankingSpotlight → CaptureShowcase → LandingCTA
+```
 
 ---
 
-## Updated MockShowCard Structure
+## New Section Design
+
+### Layout (mirrors RankingSpotlight)
+- Two-column grid on desktop (lg:grid-cols-2)
+- Phone mockup on one side, copy on the other
+- Phone tilted left for visual variety
+- Background glow accent
+
+### Phone Mockup Content: "Top Ranked Shows" List
 
 ```text
 ┌─────────────────────────────────┐
-│ [SCENE ✦]                   [👤]│  ← Header with logo + avatar
+│  SCENE ✦                   [👤] │  ← Header
+├─────────────────────────────────┤
+│  ← Top Ranked Shows             │  ← Page title with back arrow
+├─────────────────────────────────┤
+│  [All Time ▼]        [↕ Best]   │  ← Filter bar
 ├─────────────────────────────────┤
 │ ┌─────────────────────────────┐ │
-│ │ #1                          │ │  ← Rank badge (top-left)
-│ │     [Concert Photo]         │ │
-│ │                             │ │
-│ │ [9.2]                       │ │  ← White score badge
-│ │ Fred again..                │ │  ← Artist name with glow
-│ │ Alexandra Palace  SCENE ✦   │ │  ← Venue + watermark
+│ │ [📷]  Rufus Du Sol         │ │  ← Photo thumbnail
+│ │       Red Rocks            │ │  ← Venue
+│ │       Sep 2024        #1   │ │  ← Date + Rank
 │ └─────────────────────────────┘ │
-│ ╔═══════════════════════════════╗ ← Overlaps below
-│ ║ Odesza              #2 All   ║ │  ← Photo bg, z-50
-│ ╠═══════════════════════════════╣
-│ ║ Mau P               #3 All   ║ │  ← z-40
-│ ╠═══════════════════════════════╣
-│ ║ Post Malone         #4 All   ║ │  ← z-30
-│ ╠═══════════════════════════════╣
-│ ║ The Blaze           #5 All   ║ │  ← z-20
-│ ╠═══════════════════════════════╣
-│ ║ T-Pain              #6 All   ║ │  ← z-10
-│ ╚═══════════════════════════════╝
+│ ┌─────────────────────────────┐ │
+│ │ [📷]  Odesza               │ │  ← Photo thumbnail
+│ │       The Gorge            │ │
+│ │       Jul 2024        #2   │ │
+│ └─────────────────────────────┘ │
+│ ┌─────────────────────────────┐ │
+│ │ [📷]  Disclosure           │ │
+│ │       Brooklyn Mirage      │ │
+│ │       Aug 2024        #3   │ │
+│ └─────────────────────────────┘ │
+│ ┌─────────────────────────────┐ │
+│ │ [📷]  Bonobo               │ │
+│ │       Hollywood Bowl       │ │
+│ │       Oct 2024        #4   │ │
+│ └─────────────────────────────┘ │
 ├─────────────────────────────────┤
-│  [🏠]    [🌐]    [👑]    [➕]  │  ← Bottom nav icons
+│  [🏠]    [🌐]    [👑]    [➕]   │  ← Bottom nav
 └─────────────────────────────────┘
 ```
+
+**Key clarification:** Every show will have a concert photo thumbnail (no music note placeholders). Using demo concert images from Unsplash.
 
 ---
 
 ## Technical Implementation
 
-### File 1: `src/components/landing/PhoneMockup.tsx`
-- Remove hand illustration entirely (delete lines 21-36)
-- Simplify phone frame styling - remove thick bezel, just keep subtle rounded corners
-- Remove side buttons for cleaner look
+### File Changes
 
-### File 2: `src/components/landing/LandingHero.tsx`
+**1. Create new file: `src/components/landing/CaptureShowcase.tsx`**
 
-**Import Lucide icons:**
+New component with:
+- `TopRankedMockup` - Phone screen showing the list UI
+- Similar structure to `RankingSpotlight` component
+- Uses `PhoneMockup` component with `tilt="left"`
+
+**Mock show data (all with photos):**
 ```tsx
-import { Home, Globe, Crown, Plus } from "lucide-react";
+const mockShows = [
+  { 
+    artist: "Rufus Du Sol", 
+    venue: "Red Rocks", 
+    date: "Sep 2024", 
+    rank: 1,
+    photo: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80"
+  },
+  { 
+    artist: "Odesza", 
+    venue: "The Gorge", 
+    date: "Jul 2024", 
+    rank: 2,
+    photo: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&q=80"
+  },
+  { 
+    artist: "Disclosure", 
+    venue: "Brooklyn Mirage", 
+    date: "Aug 2024", 
+    rank: 3,
+    photo: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80"
+  },
+  { 
+    artist: "Bonobo", 
+    venue: "Hollywood Bowl", 
+    date: "Oct 2024", 
+    rank: 4,
+    photo: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=100&q=80"
+  },
+];
 ```
 
-**Expanded Card Updates:**
-- Add white score badge: `bg-white/90 text-black font-bold rounded-full px-2 py-0.5 text-xs`
+**Component structure:**
+- Header bar with SCENE logo and avatar
+- "Top Ranked Shows" title with back arrow icon
+- Filter bar: glass pill with "All Time" dropdown and "Best" sort toggle
+- Show list cards with:
+  - 56x56px rounded photo thumbnail (left)
+  - Artist name (bold white)
+  - Venue (white/60, smaller)
+  - Date (white/40, smaller)
+  - Rank badge "#1" (right-aligned, white/50)
+- Bottom nav with Home, Globe, Crown, and Plus FAB
 
-**Collapsed Cards - New Structure:**
-```tsx
-// Each collapsed card with photo bg and rank
-<div className="relative z-[50] mt-[-12px]">
-  <div className="relative rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-sm border border-white/[0.05]">
-    {/* Photo background at 20% opacity */}
-    <div 
-      className="absolute inset-0 bg-cover bg-center opacity-20"
-      style={{ backgroundImage: "url('...')" }}
-    />
-    <div className="relative py-4 px-4 flex items-center justify-between">
-      <span className="font-bold text-sm text-white/90">Odesza</span>
-      <span className="text-[10px] text-white/50">#2 All Time</span>
-    </div>
-  </div>
-</div>
-```
+**Styling details:**
+- Cards: `bg-white/[0.03] border border-white/[0.08] rounded-xl`
+- Glassmorphism filter bar
+- Photo thumbnails: `rounded-lg object-cover`
+- Consistent with Scene aesthetic
 
-**Bottom Nav:**
-```tsx
-<div className="px-4 py-3 flex justify-around items-center border-t border-white/10">
-  <Home className="w-5 h-5 text-primary" />
-  <Globe className="w-5 h-5 text-white/40" />
-  <Crown className="w-5 h-5 text-white/40" />
-  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-    <Plus className="w-4 h-4 text-white" />
-  </div>
-</div>
-```
+**2. Update `src/pages/Index.tsx`**
+- Replace `ShareExperience` import with `CaptureShowcase`
+- Update component usage in the page
+
+**3. Delete `src/components/landing/ShareExperience.tsx`**
+- No longer needed after replacement
 
 ---
 
-## Sample Photo URLs for Collapsed Cards
+## Copy Content
 
-| Artist | Photo |
-|--------|-------|
-| Odesza | `https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80` |
-| Mau P | `https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=400&q=80` |
-| Post Malone | `https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=400&q=80` |
-| The Blaze | `https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80` |
-| T-Pain | `https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&q=80` |
+**Headline:** "Your concert history, ranked."
+
+**Subheadline:** "Every show you've ever been to, beautifully organized and instantly searchable. Scene becomes your personal concert archive."
+
+**Feature list (using bullet points or inline):**
+- Log artists, venues, dates, and your ratings
+- Add photos to remember the night
+- Filter by time period, sort by rank or date
+- Your complete concert timeline in one place
+
+---
+
+## Visual Styling
+
+- Background glow: Primary color, positioned to complement RankingSpotlight
+- Phone tilt: "left" 
+- Glassmorphism cards matching Scene aesthetic
+- All shows have photo thumbnails (no placeholder icons)
+- Consistent spacing and typography with other sections
 
