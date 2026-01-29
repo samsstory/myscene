@@ -215,26 +215,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Referral Code */}
-          {referralCode && (
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Your referral code</Label>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 px-4 py-2 rounded-lg bg-white/[0.05] border border-white/[0.1] font-mono text-lg tracking-wider">
-                  {referralCode}
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={copyReferralLink}
-                  className="shrink-0"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
           {/* Share Button */}
           <Button onClick={copyReferralLink} className="w-full" disabled={!referralCode}>
             <Share2 className="h-4 w-4 mr-2" />
