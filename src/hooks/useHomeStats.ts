@@ -20,6 +20,7 @@ interface StatsData {
   topShow: TopShow | null;
   uniqueCities: number;
   uniqueCountries: number;
+  incompleteRatingsCount: number;
 }
 
 interface UseHomeStatsReturn {
@@ -46,6 +47,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     topShow: null,
     uniqueCities: 0,
     uniqueCountries: 0,
+    incompleteRatingsCount: 0,
   });
   const [insight, setInsight] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,10 +63,10 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       const currentMonthStart = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
       const yearStart = new Date(currentYear, 0, 1).toISOString().split('T')[0];
 
-      // Get all shows for the user
+      // Get all shows for the user with detailed ratings
       const { data: shows, error: showsError } = await supabase
         .from('shows')
-        .select('id, show_date')
+        .select('id, show_date, artist_performance, sound, lighting, crowd, venue_vibe')
         .eq('user_id', userId)
         .order('show_date', { ascending: false });
 
@@ -73,6 +75,15 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       const totalShows = shows?.length || 0;
       const showsThisYear = shows?.filter(show => show.show_date >= yearStart).length || 0;
       const showsThisMonth = shows?.filter(show => show.show_date >= currentMonthStart).length || 0;
+
+      // Count shows with incomplete detailed ratings
+      const incompleteRatingsCount = shows?.filter(show => 
+        show.artist_performance === null ||
+        show.sound === null ||
+        show.lighting === null ||
+        show.crowd === null ||
+        show.venue_vibe === null
+      ).length || 0;
 
       // Calculate streak (consecutive months with shows)
       let streak = 0;
@@ -193,7 +204,12 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         }
       }
 
-      // Generate insight
+      // Generate insight with priority:
+      // 1. Welcome (0 shows)
+      // 2. Milestones (25, 50, 100, 200)
+      // 3. Incomplete Ratings (>= 1)
+      // 4. Ranking Reminder (unranked >= 3)
+      // 5. Streak (>= 2 months)
       let generatedInsight: InsightData | null = null;
       
       if (totalShows === 0) {
@@ -207,6 +223,14 @@ export const useHomeStats = (): UseHomeStatsReturn => {
           type: 'milestone_reached',
           title: `${totalShows} Shows!`,
           message: `Incredible milestone! You've logged ${totalShows} concerts.`,
+        };
+      } else if (incompleteRatingsCount >= 1) {
+        generatedInsight = {
+          type: 'incomplete_ratings',
+          title: `${incompleteRatingsCount} ${incompleteRatingsCount === 1 ? 'Show Needs' : 'Shows Need'} Ratings`,
+          message: 'Tap to complete your show reviews.',
+          actionable: true,
+          action: 'incomplete-ratings' as InsightAction,
         };
       } else if (unrankedCount >= 3) {
         generatedInsight = {
@@ -235,6 +259,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         topShow,
         uniqueCities: cities.size,
         uniqueCountries: countries.size,
+        incompleteRatingsCount,
       });
       setInsight(generatedInsight);
     } catch (error) {
