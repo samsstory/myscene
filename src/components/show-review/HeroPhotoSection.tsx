@@ -127,26 +127,35 @@ export const HeroPhotoSection = ({
       </div>;
   }
 
-  // No Photo State
-  return <div className={cn("relative aspect-[4/3] rounded-xl overflow-hidden", "bg-gradient-to-br from-primary/20 via-background to-primary-glow/10", "border border-white/10")}>
+  // No Photo State - updated to match photo version
+  return (
+    <div className={cn(
+      "relative aspect-[4/3] rounded-xl overflow-hidden",
+      "bg-gradient-to-br from-primary/20 via-background to-primary-glow/10",
+      "border border-white/10"
+    )}>
       {/* Animated glow effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-      
-      {/* Score Badge (top right even without photo) */}
-      <div className={cn("absolute top-3 right-3 px-3 py-1.5 rounded-full", "bg-gradient-to-r backdrop-blur-sm border border-white/20", getScoreGradient(score))}>
-        <span className="text-sm font-black text-white tracking-wide" style={{
-        textShadow: "0 0 10px rgba(255,255,255,0.5)"
-      }}>
-          {score.toFixed(1)}
-        </span>
+
+      {/* Top Left: Edit Show Button */}
+      <button 
+        onClick={onEditShow} 
+        className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+      >
+        <Pencil className="h-4 w-4 text-white/80" />
+      </button>
+
+      {/* Top Right: Scene Logo */}
+      <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+        <SceneLogo size="sm" />
       </div>
 
       {/* Center: Upload Prompt */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
         <div className="p-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/20" style={{
-        animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        boxShadow: "0 0 20px rgba(255,255,255,0.1)"
-      }}>
+          animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+          boxShadow: "0 0 20px rgba(255,255,255,0.1)"
+        }}>
           <Camera className="h-8 w-8 text-white/60" />
         </div>
         <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
@@ -155,29 +164,65 @@ export const HeroPhotoSection = ({
         </Button>
       </div>
 
-      {/* Bottom: Glass Metadata Bar */}
+      {/* Bottom: Glass Metadata Bar - matching photo version layout */}
       <div className="absolute bottom-0 left-0 right-0 p-4">
         <div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
-          <h2 className="font-black text-xl text-white tracking-wide truncate" style={{
-          textShadow: "0 0 12px rgba(255,255,255,0.4)"
-        }}>
-            {headliner?.name}
-          </h2>
-            {supportingArtists.length > 0 && <p className="text-white/50 text-xs mt-0.5 truncate">
-                + {supportingArtists.map(a => a.name).join(', ')}
-              </p>}
-            <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
-              <button onClick={openInMaps} className="flex items-center gap-1 hover:text-white/80 transition-colors truncate">
-                <MapPin className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">{venue.name}</span>
-              </button>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-black text-xl text-white tracking-wide truncate" style={{
+                textShadow: "0 0 12px rgba(255,255,255,0.4)"
+              }}>
+                {headliner?.name}
+              </h2>
+              {supportingArtists.length > 0 && (
+                <p className="text-white/50 text-xs mt-0.5 truncate">
+                  + {supportingArtists.map(a => a.name).join(', ')}
+                </p>
+              )}
+              <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
+                <button onClick={openInMaps} className="flex items-center gap-1 hover:text-white/80 transition-colors truncate">
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{venue.name}</span>
+                </button>
+              </div>
+              <p className="text-white/50 text-xs mt-0.5">{formattedDate}</p>
             </div>
-            <p className="text-white/50 text-xs mt-0.5">{formattedDate}</p>
+            {/* Score & Rank Column */}
+            <div className="gap-2 flex-shrink-0 flex-col flex items-end justify-center py-[12px]">
+              {/* Score Badge - White background, black text */}
+              <div className="px-3 py-1.5 rounded-full bg-white border border-white/20">
+                <span className="text-sm font-black text-black tracking-wide">
+                  {score.toFixed(1)}
+                </span>
+              </div>
+              {/* Rank Badge - Prominent with glow */}
+              <span 
+                className="text-sm font-bold text-primary tracking-wide"
+                style={{
+                  textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
+                }}
+              >
+                {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
+              </span>
+              {needsMoreRanking && onRankThisShow && (
+                <button 
+                  onClick={onRankThisShow} 
+                  className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
+                             text-amber-400/80 text-[10px] font-medium hover:bg-amber-500/20 transition-colors
+                             flex items-center gap-0.5"
+                >
+                  <Scale className="h-2.5 w-2.5" />
+                  Rank
+                </button>
+              )}
+            </div>
           </div>
+        </div>
       </div>
 
       {/* Hidden file input */}
       <Input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={onPhotoUpload} />
-    </div>;
+    </div>
+  );
 };
 export default HeroPhotoSection;
