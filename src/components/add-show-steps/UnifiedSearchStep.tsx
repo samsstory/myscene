@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2, Music, MapPin, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export type SearchResultType = 'artist' | 'venue';
 
@@ -86,18 +87,23 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
         Search for an artist, venue, or festival
       </p>
 
-      {/* Search input */}
+      {/* Search input - Glass style */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+        <Search className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
         <Input
           placeholder="Search artist, venue, or festival..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-10 h-12 text-base"
+          className={cn(
+            "pl-10 pr-10 h-12 text-base",
+            "bg-white/[0.03] border-white/[0.1] transition-all duration-200",
+            "focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
+            "focus:shadow-[0_0_16px_hsl(189_94%_55%/0.2)]"
+          )}
           autoFocus
         />
         {isSearching && (
-          <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-muted-foreground" />
         )}
       </div>
 
@@ -108,7 +114,12 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
           <div className="flex gap-2">
             <button
               onClick={handleManualArtistAdd}
-              className="flex-1 p-3 rounded-lg border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all text-left"
+              className={cn(
+                "flex-1 p-3 rounded-lg transition-all duration-200 text-left",
+                "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
+                "hover:border-primary/50 hover:bg-primary/5",
+                "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+              )}
             >
               <div className="flex items-center gap-2">
                 <Music className="h-4 w-4 text-primary" />
@@ -120,7 +131,12 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
             </button>
             <button
               onClick={handleManualVenueAdd}
-              className="flex-1 p-3 rounded-lg border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all text-left"
+              className={cn(
+                "flex-1 p-3 rounded-lg transition-all duration-200 text-left",
+                "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
+                "hover:border-primary/50 hover:bg-primary/5",
+                "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+              )}
             >
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-primary" />
@@ -144,7 +160,12 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
               <button
                 key={result.id}
                 onClick={() => onSelect(result)}
-                className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
+                className={cn(
+                  "w-full text-left p-4 rounded-lg transition-all duration-200",
+                  "bg-white/[0.03] backdrop-blur-sm border border-white/[0.08]",
+                  "hover:border-primary/50 hover:bg-primary/5",
+                  "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+                )}
               >
                 <div className="flex items-start gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -175,11 +196,16 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
               <button
                 key={result.id}
                 onClick={() => onSelect(result)}
-                className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
+                className={cn(
+                  "w-full text-left p-4 rounded-lg transition-all duration-200",
+                  "bg-white/[0.03] backdrop-blur-sm border border-white/[0.08]",
+                  "hover:border-primary/50 hover:bg-primary/5",
+                  "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+                )}
               >
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold">{result.name}</div>
@@ -191,7 +217,7 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                       {result.userShowCount && result.userShowCount > 0 && (
                         <span className="text-primary font-medium">
-                          You've been {result.userShowCount} time{result.userShowCount !== 1 ? 's' : ''}
+                          You've seen {result.userShowCount} time{result.userShowCount !== 1 ? 's' : ''}
                         </span>
                       )}
                       {result.sceneUsersCount && result.sceneUsersCount > 0 && (
