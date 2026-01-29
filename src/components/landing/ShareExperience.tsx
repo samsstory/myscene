@@ -46,15 +46,15 @@ const StoryMockup = () => (
       <X className="w-6 h-6 text-white/80" />
     </div>
 
-    {/* Bottom center: Scene logo */}
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-      <div className="bg-black/30 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/10">
+    {/* Bottom center: Scene logo - properly centered */}
+    <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+      <div className="bg-black/30 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/10 flex items-center justify-center">
         <SceneLogo size="sm" />
       </div>
     </div>
 
-    {/* Show info overlay - positioned in upper area, reduced size */}
-    <div className="absolute top-20 left-3 right-3">
+    {/* Show info overlay - positioned below light trussing, reduced size */}
+    <div className="absolute top-[45%] left-3 right-3">
       <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10 transform scale-[0.7] origin-top-left">
         <div className="flex justify-between items-start mb-2">
           <div>
