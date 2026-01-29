@@ -45,32 +45,38 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          full_name: string | null
           home_city: string | null
           home_latitude: number | null
           home_longitude: number | null
           id: string
           referral_code: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          full_name?: string | null
           home_city?: string | null
           home_latitude?: number | null
           home_longitude?: number | null
           id: string
           referral_code?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          full_name?: string | null
           home_city?: string | null
           home_latitude?: number | null
           home_longitude?: number | null
           id?: string
           referral_code?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
