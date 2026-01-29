@@ -375,7 +375,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           <RankingProgressCard
             percentage={stats.globalConfirmationPercentage}
             totalShows={shows.length}
-            onTap={() => setFocusedRankingOpen(true)}
+            onTap={() => onNavigateToRank?.()}
           />
         )}
 
