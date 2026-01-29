@@ -35,19 +35,20 @@ const MockShowCard = () => (
     {/* Stacked show cards */}
     <div className="flex-1 px-3 py-2 flex flex-col">
       {/* Card 1 - Top ranked (Expanded) - Fred again.. */}
-      <div 
-        className="relative rounded-xl overflow-hidden shadow-lg z-[60]"
-        style={{ aspectRatio: "4/3" }}
-      >
         <div 
-          className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30"
-          style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&q=80')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          className="relative rounded-xl overflow-hidden shadow-lg z-[60]"
+          style={{ aspectRatio: "4/3" }}
+        >
+          <div 
+            className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30"
+            style={{
+              backgroundImage: "url('https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&q=80')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "brightness(1.15) contrast(1.1)",
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         
         {/* Rank badge */}
         <div className="absolute top-2 left-2">
@@ -92,11 +93,11 @@ const MockShowCard = () => (
           className="relative mt-[-12px]"
           style={{ zIndex: card.zIndex }}
         >
-          <div className="relative rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-sm border border-white/[0.05]">
-            {/* Photo background at 20% opacity */}
+          <div className="relative rounded-xl overflow-hidden bg-white/[0.05] backdrop-blur-sm border border-white/[0.08]">
+            {/* Photo background at 25% opacity with brightness boost */}
             <div 
-              className="absolute inset-0 bg-cover bg-center opacity-20"
-              style={{ backgroundImage: `url('${card.photo}')` }}
+              className="absolute inset-0 bg-cover bg-center opacity-25"
+              style={{ backgroundImage: `url('${card.photo}')`, filter: "brightness(1.2)" }}
             />
             <div className="relative py-5 px-3 flex items-center justify-between">
               <span 
@@ -163,18 +164,30 @@ const LandingHero = () => {
               <Button 
                 size="lg" 
                 onClick={() => navigate("/auth")} 
-                className="shadow-glow text-lg px-8 hover:scale-105 transition-transform"
+                className="shadow-glow text-lg px-10 py-6 hover:scale-105 transition-transform"
               >
-                Get Started
+                Join The Waitlist
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
                 onClick={() => navigate("/dashboard")} 
-                className="text-lg px-8 border-white/20 text-foreground hover:bg-white/10"
+                className="text-base px-6 border-white/20 text-foreground hover:bg-white/10"
               >
-                View Demo
+                Try Live Demo
               </Button>
+            </div>
+
+            {/* Social proof */}
+            <div className="flex items-center gap-3 justify-center lg:justify-start pt-2">
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/60 to-primary border-2 border-background" />
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary/60 to-secondary border-2 border-background" />
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/60 to-accent border-2 border-background" />
+              </div>
+              <span className="text-sm text-muted-foreground">
+                Join 1,200+ music lovers
+              </span>
             </div>
           </div>
 
