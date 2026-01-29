@@ -1206,33 +1206,31 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
   }, [venueData, viewLevel]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
       {/* Year Toggle + Stats Header - sits above the map */}
       {shows.length > 0 && (
-        <div className="flex flex-col items-center gap-2 py-3 px-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <MapYearToggle
-              years={availableYears}
-              selectedYear={selectedYear}
-              onYearChange={setSelectedYear}
-            />
-            <MapStatsCard
-              totalShows={mapStats.totalShows}
-              totalCountries={mapStats.totalCountries}
-              totalCities={mapStats.totalCities}
-              totalVenues={mapStats.totalVenues}
-            />
-          </div>
+        <div className="flex items-center gap-3 pb-3 shrink-0">
+          <MapYearToggle
+            years={availableYears}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+          />
+          <MapStatsCard
+            totalShows={mapStats.totalShows}
+            totalCountries={mapStats.totalCountries}
+            totalCities={mapStats.totalCities}
+            totalVenues={mapStats.totalVenues}
+          />
         </div>
       )}
 
-      {/* Map Container - takes remaining space */}
+      {/* Map Container - takes remaining space with rounded corners */}
       <div className="relative flex-1 min-h-0">
-        <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
+        <div ref={mapContainer} className="absolute inset-0 rounded-xl overflow-hidden" />
 
         {/* Empty state when no shows */}
         {shows.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-black/20 to-black/40 z-20 rounded-lg">
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-black/20 to-black/40 z-20 rounded-xl">
             <div className="text-center px-6 max-w-sm">
               {/* Decorative globe illustration */}
               <div className="relative mx-auto mb-6 w-24 h-24">
