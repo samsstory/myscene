@@ -130,7 +130,7 @@ const ConfirmationRing = ({
           )}
           style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
         >
-          {Math.round(clampedPercentage)}% Confirmed
+          {Math.round(clampedPercentage)}% Ranked
         </span>
       )}
     </div>
