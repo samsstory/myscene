@@ -23,6 +23,7 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
+  const [openShowId, setOpenShowId] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -71,6 +72,8 @@ const Dashboard = () => {
             onNavigateToRank={() => setActiveTab("rank")} 
             onAddFromPhotos={() => setShowBulkUpload(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
+            openShowId={openShowId}
+            onShowOpened={() => setOpenShowId(null)}
           />
         );
       case "globe":
@@ -92,6 +95,8 @@ const Dashboard = () => {
             onNavigateToRank={() => setActiveTab("rank")} 
             onAddFromPhotos={() => setShowBulkUpload(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
+            openShowId={openShowId}
+            onShowOpened={() => setOpenShowId(null)}
           />
         );
     }
@@ -235,6 +240,10 @@ const Dashboard = () => {
         onOpenChange={setShowAddDialog} 
         onShowAdded={() => {
           // Show added successfully - just close the dialog
+        }}
+        onViewShowDetails={(showId) => {
+          setActiveTab("home");
+          setOpenShowId(showId);
         }}
       />
 

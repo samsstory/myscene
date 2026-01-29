@@ -16,6 +16,7 @@ interface AddShowFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onShowAdded?: (show: AddedShowData) => void;
+  onViewShowDetails?: (showId: string) => void;
   editShow?: {
     id: string;
     venue: { name: string; location: string };
@@ -71,7 +72,7 @@ export interface ShowData {
 
 type EntryPoint = 'artist' | 'venue' | null;
 
-const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowProps) => {
+const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editShow }: AddShowFlowProps) => {
   const [step, setStep] = useState(1);
   const [entryPoint, setEntryPoint] = useState<EntryPoint>(null);
   const [showStepSelector, setShowStepSelector] = useState(false);
@@ -954,7 +955,12 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
           show={addedShow}
           onAddPhoto={handlePhotoUpload}
           onShare={handleShareShow}
-          onRank={() => setStep(6)}
+          onViewDetails={() => {
+            if (onViewShowDetails) {
+              onViewShowDetails(addedShow.id);
+            }
+            resetAndClose();
+          }}
           onDone={() => {
             toast.success("Show added! 🎉");
             if (onShowAdded) {

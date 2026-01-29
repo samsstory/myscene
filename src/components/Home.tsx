@@ -64,9 +64,11 @@ interface HomeProps {
   onAddFromPhotos?: () => void;
   onAddSingleShow?: () => void;
   initialView?: ViewMode;
+  openShowId?: string | null;
+  onShowOpened?: () => void;
 }
 
-const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView }: HomeProps) => {
+const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
@@ -162,6 +164,18 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
       supabase.removeChannel(channel);
     };
   }, [refetchStats]);
+
+  // Effect to open ShowReviewSheet when openShowId is provided
+  useEffect(() => {
+    if (openShowId && shows.length > 0) {
+      const showToOpen = shows.find(s => s.id === openShowId);
+      if (showToOpen) {
+        setReviewShow(showToOpen);
+        setReviewSheetOpen(true);
+        onShowOpened?.();
+      }
+    }
+  }, [openShowId, shows, onShowOpened]);
 
   const handleDeleteShow = async () => {
     if (!deleteConfirmShow) return;
