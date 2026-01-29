@@ -22,9 +22,21 @@ interface RankingCardProps {
   };
   onClick: () => void;
   disabled?: boolean;
+  position?: "left" | "right";
+  isWinner?: boolean;
+  isLoser?: boolean;
+  animationKey?: number;
 }
 
-const RankingCard = ({ show, onClick, disabled }: RankingCardProps) => {
+const RankingCard = ({ 
+  show, 
+  onClick, 
+  disabled, 
+  position = "left",
+  isWinner = false,
+  isLoser = false,
+  animationKey = 0
+}: RankingCardProps) => {
   const headliner = show.artists.find(a => a.is_headliner);
   const artistName = headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
   
@@ -51,17 +63,34 @@ const RankingCard = ({ show, onClick, disabled }: RankingCardProps) => {
     aspects.push({ label: "Show", value: show.rating });
   }
 
+  const slideAnimation = position === "left" 
+    ? "animate-slide-in-left" 
+    : "animate-slide-in-right";
+  
+  const animationDelay = position === "right" ? "animation-delay-150" : "";
+
   return (
     <button
+      key={`${show.id}-${animationKey}`}
       onClick={onClick}
       disabled={disabled}
       className={cn(
         "flex-1 text-left cursor-pointer transition-all duration-200",
         "hover:scale-[1.02] active:scale-[0.98]",
-        "disabled:pointer-events-none disabled:opacity-50"
+        "disabled:pointer-events-none",
+        slideAnimation,
+        position === "right" && "[animation-delay:150ms]",
+        isWinner && "animate-winner-pulse winner-glow z-10",
+        isLoser && "animate-fade-scale-out"
       )}
+      style={{
+        opacity: 0, // Start invisible for slide-in animation
+      }}
     >
-      <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl overflow-hidden">
+      <div className={cn(
+        "bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl overflow-hidden transition-all duration-300",
+        isWinner && "border-primary/50"
+      )}>
         {/* Photo Section */}
         <div className="relative aspect-[4/3] overflow-hidden">
           {show.photo_url ? (
@@ -71,8 +100,40 @@ const RankingCard = ({ show, onClick, disabled }: RankingCardProps) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-[hsl(var(--coral))]/20 flex items-center justify-center">
-              <span className="text-4xl text-white/30">✦</span>
+            /* Enhanced mesh gradient fallback with Scene star */
+            <div className="w-full h-full relative overflow-hidden bg-[hsl(var(--background))]">
+              {/* Mesh gradient - cyan top-left */}
+              <div 
+                className="absolute inset-0 animate-pulse-glow"
+                style={{
+                  background: "radial-gradient(ellipse at 20% 20%, hsl(189 94% 55% / 0.15) 0%, transparent 50%)"
+                }}
+              />
+              {/* Mesh gradient - coral bottom-right */}
+              <div 
+                className="absolute inset-0"
+                style={{
+                  background: "radial-gradient(ellipse at 80% 80%, hsl(17 88% 60% / 0.15) 0%, transparent 50%)"
+                }}
+              />
+              {/* Noise texture overlay */}
+              <div 
+                className="absolute inset-0 opacity-[0.03]"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+                }}
+              />
+              {/* Scene star logo */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span 
+                  className="text-5xl text-white/40 animate-pulse-glow"
+                  style={{ 
+                    textShadow: '0 0 12px rgba(255,255,255,0.4), 0 0 24px rgba(255,255,255,0.2)' 
+                  }}
+                >
+                  ✦
+                </span>
+              </div>
             </div>
           )}
           
@@ -103,8 +164,8 @@ const RankingCard = ({ show, onClick, disabled }: RankingCardProps) => {
                   className={cn(
                     "h-full rounded-full transition-all duration-300",
                     index === 0 && "bg-gradient-to-r from-primary to-primary/70",
-                    index === 1 && "bg-gradient-to-r from-[hsl(var(--coral))] to-[hsl(var(--coral))]/70",
-                    index === 2 && "bg-gradient-to-r from-amber-400 to-amber-400/70"
+                    index === 1 && "bg-gradient-to-r from-secondary to-secondary/70",
+                    index === 2 && "bg-gradient-to-r from-accent to-accent/70"
                   )}
                   style={{ width: `${((aspect.value || 0) / 5) * 100}%` }}
                 />
