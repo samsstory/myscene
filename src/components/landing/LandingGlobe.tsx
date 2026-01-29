@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -44,6 +44,9 @@ interface LandingGlobeProps {
 const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const isUserInteractingRef = useRef(false);
+  const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const filteredMarkers = useMemo(() => {
     if (selectedYear === 'all') return CITY_MARKERS;
@@ -65,6 +68,54 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     })),
   });
 
+  const startAutoRotation = useCallback(() => {
+    if (!mapRef.current || isUserInteractingRef.current) return;
+    
+    const rotateGlobe = () => {
+      if (!mapRef.current || isUserInteractingRef.current) {
+        animationRef.current = null;
+        return;
+      }
+      
+      const center = mapRef.current.getCenter();
+      center.lng -= 0.15; // Slow rotation speed
+      mapRef.current.setCenter(center);
+      
+      animationRef.current = requestAnimationFrame(rotateGlobe);
+    };
+    
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    animationRef.current = requestAnimationFrame(rotateGlobe);
+  }, []);
+
+  const stopAutoRotation = useCallback(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+  }, []);
+
+  const handleInteractionStart = useCallback(() => {
+    isUserInteractingRef.current = true;
+    stopAutoRotation();
+    
+    // Clear any pending resume timeout
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = null;
+    }
+  }, [stopAutoRotation]);
+
+  const handleInteractionEnd = useCallback(() => {
+    // Resume auto-rotation after 3 seconds of no interaction
+    resumeTimeoutRef.current = setTimeout(() => {
+      isUserInteractingRef.current = false;
+      startAutoRotation();
+    }, 3000);
+  }, [startAutoRotation]);
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -76,11 +127,27 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
       projection: "globe",
       center: [-40, 25],
       zoom: 0.9,
-      interactive: false,
+      interactive: true,
       attributionControl: false,
+      dragPan: false,
+      scrollZoom: false,
+      doubleClickZoom: false,
+      touchZoomRotate: false,
+      keyboard: false,
+      dragRotate: true,
     });
 
     mapRef.current = map;
+
+    // Enable touch rotation
+    map.touchZoomRotate.enableRotation();
+
+    // Handle user interaction events
+    map.on("mousedown", handleInteractionStart);
+    map.on("touchstart", handleInteractionStart);
+    map.on("mouseup", handleInteractionEnd);
+    map.on("touchend", handleInteractionEnd);
+    map.on("dragend", handleInteractionEnd);
 
     map.on("style.load", () => {
       map.setFog({
@@ -133,9 +200,16 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
           "circle-blur": 0.1,
         },
       });
+
+      // Start auto-rotation after map loads
+      startAutoRotation();
     });
 
     return () => {
+      stopAutoRotation();
+      if (resumeTimeoutRef.current) {
+        clearTimeout(resumeTimeoutRef.current);
+      }
       map.remove();
       mapRef.current = null;
     };
@@ -154,7 +228,7 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full"
+      className="w-full h-full cursor-grab active:cursor-grabbing"
       style={{ background: "hsl(222, 47%, 6%)" }}
     />
   );
