@@ -116,9 +116,10 @@ const ArtistTagInput = ({
       <div
         onClick={handleContainerClick}
         className={cn(
-          "flex flex-wrap items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md border border-input bg-background cursor-text",
-          "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-          artists.length > 0 && "border-primary/40",
+          "flex flex-wrap items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md border bg-white/[0.03] cursor-text transition-all duration-200",
+          "focus-within:ring-2 focus-within:ring-primary/30 focus-within:ring-offset-2 focus-within:ring-offset-background",
+          "focus-within:border-primary/50 focus-within:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]",
+          artists.length > 0 ? "border-primary/40" : "border-white/[0.1]",
           className
         )}
       >
@@ -173,14 +174,17 @@ const ArtistTagInput = ({
 
       {/* Search results dropdown */}
       {showResults && searchResults.length > 0 && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover/95 backdrop-blur-sm border border-white/[0.1] rounded-md shadow-lg max-h-48 overflow-y-auto">
           {searchResults.map((result) => (
             <button
               key={result.id}
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => addArtist(result.name)}
-              className="w-full text-left px-3 py-2 hover:bg-accent text-sm transition-colors"
+              className={cn(
+                "w-full text-left px-3 py-2.5 text-sm transition-all duration-150",
+                "hover:bg-primary/10 hover:border-l-2 hover:border-primary border-l-2 border-transparent"
+              )}
             >
               <span className="font-medium">{result.name}</span>
               {result.subtitle && (

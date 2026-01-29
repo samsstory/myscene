@@ -92,20 +92,37 @@ const BulkReviewStep = ({
 
   return (
     <div className="space-y-4">
-      {/* Instruction + Progress */}
-      <div className="text-center space-y-2">
+      {/* Instruction + Visual Progress */}
+      <div className="text-center space-y-3">
         <p className="text-sm text-muted-foreground">
           {isMatching 
             ? "Finding venues from photo locations..."
             : "Add artist for each photo. Venue and date are optional."
           }
         </p>
-        <p className={cn(
-          "text-sm font-medium",
-          validShows.length > 0 ? "text-primary" : "text-muted-foreground"
-        )}>
-          {validShows.length} of {photos.length} ready
-        </p>
+        
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-3">
+          <div className="flex gap-1.5">
+            {photos.map((photo, idx) => (
+              <div 
+                key={photo.id}
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full transition-all duration-300",
+                  reviewedShows.get(photo.id)?.isValid
+                    ? "bg-primary shadow-[0_0_8px_hsl(189_94%_55%/0.6)]"
+                    : "bg-white/20"
+                )}
+              />
+            ))}
+          </div>
+          <span className={cn(
+            "text-sm font-medium",
+            validShows.length > 0 ? "text-primary" : "text-muted-foreground"
+          )}>
+            {validShows.length} of {photos.length} ready
+          </span>
+        </div>
       </div>
 
       {/* Review cards */}
@@ -126,11 +143,17 @@ const BulkReviewStep = ({
         ))}
       </div>
 
-      {/* Submit button */}
+      {/* Submit button - Enhanced gradient CTA */}
       <Button
         onClick={handleAddAll}
         disabled={validShows.length === 0 || isSubmitting || isMatching}
-        className="w-full"
+        className={cn(
+          "w-full py-6 text-base font-semibold rounded-xl transition-all duration-200",
+          "bg-gradient-to-r from-[hsl(189,94%,55%)] via-primary to-[hsl(17,88%,60%)]",
+          "shadow-lg shadow-primary/25",
+          "hover:shadow-primary/40 hover:scale-[1.01]",
+          "disabled:opacity-50 disabled:shadow-none disabled:scale-100"
+        )}
         size="lg"
       >
         {isSubmitting ? (
