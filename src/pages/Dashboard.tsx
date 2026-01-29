@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home as HomeIcon, Scale, Plus, Music, Camera, X } from "lucide-react";
+import { Home as HomeIcon, Globe, Scale, Plus, Music, Camera, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/components/Home";
@@ -75,6 +75,15 @@ const Dashboard = () => {
             onAddSingleShow={() => setShowAddDialog(true)}
           />
         );
+      case "globe":
+        return (
+          <Home 
+            initialView="globe"
+            onNavigateToRank={() => setActiveTab("rank")} 
+            onAddFromPhotos={() => setShowBulkUpload(true)}
+            onAddSingleShow={() => setShowAddDialog(true)}
+          />
+        );
       case "rank":
         return <Rank />;
       case "profile":
@@ -125,19 +134,31 @@ const Dashboard = () => {
         
         {/* Glass Pill Navigation */}
         <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-2 shadow-2xl">
-          <div className="flex items-center gap-10">
+          <div className="flex items-center gap-8">
             {/* Home */}
             <button
               onClick={() => setActiveTab("home")}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1",
                 activeTab === "home" 
-                  ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" 
+                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
               )}
             >
               <HomeIcon className="h-5 w-5" />
-              <span className="text-[11px] font-medium">Home</span>
+            </button>
+
+            {/* Globe */}
+            <button
+              onClick={() => setActiveTab("globe")}
+              className={cn(
+                "flex flex-col items-center gap-0.5 transition-all py-1",
+                activeTab === "globe" 
+                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
+                  : "text-white/60"
+              )}
+            >
+              <Globe className="h-5 w-5" />
             </button>
 
             {/* Rank */}
@@ -146,12 +167,11 @@ const Dashboard = () => {
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1",
                 activeTab === "rank" 
-                  ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" 
+                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
               )}
             >
               <Scale className="h-5 w-5" />
-              <span className="text-[11px] font-medium">Rank</span>
             </button>
           </div>
         </nav>
