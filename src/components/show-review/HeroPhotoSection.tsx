@@ -90,27 +90,33 @@ export const HeroPhotoSection = ({
                 <p className="text-white/50 text-xs mt-0.5">{formattedDate}</p>
               </div>
               {/* Score & Rank Column */}
-              <div className="gap-1 flex-shrink-0 flex-col flex items-center justify-center py-[12px]">
-                {/* Score Badge */}
-                <div className={cn("px-3 py-1.5 rounded-full", "bg-gradient-to-r border border-white/20", getScoreGradient(score))}>
-                  <span className="text-sm font-black text-white tracking-wide" style={{
-                  textShadow: "0 0 10px rgba(255,255,255,0.5)"
-                }}>
+              <div className="gap-2 flex-shrink-0 flex-col flex items-end justify-center py-[12px]">
+                {/* Score Badge - White background, black text */}
+                <div className="px-3 py-1.5 rounded-full bg-white border border-white/20">
+                  <span className="text-sm font-black text-black tracking-wide">
                     {score.toFixed(1)}
                   </span>
                 </div>
-                {/* Rank Badge */}
-                <div className="flex items-center gap-1">
-                  <span className="text-white/50 text-xs">
-                    {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
-                  </span>
-                  {needsMoreRanking && onRankThisShow && <button onClick={onRankThisShow} className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
-                                 text-amber-400/80 text-[10px] font-medium hover:bg-amber-500/20 transition-colors
-                                 flex items-center gap-0.5">
-                      <Scale className="h-2.5 w-2.5" />
-                      Rank
-                    </button>}
-                </div>
+                {/* Rank Badge - Prominent with glow */}
+                <span 
+                  className="text-sm font-bold text-primary tracking-wide"
+                  style={{
+                    textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
+                  }}
+                >
+                  {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
+                </span>
+                {needsMoreRanking && onRankThisShow && (
+                  <button 
+                    onClick={onRankThisShow} 
+                    className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
+                               text-amber-400/80 text-[10px] font-medium hover:bg-amber-500/20 transition-colors
+                               flex items-center gap-0.5"
+                  >
+                    <Scale className="h-2.5 w-2.5" />
+                    Rank
+                  </button>
+                )}
               </div>
             </div>
           </div>
