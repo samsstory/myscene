@@ -1094,7 +1094,7 @@ export const PhotoOverlayEditor = ({
               {/* Footer - rank and logo - centered */}
               <div className="mt-2 text-[10px] flex flex-col items-center gap-0.5">
                 {overlayConfig.showRank && rankData.total > 0 ? <span 
-                  className="text-xs font-semibold text-white cursor-pointer transition-opacity hover:opacity-70"
+                  className="text-[15px] font-semibold text-white cursor-pointer transition-opacity hover:opacity-70"
                   style={{
                     textShadow: "0 0 8px rgba(255,255,255,0.6), 0 0 16px rgba(255,255,255,0.3)"
                   }}
