@@ -133,12 +133,8 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
   // Handler when photo is added via QuickPhotoAddSheet
   const handlePhotoAdded = (photoUrl: string) => {
     if (quickPhotoShow) {
-      const updatedShow = { ...quickPhotoShow, photo_url: photoUrl };
+      // Close the sheet and refresh shows - don't open the editor
       setQuickPhotoOpen(false);
-      // Transition to PhotoOverlayEditor with updated show
-      setDirectEditShow(updatedShow);
-      setDirectEditOpen(true);
-      // Refresh shows list
       fetchShows();
     }
   };
