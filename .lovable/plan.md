@@ -1,183 +1,74 @@
 
-
-# SMS Waitlist Signup with Follow-up Questions
+# Add Centered "See Full Details" Toggle
 
 ## Overview
-Replace the "Join Waitlist" buttons with an inline phone number input that collects SMS-capable phone numbers, followed by optional quick-tap questions for marketing insights.
+Add a single minimal toggle button centered above the "Tap to choose the winner" instruction that expands both ranking cards simultaneously to show all ratings and complete notes.
 
----
-
-## User Flow
-
+## Current Layout (Bottom Section)
 ```text
-Step 1: Phone Input
-+-------------------------------------------------------+
-| 🇺🇸 +1 ▼ | (555) 123-4567          | Get Early Access |
-+-------------------------------------------------------+
-
-Step 2: Success + Follow-up Questions (Optional)
-+-------------------------------------------------------+
-| ✓ You're in! We'll text you when Scene launches.     |
-|                                                       |
-| How did you hear about us? (optional)                 |
-| [I was invited] [Instagram/TikTok] [Friend told me] [Other] |
-|                                                       |
-| How many shows do you go to per year?                 |
-| [1-3] [4-10] [11-20] [20+]                           |
-|                                                       |
-|                              [Skip] [Done →]          |
-+-------------------------------------------------------+
+   [Left Card]  VS  [Right Card]
+   
+           Tap to choose the winner
+           Can't compare these
 ```
 
----
-
-## Database Schema
-
-### New Table: `waitlist`
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| phone_number | text | E.164 format (+15551234567), unique |
-| country_code | text | Country code (US, GB, etc.) |
-| source | text | Page location (hero, cta) |
-| discovery_source | text | How they heard about Scene (nullable) |
-| shows_per_year | text | Frequency bucket (nullable) |
-| status | text | pending, notified, converted |
-| created_at | timestamp | When they signed up |
-| notified_at | timestamp | When launch SMS was sent |
-
-### RLS Policy
-- Public INSERT allowed (no auth required for signup)
-- Public UPDATE allowed only for same phone_number (to add follow-up answers)
-- No SELECT/DELETE from frontend
-
----
-
-## Follow-up Questions
-
-### Question 1: Discovery Source
-**"How did you hear about us?"**
-
-| Option | Value stored |
-|--------|--------------|
-| I was invited | `invited` |
-| Instagram/TikTok | `social` |
-| Friend told me | `friend` |
-| Other | `other` |
-
-### Question 2: Show Frequency
-**"How many shows do you go to per year?"**
-
-| Option | Value stored |
-|--------|--------------|
-| 1-3 | `1-3` |
-| 4-10 | `4-10` |
-| 11-20 | `11-20` |
-| 20+ | `20+` |
-
----
-
-## Component Structure
-
-### New Components
-
-| Component | Purpose |
-|-----------|---------|
-| `WaitlistPhoneInput.tsx` | Phone input with country selector |
-| `WaitlistFollowUp.tsx` | Optional follow-up questions UI |
-| `WaitlistSuccess.tsx` | Success state wrapper |
-
-### Modified Files
-
-| File | Changes |
-|------|---------|
-| `LandingHero.tsx` | Replace button with waitlist components |
-| `LandingCTA.tsx` | Replace button with waitlist components |
-
----
-
-## UI Design Details
-
-### Phone Input State
-- Country dropdown (US default, plus UK, CA, AU)
-- Auto-formatting phone display
-- Glassmorphism styling (bg-white/5, backdrop-blur)
-- Primary "Get Early Access" button with glow
-
-### Success + Questions State
-- Checkmark animation with confetti burst
-- "You're in!" confirmation message
-- Pill-style buttons for answer options
-- Single-select for each question
-- Skip button to dismiss without answering
-- Done button appears after any selection
-
-### Visual Styling
-- Answer pills: `bg-white/5 hover:bg-white/10 border-white/10`
-- Selected pill: `bg-primary/20 border-primary/50 text-primary`
-- Smooth transitions between states
-- Matches Scene's dark glassmorphism aesthetic
-
----
-
-## Technical Implementation
-
-### State Management
+## Proposed Layout
 ```text
-WaitlistPhoneInput
-├── phone: string
-├── countryCode: string
-├── isSubmitting: boolean
-├── isSuccess: boolean
-└── waitlistId: string (for updates)
-
-WaitlistFollowUp
-├── discoverySource: string | null
-├── showsPerYear: string | null
-├── isUpdating: boolean
-└── isDone: boolean
+   [Left Card]  VS  [Right Card]
+   
+         See full details  ▼     <- NEW: centered toggle
+       Tap to choose the winner
+         Can't compare these
 ```
 
-### Database Flow
-1. User submits phone → INSERT into waitlist → return id
-2. User answers questions → UPDATE waitlist WHERE id = returned_id
-3. User skips → No update needed
+## Implementation Approach
 
----
+### 1. Add Shared Expand State in Rank.tsx
+- Add `showDetails` boolean state to `Rank.tsx` 
+- This controls both cards expanding together (not individually)
 
-## Phone Validation
+### 2. Create Minimal Toggle Button in Rank.tsx  
+- Position above "Tap to choose the winner" text
+- Minimal styling: small text, muted color, centered
+- Include `ChevronDown` icon that rotates when expanded
+- Text toggles between "See full details" / "Hide details"
 
-- Format: Accept various formats, normalize to E.164
-- Length: 10 digits for US (after country code)
-- Duplicates: Check if phone exists, show "You're already on the list!"
+### 3. Pass Expand State to RankingCard
+- Add `isExpanded` prop to RankingCard component
+- When `true`, card shows:
+  - All 5 rating bars (not just top 3)
+  - Full notes text without truncation
 
----
+### 4. Update RankingCard Display Logic
+- When `isExpanded={false}` (current behavior):
+  - Show top 3 aspects with values
+  - Truncate notes to 60 chars
+- When `isExpanded={true}`:
+  - Show all 5 aspects that have values
+  - Show complete notes without truncation
 
-## Success Animation Sequence
+## Files to Modify
 
-1. Button transforms to checkmark (scale animation)
-2. Confetti burst from center
-3. Success message fades in
-4. Follow-up questions slide up after 500ms delay
-5. Questions remain until Skip/Done or auto-dismiss after 10s
+### src/components/Rank.tsx
+- Add `showDetails` state
+- Add toggle button with ChevronDown icon between cards section and instruction text
+- Pass `isExpanded={showDetails}` to both RankingCard components
 
----
+### src/components/rankings/RankingCard.tsx
+- Add `isExpanded?: boolean` prop to interface
+- Conditionally render all aspects vs top 3 based on prop
+- Conditionally render full notes vs truncated based on prop
 
-## Mobile Responsiveness
+## Visual Design
 
-- Phone input stacks vertically on small screens
-- Answer pills wrap to multiple rows
-- Touch-friendly tap targets (min 44px)
+Toggle button styling:
+- `text-xs text-muted-foreground/70`
+- Centered with flex layout
+- Small gap between text and chevron icon
+- Subtle hover state
+- Chevron rotates 180° when expanded
 
----
-
-## Summary
-
-This implementation:
-- Collects phone numbers with zero friction (no account needed)
-- Gathers optional marketing insights without blocking signup
-- Stores data ready for SMS campaigns via Twilio or marketing platforms
-- Maintains Scene's premium dark aesthetic throughout
-- Celebrates signup with confetti animation
-
+Expanded card content:
+- Smooth height transition using CSS
+- All rating bars maintain same styling
+- Full notes text wraps naturally
