@@ -1,4 +1,4 @@
-import { CheckCircle2, Plus, Image, MessageCircle, Scale, Music2, Share } from "lucide-react";
+import { CheckCircle2, Plus, Image, MessageCircle, Scale, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
 
@@ -21,8 +21,8 @@ const ShowCard = ({ show, onTap }: { show: AddedShowData; onTap: (show: AddedSho
       {show.photo_url ? (
         <img src={show.photo_url} alt="" className="w-full h-full object-cover" />
       ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <Music2 className="h-8 w-8 text-muted-foreground/50" />
+        <div className="w-full h-full flex items-center justify-center bg-muted">
+          <span className="text-2xl text-muted-foreground/60 select-none" style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}>✦</span>
         </div>
       )}
     </div>
@@ -84,8 +84,8 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
               </div>
             </div>
           ) : (
-            <div className="aspect-[4/3] w-full flex flex-col items-center justify-center gap-2 p-4">
-              <Music2 className="h-12 w-12 text-muted-foreground/50" />
+            <div className="aspect-[4/3] w-full flex flex-col items-center justify-center gap-2 p-4 bg-muted/50">
+              <span className="text-4xl text-muted-foreground/60 select-none" style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}>✦</span>
               <div className="text-center">
                 <p className="font-semibold">
                   {firstShow.artists.map(a => a.name).join(', ')}

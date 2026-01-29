@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Instagram, Music2 } from "lucide-react";
+import { Instagram } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
 import { cn, getScoreGradient, calculateShowScore } from "@/lib/utils";
@@ -133,7 +133,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               />
             ) : (
               <div className={cn("w-full h-full bg-gradient-to-br", scoreGradient, "flex items-center justify-center")}>
-                <Music2 className="h-16 w-16 text-white/30" />
+                <span className="text-4xl text-white/40 select-none" style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}>✦</span>
               </div>
             )}
             
