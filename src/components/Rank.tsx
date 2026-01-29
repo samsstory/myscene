@@ -388,9 +388,9 @@ export default function Rank() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
-      {/* Scene Logo Header */}
-      <div className="flex justify-center">
-        <SceneLogo size="sm" />
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-lg font-bold tracking-wide">Show Ranker</h1>
       </div>
 
       {/* Progress Bar */}
