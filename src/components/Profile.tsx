@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, User, Camera, Loader2 } from "lucide-react";
+import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,8 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referralCount, setReferralCount] = useState(0);
 
   useEffect(() => {
     fetchProfile();
@@ -27,9 +29,10 @@ const Profile = () => {
         return;
       }
 
+      // Fetch profile data including referral code
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("avatar_url")
+        .select("avatar_url, referral_code")
         .eq("id", user.id)
         .single();
 
@@ -39,6 +42,19 @@ const Profile = () => {
 
       if (profile?.avatar_url) {
         setAvatarUrl(profile.avatar_url);
+      }
+      if (profile?.referral_code) {
+        setReferralCode(profile.referral_code);
+      }
+
+      // Fetch referral count
+      const { count, error: countError } = await supabase
+        .from("referrals")
+        .select("*", { count: "exact", head: true })
+        .eq("referrer_id", user.id);
+
+      if (!countError && count !== null) {
+        setReferralCount(count);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -111,6 +127,13 @@ const Profile = () => {
     toast.success("Profile updated! 🎉");
   };
 
+  const copyReferralLink = async () => {
+    if (!referralCode) return;
+    const link = `${window.location.origin}/?ref=${referralCode}`;
+    await navigator.clipboard.writeText(link);
+    toast.success("Referral link copied!");
+  };
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -167,6 +190,60 @@ const Profile = () => {
             className="hidden"
             onChange={handleAvatarUpload}
           />
+        </CardContent>
+      </Card>
+
+      {/* Referral Stats Card */}
+      <Card className="border-border shadow-card bg-gradient-to-br from-primary/10 to-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-5 w-5 text-primary" />
+            Invite Friends
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stats */}
+          <div className="flex items-center gap-4 p-4 rounded-lg bg-white/[0.05] border border-white/[0.1]">
+            <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{referralCount}</p>
+              <p className="text-sm text-muted-foreground">
+                {referralCount === 1 ? "Friend invited" : "Friends invited"}
+              </p>
+            </div>
+          </div>
+
+          {/* Referral Code */}
+          {referralCode && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Your referral code</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-4 py-2 rounded-lg bg-white/[0.05] border border-white/[0.1] font-mono text-lg tracking-wider">
+                  {referralCode}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={copyReferralLink}
+                  className="shrink-0"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Share Button */}
+          <Button onClick={copyReferralLink} className="w-full" disabled={!referralCode}>
+            <Share2 className="h-4 w-4 mr-2" />
+            Copy Invite Link
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Share your link with friends. When they sign up, you'll get credit!
+          </p>
         </CardContent>
       </Card>
 
