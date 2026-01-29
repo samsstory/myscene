@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Camera, Instagram, Trophy, Loader2 } from "lucide-react";
+import { CheckCircle2, Camera, Instagram, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
@@ -17,11 +17,11 @@ interface SuccessStepProps {
   show: AddedShowData;
   onAddPhoto: (file: File) => Promise<void>;
   onShare: () => void;
-  onRank: () => void;
+  onViewDetails: () => void;
   onDone: () => void;
 }
 
-const SuccessStep = ({ show, onAddPhoto, onShare, onRank, onDone }: SuccessStepProps) => {
+const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: SuccessStepProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [photoAdded, setPhotoAdded] = useState(false);
 
@@ -112,15 +112,15 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onRank, onDone }: SuccessStepP
 
         <Card 
           className="cursor-pointer transition-all hover:border-primary"
-          onClick={onRank}
+          onClick={onViewDetails}
         >
           <CardContent className="flex items-center gap-3 p-4">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Trophy className="h-5 w-5 text-primary" />
+              <Eye className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left">
-              <div className="font-medium">Rank It</div>
-              <div className="text-sm text-muted-foreground">Compare against other shows</div>
+              <div className="font-medium">View Details</div>
+              <div className="text-sm text-muted-foreground">See full show breakdown</div>
             </div>
           </CardContent>
         </Card>
