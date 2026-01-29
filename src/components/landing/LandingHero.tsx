@@ -121,17 +121,15 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
     {/* Bottom Nav - Glass Pill + FAB */}
     <div className="px-4 py-2.5 flex items-center justify-center gap-4">
       <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
-        <Home
-          className="w-4 h-4 text-primary"
-          style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }}
-        />
+        <Home className="w-4 h-4 text-primary" style={{
+        filter: "drop-shadow(0 0 4px hsl(var(--primary)))"
+      }} />
         <Globe className="w-4 h-4 text-white/40" />
         <Crown className="w-4 h-4 text-white/40" />
       </div>
-      <div
-        className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg"
-        style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}
-      >
+      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{
+      boxShadow: "0 0 20px hsl(var(--primary) / 0.4)"
+    }}>
         <Plus className="w-4 h-4 text-primary-foreground" />
       </div>
     </div>
@@ -154,11 +152,7 @@ const LandingHero = () => {
             <SceneLogo size="lg" className="justify-center lg:justify-start" />
             
             {/* Micro-tag */}
-            <div className="flex justify-center lg:justify-start">
-              <span className="text-xs font-medium uppercase tracking-widest text-primary/70 px-3 py-1 rounded-full bg-primary/[0.08] border border-primary/[0.12]">
-                Concert log app
-              </span>
-            </div>
+            
             
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-2" style={{
             textShadow: "0 0 60px rgba(255,255,255,0.15)"
