@@ -149,8 +149,15 @@ const LandingHero = () => {
           <div className="space-y-8 text-center lg:text-left">
             <SceneLogo size="lg" className="justify-center lg:justify-start" />
             
+            {/* Micro-tag */}
+            <div className="flex justify-center lg:justify-start">
+              <span className="text-xs font-medium uppercase tracking-widest text-primary/70 px-3 py-1 rounded-full bg-primary/[0.08] border border-primary/[0.12]">
+                Concert log app
+              </span>
+            </div>
+            
             <h1 
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
+              className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-4"
               style={{ textShadow: "0 0 60px rgba(255,255,255,0.15)" }}
             >
               Your love of concerts deserves more than a ticket stub.
