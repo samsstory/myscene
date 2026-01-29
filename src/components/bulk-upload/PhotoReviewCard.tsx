@@ -307,31 +307,44 @@ const PhotoReviewCard = ({
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
       <div className={cn(
-        "rounded-xl border bg-card transition-all",
-        isValid ? "border-primary/50" : "border-border border-dashed"
+        "rounded-xl transition-all duration-300",
+        "bg-white/[0.03] backdrop-blur-sm border",
+        isValid 
+          ? "border-primary/40 shadow-[0_0_20px_hsl(189_94%_55%/0.15)]" 
+          : "border-white/[0.08] border-dashed"
       )}>
         {/* Header - always visible */}
         <CollapsibleTrigger asChild>
           <button 
             type="button" 
-            className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-muted/50 active:bg-muted/70"
+            className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-white/[0.02] active:bg-white/[0.04]"
           >
-            {/* Thumbnail with edit/delete overlay */}
-            <div className="relative flex-shrink-0 group">
+            {/* Thumbnail with status ring and edit/delete overlay */}
+            <div className={cn(
+              "relative flex-shrink-0",
+              isValid && "ring-2 ring-primary/60 ring-offset-2 ring-offset-background rounded-lg"
+            )}>
               <img 
                 src={previewUrl} 
                 alt="Show photo" 
                 className="w-12 h-12 object-cover rounded-lg"
               />
+              {/* Checkmark badge for complete */}
+              {isValid && (
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                  <Check className="h-3 w-3 text-primary-foreground" />
+                </div>
+              )}
+              {/* Always-visible photo actions on expanded cards */}
               {isExpanded && (
-                <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/50 rounded-lg">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       fileInputRef.current?.click();
                     }}
-                    className="p-1 rounded-full bg-black/50 hover:bg-black/70"
+                    className="p-1.5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
                   >
                     <Pencil className="h-3 w-3 text-white" />
                   </button>
@@ -341,7 +354,7 @@ const PhotoReviewCard = ({
                       e.stopPropagation();
                       onDelete(photo.id);
                     }}
-                    className="p-1 rounded-full bg-black/50 hover:bg-destructive"
+                    className="p-1.5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-destructive/80 transition-colors"
                   >
                     <X className="h-3 w-3 text-white" />
                   </button>
@@ -349,17 +362,48 @@ const PhotoReviewCard = ({
               )}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className={cn(
-                "text-sm truncate",
-                artists.length > 0 ? "font-medium" : "text-orange-400"
-              )}>
-                {headerArtistText}
-              </p>
+              <div className="flex items-center gap-2">
+                {artists.length === 0 && (
+                  <span 
+                    className="text-base" 
+                    style={{ textShadow: '0 0 8px rgba(255,255,255,0.2)' }}
+                  >
+                    ✦
+                  </span>
+                )}
+                <p className={cn(
+                  "text-sm truncate",
+                  artists.length > 0 ? "font-medium text-foreground" : "text-white/60"
+                )}>
+                  {artists.length > 0 ? headerArtistText : "Who'd you see?"}
+                </p>
+              </div>
               {venue && (
-                <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
                   {isAutoDetectedVenue && <MapPin className="h-3 w-3 text-primary" />}
                   {venue}
                 </p>
+              )}
+              {/* Rating preview pills in collapsed state */}
+              {hasRatings && !isExpanded && (
+                <div className="flex gap-1 mt-1.5">
+                  {[artistPerformance, sound, lighting, crowd, venueVibe]
+                    .filter(v => v !== null)
+                    .slice(0, 3)
+                    .map((val, idx) => (
+                      <span 
+                        key={idx} 
+                        className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-medium"
+                      >
+                        {val}
+                      </span>
+                    ))}
+                  {[artistPerformance, sound, lighting, crowd, venueVibe].filter(v => v !== null).length > 3 && (
+                    <span className="w-5 h-5 rounded-full bg-white/10 text-muted-foreground text-[10px] flex items-center justify-center">
+                      +{[artistPerformance, sound, lighting, crowd, venueVibe].filter(v => v !== null).length - 3}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </button>
@@ -367,7 +411,7 @@ const PhotoReviewCard = ({
 
         {/* Expanded content */}
         <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-          <div className="px-3 pb-3 space-y-3 border-t border-border/50">
+          <div className="px-3 pb-3 space-y-3 border-t border-white/[0.06]">
             {/* Artist tag input */}
             <div className="mt-3">
               <Label className="text-xs text-muted-foreground mb-1.5 block">
@@ -455,6 +499,7 @@ const PhotoReviewCard = ({
                     onChange={(e) => handleVenueInputChange(e.target.value)}
                     onFocus={() => setShowVenueResults(true)}
                     onBlur={() => setTimeout(() => setShowVenueResults(false), 200)}
+                    className="h-10 bg-white/[0.03] border-white/[0.1] focus:ring-primary/30 focus:border-primary/50 focus:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
                   />
                   {showVenueResults && venueResults.length > 0 && (
                     <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
@@ -525,7 +570,7 @@ const PhotoReviewCard = ({
 
             {/* Inline rating section */}
             {showRatings && (
-              <div className="space-y-4 pt-2 border-t border-border/50">
+              <div className="space-y-4 pt-2 border-t border-white/[0.06]">
                 <CompactRatingPills
                   label="Performance"
                   value={artistPerformance}
@@ -561,7 +606,7 @@ const PhotoReviewCard = ({
                     onChange={(e) => setNotes(e.target.value)}
                     maxLength={500}
                     rows={3}
-                    className="min-h-[60px] resize-none text-sm bg-muted/30 border-border"
+                    className="min-h-[60px] resize-none text-sm bg-white/[0.03] border-white/[0.1] focus:ring-primary/30 focus:border-primary/50"
                   />
                   <p className="text-xs text-muted-foreground text-right">
                     {notes.length}/500
