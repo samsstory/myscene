@@ -226,7 +226,7 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full cursor-grab active:cursor-grabbing"
+      className="w-full h-full cursor-grab active:cursor-grabbing [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden"
       style={{ background: "hsl(222, 47%, 6%)" }}
     />
   );
