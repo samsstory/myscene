@@ -1,6 +1,6 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { Instagram, Users } from "lucide-react";
+import { Instagram } from "lucide-react";
 
 // Show Review Sheet Mockup
 const ShowReviewMockup = () => (
@@ -42,8 +42,10 @@ const ShowReviewMockup = () => (
       </div>
     </div>
 
-    {/* Rating Bars */}
+    {/* Rating Bars with Label */}
     <div className="px-3 py-3 space-y-2">
+      {/* Section Label */}
+      <p className="text-white/40 text-[9px] uppercase tracking-wider mb-1">How it felt</p>
       {[
         { label: "Show", score: 95 },
         { label: "Sound", score: 92 },
@@ -75,24 +77,28 @@ const ShowReviewMockup = () => (
       </div>
     </div>
 
-    {/* Action Buttons */}
-    <div className="px-3 pb-3 space-y-2 mt-auto">
-      {/* Compare with friends button */}
-      <button className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/70 text-xs">
-        <Users className="w-3.5 h-3.5" />
-        <span>Compare with friends</span>
-      </button>
-      
-      {/* Share to Instagram button */}
+    {/* Action Buttons - Capture-first hierarchy */}
+    <div className="px-3 pb-2 space-y-2 mt-auto">
+      {/* Primary: Save/Log button */}
       <button 
         className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-white text-xs font-medium"
         style={{
           background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))"
         }}
       >
+        <span>Save to my Scene</span>
+      </button>
+      
+      {/* Secondary: Share button */}
+      <button className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/70 text-xs">
         <Instagram className="w-3.5 h-3.5" />
         <span>Share to Instagram</span>
       </button>
+    </div>
+
+    {/* Logged timestamp */}
+    <div className="px-3 pb-3">
+      <p className="text-white/30 text-[9px] text-center">Logged on Oct 12, 2024</p>
     </div>
   </div>
 );
