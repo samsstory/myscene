@@ -4,12 +4,13 @@ import { Slider } from "@/components/ui/slider";
 import { 
   Download, MapPin, Instagram, Move, Eye, EyeOff,
   Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, 
-  Trophy, RotateCcw, SunDim, MessageCircle
+  Trophy, RotateCcw, SunDim, MessageCircle, Camera, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 interface Artist {
   name: string;
   is_headliner: boolean;
@@ -93,6 +94,14 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showRankOptions, setShowRankOptions] = useState(false);
   
+  // Photo upload state - allows adding photos from this view
+  const [uploading, setUploading] = useState(false);
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(show.photo_url || null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  
+  // Effective photo URL (local upload takes precedence)
+  const effectivePhotoUrl = localPhotoUrl || show.photo_url;
+  
   // Aspect ratio mode: 'story' (9:16) or 'native' (original image ratio)
   const [aspectMode, setAspectMode] = useState<"story" | "native">("story");
   
@@ -129,17 +138,17 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     return () => container.removeEventListener('wheel', wheelHandler);
   }, [handleWheel]);
 
-  // Detect image dimensions on mount
+  // Detect image dimensions on mount or when photo changes
   useEffect(() => {
-    if (show.photo_url) {
+    if (effectivePhotoUrl) {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
         setImageDimensions({ width: img.width, height: img.height });
       };
-      img.src = show.photo_url;
+      img.src = effectivePhotoUrl;
     }
-  }, [show.photo_url]);
+  }, [effectivePhotoUrl]);
   // Helper: Filter shows by time period
   const filterShowsByTime = (shows: Show[], timeFilter: string) => {
     if (timeFilter === "all-time") return shows;
@@ -276,18 +285,18 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   };
 
   // Extract color when component mounts or image changes
-  useState(() => {
-    if (show.photo_url) {
-      extractPrimaryColor(show.photo_url);
+  useEffect(() => {
+    if (effectivePhotoUrl) {
+      extractPrimaryColor(effectivePhotoUrl);
     }
-  });
+  }, [effectivePhotoUrl]);
 
   // Use transform.scale for canvas generation
   const overlayScale = transform.scale;
 
   // Reusable canvas generation function
   const generateCanvas = async (): Promise<HTMLCanvasElement> => {
-    if (!show.photo_url) {
+    if (!effectivePhotoUrl) {
       throw new Error("No photo available");
     }
 
@@ -310,7 +319,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
         clearTimeout(timeout);
         reject(new Error('Failed to load image. The photo may have been deleted.'));
       };
-      img.src = show.photo_url!;
+      img.src = effectivePhotoUrl!;
     });
 
     // Use the image's natural dimensions, scaled to max 1920px on longest side
@@ -553,7 +562,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   };
 
   const handleDownloadImage = async () => {
-    if (!show.photo_url) {
+    if (!effectivePhotoUrl) {
       toast.error("No photo available");
       return;
     }
@@ -590,7 +599,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   };
 
   const handleShareToInstagram = async () => {
-    if (!show.photo_url) {
+    if (!effectivePhotoUrl) {
       toast.error("No photo available");
       return;
     }
@@ -656,7 +665,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
   };
 
   const handleShareWithFriends = async () => {
-    if (!show.photo_url) {
+    if (!effectivePhotoUrl) {
       toast.error("No photo available");
       return;
     }
@@ -712,13 +721,153 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     }
   };
 
-  if (!show.photo_url) {
+  // Image compression utility
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas not supported'));
+            return;
+          }
+
+          let width = img.width;
+          let height = img.height;
+          const maxWidth = 2000;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Compression failed'));
+                return;
+              }
+
+              if (blob.size > 2 * 1024 * 1024) {
+                canvas.toBlob(
+                  (smallerBlob) => {
+                    if (!smallerBlob) {
+                      reject(new Error('Compression failed'));
+                      return;
+                    }
+                    resolve(new File([smallerBlob], file.name, { type: 'image/jpeg' }));
+                  },
+                  'image/jpeg',
+                  0.7
+                );
+              } else {
+                resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+    });
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please upload a JPG, PNG, or WEBP image");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Please upload an image smaller than 10MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const compressedFile = await compressImage(file);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/${show.id}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('show-photos')
+        .upload(filePath, compressedFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('show-photos')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('shows')
+        .update({ photo_url: publicUrl })
+        .eq('id', show.id);
+
+      if (updateError) throw updateError;
+
+      setLocalPhotoUrl(publicUrl);
+      toast.success("Photo uploaded! You can now customize and share.");
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (!effectivePhotoUrl) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[400px]">
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-6">
         <div className="text-center space-y-2">
-          <p className="text-muted-foreground">No photo available for this show</p>
-          <p className="text-sm text-muted-foreground">Add a photo from the show details to customize and share</p>
+          <Camera className="h-16 w-16 mx-auto text-white/20 mb-4" />
+          <p className="text-white/60 text-lg font-medium">No photo available for this show</p>
+          <p className="text-sm text-white/40">Add a photo to customize and share</p>
         </div>
+        
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          className="hidden"
+          onChange={handlePhotoUpload}
+        />
+        
+        <Button
+          onClick={() => uploadInputRef.current?.click()}
+          disabled={uploading}
+          className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:opacity-90 text-white font-semibold px-8 py-6 rounded-xl shadow-lg"
+        >
+          {uploading ? (
+            <>
+              <Upload className="h-5 w-5 mr-2 animate-pulse" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Camera className="h-5 w-5 mr-2" />
+              Add Photo
+            </>
+          )}
+        </Button>
       </div>
     );
   }
@@ -789,7 +938,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
             >
             {/* Background Photo */}
             <img
-              src={show.photo_url}
+              src={effectivePhotoUrl}
               alt="Show"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
               crossOrigin="anonymous"
