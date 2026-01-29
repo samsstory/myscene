@@ -53,6 +53,9 @@ const PhotoSelectStep = ({
         <p className="text-xs text-muted-foreground">
           Add as many as you'd like!
         </p>
+        <p className="text-xs text-muted-foreground/70 mt-1">
+          Each photo creates a separate show entry
+        </p>
       </div>
 
       {/* Photo Grid */}
