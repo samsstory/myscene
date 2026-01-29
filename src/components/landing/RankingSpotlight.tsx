@@ -1,5 +1,6 @@
 import PhoneMockup from "./PhoneMockup";
-import { Sparkles, Home, Globe, Crown, Plus } from "lucide-react";
+import SceneLogo from "@/components/ui/SceneLogo";
+import { Home, Globe, Crown, Plus } from "lucide-react";
 
 // Mini rating bar for compact aspect display
 const MiniRatingBar = ({
@@ -85,7 +86,7 @@ const ShowCard = ({
 const RankingMockup = () => <div className="h-full w-full bg-gradient-accent flex flex-col">
     {/* Title below notch */}
     <div className="px-4 pt-8 pb-2">
-      <span className="text-white/80 text-sm font-medium">Rank Your Shows</span>
+      <SceneLogo size="sm" />
     </div>
 
     {/* VS Interface */}
@@ -163,15 +164,6 @@ const RankingSpotlight = () => {
               Finally answer: what's my all-time #1 show?
             </p>
 
-            {/* Coming soon teaser */}
-            <div className="pt-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-primary/30">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-primary text-sm font-medium">
-                  Coming soon: Compare with friends
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
