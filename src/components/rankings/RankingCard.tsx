@@ -26,6 +26,7 @@ interface RankingCardProps {
   isWinner?: boolean;
   isLoser?: boolean;
   animationKey?: number;
+  isExpanded?: boolean;
 }
 
 const RankingCard = ({ 
@@ -35,7 +36,8 @@ const RankingCard = ({
   position = "left",
   isWinner = false,
   isLoser = false,
-  animationKey = 0
+  animationKey = 0,
+  isExpanded = false
 }: RankingCardProps) => {
   const headliner = show.artists.find(a => a.is_headliner);
   const artistName = headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
@@ -49,14 +51,16 @@ const RankingCard = ({
     year: "numeric",
   });
 
-  // Get top 3 aspect ratings that exist
-  const aspects = [
+  // Get aspect ratings - all when expanded, top 3 when collapsed
+  const allAspects = [
     { label: "Show", value: show.artist_performance },
     { label: "Sound", value: show.sound },
     { label: "Light", value: show.lighting },
     { label: "Crowd", value: show.crowd },
     { label: "Vibe", value: show.venue_vibe },
-  ].filter(a => a.value !== null).slice(0, 3);
+  ].filter(a => a.value !== null);
+
+  const aspects = isExpanded ? allAspects : allAspects.slice(0, 3);
 
   // If no aspects, use overall rating
   if (aspects.length === 0 && show.rating) {
@@ -153,7 +157,7 @@ const RankingCard = ({
         </div>
 
         {/* Rating Bars Section */}
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-2 transition-all duration-300">
           {aspects.map((aspect, index) => (
             <div key={aspect.label} className="flex items-center gap-2">
               <span className="text-[10px] text-muted-foreground w-10 flex-shrink-0">
@@ -165,7 +169,9 @@ const RankingCard = ({
                     "h-full rounded-full transition-all duration-300",
                     index === 0 && "bg-gradient-to-r from-primary to-primary/70",
                     index === 1 && "bg-gradient-to-r from-secondary to-secondary/70",
-                    index === 2 && "bg-gradient-to-r from-accent to-accent/70"
+                    index === 2 && "bg-gradient-to-r from-accent to-accent/70",
+                    index === 3 && "bg-gradient-to-r from-primary/80 to-primary/50",
+                    index === 4 && "bg-gradient-to-r from-secondary/80 to-secondary/50"
                   )}
                   style={{ width: `${((aspect.value || 0) / 5) * 100}%` }}
                 />
@@ -173,10 +179,13 @@ const RankingCard = ({
             </div>
           ))}
 
-          {/* Notes preview */}
+          {/* Notes - truncated or full based on isExpanded */}
           {show.notes && (
-            <p className="text-[10px] text-muted-foreground/70 italic line-clamp-2 mt-2 leading-relaxed">
-              "{show.notes.substring(0, 60)}{show.notes.length > 60 ? '...' : ''}"
+            <p className={cn(
+              "text-[10px] text-muted-foreground/70 italic mt-2 leading-relaxed transition-all duration-300",
+              !isExpanded && "line-clamp-2"
+            )}>
+              "{isExpanded ? show.notes : (show.notes.length > 60 ? show.notes.substring(0, 60) + '...' : show.notes)}"
             </p>
           )}
         </div>
