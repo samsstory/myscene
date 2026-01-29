@@ -1,130 +1,272 @@
 
-# Add "Incomplete Ratings" Notification & Multi-Show Review View
+# Focused Ranking Session for Under-Ranked Shows
 
 ## Overview
-Add a new notification insight on the Home page that surfaces shows with incomplete detailed ratings (missing any of the 5 categories: artist performance, sound, lighting, crowd, venue vibe). When tapped, it opens a multi-show review view similar to the bulk upload review UI, allowing users to quickly complete ratings for multiple shows.
+
+Create a focused ranking session that activates when shows have fewer than 3 comparisons. When triggered from the Home page insight, this opens a specialized ranking mode that prioritizes under-ranked shows until they all reach the comparison threshold.
 
 ## What You'll Get
-- A new notification card on the Home page showing how many shows need rating completion
-- Tapping the notification opens a fullscreen sheet with a list of incomplete shows
-- Each show appears as an expandable card (same style as bulk upload) where you can fill in missing ratings
-- Progress indicator showing how many shows are complete
-- Save all changes at once with a single button
 
-## Implementation Details
+- Updated insight notification: "X Shows to Rank" triggers when any show has <3 comparisons
+- Tapping the notification opens a focused ranking session (not the general Rank tab)
+- The session only presents pairs involving under-ranked shows
+- Progress bar tracks shows reaching the 3-comparison threshold
+- Session automatically ends with celebration when all shows are sufficiently ranked
+- Seamless return to Home when complete
 
-### 1. Update Insight Types & Data Model
+## Technical Design
 
-**File: `src/components/home/DynamicInsight.tsx`**
-- Add new insight type: `'incomplete_ratings'`
-- Add new action type: `'incomplete-ratings'`
-- Add Star icon for the incomplete ratings insight
+### Progress Bar Calculation
 
-**File: `src/hooks/useHomeStats.ts`**
-- Add new stat: `incompleteRatingsCount` - count of shows missing any of the 5 detailed ratings
-- Store array of incomplete show IDs for passing to the view
-- Update insight priority logic:
-  1. Welcome (0 shows)
-  2. Milestones (25, 50, 100, 200)
-  3. Incomplete Ratings (when count >= 1) - NEW
-  4. Ranking Reminder (unranked >= 3)
-  5. Streak (>= 2 months)
+The current progress bar uses total comparisons, which doesn't clearly show session completion. For the focused session:
 
-### 2. Create Incomplete Ratings Review Component
-
-**New File: `src/components/home/IncompleteRatingsSheet.tsx`**
-- Full-screen sheet (90vh height) similar to ShowReviewSheet
-- Header with back button and title "Complete Your Ratings"
-- Progress indicator: "X of Y complete"
-- Scrollable list of expandable cards (accordion style)
-- Each card shows:
-  - Collapsed: Photo thumbnail, artist name, venue name, completion indicator
-  - Expanded: The 5 rating categories as tappable pill buttons (1-5)
-- "Save All" button at bottom (enabled when at least one rating changed)
-
-**Card Design:**
-- Uses the same compact rating pills from bulk upload (`CompactRatingPills`)
-- Visual indicator for which ratings are already filled vs empty
-- Auto-expands first incomplete card
-
-### 3. Wire Up Home Component
-
-**File: `src/components/Home.tsx`**
-- Add state for incomplete ratings sheet: `incompleteRatingsOpen`
-- Add state for incomplete shows list: `incompleteShows`
-- Update `handleInsightAction` to handle `'incomplete-ratings'` action
-- Fetch incomplete shows when sheet opens
-- Pass update handler to save ratings back to database
-
-### 4. Database Interaction
-
-**Query to identify incomplete shows:**
-```sql
-SELECT * FROM shows 
-WHERE user_id = $userId
-AND (
-  artist_performance IS NULL 
-  OR sound IS NULL 
-  OR lighting IS NULL 
-  OR crowd IS NULL 
-  OR venue_vibe IS NULL
-)
-ORDER BY show_date DESC
+```
+Progress = (shows with >=3 comparisons) / (total shows in focus pool) * 100
 ```
 
-**Update on save:**
-- Batch update all modified shows in a single transaction
-- Only update shows that have all 5 ratings now filled
+This gives users a clear goal: "Get all shows to 3 comparisons."
 
-## File Changes Summary
+### Smart Pairing Strategy for Focused Session
 
-| File | Action |
-|------|--------|
-| `src/components/home/DynamicInsight.tsx` | Modify - add new insight type |
-| `src/hooks/useHomeStats.ts` | Modify - add incomplete ratings count & priority |
-| `src/components/home/IncompleteRatingsSheet.tsx` | Create - new multi-show rating UI |
-| `src/components/Home.tsx` | Modify - handle new insight action, manage sheet state |
+The pairing algorithm will:
+1. Filter pool to shows with `comparisons_count < 3`
+2. For each under-ranked show, pair with an established show (>=3 comparisons) when possible
+3. Fallback: pair two under-ranked shows together
+4. Prioritize by uncertainty (fewer comparisons = higher priority)
 
-## UI Flow
+This ensures new shows quickly get anchored against stable rankings.
+
+### Session Flow
 
 ```text
 Home Page
     |
     v
 [DynamicInsight Card]
-"X Shows Need Ratings"
-"Tap to complete your show reviews"
+"5 Shows to Rank"
+"Compare a few shows to lock in your rankings"
     |
     v (tap)
-[IncompleteRatingsSheet - Full Screen]
+[FocusedRankingSession Sheet - Full Screen]
 +-----------------------------------+
-| <- Complete Your Ratings          |
+| <- Complete Rankings              |
 |                                   |
-| 3 of 7 complete                   |
+| SHOW RANKER                       |
 |                                   |
-| +-------------------------------+ |
-| | [img] Fred Again @ MSG        | |
-| |       ●●●○○  (3/5 rated)      | |
-| +-------------------------------+ |
-| | [img] Rufus Du Sol            | | <- expanded
-| |       @ Red Rocks             | |
-| |                               | |
-| | Artist  [1][2][3][4][5]       | |
-| | Sound   [1][2][3][4][5]       | |
-| | Lighting [●][●][●][ ][ ]      | |
-| | Crowd   [1][2][3][4][5]       | |
-| | Vibe    [1][2][3][4][5]       | |
-| +-------------------------------+ |
-| | [img] Jamie XX @ Printworks   | |
-| +-------------------------------+ |
+| [====----] 3 of 5 complete        |
 |                                   |
-| [     Save All Changes     ]      |
+| +-------------+ +-------------+   |
+| |   Show A    | |   Show B    |   |
+| |  (1 comp)   | |  (7 comp)   |   |
+| +-------------+ +-------------+   |
+|                                   |
+|     Tap to choose winner          |
+|     Can't compare these           |
+|                                   |
+| [See current rankings]            |
 +-----------------------------------+
+    |
+    v (all shows reach 3 comparisons)
+[Confetti + Auto-close]
+"Rankings locked in!"
 ```
 
-## Technical Considerations
+## Implementation Details
 
-- **Performance**: Fetch incomplete shows on-demand when sheet opens, not on every home page load
-- **State Management**: Track local edits in component state, batch save to database
-- **UX Polish**: Haptic feedback on rating taps, smooth accordion transitions
-- **Edge Case**: If all shows become complete after saving, auto-close sheet and show success toast
+### 1. Update Insight Logic
+
+**File: `src/hooks/useHomeStats.ts`**
+- Change unranked definition from `comparisons_count === 0` to `comparisons_count < 3`
+- Update insight message to reflect the focused session
+- Priority remains: after milestones and incomplete ratings
+
+**Changes:**
+```typescript
+// Current: counts shows with 0 comparisons
+const unrankedCount = totalShows - rankedShowIds.size;
+
+// New: counts shows with <3 comparisons
+const underRankedShows = rankings?.filter(r => r.comparisons_count < 3) || [];
+const underRankedCount = underRankedShows.length;
+```
+
+**Insight copy updates:**
+- Title: "X Shows to Rank" (unchanged)
+- Message: "Compare a few shows to lock in your rankings"
+
+### 2. Create Focused Ranking Session Component
+
+**New File: `src/components/home/FocusedRankingSession.tsx`**
+
+A full-screen sheet that wraps focused ranking logic:
+
+**Props:**
+```typescript
+interface FocusedRankingSessionProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onComplete: () => void;
+}
+```
+
+**Key Features:**
+- Fetches shows and rankings on mount
+- Filters to under-ranked shows (<3 comparisons)
+- Custom progress bar showing `completedCount / totalUnderRanked`
+- Reuses existing `RankingCard` component for the comparison UI
+- Modified pair selection to prioritize under-ranked shows
+- Auto-closes with confetti when all shows reach threshold
+
+**Internal State:**
+```typescript
+const [underRankedShows, setUnderRankedShows] = useState<Show[]>([]);
+const [allShows, setAllShows] = useState<Show[]>([]);
+const [rankings, setRankings] = useState<ShowRanking[]>([]);
+const [showPair, setShowPair] = useState<[Show, Show] | null>(null);
+const [completedCount, setCompletedCount] = useState(0);
+const THRESHOLD = 3;
+```
+
+**Pair Selection Logic:**
+```typescript
+const selectFocusedPair = () => {
+  // Get shows below threshold
+  const needsRanking = allShows.filter(show => {
+    const ranking = rankings.find(r => r.show_id === show.id);
+    return !ranking || ranking.comparisons_count < THRESHOLD;
+  });
+  
+  if (needsRanking.length === 0) {
+    // All done!
+    triggerConfetti();
+    onComplete();
+    return;
+  }
+  
+  // Find established shows (>=3 comparisons)
+  const established = allShows.filter(show => {
+    const ranking = rankings.find(r => r.show_id === show.id);
+    return ranking && ranking.comparisons_count >= THRESHOLD;
+  });
+  
+  // Pair under-ranked with established when possible
+  const primaryShow = needsRanking[0]; // Lowest comparison count
+  const pairedShow = established.length > 0 
+    ? pickBestEstablishedPair(primaryShow, established)
+    : needsRanking[1];
+  
+  setShowPair([primaryShow, pairedShow]);
+};
+```
+
+### 3. Wire Up Home Component
+
+**File: `src/components/Home.tsx`**
+
+**Add imports and state:**
+```typescript
+import FocusedRankingSession from "./home/FocusedRankingSession";
+
+const [focusedRankingOpen, setFocusedRankingOpen] = useState(false);
+```
+
+**Update insight action handler:**
+```typescript
+const handleInsightAction = (action: InsightAction) => {
+  if (action === 'rank-tab') {
+    // OLD: onNavigateToRank?.();
+    // NEW: Open focused session
+    setFocusedRankingOpen(true);
+  } else if (action === 'incomplete-ratings') {
+    setIncompleteRatingsOpen(true);
+  }
+};
+```
+
+**Add component to JSX:**
+```typescript
+<FocusedRankingSession
+  open={focusedRankingOpen}
+  onOpenChange={setFocusedRankingOpen}
+  onComplete={() => {
+    setFocusedRankingOpen(false);
+    refetchStats();
+    toast.success("Rankings locked in!");
+  }}
+/>
+```
+
+### 4. Update Progress Bar Component
+
+**File: `src/components/rankings/RankingProgressBar.tsx`**
+
+Add support for focused mode with explicit counts:
+
+```typescript
+interface RankingProgressBarProps {
+  comparisons?: number;
+  totalShows?: number;
+  // New props for focused mode
+  mode?: 'general' | 'focused';
+  completedCount?: number;
+  targetCount?: number;
+}
+
+const RankingProgressBar = ({ 
+  comparisons, 
+  totalShows,
+  mode = 'general',
+  completedCount,
+  targetCount
+}: RankingProgressBarProps) => {
+  let progress: number;
+  
+  if (mode === 'focused' && completedCount !== undefined && targetCount) {
+    progress = (completedCount / targetCount) * 100;
+  } else {
+    const targetComparisons = Math.max(15, (totalShows || 0) * 2.5);
+    progress = Math.min(100, ((comparisons || 0) / targetComparisons) * 100);
+  }
+  
+  return (
+    <div className="w-full px-6">
+      {mode === 'focused' && (
+        <p className="text-xs text-muted-foreground text-center mb-2">
+          {completedCount} of {targetCount} shows ranked
+        </p>
+      )}
+      <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+## File Changes Summary
+
+| File | Action |
+|------|--------|
+| `src/hooks/useHomeStats.ts` | Modify - update unranked threshold to <3 comparisons |
+| `src/components/home/FocusedRankingSession.tsx` | Create - new focused ranking session sheet |
+| `src/components/Home.tsx` | Modify - add state and handler for focused session |
+| `src/components/rankings/RankingProgressBar.tsx` | Modify - add focused mode with count display |
+
+## Edge Cases Handled
+
+1. **Only 1 under-ranked show**: Pairs with established shows for quick ranking
+2. **All shows under-ranked**: Pairs shows together, session takes longer but still works
+3. **User closes mid-session**: Progress saved, can resume later via notification
+4. **No shows at all**: Insight doesn't appear (existing behavior)
+5. **Session complete during comparison**: Waits for current comparison to finish, then celebrates
+
+## UX Polish
+
+- Haptic feedback on selection (existing)
+- Slide-in card animations (reuse from Rank.tsx)
+- Confetti burst at 100% progress
+- Success toast: "Rankings locked in!"
+- Back button returns to Home without losing progress
