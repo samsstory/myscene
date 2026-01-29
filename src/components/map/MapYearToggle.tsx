@@ -1,4 +1,10 @@
-import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type YearOption = string | "all";
 
@@ -10,22 +16,18 @@ interface MapYearToggleProps {
 
 const MapYearToggle = ({ years, selectedYear, onYearChange }: MapYearToggleProps) => {
   return (
-    <div className="flex gap-1">
-      {years.map((year) => (
-        <button
-          key={year}
-          onClick={() => onYearChange(year)}
-          className={cn(
-            "px-3 py-1.5 text-xs rounded-full transition-all font-medium",
-            selectedYear === year
-              ? "bg-primary text-primary-foreground"
-              : "bg-white/[0.04] text-white/50 backdrop-blur-sm hover:bg-white/[0.08]"
-          )}
-        >
-          {year === "all" ? "All" : year}
-        </button>
-      ))}
-    </div>
+    <Select value={selectedYear} onValueChange={onYearChange}>
+      <SelectTrigger className="w-[100px] h-8 bg-card/90 backdrop-blur-sm border-white/10 text-sm">
+        <SelectValue placeholder="Year" />
+      </SelectTrigger>
+      <SelectContent className="bg-card border-white/10 z-50">
+        {years.map((year) => (
+          <SelectItem key={year} value={year} className="text-sm">
+            {year === "all" ? "All Time" : year}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };
 
