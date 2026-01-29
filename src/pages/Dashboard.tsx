@@ -181,7 +181,10 @@ const Dashboard = () => {
       </main>
 
       {/* Floating Navigation */}
-      <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-between items-end px-6 gap-4">
+      <div className={cn(
+        "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4",
+        showSpotlightTour ? "z-[10001]" : "z-50"
+      )}>
         {/* Left spacer to balance FAB for centering pill */}
         <div className="w-0 shrink-0" />
         

@@ -1,4 +1,5 @@
-import Joyride, { CallBackProps, STATUS, Step, TooltipRenderProps } from "react-joyride";
+import { useState, useEffect } from "react";
+import Joyride, { CallBackProps, STATUS, Step, TooltipRenderProps, ACTIONS, EVENTS } from "react-joyride";
 
 interface SpotlightTourProps {
   run: boolean;
@@ -61,6 +62,15 @@ const GlassTooltip = ({
 };
 
 const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: SpotlightTourProps) => {
+  const [stepIndex, setStepIndex] = useState(0);
+
+  // Reset step index when tour starts
+  useEffect(() => {
+    if (run) {
+      setStepIndex(0);
+    }
+  }, [run]);
+
   const steps: Step[] = [
     {
       target: '[data-tour="fab"]',
@@ -68,6 +78,7 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
       placement: "left",
       disableBeacon: true,
       data: { totalSteps: 7 },
+      spotlightPadding: 12,
     },
     {
       target: '[data-tour="add-photos"]',
@@ -110,26 +121,46 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
       placement: "left",
       disableBeacon: true,
       data: { totalSteps: 7, isFinal: true },
+      spotlightPadding: 12,
     },
   ];
 
   const handleCallback = (data: CallBackProps) => {
-    const { status, index, type } = data;
+    const { status, action, type, index } = data;
 
-    // Open FAB menu before step 2 (Add Photos) with a small delay for animation
-    if (type === "step:before" && index === 1) {
-      setTimeout(() => {
-        onOpenFabMenu?.();
-      }, 100);
+    // Handle step advancement
+    if (type === EVENTS.STEP_AFTER) {
+      // User clicked Next button - advance to next step
+      if (action === ACTIONS.NEXT) {
+        const nextIndex = index + 1;
+        
+        // Open FAB menu before step 2 (Add Photos)
+        if (nextIndex === 1) {
+          setTimeout(() => {
+            onOpenFabMenu?.();
+            setStepIndex(nextIndex);
+          }, 100);
+          return;
+        }
+        
+        // Close FAB menu after step 3 (Add Single Show)
+        if (index === 2) {
+          onCloseFabMenu?.();
+        }
+        
+        setStepIndex(nextIndex);
+      }
     }
 
-    // Close FAB menu after step 3 (Add Single Show)
-    if (type === "step:after" && index === 2) {
-      onCloseFabMenu?.();
+    // Handle target click (tap-to-advance)
+    if (type === EVENTS.TARGET_NOT_FOUND) {
+      // Target disappeared - likely user interacted with it
+      // This can happen when FAB menu opens/closes
     }
 
     // Tour finished or skipped
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      onCloseFabMenu?.();
       onComplete();
     }
   };
@@ -138,6 +169,7 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
     <Joyride
       steps={steps}
       run={run}
+      stepIndex={stepIndex}
       continuous
       showSkipButton={false}
       showProgress={false}
@@ -145,7 +177,7 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
       tooltipComponent={GlassTooltip}
       disableOverlayClose
       disableCloseOnEsc
-      spotlightClicks={false}
+      spotlightClicks={true}
       spotlightPadding={8}
       styles={{
         options: {
