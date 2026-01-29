@@ -1047,7 +1047,10 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               {/* Large score at top - the visual anchor */}
               {overlayConfig.showRating && (
                 <div 
-                  className={`text-5xl font-black bg-gradient-to-r ${getScoreGradient(calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe))} bg-clip-text text-transparent leading-none mb-2 cursor-pointer transition-opacity hover:opacity-70`}
+                  className="text-5xl font-black text-white leading-none mb-2 cursor-pointer transition-opacity hover:opacity-70"
+                  style={{
+                    textShadow: "0 0 12px rgba(255,255,255,0.6), 0 0 24px rgba(255,255,255,0.3)"
+                  }}
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showRating"); }}
                 >
                   {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
@@ -1057,10 +1060,9 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               {/* Artist name below score */}
               {overlayConfig.showArtists && (
                 <h2 
-                  className="text-base font-bold mb-1 cursor-pointer transition-opacity hover:opacity-70 leading-tight" 
+                  className="text-base font-bold mb-1 cursor-pointer transition-opacity hover:opacity-70 leading-tight text-white" 
                   style={{ 
-                    color: showBackground ? primaryColor : "white",
-                    textShadow: showBackground ? "none" : "0 2px 8px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9)"
+                    textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 16px rgba(255,255,255,0.25)"
                   }}
                   onClick={(e) => { e.stopPropagation(); toggleConfig("showArtists"); }}
                 >
