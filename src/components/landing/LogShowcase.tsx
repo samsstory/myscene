@@ -14,8 +14,8 @@ const SmartCaptureMockup = () => (
     <div className="px-3">
       <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
         <img 
-          src="/images/concert-capture-demo.jpg" 
-          alt="Concert photo" 
+          src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=80" 
+          alt="Concert photo"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
