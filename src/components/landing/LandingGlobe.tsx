@@ -1,40 +1,50 @@
 import { useEffect, useRef, useMemo, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import {
+  generateArcPath,
+  createMultiArcGeoJSON,
+  ARC_DURATION,
+  ARC_DELAY,
+  HOLD_DURATION,
+  JOURNEY_2024,
+  JOURNEY_2025,
+  JOURNEY_2026,
+} from "@/lib/globe-arc-utils";
 
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
 
 // City markers with year data for progressive growth visualization
 export const CITY_MARKERS = [
   // === CORE CITIES (appear in all years) ===
-  { coordinates: [-73.99, 40.73], count: 4, years: [2024, 2025, 2026], country: "US" },   // New York
-  { coordinates: [-118.24, 34.05], count: 3, years: [2024, 2025, 2026], country: "US" },  // Los Angeles
-  { coordinates: [-0.12, 51.51], count: 3, years: [2024, 2025, 2026], country: "UK" },    // London
-  { coordinates: [13.40, 52.52], count: 2, years: [2024, 2025, 2026], country: "DE" },    // Berlin
-  { coordinates: [139.69, 35.69], count: 2, years: [2024, 2025, 2026], country: "JP" },   // Tokyo
-  { coordinates: [151.21, -33.87], count: 2, years: [2024, 2025, 2026], country: "AU" },  // Sydney
-  { coordinates: [-46.63, -23.55], count: 2, years: [2024, 2025, 2026], country: "BR" },  // São Paulo
+  { coordinates: [-73.99, 40.73] as [number, number], count: 4, years: [2024, 2025, 2026], country: "US" },   // 0: New York
+  { coordinates: [-118.24, 34.05] as [number, number], count: 3, years: [2024, 2025, 2026], country: "US" },  // 1: Los Angeles
+  { coordinates: [-0.12, 51.51] as [number, number], count: 3, years: [2024, 2025, 2026], country: "UK" },    // 2: London
+  { coordinates: [13.40, 52.52] as [number, number], count: 2, years: [2024, 2025, 2026], country: "DE" },    // 3: Berlin
+  { coordinates: [139.69, 35.69] as [number, number], count: 2, years: [2024, 2025, 2026], country: "JP" },   // 4: Tokyo
+  { coordinates: [151.21, -33.87] as [number, number], count: 2, years: [2024, 2025, 2026], country: "AU" },  // 5: Sydney
+  { coordinates: [-46.63, -23.55] as [number, number], count: 2, years: [2024, 2025, 2026], country: "BR" },  // 6: São Paulo
   
   // === 2024 ONLY ===
-  { coordinates: [-97.74, 30.27], count: 2, years: [2024], country: "US" },               // Austin
-  { coordinates: [-87.63, 41.88], count: 1, years: [2024], country: "US" },               // Chicago
-  { coordinates: [4.90, 52.37], count: 1, years: [2024], country: "NL" },                 // Amsterdam
+  { coordinates: [-97.74, 30.27] as [number, number], count: 2, years: [2024], country: "US" },               // 7: Austin
+  { coordinates: [-87.63, 41.88] as [number, number], count: 1, years: [2024], country: "US" },               // 8: Chicago
+  { coordinates: [4.90, 52.37] as [number, number], count: 1, years: [2024], country: "NL" },                 // 9: Amsterdam
   
   // === 2025+ (new in 2025) ===
-  { coordinates: [2.35, 48.85], count: 2, years: [2025, 2026], country: "FR" },           // Paris
-  { coordinates: [2.17, 41.39], count: 2, years: [2025, 2026], country: "ES" },           // Barcelona
-  { coordinates: [126.98, 37.57], count: 1, years: [2025, 2026], country: "KR" },         // Seoul
-  { coordinates: [-58.38, -34.60], count: 1, years: [2025, 2026], country: "AR" },        // Buenos Aires
-  { coordinates: [144.96, -37.81], count: 1, years: [2025, 2026], country: "AU" },        // Melbourne
+  { coordinates: [2.35, 48.85] as [number, number], count: 2, years: [2025, 2026], country: "FR" },           // 10: Paris
+  { coordinates: [2.17, 41.39] as [number, number], count: 2, years: [2025, 2026], country: "ES" },           // 11: Barcelona
+  { coordinates: [126.98, 37.57] as [number, number], count: 1, years: [2025, 2026], country: "KR" },         // 12: Seoul
+  { coordinates: [-58.38, -34.60] as [number, number], count: 1, years: [2025, 2026], country: "AR" },        // 13: Buenos Aires
+  { coordinates: [144.96, -37.81] as [number, number], count: 1, years: [2025, 2026], country: "AU" },        // 14: Melbourne
   
   // === 2026 ONLY (new in 2026) ===
-  { coordinates: [-122.42, 37.77], count: 2, years: [2026], country: "US" },              // San Francisco
-  { coordinates: [-79.38, 43.65], count: 1, years: [2026], country: "CA" },               // Toronto
-  { coordinates: [1.40, 38.91], count: 3, years: [2026], country: "ES" },                 // Ibiza
-  { coordinates: [100.50, 13.76], count: 1, years: [2026], country: "TH" },               // Bangkok
-  { coordinates: [103.82, 1.35], count: 1, years: [2026], country: "SG" },                // Singapore
-  { coordinates: [18.42, -33.93], count: 1, years: [2026], country: "ZA" },               // Cape Town
-  { coordinates: [-99.13, 19.43], count: 2, years: [2026], country: "MX" },               // Mexico City
+  { coordinates: [-122.42, 37.77] as [number, number], count: 2, years: [2026], country: "US" },              // 15: San Francisco
+  { coordinates: [-79.38, 43.65] as [number, number], count: 1, years: [2026], country: "CA" },               // 16: Toronto
+  { coordinates: [1.40, 38.91] as [number, number], count: 3, years: [2026], country: "ES" },                 // 17: Ibiza
+  { coordinates: [100.50, 13.76] as [number, number], count: 1, years: [2026], country: "TH" },               // 18: Bangkok
+  { coordinates: [103.82, 1.35] as [number, number], count: 1, years: [2026], country: "SG" },                // 19: Singapore
+  { coordinates: [18.42, -33.93] as [number, number], count: 1, years: [2026], country: "ZA" },               // 20: Cape Town
+  { coordinates: [-99.13, 19.43] as [number, number], count: 2, years: [2026], country: "MX" },               // 21: Mexico City
 ];
 
 interface LandingGlobeProps {
@@ -47,10 +57,39 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   const animationRef = useRef<number | null>(null);
   const isUserInteractingRef = useRef(false);
   const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Arc animation refs
+  const arcAnimationRef = useRef<number | null>(null);
+  const arcStateRef = useRef<{
+    journeyIndex: number;
+    arcProgress: number;
+    phase: 'drawing' | 'holding' | 'fading';
+    startTime: number;
+    allArcs: [number, number][][];
+  }>({
+    journeyIndex: 0,
+    arcProgress: 0,
+    phase: 'drawing',
+    startTime: 0,
+    allArcs: [],
+  });
 
   const filteredMarkers = useMemo(() => {
     if (selectedYear === 'all') return CITY_MARKERS;
     return CITY_MARKERS.filter(m => m.years.includes(selectedYear as number));
+  }, [selectedYear]);
+
+  const journeySequence = useMemo(() => {
+    if (selectedYear === 'all') {
+      // Combine all journeys for "all" view
+      return [...new Set([...JOURNEY_2024, ...JOURNEY_2025, ...JOURNEY_2026])];
+    }
+    switch (selectedYear) {
+      case 2024: return JOURNEY_2024;
+      case 2025: return JOURNEY_2025;
+      case 2026: return JOURNEY_2026;
+      default: return JOURNEY_2024;
+    }
   }, [selectedYear]);
 
   const createGeoJSON = (markers: typeof CITY_MARKERS): GeoJSON.FeatureCollection => ({
@@ -67,6 +106,137 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
       },
     })),
   });
+
+  // Generate all arc paths for the current journey
+  const generateJourneyArcs = useCallback((sequence: number[]): [number, number][][] => {
+    const arcs: [number, number][][] = [];
+    for (let i = 0; i < sequence.length - 1; i++) {
+      const startCity = CITY_MARKERS[sequence[i]];
+      const endCity = CITY_MARKERS[sequence[i + 1]];
+      if (startCity && endCity) {
+        const arc = generateArcPath(startCity.coordinates, endCity.coordinates, 50);
+        arcs.push(arc);
+      }
+    }
+    return arcs;
+  }, []);
+
+  // Stop arc animation
+  const stopArcAnimation = useCallback(() => {
+    if (arcAnimationRef.current) {
+      cancelAnimationFrame(arcAnimationRef.current);
+      arcAnimationRef.current = null;
+    }
+  }, []);
+
+  // Start/restart arc animation
+  const startArcAnimation = useCallback(() => {
+    if (!mapRef.current) return;
+    
+    stopArcAnimation();
+    
+    const allArcs = generateJourneyArcs(journeySequence);
+    arcStateRef.current = {
+      journeyIndex: 0,
+      arcProgress: 0,
+      phase: 'drawing',
+      startTime: performance.now(),
+      allArcs,
+    };
+
+    const animate = (currentTime: number) => {
+      if (!mapRef.current) return;
+      
+      const state = arcStateRef.current;
+      const elapsed = currentTime - state.startTime;
+      
+      if (state.phase === 'drawing') {
+        // Calculate which arc we're on and its progress
+        const totalArcTime = ARC_DURATION + ARC_DELAY;
+        const currentArcIndex = Math.floor(elapsed / totalArcTime);
+        const arcElapsed = elapsed % totalArcTime;
+        const arcProgress = Math.min(arcElapsed / ARC_DURATION, 1);
+        
+        if (currentArcIndex >= state.allArcs.length) {
+          // All arcs drawn, switch to holding phase
+          state.phase = 'holding';
+          state.startTime = currentTime;
+        } else {
+          state.journeyIndex = currentArcIndex;
+          state.arcProgress = arcProgress;
+          
+          // Build the visible arcs - all completed arcs plus current progress
+          const visibleArcs: [number, number][][] = [];
+          
+          // Add all completed arcs
+          for (let i = 0; i < currentArcIndex; i++) {
+            visibleArcs.push(state.allArcs[i]);
+          }
+          
+          // Add current arc progress
+          if (currentArcIndex < state.allArcs.length && arcElapsed <= ARC_DURATION) {
+            const currentArc = state.allArcs[currentArcIndex];
+            const pointsToShow = Math.ceil(arcProgress * currentArc.length);
+            visibleArcs.push(currentArc.slice(0, pointsToShow));
+          } else if (currentArcIndex < state.allArcs.length) {
+            visibleArcs.push(state.allArcs[currentArcIndex]);
+          }
+          
+          // Update the map source
+          const source = mapRef.current.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
+          if (source) {
+            source.setData(createMultiArcGeoJSON(visibleArcs));
+          }
+        }
+      } else if (state.phase === 'holding') {
+        // Show all arcs during hold
+        const source = mapRef.current.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
+        if (source) {
+          source.setData(createMultiArcGeoJSON(state.allArcs));
+        }
+        
+        if (elapsed - state.startTime > HOLD_DURATION) {
+          state.phase = 'fading';
+          state.startTime = currentTime;
+        }
+      } else if (state.phase === 'fading') {
+        // Update opacity for fade effect
+        const fadeProgress = Math.min((currentTime - state.startTime) / 500, 1);
+        const opacity = 1 - fadeProgress;
+        
+        if (mapRef.current.getLayer("arc-trail")) {
+          mapRef.current.setPaintProperty("arc-trail", "line-opacity", 0.4 * opacity);
+        }
+        if (mapRef.current.getLayer("arc-head")) {
+          mapRef.current.setPaintProperty("arc-head", "line-opacity", 0.9 * opacity);
+        }
+        
+        if (fadeProgress >= 1) {
+          // Reset and restart
+          if (mapRef.current.getLayer("arc-trail")) {
+            mapRef.current.setPaintProperty("arc-trail", "line-opacity", 0.4);
+          }
+          if (mapRef.current.getLayer("arc-head")) {
+            mapRef.current.setPaintProperty("arc-head", "line-opacity", 0.9);
+          }
+          
+          const source = mapRef.current.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
+          if (source) {
+            source.setData(createMultiArcGeoJSON([]));
+          }
+          
+          state.journeyIndex = 0;
+          state.arcProgress = 0;
+          state.phase = 'drawing';
+          state.startTime = currentTime;
+        }
+      }
+      
+      arcAnimationRef.current = requestAnimationFrame(animate);
+    };
+    
+    arcAnimationRef.current = requestAnimationFrame(animate);
+  }, [journeySequence, generateJourneyArcs, stopArcAnimation]);
 
   const startAutoRotation = useCallback(() => {
     if (!mapRef.current || isUserInteractingRef.current) return;
@@ -161,7 +331,39 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
         data: createGeoJSON(filteredMarkers),
       });
 
-      // Outer glow layer
+      // Add journey arcs source (initially empty)
+      map.addSource("journey-arcs", {
+        type: "geojson",
+        data: createMultiArcGeoJSON([]),
+      });
+
+      // Arc trail layer (thicker, lower opacity glow)
+      map.addLayer({
+        id: "arc-trail",
+        type: "line",
+        source: "journey-arcs",
+        paint: {
+          "line-color": "hsl(189, 94%, 55%)",
+          "line-width": 3,
+          "line-opacity": 0.4,
+          "line-blur": 2,
+        },
+      });
+
+      // Arc head layer (thinner, sharper leading edge)
+      map.addLayer({
+        id: "arc-head",
+        type: "line",
+        source: "journey-arcs",
+        paint: {
+          "line-color": "hsl(189, 94%, 65%)",
+          "line-width": 1.5,
+          "line-opacity": 0.9,
+          "line-blur": 0,
+        },
+      });
+
+      // Outer glow layer for cities
       map.addLayer({
         id: "city-glow",
         type: "circle",
@@ -180,7 +382,7 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
         },
       });
 
-      // Inner solid dot
+      // Inner solid dot for cities
       map.addLayer({
         id: "city-dots",
         type: "circle",
@@ -199,12 +401,14 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
         },
       });
 
-      // Start auto-rotation after map loads
+      // Start auto-rotation and arc animation after map loads
       startAutoRotation();
+      startArcAnimation();
     });
 
     return () => {
       stopAutoRotation();
+      stopArcAnimation();
       if (resumeTimeoutRef.current) {
         clearTimeout(resumeTimeoutRef.current);
       }
@@ -213,7 +417,7 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     };
   }, []);
 
-  // Update markers when year changes
+  // Update markers and restart arc animation when year changes
   useEffect(() => {
     if (!mapRef.current) return;
     
@@ -221,7 +425,10 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     if (source) {
       source.setData(createGeoJSON(filteredMarkers));
     }
-  }, [filteredMarkers]);
+    
+    // Restart arc animation with new journey
+    startArcAnimation();
+  }, [filteredMarkers, startArcAnimation]);
 
   return (
     <div 
