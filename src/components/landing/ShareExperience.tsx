@@ -22,10 +22,10 @@ const StoryMockup = () => <div className="h-full w-full relative bg-black">
         {/* Profile photo with + badge */}
         <div className="relative">
           <div className="w-8 h-8 rounded-full border-2 border-white/60" style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80')",
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }} />
+            backgroundImage: "url('/images/scene-profile.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center"
+          }} />
           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center border border-black">
             <Plus className="w-2.5 h-2.5 text-white" strokeWidth={3} />
           </div>

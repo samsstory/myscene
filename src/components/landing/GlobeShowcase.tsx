@@ -37,8 +37,7 @@ const GlobeMockup = () => {
         <div
           className="w-6 h-6 rounded-full border border-white/20"
           style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&q=80')",
+            backgroundImage: "url('/images/scene-profile.png')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

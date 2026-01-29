@@ -10,7 +10,11 @@ const SmartCaptureMockup = () => (
     {/* App Header - aligned below notch */}
     <div className="px-4 py-2 flex justify-between items-center">
       <SceneLogo size="sm" />
-      <div className="w-6 h-6 rounded-full bg-white/10" />
+      <div className="w-6 h-6 rounded-full bg-white/10" style={{
+        backgroundImage: "url('/images/scene-profile.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center"
+      }} />
     </div>
 
     {/* Photo Preview */}
