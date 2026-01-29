@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Joyride, { CallBackProps, STATUS, Step, TooltipRenderProps, ACTIONS, EVENTS } from "react-joyride";
+import { ChevronLeft } from "lucide-react";
 
 interface SpotlightTourProps {
   run: boolean;
@@ -18,6 +19,8 @@ const GlassTooltip = ({
   tooltipProps,
   isLastStep,
 }: TooltipRenderProps) => {
+  const isFirstStep = index === 0;
+
   return (
     <div
       {...tooltipProps}
@@ -37,10 +40,21 @@ const GlassTooltip = ({
 
         {/* Actions */}
         <div className="flex items-center justify-between gap-3">
-          {/* Step counter */}
-          <span className="text-xs text-white/40">
-            {index + 1} of {step.data?.totalSteps || 3}
-          </span>
+          {/* Left side: Back button + Step counter */}
+          <div className="flex items-center gap-2">
+            {!isFirstStep && (
+              <button
+                {...backProps}
+                className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Go back"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
+            <span className="text-xs text-white/40">
+              {index + 1} of {step.data?.totalSteps || 3}
+            </span>
+          </div>
 
           {/* Next/Done button */}
           <button
@@ -149,6 +163,23 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
         }
         
         setStepIndex(nextIndex);
+      }
+      
+      // User clicked Back button - go to previous step
+      if (action === ACTIONS.PREV) {
+        const prevIndex = index - 1;
+        
+        // If going back from step 2+ to step 1, close FAB menu
+        if (prevIndex === 0 && index >= 1) {
+          onCloseFabMenu?.();
+        }
+        
+        // If going back to step 2 or 3, ensure FAB menu is open
+        if (prevIndex === 1 || prevIndex === 2) {
+          onOpenFabMenu?.();
+        }
+        
+        setStepIndex(prevIndex);
       }
     }
 
