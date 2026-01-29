@@ -103,7 +103,7 @@ export const QuickPhotoAddSheet = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[75vh] flex flex-col">
+      <SheetContent side="bottom" className="h-auto max-h-[80vh] flex flex-col">
         <SheetHeader className="flex-shrink-0 text-left">
           <SheetTitle className="text-xl font-bold">{artistName}</SheetTitle>
           <p className="text-sm text-muted-foreground">
@@ -111,24 +111,24 @@ export const QuickPhotoAddSheet = ({
           </p>
         </SheetHeader>
 
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 py-8">
-          {/* Large upload zone */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 py-6 overflow-y-auto min-h-0">
+          {/* Upload zone - compact size */}
           <button
             onClick={handleUploadClick}
             disabled={uploading}
-            className="w-full max-w-sm aspect-[4/5] rounded-2xl border-2 border-dashed border-white/20 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/30 transition-all flex flex-col items-center justify-center gap-4 disabled:opacity-50"
+            className="w-full max-w-xs aspect-square rounded-2xl border-2 border-dashed border-white/20 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/30 transition-all flex flex-col items-center justify-center gap-3 disabled:opacity-50"
           >
             {uploading ? (
               <>
-                <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-primary animate-spin" />
+                <div className="h-12 w-12 rounded-full border-4 border-white/20 border-t-primary animate-spin" />
                 <span className="text-white/60 text-sm">Uploading...</span>
               </>
             ) : (
               <>
-                <div className="h-20 w-20 rounded-full bg-white/10 flex items-center justify-center">
-                  <Camera className="h-10 w-10 text-white/60" />
+                <div className="h-14 w-14 rounded-full bg-white/10 flex items-center justify-center">
+                  <Camera className="h-7 w-7 text-white/60" />
                 </div>
-                <div className="text-center space-y-1">
+                <div className="text-center space-y-0.5">
                   <p className="text-white/80 font-medium">Add a photo</p>
                   <p className="text-white/40 text-sm">Tap to upload from camera roll</p>
                 </div>
@@ -146,7 +146,7 @@ export const QuickPhotoAddSheet = ({
         </div>
 
         {/* Share without photo option */}
-        <div className="flex-shrink-0 pb-safe">
+        <div className="flex-shrink-0 pb-4">
           <button
             onClick={onShareWithoutPhoto}
             className="w-full py-3 text-center text-white/50 hover:text-white/70 transition-colors text-sm flex items-center justify-center gap-2"
