@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import StatPills, { StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
+import IncompleteRatingsSheet from "./home/IncompleteRatingsSheet";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
 
@@ -97,6 +98,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   // Quick photo add sheet state for shows without photos
   const [quickPhotoShow, setQuickPhotoShow] = useState<Show | null>(null);
   const [quickPhotoOpen, setQuickPhotoOpen] = useState(false);
+  
+  // Incomplete ratings sheet state
+  const [incompleteRatingsOpen, setIncompleteRatingsOpen] = useState(false);
 
   const { statPills, insight, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   
@@ -367,6 +371,8 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           onAction={(action: InsightAction) => {
             if (action === 'rank-tab') {
               onNavigateToRank?.();
+            } else if (action === 'incomplete-ratings') {
+              setIncompleteRatingsOpen(true);
             }
           }} 
         />
@@ -697,6 +703,15 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
       )}
 
       
+      {/* Incomplete Ratings Sheet */}
+      <IncompleteRatingsSheet
+        open={incompleteRatingsOpen}
+        onOpenChange={setIncompleteRatingsOpen}
+        onComplete={() => {
+          refetchStats();
+          fetchShows();
+        }}
+      />
       
       {/* Quick Photo Add Sheet for shows without photos */}
       <QuickPhotoAddSheet
