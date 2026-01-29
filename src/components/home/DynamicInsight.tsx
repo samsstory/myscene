@@ -21,7 +21,7 @@ export interface InsightData {
 }
 
 interface DynamicInsightProps {
-  insight: InsightData | null;
+  insights: InsightData[];
   onAction?: (action: InsightAction) => void;
 }
 
@@ -34,8 +34,14 @@ const insightConfig: Record<NonNullable<InsightType>, { icon: typeof Sparkles }>
   welcome: { icon: Music2 },
 };
 
-const DynamicInsight = ({ insight, onAction }: DynamicInsightProps) => {
-  if (!insight || !insight.type) return null;
+const InsightCard = ({ 
+  insight, 
+  onAction 
+}: { 
+  insight: InsightData; 
+  onAction?: (action: InsightAction) => void;
+}) => {
+  if (!insight.type) return null;
 
   const config = insightConfig[insight.type];
   const Icon = config.icon;
@@ -88,6 +94,22 @@ const DynamicInsight = ({ insight, onAction }: DynamicInsightProps) => {
   }
 
   return content;
+};
+
+const DynamicInsight = ({ insights, onAction }: DynamicInsightProps) => {
+  if (!insights || insights.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      {insights.map((insight, index) => (
+        <InsightCard 
+          key={`${insight.type}-${index}`} 
+          insight={insight} 
+          onAction={onAction} 
+        />
+      ))}
+    </div>
+  );
 };
 
 export default DynamicInsight;

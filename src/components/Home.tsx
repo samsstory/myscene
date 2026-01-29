@@ -106,7 +106,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   // Focused ranking session state
   const [focusedRankingOpen, setFocusedRankingOpen] = useState(false);
 
-  const { statPills, insight, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
+  const { statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -369,9 +369,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
         {/* Stat Pills */}
         <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} />
 
-        {/* Dynamic Insight */}
+        {/* Dynamic Insights - stacked cards */}
         <DynamicInsight 
-          insight={insight} 
+          insights={insights} 
           onAction={(action: InsightAction) => {
             if (action === 'rank-tab') {
               setFocusedRankingOpen(true);

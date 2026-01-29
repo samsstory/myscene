@@ -26,7 +26,7 @@ interface StatsData {
 interface UseHomeStatsReturn {
   stats: StatsData;
   statPills: StatPill[];
-  insight: InsightData | null;
+  insights: InsightData[];
   isLoading: boolean;
   refetch: () => Promise<void>;
 }
@@ -49,7 +49,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     uniqueCountries: 0,
     incompleteRatingsCount: 0,
   });
-  const [insight, setInsight] = useState<InsightData | null>(null);
+  const [insights, setInsights] = useState<InsightData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -212,49 +212,57 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         }
       }
 
-      // Generate insight with priority:
-      // 1. Welcome (0 shows)
-      // 2. Milestones (25, 50, 100, 200)
-      // 3. Incomplete Ratings (>= 1)
-      // 4. Ranking Reminder (unranked >= 3)
-      // 5. Streak (>= 2 months)
-      let generatedInsight: InsightData | null = null;
+      // Generate insights - can show multiple at once
+      // Priority order determines display order (top to bottom)
+      const generatedInsights: InsightData[] = [];
       
       if (totalShows === 0) {
-        generatedInsight = {
+        generatedInsights.push({
           type: 'welcome',
           title: 'Welcome to Scene!',
           message: 'Start by adding your first concert to build your show collection.',
-        };
-      } else if ([25, 50, 100, 200].includes(totalShows)) {
-        generatedInsight = {
-          type: 'milestone_reached',
-          title: `${totalShows} Shows!`,
-          message: `Incredible milestone! You've logged ${totalShows} concerts.`,
-        };
-      } else if (incompleteRatingsCount >= 1) {
-        generatedInsight = {
-          type: 'incomplete_ratings',
-          title: `${incompleteRatingsCount} ${incompleteRatingsCount === 1 ? 'Show Needs' : 'Shows Need'} Ratings`,
-          message: 'Tap to complete your show reviews.',
-          actionable: true,
-          action: 'incomplete-ratings' as InsightAction,
-        };
-      } else if (underRankedCount >= 1) {
-        generatedInsight = {
-          type: 'ranking_reminder',
-          title: `${underRankedCount} ${underRankedCount === 1 ? 'Show' : 'Shows'} to Rank`,
-          message: 'Compare a few shows to lock in your rankings.',
-          actionable: true,
-          action: 'rank-tab' as InsightAction,
-        };
-      } else if (streak >= 2) {
-        generatedInsight = {
-          type: 'streak_active',
-          title: `${streak}-Month Streak`,
-          message: `You've been to shows ${streak} months in a row!`,
-          actionable: false,
-        };
+        });
+      } else {
+        // Milestones (highest priority when applicable)
+        if ([25, 50, 100, 200].includes(totalShows)) {
+          generatedInsights.push({
+            type: 'milestone_reached',
+            title: `${totalShows} Shows!`,
+            message: `Incredible milestone! You've logged ${totalShows} concerts.`,
+          });
+        }
+        
+        // Incomplete ratings notification
+        if (incompleteRatingsCount >= 1) {
+          generatedInsights.push({
+            type: 'incomplete_ratings',
+            title: `${incompleteRatingsCount} ${incompleteRatingsCount === 1 ? 'Show Needs' : 'Shows Need'} Ratings`,
+            message: 'Tap to complete your show reviews.',
+            actionable: true,
+            action: 'incomplete-ratings' as InsightAction,
+          });
+        }
+        
+        // Ranking reminder notification (shows with <3 comparisons)
+        if (underRankedCount >= 1) {
+          generatedInsights.push({
+            type: 'ranking_reminder',
+            title: `${underRankedCount} ${underRankedCount === 1 ? 'Show' : 'Shows'} to Rank`,
+            message: 'Compare a few shows to lock in your rankings.',
+            actionable: true,
+            action: 'rank-tab' as InsightAction,
+          });
+        }
+        
+        // Streak celebration (non-actionable, lower priority)
+        if (streak >= 2 && generatedInsights.length === 0) {
+          generatedInsights.push({
+            type: 'streak_active',
+            title: `${streak}-Month Streak`,
+            message: `You've been to shows ${streak} months in a row!`,
+            actionable: false,
+          });
+        }
       }
 
       setStats({
@@ -269,7 +277,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         uniqueCountries: countries.size,
         incompleteRatingsCount,
       });
-      setInsight(generatedInsight);
+      setInsights(generatedInsights);
     } catch (error) {
       console.error('Error fetching home stats:', error);
     } finally {
@@ -330,7 +338,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
   return {
     stats,
     statPills,
-    insight,
+    insights,
     isLoading,
     refetch: fetchStats,
   };
