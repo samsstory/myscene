@@ -1,7 +1,7 @@
 import LandingHero from "@/components/landing/LandingHero";
 import ValuePillars from "@/components/landing/ValuePillars";
 import RankingSpotlight from "@/components/landing/RankingSpotlight";
-import ShareExperience from "@/components/landing/ShareExperience";
+import CaptureShowcase from "@/components/landing/CaptureShowcase";
 import LandingCTA from "@/components/landing/LandingCTA";
 
 const Index = () => {
@@ -10,7 +10,7 @@ const Index = () => {
       <LandingHero />
       <ValuePillars />
       <RankingSpotlight />
-      <ShareExperience />
+      <CaptureShowcase />
       <LandingCTA />
     </div>
   );
