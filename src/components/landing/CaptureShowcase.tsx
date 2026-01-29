@@ -1,6 +1,7 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { Instagram, Home, Globe, Crown, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Instagram, Home, Globe, Crown, Plus, Star } from "lucide-react";
 
 // Show Review Sheet Mockup
 const ShowReviewMockup = () => (
@@ -134,17 +135,25 @@ const CaptureShowcase = () => {
 
           {/* Right: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
+            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
+              <Star className="h-3.5 w-3.5" />
+              Rate
+            </Badge>
+            
             <h2 
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
               style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
             >
-              Every show. One place.
+              Rate it while it's fresh.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Never forget who opened for who, which venue had the best sound, or what night changed everything.
+              Capture how the show, sound, lighting, crowd, and vibe actually felt.
             </p>
-
+            
+            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
+              "Every detail. Your perspective."
+            </p>
           </div>
         </div>
       </div>
