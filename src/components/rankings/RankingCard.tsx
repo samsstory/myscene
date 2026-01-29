@@ -80,16 +80,16 @@ const RankingCard = ({
         "disabled:pointer-events-none",
         slideAnimation,
         position === "right" && "[animation-delay:150ms]",
-        isWinner && "animate-winner-pulse winner-glow z-10",
-        isLoser && "animate-fade-scale-out"
+        isWinner && "animate-winner-glow z-10",
+        isLoser && "animate-loser-shrink"
       )}
       style={{
         opacity: 0, // Start invisible for slide-in animation
       }}
     >
       <div className={cn(
-        "bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl overflow-hidden transition-all duration-300",
-        isWinner && "border-primary/50"
+        "bg-white/[0.04] backdrop-blur-sm border-2 rounded-2xl overflow-hidden transition-all duration-300",
+        isWinner ? "border-green-500/80" : "border-white/[0.08]"
       )}>
         {/* Photo Section */}
         <div className="relative aspect-[4/3] overflow-hidden">
