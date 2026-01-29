@@ -76,9 +76,8 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-accent flex items-center justify-center">
-        <div className="text-center">
-          <Music className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="text-center animate-pulse">
+          <SceneLogo size="lg" className="text-2xl" />
         </div>
       </div>
     );
