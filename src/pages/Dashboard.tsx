@@ -133,7 +133,7 @@ const Dashboard = () => {
       {/* Floating Navigation */}
       <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-between items-end px-6">
         {/* Left spacer to balance FAB for centering pill */}
-        <div className="w-14" />
+        <div className="w-[72px]" />
         
         {/* Glass Pill Navigation */}
         <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-8 py-3 shadow-2xl">
@@ -226,11 +226,11 @@ const Dashboard = () => {
           <button
             onClick={() => setShowFabMenu(!showFabMenu)}
             className={cn(
-              "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-4 shadow-2xl transition-all hover:scale-105 active:scale-95 z-50",
+              "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95 z-50",
               showFabMenu && "rotate-45 bg-white/20"
             )}
           >
-            {showFabMenu ? <X className="h-7 w-7" /> : <Plus className="h-7 w-7" />}
+            {showFabMenu ? <X className="h-9 w-9" /> : <Plus className="h-9 w-9" />}
           </button>
         </div>
       </div>
