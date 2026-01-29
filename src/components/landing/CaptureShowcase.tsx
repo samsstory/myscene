@@ -128,24 +128,6 @@ const CaptureShowcase = () => {
               Never forget who opened for who, which venue had the best sound, or what night changed everything.
             </p>
 
-            <ul className="space-y-3 text-muted-foreground text-left max-w-lg mx-auto lg:mx-0">
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Never forget who opened for who</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Rate every detail — sound, lighting, crowd, vibe</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Add photos that capture the moment</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Your personal concert archive, always with you</span>
-              </li>
-            </ul>
           </div>
         </div>
       </div>

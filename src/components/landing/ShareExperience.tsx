@@ -117,15 +117,8 @@ const ShareExperience = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Share your ratings, reviews, and rankings on social.
+              Share your ratings, reviews, and rankings on social and with friends.
             </p>
-
-            <ul className="space-y-3 text-muted-foreground text-left max-w-lg mx-auto lg:mx-0">
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Compare ratings with your friends (coming soon)</span>
-              </li>
-            </ul>
           </div>
 
           {/* Right: Phone Mockup */}
