@@ -109,11 +109,9 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   }, [stopAutoRotation]);
 
   const handleInteractionEnd = useCallback(() => {
-    // Resume auto-rotation after 3 seconds of no interaction
-    resumeTimeoutRef.current = setTimeout(() => {
-      isUserInteractingRef.current = false;
-      startAutoRotation();
-    }, 3000);
+    // Resume auto-rotation immediately when interaction ends
+    isUserInteractingRef.current = false;
+    startAutoRotation();
   }, [startAutoRotation]);
 
   useEffect(() => {
