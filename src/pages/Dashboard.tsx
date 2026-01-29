@@ -136,45 +136,45 @@ const Dashboard = () => {
         <div className="w-14" />
         
         {/* Glass Pill Navigation */}
-        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-2 shadow-2xl">
-          <div className="flex items-center gap-8">
+        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-8 py-3 shadow-2xl">
+          <div className="flex items-center gap-10">
             {/* Home */}
             <button
               onClick={() => setActiveTab("home")}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all py-1",
+                "flex flex-col items-center gap-0.5 transition-all py-1.5",
                 activeTab === "home" 
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
               )}
             >
-              <HomeIcon className="h-5 w-5" />
+              <HomeIcon className="h-6 w-6" />
             </button>
 
             {/* Globe */}
             <button
               onClick={() => setActiveTab("globe")}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all py-1",
+                "flex flex-col items-center gap-0.5 transition-all py-1.5",
                 activeTab === "globe" 
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
               )}
             >
-              <Globe className="h-5 w-5" />
+              <Globe className="h-6 w-6" />
             </button>
 
             {/* Rank */}
             <button
               onClick={() => setActiveTab("rank")}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all py-1",
+                "flex flex-col items-center gap-0.5 transition-all py-1.5",
                 activeTab === "rank" 
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
               )}
             >
-              <Scale className="h-5 w-5" />
+              <Scale className="h-6 w-6" />
             </button>
           </div>
         </nav>
