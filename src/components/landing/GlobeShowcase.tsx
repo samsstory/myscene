@@ -48,50 +48,40 @@ const GlobeMockup = () => {
       <div className="flex-1 relative min-h-0">
         <LandingGlobe selectedYear={selectedYear} />
 
-        {/* Year Toggle */}
+        {/* Year Toggle + Stats - minimal liquid glass */}
         <div className="absolute top-3 left-3 right-3 z-10">
-          <div className="flex justify-center gap-1">
-            {YEARS.map((year) => (
-              <button
-                key={year}
-                onClick={() => setSelectedYear(year)}
-                className={cn(
-                  "px-2.5 py-1 text-xs rounded-full transition-all font-medium",
-                  selectedYear === year
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-black/40 text-white/60 backdrop-blur-sm hover:bg-black/50"
-                )}
-              >
-                {year === "all" ? "All" : year}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats overlay */}
-        <div className="absolute bottom-3 left-3 right-3">
-          <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10">
-            <div className="flex items-center justify-center gap-4">
-              <div className="text-center">
-                <span className="text-white font-bold text-lg">
-                  {yearStats.countries}
-                </span>
-                <p className="text-white/50 text-[10px]">countries</p>
-              </div>
-              <div className="w-px h-8 bg-white/20" />
-              <div className="text-center">
-                <span className="text-white font-bold text-lg">
-                  {yearStats.cities}
-                </span>
-                <p className="text-white/50 text-[10px]">cities</p>
-              </div>
-              <div className="w-px h-8 bg-white/20" />
-              <div className="text-center">
-                <span className="text-white font-bold text-lg">
-                  {yearStats.shows}
-                </span>
-                <p className="text-white/50 text-[10px]">shows</p>
-              </div>
+          <div className="flex flex-col items-center gap-2">
+            {/* Year buttons */}
+            <div className="flex gap-1">
+              {YEARS.map((year) => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs rounded-full transition-all font-medium",
+                    selectedYear === year
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-white/[0.04] text-white/50 backdrop-blur-sm hover:bg-white/[0.08]"
+                  )}
+                >
+                  {year === "all" ? "All" : year}
+                </button>
+              ))}
+            </div>
+            
+            {/* Stats - ultra minimal */}
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-white/[0.03] backdrop-blur-sm">
+              <span className="text-white/70 text-[10px] font-medium">
+                {yearStats.countries} <span className="text-white/40">countries</span>
+              </span>
+              <span className="text-white/20">·</span>
+              <span className="text-white/70 text-[10px] font-medium">
+                {yearStats.cities} <span className="text-white/40">cities</span>
+              </span>
+              <span className="text-white/20">·</span>
+              <span className="text-white/70 text-[10px] font-medium">
+                {yearStats.shows} <span className="text-white/40">shows</span>
+              </span>
             </div>
           </div>
         </div>
