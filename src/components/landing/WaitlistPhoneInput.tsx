@@ -92,14 +92,20 @@ const WaitlistPhoneInput = ({
     setError(null);
     try {
       const e164Phone = toE164(phone, selectedCountry.dial);
-      const {
-        data,
-        error: insertError
-      } = await supabase.from("waitlist").insert({
-        phone_number: e164Phone,
-        country_code: countryCode,
-        source
-      }).select("id").single();
+      // Generate the ID client-side so we don't need to read the row back (no SELECT access required)
+      const waitlistId = crypto.randomUUID();
+      const { error: insertError } = await supabase
+        .from("waitlist")
+        .insert(
+          {
+            id: waitlistId,
+            phone_number: e164Phone,
+            country_code: countryCode,
+            source,
+          },
+          // PostgREST supports Prefer: return=minimal; this prevents needing read access
+          { returning: "minimal" } as any,
+        );
       if (insertError) {
         // Check for unique constraint violation
         if (insertError.code === "23505") {
@@ -110,9 +116,7 @@ const WaitlistPhoneInput = ({
         setIsSubmitting(false);
         return;
       }
-      if (data) {
-        onSuccess(data.id);
-      }
+      onSuccess(waitlistId);
     } catch {
       setError("Something went wrong. Please try again.");
       setIsSubmitting(false);
