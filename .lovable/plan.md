@@ -1,74 +1,74 @@
 
-# Add Centered "See Full Details" Toggle
+# Fix Winner/Loser Animation Behavior
 
-## Overview
-Add a single minimal toggle button centered above the "Tap to choose the winner" instruction that expands both ranking cards simultaneously to show all ratings and complete notes.
+## Problem Analysis
+The animations aren't working correctly because:
 
-## Current Layout (Bottom Section)
-```text
-   [Left Card]  VS  [Right Card]
-   
-           Tap to choose the winner
-           Can't compare these
-```
+1. **Animation conflicts**: The slide-in animations (`slide-in-left`, `slide-in-right`) use `transform: translateX()` while winner/loser animations use `transform: scale()`. When both are applied, they override each other.
 
-## Proposed Layout
-```text
-   [Left Card]  VS  [Right Card]
-   
-         See full details  ▼     <- NEW: centered toggle
-       Tap to choose the winner
-         Can't compare these
-```
+2. **Opacity override**: The inline `style={{ opacity: 0 }}` always sets opacity to 0, which interferes with the animation states.
 
-## Implementation Approach
+3. **Animation class stacking**: Tailwind applies both slide-in AND winner/loser animation classes simultaneously, causing conflicts.
 
-### 1. Add Shared Expand State in Rank.tsx
-- Add `showDetails` boolean state to `Rank.tsx` 
-- This controls both cards expanding together (not individually)
+## Solution
 
-### 2. Create Minimal Toggle Button in Rank.tsx  
-- Position above "Tap to choose the winner" text
-- Minimal styling: small text, muted color, centered
-- Include `ChevronDown` icon that rotates when expanded
-- Text toggles between "See full details" / "Hide details"
+### 1. Separate Animation States
+Only apply slide-in animations when loading a new pair. Only apply winner/loser animations after selection.
 
-### 3. Pass Expand State to RankingCard
-- Add `isExpanded` prop to RankingCard component
-- When `true`, card shows:
-  - All 5 rating bars (not just top 3)
-  - Full notes text without truncation
+### 2. Update Keyframes
+- **winner-glow**: Keep scale effect but add green glow via boxShadow (no translateX)
+- **loser-shrink**: Fade and shrink in place (no translateX)
 
-### 4. Update RankingCard Display Logic
-- When `isExpanded={false}` (current behavior):
-  - Show top 3 aspects with values
-  - Truncate notes to 60 chars
-- When `isExpanded={true}`:
-  - Show all 5 aspects that have values
-  - Show complete notes without truncation
+### 3. Update RankingCard Component Logic
+- Remove slide-in animation class when `isWinner` or `isLoser` is true
+- Remove the inline `opacity: 0` style when winner/loser animations are active
+- Only apply one animation type at a time (slide-in OR winner/loser)
 
 ## Files to Modify
 
-### src/components/Rank.tsx
-- Add `showDetails` state
-- Add toggle button with ChevronDown icon between cards section and instruction text
-- Pass `isExpanded={showDetails}` to both RankingCard components
+### tailwind.config.ts
+Keep the current keyframes as they are correctly defined. The issue is in the component logic.
 
 ### src/components/rankings/RankingCard.tsx
-- Add `isExpanded?: boolean` prop to interface
-- Conditionally render all aspects vs top 3 based on prop
-- Conditionally render full notes vs truncated based on prop
+Update the className and style logic:
 
-## Visual Design
+```tsx
+// Current problematic code:
+className={cn(
+  "...",
+  slideAnimation,  // Always applied
+  isWinner && "animate-winner-glow z-10",  // Also applied when winner
+  isLoser && "animate-loser-shrink"        // Also applied when loser
+)}
+style={{ opacity: 0 }}  // Always 0!
+```
 
-Toggle button styling:
-- `text-xs text-muted-foreground/70`
-- Centered with flex layout
-- Small gap between text and chevron icon
-- Subtle hover state
-- Chevron rotates 180° when expanded
+Change to:
+```tsx
+// Fixed logic - mutually exclusive animations:
+const shouldSlideIn = !isWinner && !isLoser;
 
-Expanded card content:
-- Smooth height transition using CSS
-- All rating bars maintain same styling
-- Full notes text wraps naturally
+className={cn(
+  "flex-1 text-left cursor-pointer transition-all duration-200",
+  "hover:scale-[1.02] active:scale-[0.98]",
+  "disabled:pointer-events-none",
+  // Only apply slide-in when NOT in winner/loser state
+  shouldSlideIn && slideAnimation,
+  shouldSlideIn && position === "right" && "[animation-delay:150ms]",
+  // Apply winner/loser animations exclusively
+  isWinner && "animate-winner-glow z-10",
+  isLoser && "animate-loser-shrink"
+)}
+style={{
+  // Only set initial opacity to 0 for slide-in animation
+  opacity: shouldSlideIn ? 0 : undefined,
+}}
+```
+
+## Expected Behavior After Fix
+
+1. **New pair loads**: Cards slide in from left/right with staggered timing
+2. **User taps winner**: 
+   - Winner card: Green glow appears, slight scale-up pulse, stays in place
+   - Loser card: Immediately starts fading out and shrinking in place
+3. **Next pair loads**: Both cards slide in fresh
