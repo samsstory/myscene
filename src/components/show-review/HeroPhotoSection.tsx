@@ -140,13 +140,13 @@ export const HeroPhotoSection = ({
       {/* Top Left: Edit Show Button */}
       <button 
         onClick={onEditShow} 
-        className="absolute top-3 left-3 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+        className="absolute top-3 left-3 z-10 h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
       >
         <Pencil className="h-4 w-4 text-white/80" />
       </button>
 
       {/* Top Right: Scene Logo */}
-      <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+      <div className="absolute top-3 right-3 z-10 px-2.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
         <SceneLogo size="sm" />
       </div>
 
