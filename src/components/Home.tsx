@@ -394,7 +394,6 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
         {/* Recent Shows */}
         <div className="space-y-3">
           <h3 
-            data-tour="shows-ranked"
             className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
             style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
           >
