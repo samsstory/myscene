@@ -689,11 +689,11 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           <button
             onClick={() => editPhotoInputRef.current?.click()}
             disabled={editPhotoUploading}
-            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left disabled:opacity-50"
           >
             <div className="flex items-center gap-3">
               {editPhotoUrl ? (
-                <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
                   <img 
                     src={editPhotoUrl} 
                     alt="Show photo" 
@@ -727,7 +727,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           <button
             onClick={() => setStep(1)}
-            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
           >
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -742,7 +742,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           <button
             onClick={() => setStep(2)}
-            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
           >
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -759,7 +759,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           <button
             onClick={() => setStep(3)}
-            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
           >
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -776,7 +776,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           <button
             onClick={() => setStep(4)}
-            className="w-full p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all text-left"
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
           >
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -797,7 +797,11 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           {hasUnsavedChanges && (
             <div className="pt-4">
-              <Button onClick={handleSubmit} className="w-full" size="lg">
+              <Button 
+                onClick={handleSubmit} 
+                className="w-full py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-[hsl(189,94%,55%)] via-primary to-[hsl(17,88%,60%)] shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] transition-all duration-200" 
+                size="lg"
+              >
                 Save Changes
               </Button>
             </div>
@@ -992,9 +996,29 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     return null;
   };
 
+  // SVG noise texture for tactile feel
+  const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
+
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[70vh] sm:max-h-[85vh] flex flex-col fixed top-4 sm:top-[50%] left-[50%] translate-x-[-50%] sm:translate-y-[-50%] translate-y-0">
+      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[70vh] sm:max-h-[85vh] flex flex-col fixed top-4 sm:top-[50%] left-[50%] translate-x-[-50%] sm:translate-y-[-50%] translate-y-0 overflow-hidden">
+        {/* Mesh gradient background - Scene aesthetic */}
+        <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
+          <div 
+            className="absolute inset-0 animate-pulse-glow"
+            style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} 
+          />
+          <div 
+            className="absolute inset-0"
+            style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} 
+          />
+          {/* Noise texture overlay */}
+          <div 
+            className="absolute inset-0 opacity-[0.03]"
+            style={{ backgroundImage: noiseTexture }} 
+          />
+        </div>
+
         {/* Back button - absolute positioned (hide on success/quick compare steps) */}
         {step > 1 && step < 5 && (
           <Button
@@ -1008,7 +1032,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         )}
 
         {/* Step content - scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4 min-h-0">
+        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4 min-h-0 relative z-10">
           <div className="flex flex-col items-center">
             {step !== 5 && (
               <h2 className="text-xl font-bold text-center mb-4">
@@ -1023,12 +1047,14 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
         {/* Progress indicator - hide for step selector and success/quick compare steps */}
         {step > 0 && step < 5 && !showStepSelector && (
-          <div className="flex gap-1 px-6 pb-4 pt-2 border-t border-border/50 bg-background">
+          <div className="flex gap-1.5 px-6 pb-4 pt-2 border-t border-white/[0.06] bg-transparent relative z-10">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className={`h-1 flex-1 rounded-full transition-colors ${
-                  i <= step ? "bg-primary" : "bg-muted"
+                className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                  i <= step 
+                    ? "bg-primary shadow-[0_0_8px_hsl(189_94%_55%/0.6)]" 
+                    : "bg-white/20"
                 }`}
               />
             ))}
