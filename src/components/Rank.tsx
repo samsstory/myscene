@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-
-import { calculateShowScore } from "@/lib/utils";
-import { Loader2, MapPin, CalendarDays } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import RankingCard from "./rankings/RankingCard";
+import RankingProgressBar from "./rankings/RankingProgressBar";
+import SceneLogo from "./ui/SceneLogo";
 
 interface Show {
   id: string;
@@ -17,6 +17,7 @@ interface Show {
   crowd: number | null;
   venue_vibe: number | null;
   photo_url: string | null;
+  notes: string | null;
   artists: Array<{ artist_name: string; is_headliner: boolean }>;
 }
 
@@ -349,67 +350,6 @@ export default function Rank() {
     }
   };
 
-  const renderCompactCard = (show: Show) => {
-    const score = calculateShowScore(
-      show.rating,
-      show.artist_performance,
-      show.sound,
-      show.lighting,
-      show.crowd,
-      show.venue_vibe
-    );
-
-    const headliner = show.artists.find(a => a.is_headliner);
-    const artistName = headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
-
-    return (
-      <Card className="flex-1 overflow-hidden">
-        <CardContent className="p-0">
-          {/* Photo or Score Display */}
-          {show.photo_url ? (
-            <div className="w-full aspect-square overflow-hidden">
-              <img
-                src={show.photo_url}
-                alt="Show photo"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="w-full aspect-square bg-muted flex items-center justify-center">
-              <span className="text-4xl font-bold text-primary">{score}</span>
-            </div>
-          )}
-          
-          {/* Info */}
-          <div className="p-3 space-y-1">
-            <div className="font-semibold text-sm leading-tight truncate">
-              {artistName}
-            </div>
-            
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{show.venue_name}</span>
-            </div>
-            
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <CalendarDays className="h-3 w-3 flex-shrink-0" />
-              <span>
-                {new Date(show.show_date).toLocaleDateString("en-US", {
-                  month: "short",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-
-            {show.photo_url && (
-              <div className="text-lg font-bold text-primary">{score}</div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -421,6 +361,7 @@ export default function Rank() {
   if (!shows || shows.length < 2) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 px-4">
+        <SceneLogo size="md" />
         <p className="text-muted-foreground text-center">
           You need at least 2 shows to start ranking them against each other.
         </p>
@@ -433,7 +374,8 @@ export default function Rank() {
 
   if (!showPair) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <SceneLogo size="md" />
         <div className="text-center space-y-2">
           <p className="text-foreground font-semibold">That's all for now!</p>
           <p className="text-muted-foreground text-sm">
@@ -445,46 +387,58 @@ export default function Rank() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-xl font-bold">Which was better?</h2>
+    <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
+      {/* Scene Logo Header */}
+      <div className="flex justify-center">
+        <SceneLogo size="sm" />
       </div>
 
+      {/* Progress Bar */}
+      <RankingProgressBar 
+        comparisons={totalComparisons} 
+        totalShows={shows.length} 
+      />
+
       {/* VS Battle Cards */}
-      <div className="relative flex gap-3 items-stretch">
+      <div className="relative flex gap-3 items-start pt-4">
         {/* Left Card */}
-        <button
+        <RankingCard
+          show={showPair[0]}
           onClick={() => handleChoice(showPair[0].id)}
           disabled={comparing}
-          className="flex-1 text-left cursor-pointer transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
-        >
-          {renderCompactCard(showPair[0])}
-        </button>
+        />
 
         {/* VS Badge */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-          <div className="bg-primary text-primary-foreground font-bold text-sm px-3 py-1.5 rounded-full shadow-lg">
+          <div 
+            className="bg-primary text-primary-foreground font-bold text-sm px-4 py-2 rounded-full"
+            style={{ 
+              boxShadow: '0 0 20px hsl(var(--primary) / 0.5), 0 4px 12px rgba(0,0,0,0.3)' 
+            }}
+          >
             VS
           </div>
         </div>
 
         {/* Right Card */}
-        <button
+        <RankingCard
+          show={showPair[1]}
           onClick={() => handleChoice(showPair[1].id)}
           disabled={comparing}
-          className="flex-1 text-left cursor-pointer transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
-        >
-          {renderCompactCard(showPair[1])}
-        </button>
+        />
       </div>
 
-      {/* Can't Compare - subtle link */}
-      <div className="text-center">
+      {/* Instruction Text */}
+      <div className="text-center space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Tap to choose the winner
+        </p>
+        
+        {/* Can't Compare */}
         <button
           onClick={() => handleChoice(null)}
           disabled={comparing}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+          className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors underline-offset-4 hover:underline"
         >
           {comparing ? (
             <span className="flex items-center gap-2 justify-center">
@@ -492,7 +446,7 @@ export default function Rank() {
               Got it
             </span>
           ) : (
-            "Can't Compare"
+            "Can't compare these"
           )}
         </button>
       </div>
