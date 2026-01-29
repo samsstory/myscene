@@ -13,7 +13,7 @@ const RankingProgressBar = ({ comparisons, totalShows }: RankingProgressBarProps
     <div className="w-full px-6">
       <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-primary to-[hsl(var(--coral))] rounded-full transition-all duration-500 ease-out"
+          className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>

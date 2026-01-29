@@ -479,8 +479,11 @@ export default function Rank() {
           isExpanded={showDetails}
         />
 
-        {/* VS Badge */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+        {/* VS Badge - positioned relative to photo aspect ratio (4:3), not full card */}
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 z-10"
+          style={{ top: 'calc((100vw - 2rem - 0.75rem) / 2 * 0.75 / 2 + 1rem)' }}
+        >
           <div 
             className="bg-primary text-primary-foreground font-bold text-sm px-4 py-2 rounded-full"
             style={{ 
@@ -536,6 +539,22 @@ export default function Rank() {
           ) : (
             "Can't compare these"
           )}
+        </button>
+
+        {/* See Current Rankings - Liquid Glass Button */}
+        <button
+          onClick={() => {
+            // Navigate to Feed with Top Shows tab
+            window.location.href = '/dashboard?tab=feed&view=top';
+          }}
+          className="mt-2 px-4 py-2 rounded-full text-xs font-medium text-foreground/90 backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            boxShadow: '0 4px 24px -4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          See current rankings
         </button>
       </div>
     </div>
