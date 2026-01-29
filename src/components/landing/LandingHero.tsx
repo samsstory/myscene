@@ -200,7 +200,7 @@ const LandingHero = () => {
 
           {/* Right: Phone Mockup */}
           <div className="flex justify-center lg:justify-end order-2 mt-4 lg:mt-0">
-            <PhoneMockup className="w-56 md:w-72 lg:w-80" tilt="right">
+            <PhoneMockup className="w-56 md:w-72 lg:w-80" tilt="left">
               <MockShowCard />
             </PhoneMockup>
           </div>
