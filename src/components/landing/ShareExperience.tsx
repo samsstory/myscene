@@ -55,7 +55,7 @@ const StoryMockup = () => (
 
     {/* Instagram story text caption */}
     <div className="absolute top-[28%] right-[10%] text-white text-sm font-medium" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
-      <span className="text-white/90">@jamie__xx</span> speechless..
+      <a href="https://www.instagram.com/jamie___xx" target="_blank" rel="noopener noreferrer" className="text-white/90 hover:underline">@jamie__xx</a> speechless..
     </div>
 
     {/* Show info overlay - positioned below light trussing, reduced size */}
