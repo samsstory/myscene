@@ -149,7 +149,7 @@ const WaitlistPhoneInput = ({
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" size="lg" disabled={isSubmitting || !phone} className="shadow-glow px-6 py-5 hover:scale-105 transition-transform whitespace-nowrap">
+        <Button type="submit" size="lg" disabled={isSubmitting || !phone} className="shadow-glow py-5 hover:scale-105 transition-transform whitespace-nowrap text-justify px-[75px]">
           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get Early Access"}
         </Button>
       </div>
