@@ -769,10 +769,14 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, editShow }: AddShowFlowP
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <Star className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <div className="font-semibold">Details & Notes</div>
-                <div className="text-sm text-muted-foreground">
-                  {showData.notes ? "Has notes" : "Optional details"}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold">Rating & My Take</div>
+                <div className="text-sm text-muted-foreground truncate">
+                  {showData.notes 
+                    ? showData.notes.length > 40 
+                      ? `${showData.notes.substring(0, 40)}...` 
+                      : showData.notes
+                    : "Optional details"}
                 </div>
               </div>
             </div>
