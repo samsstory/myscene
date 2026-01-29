@@ -9,7 +9,7 @@ const StoryMockup = () => (
     <div 
       className="absolute inset-0"
       style={{
-        backgroundImage: "url('https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=600&q=80')",
+        backgroundImage: "url('/images/jamie-xx-printworks.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
