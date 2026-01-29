@@ -7,10 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import SceneLogo from "@/components/ui/SceneLogo";
+import { useReferralCapture, getStoredReferralCode, clearStoredReferralCode } from "@/hooks/useReferralCapture";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Capture referral code from URL if present
+  useReferralCapture();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -30,9 +34,12 @@ const Auth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
+    
+    // Get stored referral code
+    const referralCode = getStoredReferralCode();
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -41,6 +48,35 @@ const Auth = () => {
       });
 
       if (error) throw error;
+
+      // If signup successful and we have a referral code, create referral record
+      if (data.user && referralCode) {
+        try {
+          // Look up the referrer by their referral code
+          const { data: referrerProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('referral_code', referralCode)
+            .single();
+
+          if (referrerProfile) {
+            // Create the referral record
+            await supabase.from('referrals').insert({
+              referrer_id: referrerProfile.id,
+              referred_id: data.user.id,
+              referral_code: referralCode,
+              status: 'completed',
+              converted_at: new Date().toISOString()
+            });
+          }
+          
+          // Clear the stored referral code
+          clearStoredReferralCode();
+        } catch (refError) {
+          // Don't fail signup if referral tracking fails
+          console.error('Referral tracking error:', refError);
+        }
+      }
 
       toast.success("Sign up successful! Welcome to Scene 🎵");
       navigate("/dashboard");

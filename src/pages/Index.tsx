@@ -5,8 +5,12 @@ import RankingSpotlight from "@/components/landing/RankingSpotlight";
 import ShareExperience from "@/components/landing/ShareExperience";
 import GlobeShowcase from "@/components/landing/GlobeShowcase";
 import LandingCTA from "@/components/landing/LandingCTA";
+import { useReferralCapture } from "@/hooks/useReferralCapture";
 
 const Index = () => {
+  // Capture referral code from URL if present
+  useReferralCapture();
+
   return (
     <div className="min-h-screen bg-background">
       <LandingHero />

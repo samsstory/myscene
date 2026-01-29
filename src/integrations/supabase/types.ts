@@ -49,6 +49,7 @@ export type Database = {
           home_latitude: number | null
           home_longitude: number | null
           id: string
+          referral_code: string | null
           updated_at: string
         }
         Insert: {
@@ -58,6 +59,7 @@ export type Database = {
           home_latitude?: number | null
           home_longitude?: number | null
           id: string
+          referral_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -67,7 +69,38 @@ export type Database = {
           home_latitude?: number | null
           home_longitude?: number | null
           id?: string
+          referral_code?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          converted_at: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string | null
+          status: string
+        }
+        Insert: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_id: string
+          referrer_id?: string | null
+          status?: string
+        }
+        Update: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_id?: string
+          referrer_id?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -414,7 +447,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
