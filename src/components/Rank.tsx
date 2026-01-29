@@ -8,32 +8,18 @@ import RankingCard from "./rankings/RankingCard";
 import RankingProgressBar from "./rankings/RankingProgressBar";
 import SceneLogo from "./ui/SceneLogo";
 import ConfirmationRing from "./ui/ConfirmationRing";
-
-interface Show {
-  id: string;
-  venue_name: string;
-  show_date: string;
-  rating: number;
-  artist_performance: number | null;
-  sound: number | null;
-  lighting: number | null;
-  crowd: number | null;
-  venue_vibe: number | null;
-  photo_url: string | null;
-  notes: string | null;
-  artists: Array<{ artist_name: string; is_headliner: boolean }>;
-}
-
-interface ShowRanking {
-  id: string;
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+import { 
+  selectSmartPair as selectSmartPairUtil, 
+  areRankingsComplete,
+  type Show,
+  type ShowRanking,
+  type Comparison 
+} from "@/lib/smart-pairing";
 
 export default function Rank() {
   const [shows, setShows] = useState<Show[]>([]);
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
+  const [comparisons, setComparisons] = useState<Comparison[]>([]);
   const [showPair, setShowPair] = useState<[Show, Show] | null>(null);
   const [loading, setLoading] = useState(true);
   const [comparing, setComparing] = useState(false);
@@ -131,17 +117,24 @@ export default function Rank() {
 
       const { data: comparisonsData, error: comparisonsError } = await supabase
         .from("show_comparisons")
-        .select("show1_id, show2_id")
+        .select("show1_id, show2_id, winner_id")
         .eq("user_id", user.id);
 
       if (comparisonsError) throw comparisonsError;
 
       const comparedSet = new Set<string>();
+      const formattedComparisons: Comparison[] = [];
       comparisonsData?.forEach((comp) => {
         const [id1, id2] = [comp.show1_id, comp.show2_id].sort();
         comparedSet.add(`${id1}-${id2}`);
+        formattedComparisons.push({
+          show1_id: comp.show1_id,
+          show2_id: comp.show2_id,
+          winner_id: comp.winner_id,
+        });
       });
       setComparedPairs(comparedSet);
+      setComparisons(formattedComparisons);
       setTotalComparisons(comparisonsData?.length || 0);
 
       if (!showsData || showsData.length < 2) {
@@ -174,7 +167,22 @@ export default function Rank() {
           comparisons_count: 0
         }));
       
-      selectSmartPair(showsWithArtists, updatedRankingsData || [], comparedSet, comparisonsData?.length || 0);
+      // Use smart pairing utility
+      const nextPair = selectSmartPairUtil({
+        shows: showsWithArtists,
+        rankings: updatedRankingsData || [],
+        comparisons: formattedComparisons,
+        comparedPairs: comparedSet,
+      });
+      
+      if (!nextPair) {
+        setShowPair(null);
+        toast.success("That's all for now! Your rankings are up to date");
+      } else {
+        setShowPair(nextPair);
+        setPairKey(prev => prev + 1);
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error("Error fetching shows:", error);
@@ -205,73 +213,32 @@ export default function Rank() {
     return { newWinnerElo, newLoserElo };
   };
 
-  const selectSmartPair = (
-    allShows: Show[], 
-    allRankings: ShowRanking[], 
+  // Use smart pairing to select next pair
+  const getNextPair = useCallback((
+    allShows: Show[],
+    allRankings: ShowRanking[],
+    allComparisons: Comparison[],
     pairsSet: Set<string>,
-    currentTotalComparisons: number,
     shouldCelebrate: boolean = false
   ) => {
-    const MIN_TOTAL_COMPARISONS = Math.max(15, allShows.length * 2);
+    const nextPair = selectSmartPairUtil({
+      shows: allShows,
+      rankings: allRankings,
+      comparisons: allComparisons,
+      comparedPairs: pairsSet,
+    });
     
-    if (currentTotalComparisons >= MIN_TOTAL_COMPARISONS) {
-      const avgComparisons = currentTotalComparisons / allShows.length;
-      if (avgComparisons >= 3) {
-        setShowPair(null);
-        if (shouldCelebrate) {
-          triggerConfetti();
-        }
-        toast.success("That's all for now! Your rankings are up to date");
-        return;
-      }
-    }
-
-    const rankingMap = new Map(allRankings.map(r => [r.show_id, r]));
-    const pairScores: { pair: [Show, Show]; score: number }[] = [];
-
-    for (let i = 0; i < allShows.length; i++) {
-      for (let j = i + 1; j < allShows.length; j++) {
-        const [id1, id2] = [allShows[i].id, allShows[j].id].sort();
-        const pairKey = `${id1}-${id2}`;
-        
-        if (pairsSet.has(pairKey)) continue;
-
-        const show1Ranking = rankingMap.get(allShows[i].id);
-        const show2Ranking = rankingMap.get(allShows[j].id);
-
-        if (!show1Ranking || !show2Ranking) continue;
-
-        const eloDiff = Math.abs(show1Ranking.elo_score - show2Ranking.elo_score);
-        const proximityScore = Math.max(0, 400 - eloDiff) / 400;
-
-        const avgComparisons = (show1Ranking.comparisons_count + show2Ranking.comparisons_count) / 2;
-        const uncertaintyScore = Math.max(0, (K_MIN_COMPARISONS - avgComparisons) / K_MIN_COMPARISONS);
-
-        const combinedScore = proximityScore * 0.6 + uncertaintyScore * 0.4;
-
-        pairScores.push({
-          pair: [allShows[i], allShows[j]],
-          score: combinedScore
-        });
-      }
-    }
-
-    if (pairScores.length === 0) {
+    if (!nextPair) {
       setShowPair(null);
       if (shouldCelebrate) {
         triggerConfetti();
       }
       toast.success("That's all for now! Your rankings are up to date");
-      return;
+    } else {
+      setShowPair(nextPair);
+      setPairKey(prev => prev + 1);
     }
-
-    pairScores.sort((a, b) => b.score - a.score);
-    const topCandidates = pairScores.slice(0, Math.min(5, pairScores.length));
-    const randomIndex = Math.floor(Math.random() * topCandidates.length);
-    
-    setShowPair(topCandidates[randomIndex].pair);
-    setPairKey(prev => prev + 1); // Trigger slide-in animation
-  };
+  }, [triggerConfetti]);
 
   const handleChoice = async (winnerId: string | null) => {
     if (!showPair || comparing) return;
@@ -397,10 +364,19 @@ export default function Rank() {
       setComparedPairs(newComparedPairs);
       const newTotalComparisons = totalComparisons + 1;
       setTotalComparisons(newTotalComparisons);
+      
+      // Add new comparison to the list
+      const newComparison: Comparison = {
+        show1_id: show1Id,
+        show2_id: show2Id,
+        winner_id: winnerId,
+      };
+      const newComparisons = [...comparisons, newComparison];
+      setComparisons(newComparisons);
 
       // Reset animation states and select next pair
       setSelectedWinner(null);
-      selectSmartPair(shows, rankings, newComparedPairs, newTotalComparisons, true);
+      getNextPair(shows, rankings, newComparisons, newComparedPairs, true);
       setComparing(false);
     } catch (error) {
       console.error("Error saving comparison:", error);
