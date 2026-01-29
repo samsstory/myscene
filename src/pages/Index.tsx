@@ -1,4 +1,5 @@
 import LandingHero from "@/components/landing/LandingHero";
+import LogShowcase from "@/components/landing/LogShowcase";
 import CaptureShowcase from "@/components/landing/CaptureShowcase";
 import RankingSpotlight from "@/components/landing/RankingSpotlight";
 import ShareExperience from "@/components/landing/ShareExperience";
@@ -9,6 +10,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <LandingHero />
+      <LogShowcase />
       <CaptureShowcase />
       <RankingSpotlight />
       <ShareExperience />
