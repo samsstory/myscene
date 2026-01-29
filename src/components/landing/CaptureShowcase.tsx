@@ -152,7 +152,7 @@ const CaptureShowcase = () => {
             </p>
             
             <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
-              "Every detail. Your experience."
+              "Every detail. Your experience"
             </p>
           </div>
         </div>
