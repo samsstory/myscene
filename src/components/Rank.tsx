@@ -540,14 +540,16 @@ export default function Rank() {
             "Can't compare these"
           )}
         </button>
+      </div>
 
-        {/* See Current Rankings - Liquid Glass Button */}
+      {/* See Current Rankings - Liquid Glass Button - positioned in gap below content */}
+      <div className="flex-1 flex items-start justify-center pt-4">
         <button
           onClick={() => {
             // Navigate to Feed with Top Shows tab
             window.location.href = '/dashboard?tab=feed&view=top';
           }}
-          className="mt-2 px-4 py-2 rounded-full text-xs font-medium text-foreground/90 backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="px-4 py-2 rounded-full text-xs font-medium text-foreground/90 backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           style={{
             background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
             boxShadow: '0 4px 24px -4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
