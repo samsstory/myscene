@@ -1,100 +1,140 @@
 
-# Fix: FAB Button Not Visible in Spotlight Tour
+
+# Fix: Spotlight Tour Step 1 - FAB Button Visibility & Tap-to-Advance
 
 ## Problem Analysis
 
-The FAB button is not visible inside the spotlight because of a **z-index stacking context conflict**:
+Looking at the screenshot, the FAB button (blue circle with +) is completely hidden behind the dark overlay. The spotlight creates a "hole" but the actual button isn't visible through it.
 
-1. **React-joyride overlay** uses `zIndex: 10000`
-2. **FAB container** has `z-50` (which equals 50 in Tailwind)
-3. The spotlight creates a visual "hole" in the overlay, but the **target element must render ABOVE the overlay** to be seen through that hole
-4. Since 50 < 10000, the FAB renders behind the dark overlay and is invisible
+**Root Causes:**
 
-The gray area visible in the spotlight is actually the underlying page content bleeding through - not the FAB button.
+1. **Z-Index Issue**: The react-joyride overlay uses `zIndex: 10000`. Although we added `z-[10001]` to the FAB when `showSpotlightTour` is true, the parent container `fixed bottom-6...` has `z-50` which creates a stacking context that traps the FAB's higher z-index inside it.
+
+2. **Stacking Context Hierarchy**:
+   ```
+   Joyride overlay (z-index: 10000)
+   └── Fixed nav container (z-index: 50) ← Creates stacking context
+       └── FAB container (z-index: 10001) ← Trapped inside parent's z-50
+           └── FAB button (z-index: 10001) ← Still behind overlay!
+   ```
+
+3. **spotlightClicks is disabled**: Currently set to `false`, which prevents users from tapping the highlighted element.
 
 ## Solution
 
-Increase the FAB button's z-index to be higher than the Joyride overlay (10000) when the spotlight tour is active.
+### 1. Fix Z-Index Stacking Context
 
-### Approach: Conditional Z-Index During Tour
+The **parent fixed container** (line 184) also needs elevated z-index during the tour:
 
-Pass a prop or use a CSS class to elevate the FAB's z-index only when the tour is running:
-
-```text
-Normal state:    FAB z-index = 50
-Tour active:     FAB z-index = 10001 (above overlay)
+```tsx
+<div className={cn(
+  "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4",
+  showSpotlightTour ? "z-[10001]" : "z-50"
+)}>
 ```
+
+### 2. Enable Spotlight Clicks for Tap-to-Advance
+
+In SpotlightTour.tsx, change:
+```tsx
+spotlightClicks={false}  →  spotlightClicks={true}
+```
+
+This allows users to tap the highlighted UI element to interact with it.
+
+### 3. Handle Step Advancement on User Interaction
+
+Since users will tap the FAB to advance, we need to:
+- Listen for FAB click during tour
+- Programmatically advance to next step when FAB is tapped
+- Use Joyride's controlled mode with `stepIndex` state
+
+### 4. Simplify Step 1 to Just FAB
+
+For Step 1, only show the FAB with pulsing glow. The user taps it to open the menu, which naturally leads to Step 2.
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/Dashboard.tsx` | Add conditional z-index class to FAB button when `showSpotlightTour` is true |
+| `src/pages/Dashboard.tsx` | Elevate parent fixed container z-index during tour; pass `onFabClick` callback to SpotlightTour |
+| `src/components/onboarding/SpotlightTour.tsx` | Enable `spotlightClicks`, use controlled `stepIndex`, advance step when user interacts |
 
 ## Implementation Details
 
 ### Dashboard.tsx Changes
 
-Update the FAB button container and button to use a higher z-index when the tour is running:
-
-**Container div** (line 235):
-```tsx
-<div className={cn("relative", showSpotlightTour && "z-[10001]")}>
-```
-
-**FAB Button** (line 280-289):
-```tsx
-<button
-  onClick={() => setShowFabMenu(!showFabMenu)}
-  data-tour="fab"
-  className={cn(
-    "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95",
-    showSpotlightTour ? "z-[10001]" : "z-50",
-    showFabMenu && "rotate-45 bg-white/20"
-  )}
->
-```
-
-### Alternative: Also Elevate FAB Menu Items
-
-When steps 2-3 target the FAB menu options, those buttons also need elevated z-index:
-
-**Add from Photos button** (line 247):
-```tsx
-className={cn(
-  "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
-  showSpotlightTour && "z-[10001]"
-)}
-```
-
-**Add Single Show button** (line 262):
-```tsx
-className={cn(
-  "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
-  showSpotlightTour && "z-[10001]"
-)}
-```
-
-### FAB Menu Container
-
-Also elevate the menu options container when tour is active:
-
-**Menu Options div** (line 245):
+**Line 184 - Fixed Nav Container:**
 ```tsx
 <div className={cn(
-  "absolute bottom-16 right-0 flex flex-col gap-3 items-end",
+  "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4",
   showSpotlightTour ? "z-[10001]" : "z-50"
 )}>
 ```
 
+**FAB Button onClick - Advance Tour:**
+```tsx
+onClick={() => {
+  setShowFabMenu(!showFabMenu);
+  // If tour is on step 1 (FAB), opening menu advances to step 2
+}}
+```
+
+### SpotlightTour.tsx Changes
+
+**Enable spotlightClicks:**
+```tsx
+spotlightClicks={true}
+```
+
+**Use controlled step index:**
+```tsx
+const [stepIndex, setStepIndex] = useState(0);
+
+// In callback, advance based on user actions
+const handleCallback = (data: CallBackProps) => {
+  const { status, action, type } = data;
+  
+  if (action === "next" || type === "step:after") {
+    setStepIndex(prev => prev + 1);
+  }
+  
+  // ... rest of logic
+};
+
+<Joyride
+  stepIndex={stepIndex}
+  // ...
+/>
+```
+
+### Spotlight Pulse Animation
+
+The existing CSS animation in `index.css` is correct:
+```css
+@keyframes spotlight-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px...;
+  }
+  50% {
+    box-shadow: 0 0 0 8px hsl(189 94% 55% / 0.6), 0 0 40px...;
+  }
+}
+```
+
+## Step 1 Expected Behavior
+
+1. Dark overlay covers entire screen
+2. FAB button (blue circle with +) is visible through spotlight hole
+3. Pulsing cyan glow animates around the FAB
+4. Tooltip appears to the left: "Tap here to log your first show"
+5. User taps the FAB → Menu opens → Tour advances to Step 2
+
 ## Summary of Changes
 
-| Element | Current Z-Index | Tour Active Z-Index |
-|---------|-----------------|---------------------|
-| FAB container div | `relative` | `relative z-[10001]` |
-| FAB button | `z-50` | `z-[10001]` |
-| Menu options container | `z-50` | `z-[10001]` |
-| Add from Photos button | none | `z-[10001]` |
-| Add Single Show button | none | `z-[10001]` |
+| Element | Current | Fixed |
+|---------|---------|-------|
+| Fixed nav container | `z-50` | `z-[10001]` when tour active |
+| spotlightClicks | `false` | `true` |
+| Tour mode | Uncontrolled | Controlled with `stepIndex` |
 
-This ensures all tour target elements render above the Joyride overlay (z-index 10000) while maintaining normal z-index behavior when the tour is not active.
