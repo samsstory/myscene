@@ -87,7 +87,7 @@ const RankingCard = ({
         shouldSlideIn && slideAnimation,
         shouldSlideIn && position === "right" && "[animation-delay:150ms]",
         // Apply winner/loser animations exclusively
-        isWinner && "animate-winner-glow z-10",
+        isWinner && "animate-winner-glow",
         isLoser && "animate-loser-shrink"
       )}
       style={{

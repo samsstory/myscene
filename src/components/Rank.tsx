@@ -478,7 +478,7 @@ export default function Rank() {
 
         {/* VS Badge - positioned relative to photo aspect ratio (4:3), not full card */}
         <div 
-          className="absolute left-1/2 -translate-x-1/2 z-10"
+          className="absolute left-1/2 -translate-x-1/2 z-20"
           style={{ top: 'calc((100vw - 2rem - 0.75rem) / 2 * 0.75 / 2 + 1rem)' }}
         >
           <div 
