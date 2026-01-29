@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
-import { ShareShowSheet } from "./ShareShowSheet";
+
 import { ShowReviewSheet } from "./ShowReviewSheet";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import { QuickPhotoAddSheet } from "./QuickPhotoAddSheet";
@@ -71,8 +71,6 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [shareShow, setShareShow] = useState<Show | null>(null);
-  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [editShow, setEditShow] = useState<Show | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
@@ -139,12 +137,12 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
     }
   };
   
-  // Handler for sharing without photo
+  // Handler for sharing without photo - now goes to PhotoOverlayEditor
   const handleShareWithoutPhoto = () => {
     if (quickPhotoShow) {
       setQuickPhotoOpen(false);
-      setShareShow(quickPhotoShow);
-      setShareSheetOpen(true);
+      setDirectEditShow(quickPhotoShow);
+      setDirectEditOpen(true);
     }
   };
 
@@ -684,7 +682,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
         </>
       )}
 
-      <ShareShowSheet show={shareShow} open={shareSheetOpen} onOpenChange={setShareSheetOpen} allShows={shows} rankings={rankings} />
+      
       
       {/* Quick Photo Add Sheet for shows without photos */}
       <QuickPhotoAddSheet
@@ -702,7 +700,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
             <SheetTitle>Share to Instagram</SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto mt-4">
-            {directEditShow && directEditShow.photo_url && (
+            {directEditShow && (
               <PhotoOverlayEditor
                 show={normalizeShowForEditor(directEditShow)}
                 onClose={() => setDirectEditOpen(false)}
@@ -723,13 +721,8 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView 
           setEditDialogOpen(true);
         }}
         onShareToEditor={(show) => {
-          if (show.photo_url) {
-            setDirectEditShow(show);
-            setDirectEditOpen(true);
-          } else {
-            setQuickPhotoShow(show);
-            setQuickPhotoOpen(true);
-          }
+          setDirectEditShow(show);
+          setDirectEditOpen(true);
         }}
         allShows={shows} 
         rankings={rankings} 

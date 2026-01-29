@@ -7,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { calculateShowScore } from "@/lib/utils";
-import { ShareShowSheet } from "./ShareShowSheet";
+
 import { cn } from "@/lib/utils";
 import { HeroPhotoSection } from "./show-review/HeroPhotoSection";
 import { CompactRatingBar } from "./show-review/CompactRatingBar";
@@ -76,7 +76,6 @@ export const ShowReviewSheet = ({
 }: ShowReviewSheetProps) => {
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -263,12 +262,9 @@ export const ShowReviewSheet = ({
   };
 
   const handleShareClick = () => {
-    if (onShareToEditor && photoUrl) {
+    if (onShareToEditor) {
       onOpenChange(false);
       onShareToEditor(show);
-    } else {
-      onOpenChange(false);
-      setShareSheetOpen(true);
     }
   };
 
@@ -550,14 +546,6 @@ export const ShowReviewSheet = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Separate ShareShowSheet for fallback sharing */}
-      <ShareShowSheet
-        show={show}
-        open={shareSheetOpen}
-        onOpenChange={setShareSheetOpen}
-        allShows={allShows}
-        rankings={rankings}
-      />
     </>
   );
 };
