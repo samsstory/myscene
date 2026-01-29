@@ -895,7 +895,7 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
               
               {/* Bottom metadata bar - matching HeroPhotoSection style */}
               <div className="absolute bottom-0 left-0 right-0 p-4">
-                <div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
+                <div className="bg-white/[0.08] rounded-xl border border-white/[0.1] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <h2 
