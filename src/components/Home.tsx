@@ -22,6 +22,7 @@ import StatPills, { StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
 import IncompleteRatingsSheet from "./home/IncompleteRatingsSheet";
+import FocusedRankingSession from "./home/FocusedRankingSession";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
 
@@ -101,6 +102,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   
   // Incomplete ratings sheet state
   const [incompleteRatingsOpen, setIncompleteRatingsOpen] = useState(false);
+  
+  // Focused ranking session state
+  const [focusedRankingOpen, setFocusedRankingOpen] = useState(false);
 
   const { statPills, insight, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   
@@ -370,7 +374,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           insight={insight} 
           onAction={(action: InsightAction) => {
             if (action === 'rank-tab') {
-              onNavigateToRank?.();
+              setFocusedRankingOpen(true);
             } else if (action === 'incomplete-ratings') {
               setIncompleteRatingsOpen(true);
             }
@@ -757,7 +761,17 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
         rankings={rankings} 
       />
 
-      <AddShowFlow 
+      <FocusedRankingSession
+        open={focusedRankingOpen}
+        onOpenChange={setFocusedRankingOpen}
+        onComplete={() => {
+          setFocusedRankingOpen(false);
+          refetchStats();
+          fetchShows();
+        }}
+      />
+
+      <AddShowFlow
         open={editDialogOpen} 
         onOpenChange={setEditDialogOpen} 
         editShow={editShow ? {
