@@ -133,7 +133,7 @@ const Dashboard = () => {
       {/* Floating Navigation */}
       <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-between items-end px-6 gap-4">
         {/* Left spacer to balance FAB for centering pill */}
-        <div className="w-10 shrink-0" />
+        <div className="w-0 shrink-0" />
         
         {/* Glass Pill Navigation */}
         <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-8 py-3 shadow-2xl">
