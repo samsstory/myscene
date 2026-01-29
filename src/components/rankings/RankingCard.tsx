@@ -71,7 +71,8 @@ const RankingCard = ({
     ? "animate-slide-in-left" 
     : "animate-slide-in-right";
   
-  const animationDelay = position === "right" ? "animation-delay-150" : "";
+  // Only apply slide-in when NOT in winner/loser state
+  const shouldSlideIn = !isWinner && !isLoser;
 
   return (
     <button
@@ -82,13 +83,16 @@ const RankingCard = ({
         "flex-1 text-left cursor-pointer transition-all duration-200",
         "hover:scale-[1.02] active:scale-[0.98]",
         "disabled:pointer-events-none",
-        slideAnimation,
-        position === "right" && "[animation-delay:150ms]",
+        // Only apply slide-in when NOT in winner/loser state
+        shouldSlideIn && slideAnimation,
+        shouldSlideIn && position === "right" && "[animation-delay:150ms]",
+        // Apply winner/loser animations exclusively
         isWinner && "animate-winner-glow z-10",
         isLoser && "animate-loser-shrink"
       )}
       style={{
-        opacity: 0, // Start invisible for slide-in animation
+        // Only set initial opacity to 0 for slide-in animation
+        opacity: shouldSlideIn ? 0 : undefined,
       }}
     >
       <div className={cn(
