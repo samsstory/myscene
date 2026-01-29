@@ -1,113 +1,98 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { ArrowLeft, ChevronDown, ArrowUpDown, Home, Globe, Crown, Plus } from "lucide-react";
+import { Instagram, Users } from "lucide-react";
 
-const mockShows = [
-  { 
-    artist: "Rufus Du Sol", 
-    venue: "Red Rocks", 
-    date: "Sep 2024", 
-    rank: 1,
-    photo: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80"
-  },
-  { 
-    artist: "Odesza", 
-    venue: "The Gorge", 
-    date: "Jul 2024", 
-    rank: 2,
-    photo: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&q=80"
-  },
-  { 
-    artist: "Disclosure", 
-    venue: "Brooklyn Mirage", 
-    date: "Aug 2024", 
-    rank: 3,
-    photo: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80"
-  },
-  { 
-    artist: "Bonobo", 
-    venue: "Hollywood Bowl", 
-    date: "Oct 2024", 
-    rank: 4,
-    photo: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=100&q=80"
-  },
-];
-
-const TopRankedMockup = () => (
+// Show Review Sheet Mockup
+const ShowReviewMockup = () => (
   <div className="h-full w-full bg-background flex flex-col">
-    {/* Header */}
-    <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.08]">
-      <SceneLogo size="sm" />
+    {/* 4:3 Hero Photo Section */}
+    <div className="relative" style={{ aspectRatio: "4/3" }}>
       <div 
-        className="w-7 h-7 rounded-full border border-white/20"
+        className="absolute inset-0"
         style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&q=80')",
+          backgroundImage: "url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       />
-    </div>
-
-    {/* Page Title */}
-    <div className="px-4 py-3 flex items-center gap-2">
-      <ArrowLeft className="w-5 h-5 text-white/60" />
-      <span className="text-white font-semibold">Top Ranked Shows</span>
-    </div>
-
-    {/* Filter Bar */}
-    <div className="px-4 pb-3 flex items-center justify-between">
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
-        <span className="text-white/80 text-xs">All Time</span>
-        <ChevronDown className="w-3 h-3 text-white/50" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+      
+      {/* Scene watermark */}
+      <div className="absolute top-2 right-2">
+        <div className="bg-black/30 backdrop-blur-sm rounded-full px-2 py-1 border border-white/10">
+          <SceneLogo size="sm" />
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
-        <ArrowUpDown className="w-3 h-3 text-white/50" />
-        <span className="text-white/80 text-xs">Best</span>
-      </div>
-    </div>
 
-    {/* Show List */}
-    <div className="flex-1 px-3 space-y-2 overflow-hidden">
-      {mockShows.map((show) => (
-        <div 
-          key={show.rank}
-          className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08]"
-        >
-          {/* Photo Thumbnail */}
-          <div 
-            className="w-14 h-14 rounded-lg shrink-0"
-            style={{
-              backgroundImage: `url('${show.photo}')`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-          
-          {/* Show Info */}
-          <div className="flex-1 min-w-0">
-            <div className="text-white text-sm font-semibold truncate">{show.artist}</div>
-            <div className="text-white/60 text-xs truncate">{show.venue}</div>
-            <div className="text-white/40 text-xs">{show.date}</div>
+      {/* Glass metadata bar at bottom of photo */}
+      <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md p-3 border-t border-white/10">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="text-white font-bold text-sm">Rufus Du Sol</h3>
+            <p className="text-white/70 text-xs">Red Rocks Amphitheatre</p>
+            <p className="text-white/50 text-[10px] mt-0.5">September 14, 2024</p>
           </div>
+          <div className="text-right">
+            <div className="inline-flex items-center justify-center bg-white/90 text-black font-bold rounded-full px-2 py-0.5 text-sm">
+              9.4
+            </div>
+            <p className="text-white/50 text-[10px] mt-0.5">#1 All Time</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          {/* Rank Badge */}
-          <div className="text-white/50 text-sm font-medium pr-1">
-            #{show.rank}
+    {/* Rating Bars */}
+    <div className="px-3 py-3 space-y-2">
+      {[
+        { label: "Show", score: 95 },
+        { label: "Sound", score: 92 },
+        { label: "Lighting", score: 88 },
+        { label: "Crowd", score: 90 },
+        { label: "Vibe", score: 94 },
+      ].map((item) => (
+        <div key={item.label} className="flex items-center gap-2">
+          <span className="text-white/60 text-[10px] w-12">{item.label}</span>
+          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div 
+              className="h-full rounded-full"
+              style={{
+                width: `${item.score}%`,
+                background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)))"
+              }}
+            />
           </div>
         </div>
       ))}
     </div>
 
-    {/* Bottom Nav */}
-    <div className="px-4 py-3 border-t border-white/[0.08] flex items-center justify-between">
-      <div className="flex items-center gap-6">
-        <Home className="w-5 h-5 text-white/40" />
-        <Globe className="w-5 h-5 text-white/40" />
-        <Crown className="w-5 h-5 text-primary" />
+    {/* Notes Quote */}
+    <div className="px-3 pb-2">
+      <div className="bg-white/[0.03] rounded-lg p-2 border border-white/[0.06]">
+        <p className="text-white/60 text-[10px] italic leading-relaxed">
+          "The sunrise set was absolutely unreal. Goosebumps the entire time."
+        </p>
       </div>
-      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-        <Plus className="w-5 h-5 text-primary-foreground" />
-      </div>
+    </div>
+
+    {/* Action Buttons */}
+    <div className="px-3 pb-3 space-y-2 mt-auto">
+      {/* Compare with friends button */}
+      <button className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/70 text-xs">
+        <Users className="w-3.5 h-3.5" />
+        <span>Compare with friends</span>
+      </button>
+      
+      {/* Share to Instagram button */}
+      <button 
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-white text-xs font-medium"
+        style={{
+          background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))"
+        }}
+      >
+        <Instagram className="w-3.5 h-3.5" />
+        <span>Share to Instagram</span>
+      </button>
     </div>
   </div>
 );
@@ -126,7 +111,7 @@ const CaptureShowcase = () => {
           {/* Left: Phone Mockup */}
           <div className="flex justify-center order-2 lg:order-1">
             <PhoneMockup className="w-72 md:w-80 lg:w-96" tilt="left">
-              <TopRankedMockup />
+              <ShowReviewMockup />
             </PhoneMockup>
           </div>
 
@@ -136,29 +121,29 @@ const CaptureShowcase = () => {
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
               style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
             >
-              Your concert history, ranked.
+              Every show. One place.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Every show you've ever been to, beautifully organized and instantly searchable. Scene becomes your personal concert archive.
+              Never forget who opened for who, which venue had the best sound, or what night changed everything.
             </p>
 
             <ul className="space-y-3 text-muted-foreground text-left max-w-lg mx-auto lg:mx-0">
               <li className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Log artists, venues, dates, and your ratings</span>
+                <span>Never forget who opened for who</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Add photos to remember the night</span>
+                <span>Rate every detail — sound, lighting, crowd, vibe</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Filter by time period, sort by rank or date</span>
+                <span>Add photos that capture the moment</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span>Your complete concert timeline in one place</span>
+                <span>Your personal concert archive, always with you</span>
               </li>
             </ul>
           </div>

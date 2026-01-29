@@ -94,11 +94,11 @@ const RankingSpotlight = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Forget arbitrary star ratings. Scene uses head-to-head comparisons to build your true power ranking.
+              Finally answer: what's my all-time #1 show? Head-to-head picks reveal your true feelings.
             </p>
 
             <p className="text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              After a few quick "this or that" choices, you'll know exactly which shows topped your list — no guesswork, just your honest picks.
+              The more you compare, the more accurate your rankings become.
             </p>
 
             {/* Coming soon teaser */}
