@@ -85,9 +85,9 @@ const ShowCard = ({
 
 // Large ranking mockup - bias-free design
 const RankingMockup = () => <div className="h-full w-full flex flex-col relative overflow-hidden">
-    {/* Animated pulsing glow */}
+    {/* Static gradient background */}
     <div 
-      className="absolute inset-0 animate-pulse-glow"
+      className="absolute inset-0"
       style={{
         background: `
           radial-gradient(ellipse at 50% 60%, hsl(189 94% 55% / 0.08) 0%, transparent 50%),
