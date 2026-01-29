@@ -30,7 +30,7 @@ const LandingCTA = () => {
               onClick={() => navigate("/auth")} 
               className="shadow-glow text-lg px-10 py-6 hover:scale-105 transition-transform"
             >
-              Create my scene
+              Join Waitlist
             </Button>
           </div>
         </div>
