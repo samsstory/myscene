@@ -9,6 +9,7 @@ import Rank from "@/components/Rank";
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
+import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -24,24 +25,47 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
   const [openShowId, setOpenShowId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         if (!session) {
           navigate("/auth");
+        } else {
+          // Check onboarding status
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("onboarding_step")
+            .eq("id", session.user.id)
+            .single();
+          
+          if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
+            setShowOnboarding(true);
+          }
         }
         setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (!session) {
         navigate("/auth");
+      } else {
+        // Check onboarding status
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_step")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
+          setShowOnboarding(true);
+        }
       }
       setLoading(false);
     });
@@ -62,6 +86,21 @@ const Dashboard = () => {
 
   if (!session) {
     return null;
+  }
+
+  const handleOnboardingComplete = async () => {
+    if (session) {
+      await supabase
+        .from("profiles")
+        .update({ onboarding_step: "completed" })
+        .eq("id", session.user.id);
+    }
+    setShowOnboarding(false);
+  };
+
+  // Show onboarding carousel for new users
+  if (showOnboarding) {
+    return <WelcomeCarousel onComplete={handleOnboardingComplete} />;
   }
 
   const renderContent = () => {
