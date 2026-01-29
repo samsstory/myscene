@@ -131,7 +131,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto relative pb-8">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto relative pb-8 top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
           <div 
