@@ -1,7 +1,7 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { Check, MapPin, Home, Globe, Crown, Plus } from "lucide-react";
-
+import { Badge } from "@/components/ui/badge";
+import { Check, MapPin, Home, Globe, Crown, Plus, Sparkles } from "lucide-react";
 const SmartCaptureMockup = () => (
   <div className="h-full w-full bg-background flex flex-col">
     {/* Spacer for dynamic island */}
@@ -91,15 +91,24 @@ const LogShowcase = () => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: Copy */}
           <div className="space-y-6 text-center lg:text-left">
+            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Smart Capture
+            </Badge>
+            
             <h2 
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
               style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
             >
-              Log it before you forget.
+              Collect it before you forget.
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Add a photo — we'll figure out the rest.
+              Drop in a photo or multiple photos. We handle the rest.
+            </p>
+            
+            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
+              Never forget that feeling again.
             </p>
           </div>
 
