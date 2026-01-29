@@ -113,4 +113,15 @@ All colors MUST be HSL.
   .animate-pulse-glow {
     animation: pulse-glow 4s ease-in-out infinite;
   }
+
+  /* Winner glow effect for ranking cards */
+  .winner-glow {
+    box-shadow: 0 0 20px hsl(189 94% 55% / 0.6), 0 0 40px hsl(189 94% 55% / 0.3);
+  }
+
+  /* Loser fade effect */
+  .loser-fade {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
 }

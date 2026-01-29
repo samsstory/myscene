@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 import RankingCard from "./rankings/RankingCard";
 import RankingProgressBar from "./rankings/RankingProgressBar";
 import SceneLogo from "./ui/SceneLogo";
@@ -36,9 +37,43 @@ export default function Rank() {
   const [comparing, setComparing] = useState(false);
   const [comparedPairs, setComparedPairs] = useState<Set<string>>(new Set());
   const [totalComparisons, setTotalComparisons] = useState(0);
+  
+  // Animation states
+  const [pairKey, setPairKey] = useState(0);
+  const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
 
   const K_BASE = 32;
   const K_MIN_COMPARISONS = 10;
+
+  // Trigger confetti celebration
+  const triggerConfetti = useCallback(() => {
+    const colors = ['#22d3ee', '#f97316', '#fbbf24']; // cyan, coral, gold
+    
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors,
+    });
+    
+    // Second burst for more impact
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors,
+      });
+      confetti({
+        particleCount: 50,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors,
+      });
+    }, 150);
+  }, []);
 
   useEffect(() => {
     fetchShows();
@@ -171,7 +206,8 @@ export default function Rank() {
     allShows: Show[], 
     allRankings: ShowRanking[], 
     pairsSet: Set<string>,
-    currentTotalComparisons: number
+    currentTotalComparisons: number,
+    shouldCelebrate: boolean = false
   ) => {
     const MIN_TOTAL_COMPARISONS = Math.max(15, allShows.length * 2);
     
@@ -179,6 +215,9 @@ export default function Rank() {
       const avgComparisons = currentTotalComparisons / allShows.length;
       if (avgComparisons >= 3) {
         setShowPair(null);
+        if (shouldCelebrate) {
+          triggerConfetti();
+        }
         toast.success("That's all for now! Your rankings are up to date");
         return;
       }
@@ -216,6 +255,9 @@ export default function Rank() {
 
     if (pairScores.length === 0) {
       setShowPair(null);
+      if (shouldCelebrate) {
+        triggerConfetti();
+      }
       toast.success("That's all for now! Your rankings are up to date");
       return;
     }
@@ -225,12 +267,26 @@ export default function Rank() {
     const randomIndex = Math.floor(Math.random() * topCandidates.length);
     
     setShowPair(topCandidates[randomIndex].pair);
+    setPairKey(prev => prev + 1); // Trigger slide-in animation
   };
 
   const handleChoice = async (winnerId: string | null) => {
-    if (!showPair) return;
+    if (!showPair || comparing) return;
+    
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    
+    // Set winner for animation
+    if (winnerId) {
+      setSelectedWinner(winnerId);
+    }
     
     setComparing(true);
+    
+    // Wait for animation to play
+    await new Promise(resolve => setTimeout(resolve, 400));
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -333,20 +389,21 @@ export default function Rank() {
         }
       }
 
-      const pairKey = `${show1Id}-${show2Id}`;
-      const newComparedPairs = new Set([...comparedPairs, pairKey]);
+      const newPairKey = `${show1Id}-${show2Id}`;
+      const newComparedPairs = new Set([...comparedPairs, newPairKey]);
       setComparedPairs(newComparedPairs);
       const newTotalComparisons = totalComparisons + 1;
       setTotalComparisons(newTotalComparisons);
 
-      setTimeout(() => {
-        selectSmartPair(shows, rankings, newComparedPairs, newTotalComparisons);
-        setComparing(false);
-      }, 300);
+      // Reset animation states and select next pair
+      setSelectedWinner(null);
+      selectSmartPair(shows, rankings, newComparedPairs, newTotalComparisons, true);
+      setComparing(false);
     } catch (error) {
       console.error("Error saving comparison:", error);
       toast.error("Failed to save comparison");
       setComparing(false);
+      setSelectedWinner(null);
     }
   };
 
@@ -388,9 +445,16 @@ export default function Rank() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
-      {/* Header */}
+      {/* Header with brand glow */}
       <div className="text-center">
-        <h1 className="text-lg font-bold tracking-wide">Show Ranker</h1>
+        <h1 
+          className="text-lg font-black tracking-[0.15em] uppercase"
+          style={{
+            textShadow: '0 0 8px rgba(255,255,255,0.4), 0 0 20px rgba(255,255,255,0.15)'
+          }}
+        >
+          Show Ranker
+        </h1>
       </div>
 
       {/* Progress Bar */}
@@ -406,6 +470,10 @@ export default function Rank() {
           show={showPair[0]}
           onClick={() => handleChoice(showPair[0].id)}
           disabled={comparing}
+          position="left"
+          isWinner={selectedWinner === showPair[0].id}
+          isLoser={selectedWinner !== null && selectedWinner !== showPair[0].id}
+          animationKey={pairKey}
         />
 
         {/* VS Badge */}
@@ -425,6 +493,10 @@ export default function Rank() {
           show={showPair[1]}
           onClick={() => handleChoice(showPair[1].id)}
           disabled={comparing}
+          position="right"
+          isWinner={selectedWinner === showPair[1].id}
+          isLoser={selectedWinner !== null && selectedWinner !== showPair[1].id}
+          animationKey={pairKey}
         />
       </div>
 
