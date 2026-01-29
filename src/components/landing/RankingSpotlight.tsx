@@ -92,7 +92,7 @@ const RankingMockup = () => <div className="h-full w-full bg-gradient-accent fle
     {/* VS Interface */}
     <div className="flex-1 flex flex-col items-center justify-center p-4 gap-3">
       {/* Progress bar directly above headline */}
-      <div className="w-full max-w-[200px] h-4 bg-white/10 rounded-full overflow-hidden mb-1">
+      <div className="w-full max-w-[200px] h-2 bg-white/10 rounded-full overflow-hidden mb-1">
         <div className="h-full bg-primary rounded-full transition-all" style={{
         width: "60%"
       }} />
