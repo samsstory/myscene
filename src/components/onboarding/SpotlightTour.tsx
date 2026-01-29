@@ -146,23 +146,27 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu }: Spotl
       disableOverlayClose
       disableCloseOnEsc
       spotlightClicks={false}
+      spotlightPadding={8}
       styles={{
         options: {
           arrowColor: "rgba(0, 0, 0, 0.6)",
           backgroundColor: "transparent",
-          overlayColor: "rgba(0, 0, 0, 0.7)",
+          overlayColor: "rgba(0, 0, 0, 0.85)",
           primaryColor: "hsl(189 94% 55%)",
           zIndex: 10000,
         },
         spotlight: {
-          borderRadius: 16,
-          boxShadow: "0 0 30px hsl(189 94% 55% / 0.5), 0 0 60px hsl(189 94% 55% / 0.3)",
+          borderRadius: 20,
+          boxShadow: "0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px hsl(189 94% 55% / 0.6), 0 0 60px hsl(189 94% 55% / 0.4)",
+          animation: "spotlight-pulse 2s ease-in-out infinite",
         },
         overlay: {
           mixBlendMode: undefined,
         },
       }}
       floaterProps={{
+        disableAnimation: false,
+        offset: 16,
         styles: {
           arrow: {
             length: 8,
