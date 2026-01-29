@@ -1,75 +1,130 @@
+import { useState, useMemo } from "react";
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import LandingGlobe from "./LandingGlobe";
+import LandingGlobe, { CITY_MARKERS } from "./LandingGlobe";
 import { Home, Globe, Crown, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Globe/Map Mockup with real Mapbox globe
-const GlobeMockup = () => (
-  <div className="h-full w-full bg-background flex flex-col overflow-hidden">
-    {/* Spacer for dynamic island */}
-    <div className="h-6" />
-    
-    {/* Header */}
-    <div className="px-4 py-2 flex items-center justify-between">
-      <SceneLogo size="sm" />
-      <div 
-        className="w-6 h-6 rounded-full border border-white/20"
-        style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&q=80')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-    </div>
+const YEARS = [2024, 2025, 2026, "all"] as const;
+type YearOption = (typeof YEARS)[number];
 
-    {/* Map Area with real Mapbox globe */}
-    <div className="flex-1 relative min-h-0">
-      <LandingGlobe />
+// Globe/Map Mockup with real Mapbox globe and year toggle
+const GlobeMockup = () => {
+  const [selectedYear, setSelectedYear] = useState<YearOption>("all");
 
-      {/* Stats overlay */}
-      <div className="absolute bottom-3 left-3 right-3">
-        <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10">
-          <div className="flex items-center justify-center gap-4">
-            <div className="text-center">
-              <span className="text-white font-bold text-lg">5</span>
-              <p className="text-white/50 text-[10px]">countries</p>
-            </div>
-            <div className="w-px h-8 bg-white/20" />
-            <div className="text-center">
-              <span className="text-white font-bold text-lg">12</span>
-              <p className="text-white/50 text-[10px]">cities</p>
-            </div>
-            <div className="w-px h-8 bg-white/20" />
-            <div className="text-center">
-              <span className="text-white font-bold text-lg">47</span>
-              <p className="text-white/50 text-[10px]">shows</p>
+  const yearStats = useMemo(() => {
+    const markers =
+      selectedYear === "all"
+        ? CITY_MARKERS
+        : CITY_MARKERS.filter((m) => m.years.includes(selectedYear as number));
+
+    const shows = markers.reduce((sum, m) => sum + m.count, 0);
+    const cities = markers.length;
+    const countries = new Set(markers.map((m) => m.country)).size;
+
+    return { shows, cities, countries };
+  }, [selectedYear]);
+
+  return (
+    <div className="h-full w-full bg-background flex flex-col overflow-hidden">
+      {/* Spacer for dynamic island */}
+      <div className="h-6" />
+
+      {/* Header */}
+      <div className="px-4 py-2 flex items-center justify-between">
+        <SceneLogo size="sm" />
+        <div
+          className="w-6 h-6 rounded-full border border-white/20"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&q=80')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      </div>
+
+      {/* Map Area with real Mapbox globe */}
+      <div className="flex-1 relative min-h-0">
+        <LandingGlobe selectedYear={selectedYear} />
+
+        {/* Year Toggle */}
+        <div className="absolute top-3 left-3 right-3 z-10">
+          <div className="flex justify-center gap-1">
+            {YEARS.map((year) => (
+              <button
+                key={year}
+                onClick={() => setSelectedYear(year)}
+                className={cn(
+                  "px-2.5 py-1 text-xs rounded-full transition-all font-medium",
+                  selectedYear === year
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-black/40 text-white/60 backdrop-blur-sm hover:bg-black/50"
+                )}
+              >
+                {year === "all" ? "All" : year}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats overlay */}
+        <div className="absolute bottom-3 left-3 right-3">
+          <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10">
+            <div className="flex items-center justify-center gap-4">
+              <div className="text-center">
+                <span className="text-white font-bold text-lg">
+                  {yearStats.countries}
+                </span>
+                <p className="text-white/50 text-[10px]">countries</p>
+              </div>
+              <div className="w-px h-8 bg-white/20" />
+              <div className="text-center">
+                <span className="text-white font-bold text-lg">
+                  {yearStats.cities}
+                </span>
+                <p className="text-white/50 text-[10px]">cities</p>
+              </div>
+              <div className="w-px h-8 bg-white/20" />
+              <div className="text-center">
+                <span className="text-white font-bold text-lg">
+                  {yearStats.shows}
+                </span>
+                <p className="text-white/50 text-[10px]">shows</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    {/* Bottom Nav - Glass pill with FAB */}
-    <div className="px-4 py-2.5 flex items-center justify-center gap-4">
-      {/* Glass pill nav */}
-      <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
-        <Home className="w-4 h-4 text-white/40" />
-        <Globe className="w-4 h-4 text-primary" style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }} />
-        <Crown className="w-4 h-4 text-white/40" />
-      </div>
-      {/* FAB */}
-      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}>
-        <Plus className="w-4 h-4 text-primary-foreground" />
+      {/* Bottom Nav - Glass pill with FAB */}
+      <div className="px-4 py-2.5 flex items-center justify-center gap-4">
+        {/* Glass pill nav */}
+        <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
+          <Home className="w-4 h-4 text-white/40" />
+          <Globe
+            className="w-4 h-4 text-primary"
+            style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }}
+          />
+          <Crown className="w-4 h-4 text-white/40" />
+        </div>
+        {/* FAB */}
+        <div
+          className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg"
+          style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}
+        >
+          <Plus className="w-4 h-4 text-primary-foreground" />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const GlobeShowcase = () => {
   return (
     <section className="py-24 md:py-32 relative overflow-hidden">
       {/* Background accent */}
-      <div 
+      <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-10"
         style={{ background: "hsl(var(--primary))" }}
       />
@@ -85,7 +140,7 @@ const GlobeShowcase = () => {
 
           {/* Right: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
-            <h2 
+            <h2
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
               style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
             >
