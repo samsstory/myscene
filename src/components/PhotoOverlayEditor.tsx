@@ -834,41 +834,123 @@ export const PhotoOverlayEditor = ({ show, onClose, allShows = [], rankings = []
     }
   };
 
+  // Format show data for no-photo state display
+  const headlinerForDisplay = show.artists.find(a => a.is_headliner) || show.artists[0];
+  const artistName = headlinerForDisplay?.name || "Unknown Artist";
+  const supportingArtists = show.artists.filter(a => !a.is_headliner && a.name !== headlinerForDisplay?.name);
+  const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
+  const formattedDateForDisplay = new Date(show.show_date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
   if (!effectivePhotoUrl) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-6">
-        <div className="text-center space-y-2">
-          <Camera className="h-16 w-16 mx-auto text-white/20 mb-4" />
-          <p className="text-white/60 text-lg font-medium">No photo available for this show</p>
-          <p className="text-sm text-white/40">Add a photo to customize and share</p>
-        </div>
-        
-        <input
-          ref={uploadInputRef}
-          type="file"
-          accept="image/jpeg,image/jpg,image/png,image/webp"
-          className="hidden"
-          onChange={handlePhotoUpload}
-        />
-        
-        <Button
-          onClick={() => uploadInputRef.current?.click()}
-          disabled={uploading}
-          className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:opacity-90 text-white font-semibold px-8 py-6 rounded-xl shadow-lg"
-        >
-          {uploading ? (
-            <>
-              <Upload className="h-5 w-5 mr-2 animate-pulse" />
-              Uploading...
-            </>
-          ) : (
-            <>
+      <TooltipProvider>
+        <div className="flex flex-col h-full">
+          {/* Card-style no-photo state */}
+          <div className="flex-1 flex items-center justify-center bg-black/20 rounded-lg overflow-hidden">
+            <div 
+              className="relative w-full h-full overflow-hidden rounded-xl border border-white/10"
+              style={{
+                background: `linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--background)), hsl(var(--primary-glow) / 0.1))`,
+              }}
+            >
+              {/* Upload CTA area - centered above metadata */}
+              <div className="absolute inset-0 bottom-[120px] flex flex-col items-center justify-center gap-4">
+                <input
+                  ref={uploadInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+                
+                <Button
+                  onClick={() => uploadInputRef.current?.click()}
+                  disabled={uploading}
+                  variant="outline"
+                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 text-white font-medium px-6 py-5 rounded-xl"
+                >
+                  {uploading ? (
+                    <>
+                      <Upload className="h-5 w-5 mr-2 animate-pulse" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-5 w-5 mr-2" />
+                      Add Photo
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {/* Scene logo - top right */}
+              <div className="absolute top-3 right-3 z-10">
+                <span 
+                  className="text-xs font-black tracking-[0.25em] text-white/60 uppercase"
+                  style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}
+                >
+                  SCENE ✦
+                </span>
+              </div>
+              
+              {/* Bottom metadata bar - matching HeroPhotoSection style */}
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h2 
+                        className="font-black text-xl text-white tracking-wide truncate"
+                        style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
+                      >
+                        {artistName}
+                      </h2>
+                      {supportingArtists.length > 0 && (
+                        <p className="text-white/50 text-xs mt-0.5 truncate">
+                          + {supportingArtists.map(a => a.name).join(', ')}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{show.venue_name}</span>
+                      </div>
+                      <p className="text-white/50 text-xs mt-0.5">{formattedDateForDisplay}</p>
+                    </div>
+                    {/* Score badge */}
+                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                      <div className="px-3 py-1.5 rounded-full bg-white border border-white/20">
+                        <span className="text-sm font-black text-black tracking-wide">
+                          {score.toFixed(1)}
+                        </span>
+                      </div>
+                      <span 
+                        className="text-xs font-bold text-primary tracking-wide"
+                        style={{ textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)" }}
+                      >
+                        {rankData.position > 0 ? `#${rankData.position} All Time` : "Unranked"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Instagram share button - bottom of sheet */}
+          <div className="pt-4 pb-2">
+            <Button
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:opacity-90 text-white font-semibold py-6 rounded-xl shadow-lg"
+              style={{
+                boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)",
+              }}
+            >
               <Camera className="h-5 w-5 mr-2" />
-              Add Photo
-            </>
-          )}
-        </Button>
-      </div>
+              Add Photo to Share
+            </Button>
+          </div>
+        </div>
+      </TooltipProvider>
     );
   }
 
