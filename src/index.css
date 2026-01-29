@@ -135,6 +135,16 @@ All colors MUST be HSL.
     }
   }
 
+  /* Spotlight glow pulse for react-joyride */
+  @keyframes spotlight-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px hsl(189 94% 55% / 0.6), 0 0 60px hsl(189 94% 55% / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 8px hsl(189 94% 55% / 0.6), 0 0 40px hsl(189 94% 55% / 0.8), 0 0 80px hsl(189 94% 55% / 0.5);
+    }
+  }
+
   .tour-target-pulse {
     animation: tour-pulse 2s ease-in-out infinite;
   }
