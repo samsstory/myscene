@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,7 @@ import {
 import { Edit, MapPin, Minus, Globe, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MapNavButton from "./map/MapNavButton";
 import MapRightPanel from "./map/MapRightPanel";
-import MapHoverCard from "./map/MapHoverCard";
 import MapYearToggle from "./map/MapYearToggle";
 import MapStatsCard from "./map/MapStatsCard";
 
@@ -27,6 +25,7 @@ interface Show {
   rating: number;
   latitude?: number;
   longitude?: number;
+  photo_url?: string | null;
 }
 
 interface MapViewProps {
@@ -38,48 +37,17 @@ interface MapViewProps {
 
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
 
-interface CountryData {
-  name: string;
-  showCount: number;
-  coordinates: [number, number];
-}
-
-interface CityData {
-  name: string;
-  showCount: number;
-  coordinates: [number, number];
-  shows: Show[];
-}
-
-interface VenueData {
-  name: string;
-  location: string;
-  coordinates: [number, number];
-  shows: Show[];
-}
-
 const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapViewProps) => {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [selectedVenue, setSelectedVenue] = useState<{ venueName: string; location: string; count: number; shows: Show[] } | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const [selectedShow, setSelectedShow] = useState<Show | null>(null);
   const [showsWithoutLocation, setShowsWithoutLocation] = useState<Show[]>([]);
   const [homeCoordinates, setHomeCoordinates] = useState<[number, number] | null>(null);
   const [isBackfilling, setIsBackfilling] = useState(false);
-  const [countryData, setCountryData] = useState<CountryData[]>([]);
-  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [isLocationCardMinimized, setIsLocationCardMinimized] = useState(false);
-  const [viewLevel, setViewLevel] = useState<'country' | 'city' | 'venue'>('country');
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [cityData, setCityData] = useState<CityData[]>([]);
-  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
-  const [venueData, setVenueData] = useState<VenueData[]>([]);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [hoveredVenue, setHoveredVenue] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>("all");
-  
-  // Track hovered feature for feature-state system
-  const hoveredFeatureRef = useRef<{ source: string; id: number | string | undefined } | null>(null);
 
   // Extract unique years from shows and sort descending
   const availableYears = useMemo(() => {
@@ -102,7 +70,46 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
       return new Date(show.date).getFullYear().toString() === selectedYear;
     });
   }, [shows, selectedYear]);
-  
+
+  // Shows with valid coordinates for the map
+  const mappableShows = useMemo(() => {
+    return filteredShows.filter(show => show.latitude && show.longitude);
+  }, [filteredShows]);
+
+  // Extract country from location string
+  const getCountryFromLocation = (location: string): string => {
+    const parts = location.split(',').map(p => p.trim());
+    const lastPart = parts[parts.length - 1];
+    if (['USA', 'US', 'United States', 'U.S.', 'U.S.A.'].includes(lastPart)) {
+      return 'United States';
+    }
+    const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
+    for (const part of parts) {
+      const cleanedPart = part.replace(/\s*\d+\s*$/, '').trim();
+      if (usStates.includes(cleanedPart)) {
+        return 'United States';
+      }
+    }
+    if (parts.length >= 2) {
+      return lastPart;
+    }
+    return 'United States';
+  };
+
+  // Extract city from location string
+  const getCityFromLocation = (location: string): string => {
+    const parts = location.split(',').map(p => p.trim());
+    if (parts.length >= 3 && /^\d/.test(parts[0])) {
+      return `${parts[1]}, ${parts[2].replace(/\s*\d+\s*$/, '').trim()}`;
+    }
+    if (parts.length >= 2) {
+      const state = parts[1].replace(/\s*\d+\s*$/, '').trim();
+      return `${parts[0]}, ${state}`;
+    }
+    return parts[0];
+  };
 
   // Fetch user's home city coordinates
   useEffect(() => {
@@ -128,138 +135,25 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
     fetchHomeCoordinates();
   }, []);
 
-  // Extract country from location string
-  const getCountryFromLocation = (location: string): string => {
-    const parts = location.split(',').map(p => p.trim());
-    
-    // Check for USA, US, United States explicitly
-    const lastPart = parts[parts.length - 1];
-    if (['USA', 'US', 'United States', 'U.S.', 'U.S.A.'].includes(lastPart)) {
-      return 'United States';
-    }
-    
-    // Common US state abbreviations
-    const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
-    
-    // Check if any part is a US state (strip zip codes first)
-    for (const part of parts) {
-      // Remove zip codes and numbers from state abbreviations (e.g., "CA 90028" -> "CA")
-      const cleanedPart = part.replace(/\s*\d+\s*$/, '').trim();
-      if (usStates.includes(cleanedPart)) {
-        return 'United States';
-      }
-    }
-    
-    // If location has multiple parts, assume last is country
-    if (parts.length >= 2) {
-      return lastPart;
-    }
-    
-    return 'United States';
-  };
-
-  // Extract city from location string - include state for better geocoding accuracy
-  const getCityFromLocation = (location: string): string => {
-    const parts = location.split(',').map(p => p.trim());
-    
-    // For addresses with numbers at the start (street addresses)
-    // e.g., "8509 Burleson Rd, Austin, TX 78719" -> "Austin, TX"
-    if (parts.length >= 3 && /^\d/.test(parts[0])) {
-      return `${parts[1]}, ${parts[2].replace(/\s*\d+\s*$/, '').trim()}`;
-    }
-    
-    // For city, state, country format
-    // e.g., "Brooklyn, New York, USA" -> "Brooklyn, New York"
-    // e.g., "Los Angeles, CA 90028" -> "Los Angeles, CA"
-    if (parts.length >= 2) {
-      const state = parts[1].replace(/\s*\d+\s*$/, '').trim();
-      return `${parts[0]}, ${state}`;
-    }
-    
-    return parts[0];
-  };
-
-  // Geocode country name to get center coordinates
-  const geocodeCountry = async (countryName: string): Promise<[number, number] | null> => {
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(countryName)}.json?types=country&access_token=${MAPBOX_TOKEN}`
-      );
-      const data = await response.json();
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        return [lng, lat];
-      }
-    } catch (error) {
-      console.error('Error geocoding country:', error);
-    }
-    return null;
-  };
-
-  // Geocode city name to get coordinates
-  const geocodeCity = async (cityStateString: string, countryName: string): Promise<[number, number] | null> => {
-    try {
-      // Get country code for more accurate results
-      let countryCode = '';
-      if (countryName === 'United States') countryCode = 'us';
-      else if (countryName === 'Canada') countryCode = 'ca';
-      else if (countryName === 'United Kingdom') countryCode = 'gb';
-      
-      // Use the full city, state string for more accurate geocoding
-      // e.g., "Brooklyn, New York" or "Los Angeles, CA"
-      const query = countryCode 
-        ? `${encodeURIComponent(cityStateString)}.json?types=place&country=${countryCode}`
-        : `${encodeURIComponent(cityStateString)}.json?types=place`;
-      
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}&access_token=${MAPBOX_TOKEN}`
-      );
-      const data = await response.json();
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        return [lng, lat];
-      }
-    } catch (error) {
-      console.error('Error geocoding city:', error);
-    }
-    return null;
-  };
-
-  // Geocode venue address to get coordinates
-  const geocodeVenue = async (address: string): Promise<[number, number] | null> => {
-    try {
-      console.log(`[MapView] Attempting to geocode venue address: "${address}"`);
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?types=address,poi&access_token=${MAPBOX_TOKEN}`
-      );
-      const data = await response.json();
-      
-      if (data.features?.length > 0) {
-        const coords = data.features[0].center;
-        console.log(`[MapView] Successfully geocoded "${address}" to coordinates:`, coords);
-        return coords;
-      } else {
-        console.warn(`[MapView] No geocoding results found for venue address: "${address}"`);
-      }
-    } catch (error) {
-      console.error(`[MapView] Error geocoding venue address "${address}":`, error);
-    }
-    return null;
-  };
+  // Filter shows without location
+  useEffect(() => {
+    const showsWithout = shows.filter(show => {
+      if (show.latitude && show.longitude) return false;
+      if (!show.venue.location) return true;
+      const country = getCountryFromLocation(show.venue.location);
+      return !country || country === 'Unknown';
+    });
+    setShowsWithoutLocation(showsWithout);
+  }, [shows]);
 
   const handleFixMissingLocations = async () => {
     try {
       setIsBackfilling(true);
-      console.log('Starting backfill process...');
-
       const { data, error } = await supabase.functions.invoke('backfill-venue-coordinates', {
         body: {}
       });
 
       if (error) {
-        console.error('Backfill error:', error);
         toast({
           title: "Error",
           description: "Failed to fix missing locations. Please try again.",
@@ -267,16 +161,12 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
         });
         return;
       }
-
-      console.log('Backfill results:', data);
       
       if (data.results.success > 0) {
         toast({
           title: "Success!",
           description: `Fixed ${data.results.success} show${data.results.success > 1 ? 's' : ''}. Refreshing map...`
         });
-        
-        // Reload the page to refresh the map with new data
         setTimeout(() => {
           window.location.reload();
         }, 1500);
@@ -287,9 +177,7 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
           variant: "default"
         });
       }
-
     } catch (error) {
-      console.error('Backfill error:', error);
       toast({
         title: "Error",
         description: "Failed to fix missing locations. Please try again.",
@@ -297,215 +185,6 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
       });
     } finally {
       setIsBackfilling(false);
-    }
-  };
-
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainer.current || map.current) return;
-
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-
-    const defaultCenter: [number, number] = homeCoordinates || [-98.5795, 39.8283]; // US center as fallback
-    const defaultZoom = homeCoordinates ? 10 : 3;
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/dark-v11",
-      center: defaultCenter,
-      zoom: defaultZoom,
-      dragPan: {
-        linearity: 0.25,
-        easing: (t: number) => 1 - Math.pow(1 - t, 3), // Cubic ease-out for natural deceleration
-        deceleration: 3000,
-        maxSpeed: 1800
-      }
-    });
-
-    
-  }, [homeCoordinates]);
-
-  // Filter shows without location - only flag if we can't determine country from location text
-  useEffect(() => {
-    const showsWithout = shows.filter(show => {
-      // If we have coordinates, it has a location
-      if (show.latitude && show.longitude) return false;
-      
-      // If we have no location text, it definitely needs location
-      if (!show.venue.location) return true;
-      
-      // Try to determine country from location text
-      const country = getCountryFromLocation(show.venue.location);
-      
-      // If we can determine a country, we have enough location info
-      // Only flag as "without location" if country is indeterminate
-      return !country || country === 'Unknown';
-    });
-    setShowsWithoutLocation(showsWithout);
-  }, [shows]);
-
-  // Process shows and create country heat map data
-  useEffect(() => {
-    const processCountryData = async () => {
-      if (!filteredShows.length) {
-        setCountryData([]);
-        return;
-      }
-
-      // Group shows by country
-      const countryMap = new Map<string, number>();
-      
-      filteredShows.forEach(show => {
-        if (show.venue.location) {
-          const country = getCountryFromLocation(show.venue.location);
-          countryMap.set(country, (countryMap.get(country) || 0) + 1);
-        }
-      });
-
-      // Geocode each country and create country data
-      const data: CountryData[] = [];
-      for (const [countryName, showCount] of countryMap.entries()) {
-        const coords = await geocodeCountry(countryName);
-        if (coords) {
-          data.push({
-            name: countryName,
-            showCount,
-            coordinates: coords
-          });
-        }
-      }
-
-      setCountryData(data);
-    };
-
-    processCountryData();
-  }, [filteredShows]);
-
-  // Handle country click - drill down to cities
-  const handleCountryClick = async (countryName: string) => {
-    // Filter shows for this country (using filteredShows to respect year filter)
-    const countryShows = filteredShows.filter(show => {
-      if (show.venue.location) {
-        const country = getCountryFromLocation(show.venue.location);
-        return country === countryName;
-      }
-      return false;
-    });
-
-    // Group shows by city (using city, state format for uniqueness and accuracy)
-    const cityMap = new Map<string, Show[]>();
-    countryShows.forEach(show => {
-      const cityStateString = getCityFromLocation(show.venue.location);
-      if (cityStateString) {
-        if (!cityMap.has(cityStateString)) {
-          cityMap.set(cityStateString, []);
-        }
-        cityMap.get(cityStateString)!.push(show);
-      }
-    });
-
-    // Geocode each city and create city data
-    const data: CityData[] = [];
-    for (const [cityStateString, cityShows] of cityMap.entries()) {
-      const coords = await geocodeCity(cityStateString, countryName);
-      if (coords) {
-        // Extract just city name for display (first part before comma)
-        const displayName = cityStateString.split(',')[0].trim();
-        data.push({
-          name: displayName,
-          showCount: cityShows.length,
-          coordinates: coords,
-          shows: cityShows
-        });
-      }
-    }
-
-    setCityData(data);
-    setSelectedCountry(countryName);
-    setViewLevel('city');
-  };
-
-  // Handle city click - drill down to venues
-  const handleCityClick = async (cityName: string) => {
-    const cityInfo = cityData.find(c => c.name === cityName);
-    if (!cityInfo) return;
-
-    console.log(`[MapView] Drilling down to city: "${cityName}" with ${cityInfo.shows.length} shows`);
-
-    // Group shows by venue
-    const venueMap = new Map<string, Show[]>();
-    cityInfo.shows.forEach(show => {
-      const venueName = show.venue.name;
-      if (!venueMap.has(venueName)) {
-        venueMap.set(venueName, []);
-      }
-      venueMap.get(venueName)!.push(show);
-    });
-
-    console.log(`[MapView] Found ${venueMap.size} unique venues in ${cityName}`);
-
-    // Create venue data with coordinates
-    const venues: VenueData[] = [];
-    for (const [venueName, venueShows] of venueMap.entries()) {
-      // Use show coordinates if available, otherwise geocode the venue address
-      const showWithCoords = venueShows.find(s => s.latitude && s.longitude);
-      let coords: [number, number] | null;
-      
-      if (showWithCoords) {
-        coords = [showWithCoords.longitude!, showWithCoords.latitude!];
-        console.log(`[MapView] Venue "${venueName}" has stored coordinates:`, coords);
-      } else {
-        console.log(`[MapView] Geocoding venue "${venueName}" with address: "${venueShows[0].venue.location}"`);
-        coords = await geocodeVenue(venueShows[0].venue.location);
-        
-        if (!coords) {
-          console.warn(`[MapView] Failed to geocode venue "${venueName}", attempting city fallback`);
-          // Fallback: try to geocode just the city if full address fails
-          coords = await geocodeCity(cityName, selectedCountry || 'United States');
-        }
-      }
-      
-      if (coords) {
-        venues.push({
-          name: venueName,
-          location: venueShows[0].venue.location,
-          coordinates: coords,
-          shows: venueShows
-        });
-      } else {
-        console.error(`[MapView] Could not determine coordinates for venue "${venueName}", skipping map display`);
-      }
-    }
-
-    console.log(`[MapView] Successfully mapped ${venues.length} of ${venueMap.size} venues`);
-
-    setVenueData(venues);
-    setSelectedCity(cityName);
-    setViewLevel('venue');
-  };
-
-  // Handle reset to world view - zooms out from current location
-  const handleResetToWorld = () => {
-    // Get current center before resetting state
-    const currentCenter = map.current?.getCenter();
-    
-    // Reset all state
-    setViewLevel('country');
-    setSelectedCountry(null);
-    setSelectedCity(null);
-    setCityData([]);
-    setVenueData([]);
-    setHoveredCity(null);
-    setHoveredVenue(null);
-    
-    // Animate map zooming out from current position
-    if (map.current && currentCenter) {
-      map.current.flyTo({
-        center: [currentCenter.lng, currentCenter.lat],
-        zoom: 1.5,
-        duration: 1500,
-        essential: true
-      });
     }
   };
 
@@ -531,683 +210,392 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
     };
   }, [filteredShows]);
 
-  // Add country markers to map
-  useEffect(() => {
-    if (!map.current || !countryData.length || viewLevel !== 'country') return;
-
-    // Wait for map to load
-    if (!map.current.isStyleLoaded()) {
-      map.current.on('load', () => addCountryMarkers());
-      return;
+  // Create a photo marker element
+  const createPhotoMarker = useCallback((show: Show): HTMLElement => {
+    const el = document.createElement('div');
+    el.className = 'photo-marker';
+    
+    if (show.photo_url) {
+      // Photo thumbnail marker
+      el.innerHTML = `
+        <div class="photo-marker-container">
+          <img src="${show.photo_url}" alt="" class="photo-marker-img" />
+          <div class="photo-marker-glow"></div>
+        </div>
+      `;
+    } else {
+      // Fallback dot marker with artist initial
+      const initial = show.artists[0]?.name?.charAt(0) || '♪';
+      el.innerHTML = `
+        <div class="dot-marker-container">
+          <span class="dot-marker-initial">${initial}</span>
+          <div class="dot-marker-glow"></div>
+        </div>
+      `;
     }
+    
+    return el;
+  }, []);
 
-    addCountryMarkers();
+  // Create a cluster marker element
+  const createClusterMarker = useCallback((count: number): HTMLElement => {
+    const el = document.createElement('div');
+    el.className = 'cluster-marker';
+    el.innerHTML = `
+      <div class="cluster-marker-container">
+        <span class="cluster-marker-count">${count}</span>
+        <div class="cluster-marker-glow"></div>
+      </div>
+    `;
+    return el;
+  }, []);
 
-    function addCountryMarkers() {
+  // Initialize map with clustering
+  useEffect(() => {
+    if (!mapContainer.current || map.current) return;
+
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+
+    const defaultCenter: [number, number] = homeCoordinates || [-98.5795, 39.8283];
+    const defaultZoom = homeCoordinates ? 4 : 2;
+
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: defaultCenter,
+      zoom: defaultZoom,
+      dragPan: {
+        linearity: 0.25,
+        easing: (t: number) => 1 - Math.pow(1 - t, 3),
+        deceleration: 3000,
+        maxSpeed: 1800
+      }
+    });
+
+    map.current.on('load', () => {
       if (!map.current) return;
 
-      // Remove existing layers and sources
-      if (map.current.getLayer('country-labels')) {
-        map.current.removeLayer('country-labels');
-      }
-      if (map.current.getLayer('country-dots')) {
-        map.current.removeLayer('country-dots');
-      }
-      if (map.current.getLayer('country-dots-glow')) {
-        map.current.removeLayer('country-dots-glow');
-      }
-      if (map.current.getSource('countries')) {
-        map.current.removeSource('countries');
-      }
-
-      // Create GeoJSON for countries with unique IDs for feature-state
-      const geojson: GeoJSON.FeatureCollection = {
-        type: 'FeatureCollection',
-        features: countryData.map((country, index) => ({
-          type: 'Feature',
-          id: index,
-          properties: {
-            name: country.name,
-            showCount: country.showCount
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: country.coordinates
-          }
-        }))
-      };
-
-      // Add source
-      map.current.addSource('countries', {
+      // Add GeoJSON source with clustering
+      map.current.addSource('shows', {
         type: 'geojson',
-        data: geojson
-      });
-
-      // Add glow layer behind main dots (with hover state)
-      map.current.addLayer({
-        id: 'country-dots-glow',
-        type: 'circle',
-        source: 'countries',
-        paint: {
-          'circle-radius': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            // Hovered: larger glow
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 36, 5, 48, 10, 58, 50, 72],
-            // Default glow
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 28, 5, 38, 10, 48, 50, 60]
-          ],
-          'circle-color': 'hsl(280, 70%, 55%)',
-          'circle-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            0.5,
-            0.3
-          ],
-          'circle-blur': 1,
-          'circle-radius-transition': { duration: 150 },
-          'circle-opacity-transition': { duration: 150 }
-        } as mapboxgl.CirclePaint
-      });
-
-      // Add main dot layer with size based on show count (with hover state)
-      map.current.addLayer({
-        id: 'country-dots',
-        type: 'circle',
-        source: 'countries',
-        paint: {
-          'circle-radius': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            // Hovered: larger radius (+6px)
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 28, 5, 34, 10, 40, 50, 50],
-            // Default radius
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 22, 5, 28, 10, 34, 50, 44]
-          ],
-          'circle-color': 'hsl(280, 70%, 55%)',
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
-          'circle-blur': 0.1,
-          'circle-radius-transition': { duration: 150 }
-        } as mapboxgl.CirclePaint
-      });
-
-      // Add count labels
-      map.current.addLayer({
-        id: 'country-labels',
-        type: 'symbol',
-        source: 'countries',
-        layout: {
-          'text-field': ['to-string', ['get', 'showCount']],
-          'text-size': 14,
-          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-          'text-allow-overlap': true
+        data: {
+          type: 'FeatureCollection',
+          features: []
         },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0, 0, 0, 0.3)',
-          'text-halo-width': 1
-        }
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 60
       });
 
-      // Helper to set feature hover state
-      const setHoverState = (featureId: number | string | undefined, hover: boolean) => {
-        if (map.current && featureId !== undefined) {
-          map.current.setFeatureState(
-            { source: 'countries', id: featureId },
-            { hover }
-          );
-        }
-      };
-
-      // Add click handler
-      map.current.on('click', 'country-dots', (e) => {
-        if (e.features && e.features.length > 0) {
-          const countryName = e.features[0].properties?.name;
-          if (countryName) {
-            handleCountryClick(countryName);
-          }
-        }
-      });
-
-      // Add hover effect with feature-state
-      map.current.on('mouseenter', 'country-dots', (e) => {
-        if (!map.current) return;
-        map.current.getCanvas().style.cursor = 'pointer';
-        
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          
-          // Clear previous hover state
-          if (hoveredFeatureRef.current) {
-            setHoverState(hoveredFeatureRef.current.id, false);
-          }
-          
-          // Set new hover state
-          setHoverState(feature.id, true);
-          hoveredFeatureRef.current = { source: 'countries', id: feature.id };
-          setHoveredCountry(feature.properties?.name);
-        }
-      });
-
-      map.current.on('mouseleave', 'country-dots', () => {
-        if (!map.current) return;
-        map.current.getCanvas().style.cursor = '';
-        
-        // Clear hover state
-        if (hoveredFeatureRef.current?.source === 'countries') {
-          setHoverState(hoveredFeatureRef.current.id, false);
-          hoveredFeatureRef.current = null;
-        }
-        setHoveredCountry(null);
-      });
-
-      // Touch feedback for mobile
-      map.current.on('touchstart', 'country-dots', (e) => {
-        if (!map.current || !e.features?.length) return;
-        
-        const feature = e.features[0];
-        
-        // Clear previous hover state
-        if (hoveredFeatureRef.current) {
-          setHoverState(hoveredFeatureRef.current.id, false);
-        }
-        
-        // Set hover state for touch feedback
-        setHoverState(feature.id, true);
-        hoveredFeatureRef.current = { source: 'countries', id: feature.id };
-        setHoveredCountry(feature.properties?.name);
-      });
-    }
-
-    // Clear touch hover state on touchend anywhere on map
-    const handleTouchEnd = () => {
-      if (hoveredFeatureRef.current?.source === 'countries' && map.current) {
-        map.current.setFeatureState(
-          { source: 'countries', id: hoveredFeatureRef.current.id },
-          { hover: false }
-        );
-        hoveredFeatureRef.current = null;
-        setHoveredCountry(null);
-      }
-    };
-
-    map.current.on('touchend', handleTouchEnd);
-    map.current.on('touchcancel', handleTouchEnd);
-
-  }, [countryData, viewLevel]);
-
-  // Add city markers to map
-  useEffect(() => {
-    if (!map.current || !cityData.length || viewLevel !== 'city') return;
-
-    // Wait for map to load
-    if (!map.current.isStyleLoaded()) {
-      map.current.on('load', () => addCityMarkers());
-      return;
-    }
-
-    addCityMarkers();
-
-    function addCityMarkers() {
-      if (!map.current) return;
-
-      // Remove country layers when showing cities
-      if (map.current.getLayer('country-labels')) {
-        map.current.removeLayer('country-labels');
-      }
-      if (map.current.getLayer('country-dots')) {
-        map.current.removeLayer('country-dots');
-      }
-      if (map.current.getLayer('country-dots-glow')) {
-        map.current.removeLayer('country-dots-glow');
-      }
-      if (map.current.getSource('countries')) {
-        map.current.removeSource('countries');
-      }
-
-      // Remove existing city layers and sources
-      if (map.current.getLayer('city-labels')) {
-        map.current.removeLayer('city-labels');
-      }
-      if (map.current.getLayer('city-dots')) {
-        map.current.removeLayer('city-dots');
-      }
-      if (map.current.getLayer('city-dots-glow')) {
-        map.current.removeLayer('city-dots-glow');
-      }
-      if (map.current.getSource('cities')) {
-        map.current.removeSource('cities');
-      }
-
-      // Create GeoJSON for cities with unique IDs for feature-state
-      const geojson: GeoJSON.FeatureCollection = {
-        type: 'FeatureCollection',
-        features: cityData.map((city, index) => ({
-          type: 'Feature',
-          id: index,
-          properties: {
-            name: city.name,
-            showCount: city.showCount
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: city.coordinates
-          }
-        }))
-      };
-
-      // Add source
-      map.current.addSource('cities', {
-        type: 'geojson',
-        data: geojson
-      });
-
-      // Add glow layer behind main dots (with hover state)
+      // Cluster circles (background glow)
       map.current.addLayer({
-        id: 'city-dots-glow',
+        id: 'cluster-glow',
         type: 'circle',
-        source: 'cities',
+        source: 'shows',
+        filter: ['has', 'point_count'],
         paint: {
-          'circle-radius': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            // Hovered: larger glow
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 32, 5, 44, 10, 54, 25, 64],
-            // Default glow
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 24, 5, 34, 10, 44, 25, 52]
-          ],
           'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            0.5,
-            0.3
-          ],
-          'circle-blur': 1,
-          'circle-radius-transition': { duration: 150 },
-          'circle-opacity-transition': { duration: 150 }
-        } as mapboxgl.CirclePaint
-      });
-
-      // Add main dot layer with size based on show count (with hover state)
-      map.current.addLayer({
-        id: 'city-dots',
-        type: 'circle',
-        source: 'cities',
-        paint: {
           'circle-radius': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            // Hovered: larger radius (+6px)
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 24, 5, 30, 10, 36, 25, 42],
-            // Default radius
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 18, 5, 24, 10, 30, 25, 36]
+            'step',
+            ['get', 'point_count'],
+            30, 5,
+            40, 10,
+            50, 25,
+            60
           ],
-          'circle-color': 'hsl(189, 94%, 55%)',
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
-          'circle-blur': 0.1,
-          'circle-radius-transition': { duration: 150 }
-        } as mapboxgl.CirclePaint
+          'circle-opacity': 0.25,
+          'circle-blur': 0.8
+        }
       });
 
-      // Add count labels
+      // Cluster circles (main)
       map.current.addLayer({
-        id: 'city-labels',
+        id: 'clusters',
+        type: 'circle',
+        source: 'shows',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': 'hsl(189, 94%, 55%)',
+          'circle-radius': [
+            'step',
+            ['get', 'point_count'],
+            20, 5,
+            28, 10,
+            36, 25,
+            44
+          ],
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.4)'
+        }
+      });
+
+      // Cluster count labels
+      map.current.addLayer({
+        id: 'cluster-count',
         type: 'symbol',
-        source: 'cities',
+        source: 'shows',
+        filter: ['has', 'point_count'],
         layout: {
-          'text-field': ['to-string', ['get', 'showCount']],
-          'text-size': 12,
+          'text-field': ['get', 'point_count_abbreviated'],
           'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+          'text-size': 13,
           'text-allow-overlap': true
         },
         paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0, 0, 0, 0.3)',
-          'text-halo-width': 1
+          'text-color': '#ffffff'
         }
       });
 
-      // Helper to set feature hover state
-      const setHoverState = (featureId: number | string | undefined, hover: boolean) => {
-        if (map.current && featureId !== undefined) {
-          map.current.setFeatureState(
-            { source: 'cities', id: featureId },
-            { hover }
-          );
-        }
-      };
-
-      // Add click handler
-      map.current.on('click', 'city-dots', (e) => {
-        if (e.features && e.features.length > 0) {
-          const cityName = e.features[0].properties?.name;
-          if (cityName) {
-            handleCityClick(cityName);
-          }
-        }
-      });
-
-      // Add hover effect with feature-state
-      map.current.on('mouseenter', 'city-dots', (e) => {
+      // Click on cluster = zoom in
+      map.current.on('click', 'clusters', (e) => {
         if (!map.current) return;
-        map.current.getCanvas().style.cursor = 'pointer';
+        const features = map.current.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        if (!features.length) return;
         
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          
-          // Clear previous hover state
-          if (hoveredFeatureRef.current) {
-            setHoverState(hoveredFeatureRef.current.id, false);
-          }
-          
-          // Set new hover state
-          setHoverState(feature.id, true);
-          hoveredFeatureRef.current = { source: 'cities', id: feature.id };
-          setHoveredCity(feature.properties?.name);
-        }
-      });
-
-      map.current.on('mouseleave', 'city-dots', () => {
-        if (!map.current) return;
-        map.current.getCanvas().style.cursor = '';
+        const clusterId = features[0].properties?.cluster_id;
+        const source = map.current.getSource('shows') as mapboxgl.GeoJSONSource;
         
-        // Clear hover state
-        if (hoveredFeatureRef.current?.source === 'cities') {
-          setHoverState(hoveredFeatureRef.current.id, false);
-          hoveredFeatureRef.current = null;
-        }
-        setHoveredCity(null);
-      });
-
-      // Touch feedback for mobile
-      map.current.on('touchstart', 'city-dots', (e) => {
-        if (!map.current || !e.features?.length) return;
-        
-        const feature = e.features[0];
-        
-        // Clear previous hover state
-        if (hoveredFeatureRef.current) {
-          setHoverState(hoveredFeatureRef.current.id, false);
-        }
-        
-        // Set hover state for touch feedback
-        setHoverState(feature.id, true);
-        hoveredFeatureRef.current = { source: 'cities', id: feature.id };
-        setHoveredCity(feature.properties?.name);
-      });
-
-      // Fit map to show all cities
-      if (cityData.length > 0) {
-        const bounds = new mapboxgl.LngLatBounds();
-        cityData.forEach(city => {
-          bounds.extend(city.coordinates);
+        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err || !map.current) return;
+          const geometry = features[0].geometry as GeoJSON.Point;
+          map.current.easeTo({
+            center: geometry.coordinates as [number, number],
+            zoom: zoom
+          });
         });
-        map.current.fitBounds(bounds, { padding: 100, maxZoom: 6 });
-      }
-    }
+      });
 
-    // Clear touch hover state on touchend anywhere on map
-    const handleTouchEnd = () => {
-      if (hoveredFeatureRef.current?.source === 'cities' && map.current) {
-        map.current.setFeatureState(
-          { source: 'cities', id: hoveredFeatureRef.current.id },
-          { hover: false }
-        );
-        hoveredFeatureRef.current = null;
-        setHoveredCity(null);
-      }
+      // Cursor pointer on clusters
+      map.current.on('mouseenter', 'clusters', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', 'clusters', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+    });
+
+    return () => {
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+      map.current?.remove();
+      map.current = null;
     };
+  }, [homeCoordinates]);
 
-    map.current.on('touchend', handleTouchEnd);
-    map.current.on('touchcancel', handleTouchEnd);
-
-  }, [cityData, viewLevel]);
-
-  // Add venue markers to map
+  // Update map data and create individual markers
   useEffect(() => {
-    if (!map.current || !venueData.length || viewLevel !== 'venue') return;
+    if (!map.current) return;
 
-    // Wait for map to load
-    if (!map.current.isStyleLoaded()) {
-      map.current.on('load', () => addVenueMarkers());
-      return;
-    }
-
-    addVenueMarkers();
-
-    function addVenueMarkers() {
-      if (!map.current) return;
-
-      // Remove city layers when showing venues
-      if (map.current.getLayer('city-labels')) {
-        map.current.removeLayer('city-labels');
-      }
-      if (map.current.getLayer('city-dots')) {
-        map.current.removeLayer('city-dots');
-      }
-      if (map.current.getLayer('city-dots-glow')) {
-        map.current.removeLayer('city-dots-glow');
-      }
-      if (map.current.getSource('cities')) {
-        map.current.removeSource('cities');
+    const updateMap = () => {
+      if (!map.current?.isStyleLoaded()) {
+        map.current?.once('load', updateMap);
+        return;
       }
 
-      // Remove existing venue layers and sources
-      if (map.current.getLayer('venue-labels')) {
-        map.current.removeLayer('venue-labels');
-      }
-      if (map.current.getLayer('venue-dots')) {
-        map.current.removeLayer('venue-dots');
-      }
-      if (map.current.getLayer('venue-dots-glow')) {
-        map.current.removeLayer('venue-dots-glow');
-      }
-      if (map.current.getSource('venues')) {
-        map.current.removeSource('venues');
-      }
+      // Clear existing markers
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
 
-      // Create GeoJSON for venues with unique IDs for feature-state
+      // Create GeoJSON for clustering
       const geojson: GeoJSON.FeatureCollection = {
         type: 'FeatureCollection',
-        features: venueData.map((venue, index) => ({
+        features: mappableShows.map((show, index) => ({
           type: 'Feature',
           id: index,
           properties: {
-            name: venue.name,
-            location: venue.location,
-            showCount: venue.shows.length
+            id: show.id,
+            hasPhoto: !!show.photo_url
           },
           geometry: {
             type: 'Point',
-            coordinates: venue.coordinates
+            coordinates: [show.longitude!, show.latitude!]
           }
         }))
       };
 
-      // Add source
-      map.current.addSource('venues', {
-        type: 'geojson',
-        data: geojson
-      });
+      const source = map.current?.getSource('shows') as mapboxgl.GeoJSONSource;
+      if (source) {
+        source.setData(geojson);
+      }
 
-      // Add glow layer behind main dots (with hover state)
-      map.current.addLayer({
-        id: 'venue-dots-glow',
-        type: 'circle',
-        source: 'venues',
-        paint: {
-          'circle-radius': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            // Hovered: larger glow
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 28, 3, 38, 5, 48, 10, 56],
-            // Default glow
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 20, 3, 28, 5, 36, 10, 44]
-          ],
-          'circle-color': 'hsl(35, 90%, 55%)',
-          'circle-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            0.5,
-            0.3
-          ],
-          'circle-blur': 1,
-          'circle-radius-transition': { duration: 150 },
-          'circle-opacity-transition': { duration: 150 }
-        } as mapboxgl.CirclePaint
-      });
+      // Create custom markers for unclustered points
+      const createMarkers = () => {
+        if (!map.current) return;
+        
+        // Remove old markers
+        markersRef.current.forEach(marker => marker.remove());
+        markersRef.current = [];
 
-      // Add main dot layer with size based on show count (with hover state)
-      map.current.addLayer({
-        id: 'venue-dots',
-        type: 'circle',
-        source: 'venues',
-        paint: {
-          'circle-radius': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            // Hovered: larger radius (+6px)
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 22, 3, 26, 5, 30, 10, 36],
-            // Default radius
-            ['interpolate', ['linear'], ['get', 'showCount'], 1, 16, 3, 20, 5, 24, 10, 30]
-          ],
-          'circle-color': 'hsl(35, 90%, 55%)',
-          'circle-opacity': 0.9,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
-          'circle-blur': 0.05,
-          'circle-radius-transition': { duration: 150 }
-        } as mapboxgl.CirclePaint
-      });
+        // Query unclustered points at current viewport
+        const features = map.current.querySourceFeatures('shows', {
+          filter: ['!', ['has', 'point_count']]
+        });
 
-      // Add count labels
-      map.current.addLayer({
-        id: 'venue-labels',
-        type: 'symbol',
-        source: 'venues',
-        layout: {
-          'text-field': ['to-string', ['get', 'showCount']],
-          'text-size': 11,
-          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-          'text-allow-overlap': true
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0, 0, 0, 0.3)',
-          'text-halo-width': 1
-        }
-      });
+        // Create unique markers (avoid duplicates from tile boundaries)
+        const seenIds = new Set<string>();
+        
+        features.forEach(feature => {
+          const showId = feature.properties?.id;
+          if (!showId || seenIds.has(showId)) return;
+          seenIds.add(showId);
 
-      // Helper to set feature hover state
-      const setHoverState = (featureId: number | string | undefined, hover: boolean) => {
-        if (map.current && featureId !== undefined) {
-          map.current.setFeatureState(
-            { source: 'venues', id: featureId },
-            { hover }
-          );
-        }
+          const show = mappableShows.find(s => s.id === showId);
+          if (!show) return;
+
+          const geometry = feature.geometry as GeoJSON.Point;
+          const el = createPhotoMarker(show);
+          
+          const marker = new mapboxgl.Marker({ element: el })
+            .setLngLat(geometry.coordinates as [number, number])
+            .addTo(map.current!);
+          
+          el.addEventListener('click', () => {
+            setSelectedShow(show);
+          });
+          
+          markersRef.current.push(marker);
+        });
       };
 
-      // Add click handler
-      map.current.on('click', 'venue-dots', (e) => {
-        if (e.features && e.features.length > 0) {
-          const venueName = e.features[0].properties?.name;
-          const venue = venueData.find(v => v.name === venueName);
-          if (venue) {
-            setSelectedVenue({
-              venueName: venue.name,
-              location: venue.location,
-              count: venue.shows.length,
-              shows: venue.shows
-            });
-          }
+      // Create markers on source data change
+      map.current?.on('sourcedata', (e) => {
+        if (e.sourceId === 'shows' && e.isSourceLoaded) {
+          createMarkers();
         }
       });
 
-      // Add hover effect with feature-state
-      map.current.on('mouseenter', 'venue-dots', (e) => {
-        if (!map.current) return;
-        map.current.getCanvas().style.cursor = 'pointer';
-        
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          
-          // Clear previous hover state
-          if (hoveredFeatureRef.current) {
-            setHoverState(hoveredFeatureRef.current.id, false);
-          }
-          
-          // Set new hover state
-          setHoverState(feature.id, true);
-          hoveredFeatureRef.current = { source: 'venues', id: feature.id };
-          setHoveredVenue(feature.properties?.name);
-        }
-      });
+      // Update markers on move/zoom
+      map.current?.on('moveend', createMarkers);
+      map.current?.on('zoomend', createMarkers);
+      
+      // Initial markers
+      createMarkers();
 
-      map.current.on('mouseleave', 'venue-dots', () => {
-        if (!map.current) return;
-        map.current.getCanvas().style.cursor = '';
-        
-        // Clear hover state
-        if (hoveredFeatureRef.current?.source === 'venues') {
-          setHoverState(hoveredFeatureRef.current.id, false);
-          hoveredFeatureRef.current = null;
-        }
-        setHoveredVenue(null);
-      });
-
-      // Touch feedback for mobile
-      map.current.on('touchstart', 'venue-dots', (e) => {
-        if (!map.current || !e.features?.length) return;
-        
-        const feature = e.features[0];
-        
-        // Clear previous hover state
-        if (hoveredFeatureRef.current) {
-          setHoverState(hoveredFeatureRef.current.id, false);
-        }
-        
-        // Set hover state for touch feedback
-        setHoverState(feature.id, true);
-        hoveredFeatureRef.current = { source: 'venues', id: feature.id };
-        setHoveredVenue(feature.properties?.name);
-      });
-
-      // Fit map to show all venues with tighter zoom
-      if (venueData.length > 0) {
+      // Fit bounds to all shows
+      if (mappableShows.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
-        venueData.forEach(venue => {
-          bounds.extend(venue.coordinates);
+        mappableShows.forEach(show => {
+          bounds.extend([show.longitude!, show.latitude!]);
         });
-        map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
-      }
-    }
-
-    // Clear touch hover state on touchend anywhere on map
-    const handleTouchEnd = () => {
-      if (hoveredFeatureRef.current?.source === 'venues' && map.current) {
-        map.current.setFeatureState(
-          { source: 'venues', id: hoveredFeatureRef.current.id },
-          { hover: false }
-        );
-        hoveredFeatureRef.current = null;
-        setHoveredVenue(null);
+        map.current?.fitBounds(bounds, { 
+          padding: 60, 
+          maxZoom: 12,
+          duration: 1000 
+        });
       }
     };
 
-    map.current.on('touchend', handleTouchEnd);
-    map.current.on('touchcancel', handleTouchEnd);
+    updateMap();
+  }, [mappableShows, createPhotoMarker]);
 
-  }, [venueData, viewLevel]);
+  // Inject CSS for custom markers
+  useEffect(() => {
+    const styleId = 'map-marker-styles';
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .photo-marker-container {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .photo-marker-container:hover {
+        transform: scale(1.15);
+      }
+      .photo-marker-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+      .photo-marker-glow {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: hsl(189, 94%, 55%);
+        opacity: 0.3;
+        filter: blur(6px);
+        z-index: -1;
+      }
+      .dot-marker-container {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, hsl(189, 94%, 55%), hsl(280, 70%, 55%));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 2px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: transform 0.15s ease;
+      }
+      .dot-marker-container:hover {
+        transform: scale(1.15);
+      }
+      .dot-marker-initial {
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      .dot-marker-glow {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: hsl(280, 70%, 55%);
+        opacity: 0.25;
+        filter: blur(6px);
+        z-index: -1;
+      }
+      .cluster-marker-container {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: hsl(189, 94%, 55%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+      }
+      .cluster-marker-count {
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+      }
+      .cluster-marker-glow {
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        background: hsl(189, 94%, 55%);
+        opacity: 0.3;
+        filter: blur(8px);
+        z-index: -1;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
-      {/* Year Toggle + Stats Header - sits above the map */}
+      {/* Year Toggle + Stats Header */}
       {shows.length > 0 && (
         <div className="flex items-center gap-3 pb-3 shrink-0">
           <MapYearToggle
@@ -1224,31 +612,28 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
         </div>
       )}
 
-      {/* Map Container - takes remaining space with rounded corners */}
-  <div className="relative flex-1 min-h-0">
-    <div 
-      ref={mapContainer} 
-      className="absolute inset-0 rounded-xl overflow-hidden [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden" 
-      style={{ backgroundColor: 'hsl(222, 47%, 11%)' }}
-    />
+      {/* Map Container */}
+      <div className="relative flex-1 min-h-0">
+        <div 
+          ref={mapContainer} 
+          className="absolute inset-0 rounded-xl overflow-hidden [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden" 
+          style={{ backgroundColor: 'hsl(222, 47%, 11%)' }}
+        />
 
         {/* Empty state when no shows */}
         {shows.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-black/20 to-black/40 z-20 rounded-xl">
             <div className="text-center px-6 max-w-sm">
-              {/* Decorative globe illustration */}
               <div className="relative mx-auto mb-6 w-24 h-24">
                 <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" />
                 <div className="absolute inset-2 rounded-full bg-primary/10 flex items-center justify-center">
                   <Globe className="h-12 w-12 text-primary/60" />
                 </div>
-                {/* Decorative dots around the globe */}
                 <div className="absolute top-0 right-2 w-2 h-2 rounded-full bg-primary/40" />
                 <div className="absolute bottom-2 left-0 w-1.5 h-1.5 rounded-full bg-cyan-500/40" />
                 <div className="absolute top-1/2 -right-1 w-1 h-1 rounded-full bg-amber-500/40" />
               </div>
               
-              {/* Headline and description */}
               <h3 className="text-xl font-bold text-white mb-2">
                 Your Show Globe is empty
               </h3>
@@ -1256,7 +641,6 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
                 Start logging shows to see them appear on your personal concert map
               </p>
               
-              {/* Primary CTA - Add from Photos */}
               {onAddFromPhotos && (
                 <Button 
                   onClick={onAddFromPhotos}
@@ -1268,7 +652,6 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
                 </Button>
               )}
               
-              {/* Secondary option */}
               {onAddSingleShow && (
                 <button
                   onClick={onAddSingleShow}
@@ -1281,156 +664,114 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow }: MapVie
           </div>
         )}
 
-      {/* Reset to world button - only shows when drilled in */}
-      <div className="absolute top-4 left-4 z-10">
-        <MapNavButton
-          viewLevel={viewLevel}
-          onClick={handleResetToWorld}
+        {/* Location notification badge */}
+        <MapRightPanel
+          showsWithoutLocation={showsWithoutLocation.length}
+          isLocationCardExpanded={!isLocationCardMinimized}
+          onToggleLocationCard={() => setIsLocationCardMinimized(false)}
         />
-      </div>
 
-      {/* Location notification badge - only shows when there are shows without location */}
-      <MapRightPanel
-        showsWithoutLocation={showsWithoutLocation.length}
-        isLocationCardExpanded={!isLocationCardMinimized}
-        onToggleLocationCard={() => setIsLocationCardMinimized(false)}
-      />
-
-      {/* Hover info for country */}
-      {hoveredCountry && viewLevel === 'country' && (
-        <MapHoverCard
-          title={hoveredCountry}
-          subtitle={`${countryData.find(c => c.name === hoveredCountry)?.showCount} shows`}
-          className="absolute top-20 left-4 z-10"
-        />
-      )}
-
-      {/* Hover info for city */}
-      {hoveredCity && viewLevel === 'city' && (
-        <MapHoverCard
-          title={hoveredCity}
-          subtitle={`${cityData.find(c => c.name === hoveredCity)?.showCount} shows`}
-          className="absolute top-20 left-4 z-10"
-        />
-      )}
-
-      {/* Hover info for venue */}
-      {hoveredVenue && viewLevel === 'venue' && (
-        <MapHoverCard
-          title={hoveredVenue}
-          subtitle={`${venueData.find(v => v.name === hoveredVenue)?.shows.length} shows`}
-          className="absolute top-20 left-4 z-10"
-        />
-      )}
-
-      {/* Shows without location list - only when expanded */}
-      {showsWithoutLocation.length > 0 && !isLocationCardMinimized && (
-        <Card className="absolute top-4 left-4 max-w-sm z-10 animate-fade-in">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Shows without location ({showsWithoutLocation.length})
-              </h3>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => setIsLocationCardMinimized(true)}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {showsWithoutLocation.map((show) => (
-                <div
-                  key={show.id}
-                  className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
+        {/* Shows without location list */}
+        {showsWithoutLocation.length > 0 && !isLocationCardMinimized && (
+          <Card className="absolute top-4 left-4 max-w-sm z-10 animate-fade-in">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Shows without location ({showsWithoutLocation.length})
+                </h3>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => setIsLocationCardMinimized(true)}
                 >
-                  <div className="flex-1">
-                    <div className="font-medium">
-                      {show.artists.map(a => a.name).join(", ")}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {show.venue.name}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onEditShow(show)}
+                  <Minus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {showsWithoutLocation.map((show) => (
+                  <div
+                    key={show.id}
+                    className="text-sm p-2 bg-muted rounded flex items-center justify-between gap-2"
                   >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-            
-            {showsWithoutLocation.length > 0 && (
-              <Button
-                onClick={handleFixMissingLocations}
-                disabled={isBackfilling}
-                className="w-full mt-4"
-                variant="default"
-              >
-                {isBackfilling ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Fixing Locations...
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Fix All Missing Locations
-                  </>
-                )}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                    <div className="flex-1">
+                      <div className="font-medium">
+                        {show.artists.map(a => a.name).join(", ")}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {show.venue.name}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onEditShow(show)}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
+              {showsWithoutLocation.length > 0 && (
+                <Button
+                  onClick={handleFixMissingLocations}
+                  disabled={isBackfilling}
+                  className="w-full mt-4"
+                  variant="default"
+                >
+                  {isBackfilling ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Fixing Locations...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Fix All Missing Locations
+                    </>
+                  )}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* Selected venue details - Bottom Sheet */}
+      {/* Selected show details - Bottom Sheet */}
       <Drawer
-        open={!!selectedVenue}
-        onOpenChange={(open) => !open && setSelectedVenue(null)}
+        open={!!selectedShow}
+        onOpenChange={(open) => !open && setSelectedShow(null)}
       >
         <DrawerContent className="max-h-[60vh]">
           <DrawerHeader>
-            <DrawerTitle>{selectedVenue?.venueName}</DrawerTitle>
-            <DrawerDescription>{selectedVenue?.location}</DrawerDescription>
+            <DrawerTitle>
+              {selectedShow?.artists.map(a => a.name).join(", ")}
+            </DrawerTitle>
+            <DrawerDescription>
+              {selectedShow?.venue.name} • {selectedShow?.date && new Date(selectedShow.date).toLocaleDateString()}
+            </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-6">
-            <p className="text-sm mb-3 text-muted-foreground">
-              {selectedVenue?.count} {selectedVenue?.count === 1 ? "show" : "shows"}
-            </p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {selectedVenue?.shows.map((show) => (
-                <div
-                  key={show.id}
-                  className="text-sm p-3 bg-muted rounded-lg flex items-center justify-between gap-2"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">
-                      {show.artists.map(a => a.name).join(", ")}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(show.date).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onEditShow(show)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
+            {selectedShow?.photo_url && (
+              <img 
+                src={selectedShow.photo_url} 
+                alt="" 
+                className="w-full h-48 object-cover rounded-lg mb-4"
+              />
+            )}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => selectedShow && onEditShow(selectedShow)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Show
+              </Button>
             </div>
           </div>
         </DrawerContent>
