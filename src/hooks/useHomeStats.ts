@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 import { StatPill, StatPillAction } from "@/components/home/StatPills";
-import { Music, Calendar, Trophy, Flame, Globe } from "lucide-react";
+import { Music, Calendar, Trophy, Flame, Globe, Target } from "lucide-react";
 
 interface TopShow {
   id: string;
@@ -18,6 +18,7 @@ interface StatsData {
   currentStreak: number;
   unrankedCount: number;
   topShow: TopShow | null;
+  globalConfirmationPercentage: number;
   uniqueCities: number;
   uniqueCountries: number;
   incompleteRatingsCount: number;
@@ -45,6 +46,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     currentStreak: 0,
     unrankedCount: 0,
     topShow: null,
+    globalConfirmationPercentage: 0,
     uniqueCities: 0,
     uniqueCountries: 0,
     incompleteRatingsCount: 0,
@@ -265,6 +267,16 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         }
       }
 
+      // Calculate global confirmation percentage
+      // Formula: (Σ min(back_to_backs_per_show, 10)) / (total_shows × 10) × 100
+      const MAX_BACK_TO_BACKS = 10;
+      const totalCappedBackToBacks = (rankings || []).reduce((sum, r) => {
+        return sum + Math.min(r.comparisons_count, MAX_BACK_TO_BACKS);
+      }, 0);
+      const globalConfirmationPercentage = totalShows > 0 
+        ? (totalCappedBackToBacks / (totalShows * MAX_BACK_TO_BACKS)) * 100 
+        : 0;
+
       setStats({
         allTimeShows: totalShows,
         showsThisYear,
@@ -273,6 +285,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         currentStreak: streak,
         unrankedCount,
         topShow,
+        globalConfirmationPercentage,
         uniqueCities: cities.size,
         uniqueCountries: countries.size,
         incompleteRatingsCount,
@@ -299,6 +312,15 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       highlight: true,
       action: 'rankings' as StatPillAction,
     },
+    // Confirmation Ring -> Rank Tab
+    ...(stats.allTimeShows >= 2 ? [{
+      id: 'confirmation',
+      label: 'Confirmed',
+      value: `${Math.round(stats.globalConfirmationPercentage)}%`,
+      isConfirmationRing: true,
+      confirmationPercentage: stats.globalConfirmationPercentage,
+      action: 'rank-tab' as StatPillAction,
+    }] : []),
     // #1 Show -> Show Detail (if exists)
     ...(stats.topShow ? [{
       id: 'top-show',

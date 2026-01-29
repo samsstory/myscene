@@ -9,6 +9,7 @@ import confetti from "canvas-confetti";
 import RankingCard from "../rankings/RankingCard";
 import RankingProgressBar from "../rankings/RankingProgressBar";
 import SceneLogo from "../ui/SceneLogo";
+import ConfirmationRing from "../ui/ConfirmationRing";
 
 interface Show {
   id: string;
@@ -479,10 +480,18 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
       );
     }
 
+    // Calculate global confirmation for this session
+    const calculateSessionConfirmation = () => {
+      if (shows.length === 0) return 0;
+      const MAX_BACK_TO_BACKS = 10;
+      const totalCapped = rankings.reduce((sum, r) => sum + Math.min(r.comparisons_count, MAX_BACK_TO_BACKS), 0);
+      return (totalCapped / (shows.length * MAX_BACK_TO_BACKS)) * 100;
+    };
+
     return (
       <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="text-center">
+        {/* Header with confirmation ring */}
+        <div className="text-center space-y-3">
           <h1 
             className="text-lg font-black tracking-[0.15em] uppercase"
             style={{
@@ -491,6 +500,16 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
           >
             Show Ranker
           </h1>
+          
+          {/* Confirmation Ring */}
+          <div className="flex justify-center">
+            <ConfirmationRing 
+              percentage={calculateSessionConfirmation()} 
+              size="md" 
+              showLabel={true}
+              labelPosition="right"
+            />
+          </div>
         </div>
 
         {/* Progress Bar */}

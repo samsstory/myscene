@@ -2,6 +2,7 @@ import { LucideIcon } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import ConfirmationRing from "@/components/ui/ConfirmationRing";
 
 export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | null;
 
@@ -13,6 +14,9 @@ export interface StatPill {
   highlight?: boolean;
   action?: StatPillAction;
   actionPayload?: string;
+  // For confirmation ring special rendering
+  isConfirmationRing?: boolean;
+  confirmationPercentage?: number;
 }
 
 interface StatPillsProps {
@@ -37,6 +41,42 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
       <div className="flex gap-2 pb-2 items-center">
         {stats.map((stat) => {
           const isInteractive = stat.action !== null && stat.action !== undefined;
+          
+          // Special rendering for confirmation ring
+          if (stat.isConfirmationRing) {
+            return (
+              <button
+                key={stat.id}
+                onClick={() => isInteractive && onPillTap?.(stat.action!, stat.actionPayload)}
+                disabled={!isInteractive}
+                className={cn(
+                  "flex-shrink-0 px-3 py-2 rounded-xl transition-all",
+                  "bg-white/[0.03] backdrop-blur-sm",
+                  isInteractive && "hover:bg-white/[0.08] active:scale-95 cursor-pointer",
+                  !isInteractive && "cursor-default"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <ConfirmationRing 
+                    percentage={stat.confirmationPercentage || 0} 
+                    size="sm" 
+                    showLabel={false}
+                  />
+                  <div className="flex flex-col items-start">
+                    <span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">
+                      {stat.label}
+                    </span>
+                    <span 
+                      className="text-sm font-bold text-white/90"
+                      style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}
+                    >
+                      {Math.round(stat.confirmationPercentage || 0)}%
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          }
           
           return (
             <button
