@@ -97,7 +97,7 @@ const LogShowcase = () => {
           <div className="space-y-6 text-center lg:text-left">
             <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              Smart Capture
+              Capture
             </Badge>
             
             <h2 
