@@ -2,6 +2,16 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import SceneLogo from "@/components/ui/SceneLogo";
 import PhoneMockup from "./PhoneMockup";
+import { Home, Globe, Crown, Plus } from "lucide-react";
+
+// Collapsed card data with photo backgrounds
+const collapsedCards = [
+  { artist: "Odesza", rank: 2, photo: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80", zIndex: 50, opacity: 90 },
+  { artist: "Mau P", rank: 3, photo: "https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=400&q=80", zIndex: 40, opacity: 80 },
+  { artist: "Post Malone", rank: 4, photo: "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=400&q=80", zIndex: 30, opacity: 70 },
+  { artist: "The Blaze", rank: 5, photo: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80", zIndex: 20, opacity: 60 },
+  { artist: "T-Pain", rank: 6, photo: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&q=80", zIndex: 10, opacity: 50 },
+];
 
 // Mock show card for the phone display
 const MockShowCard = () => (
@@ -24,9 +34,9 @@ const MockShowCard = () => (
 
     {/* Stacked show cards */}
     <div className="flex-1 px-3 py-2 flex flex-col">
-      {/* Card 1 - Top ranked (Expanded) */}
+      {/* Card 1 - Top ranked (Expanded) - Fred again.. */}
       <div 
-        className="relative rounded-xl overflow-hidden shadow-lg z-10"
+        className="relative rounded-xl overflow-hidden shadow-lg z-[60]"
         style={{ aspectRatio: "4/3" }}
       >
         <div 
@@ -42,17 +52,11 @@ const MockShowCard = () => (
         {/* Rank badge */}
         <div className="absolute top-2 left-2">
           <span 
-            className="text-xs font-bold text-white"
+            className="text-xs font-bold text-white bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full"
             style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}
           >
-            #1
+            #1 All Time
           </span>
-        </div>
-
-        {/* Content overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-3">
-          <div className="text-white font-bold text-sm">Fred again..</div>
-          <div className="text-white/70 text-[10px]">Alexandra Palace · London</div>
         </div>
 
         {/* Scene watermark */}
@@ -64,43 +68,61 @@ const MockShowCard = () => (
             SCENE ✦
           </span>
         </div>
-      </div>
 
-      {/* Collapsed Cards Stack */}
-      <div className="relative mt-[-6px] z-0">
-        {/* Card 2 - Odesza */}
-        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3">
-          <div className="text-white/80 text-xs font-medium">Odesza</div>
-        </div>
-
-        {/* Card 3 - Mau P */}
-        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
-          <div className="text-white/60 text-xs font-medium">Mau P</div>
-        </div>
-
-        {/* Card 4 - Post Malone */}
-        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
-          <div className="text-white/50 text-xs font-medium">Post Malone</div>
-        </div>
-
-        {/* Card 5 - The Blaze */}
-        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
-          <div className="text-white/40 text-xs font-medium">The Blaze</div>
-        </div>
-
-        {/* Card 6 - T-Pain */}
-        <div className="relative rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] py-3 px-3 mt-[-6px]">
-          <div className="text-white/30 text-xs font-medium">T-Pain</div>
+        {/* Content overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          {/* White score badge */}
+          <div className="inline-flex items-center justify-center bg-white/90 text-black font-bold rounded-full px-2 py-0.5 text-xs mb-1.5 shadow-md">
+            9.2
+          </div>
+          <div 
+            className="text-white font-bold text-sm"
+            style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}
+          >
+            Fred again..
+          </div>
+          <div className="text-white/70 text-[10px]">Alexandra Palace · London</div>
         </div>
       </div>
+
+      {/* Collapsed Cards Stack - each overlapping the one below */}
+      {collapsedCards.map((card, index) => (
+        <div 
+          key={card.artist}
+          className="relative mt-[-12px]"
+          style={{ zIndex: card.zIndex }}
+        >
+          <div className="relative rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-sm border border-white/[0.05]">
+            {/* Photo background at 20% opacity */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-20"
+              style={{ backgroundImage: `url('${card.photo}')` }}
+            />
+            <div className="relative py-3 px-3 flex items-center justify-between">
+              <span 
+                className="font-bold text-xs"
+                style={{ 
+                  color: `rgba(255, 255, 255, ${card.opacity / 100})`,
+                  textShadow: "0 0 8px rgba(255,255,255,0.3)" 
+                }}
+              >
+                {card.artist}
+              </span>
+              <span className="text-[9px] text-white/40">#{card.rank} All Time</span>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
 
-    {/* Bottom nav mock */}
-    <div className="px-4 py-3 flex justify-around border-t border-white/10">
-      <div className="w-5 h-5 rounded-full bg-primary/60" />
-      <div className="w-5 h-5 rounded-full bg-white/20" />
-      <div className="w-5 h-5 rounded-full bg-white/20" />
-      <div className="w-5 h-5 rounded-full bg-white/20" />
+    {/* Bottom nav with proper icons */}
+    <div className="px-4 py-3 flex justify-around items-center border-t border-white/10">
+      <Home className="w-5 h-5 text-primary" style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }} />
+      <Globe className="w-5 h-5 text-white/40" />
+      <Crown className="w-5 h-5 text-white/40" />
+      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{ boxShadow: "0 0 12px hsl(var(--primary) / 0.5)" }}>
+        <Plus className="w-4 h-4 text-white" />
+      </div>
     </div>
   </div>
 );
