@@ -1,109 +1,205 @@
 
-# Show Ranker UI/UX Enhancement Plan
 
-## Overview
-Transform the Show Ranker experience with polished animations, haptic feedback, and brand-consistent visual design that matches the website mockup aesthetic.
+# Auth Page Redesign Plan
 
----
+## Current State Analysis
+The current Auth page is functional but generic:
+- Basic gradient background (gradient-accent)
+- Standard Card component with default styling
+- Plain text "Scene" header with gradient clip
+- Generic Tabs with muted styling
+- No visual connection to the premium Scene brand aesthetic
 
-## Features to Implement
-
-### 1. Card Entry Animation (Slide-in from sides)
-Cards will enter with a staggered animation - left card slides in from left, right card slides in from right.
-
-**Changes:**
-- Add new keyframes to `tailwind.config.ts`:
-  - `slide-in-left`: Cards enter from -100% translateX
-  - `slide-in-right`: Cards enter from +100% translateX
-- Add `pairKey` state in `Rank.tsx` to trigger re-animation when pairs change
-- Pass `position` prop ("left" | "right") to `RankingCard`
-- Apply animation classes with staggered delays (left: 0ms, right: 150ms)
-
----
-
-### 2. Winner Selection Animation + Haptic Feedback
-When a card is tapped, it will flash with a cyan glow, scale up slightly, then the pair transitions out.
-
-**Changes:**
-- Add new state `selectedWinner` in `Rank.tsx` to track which card was selected
-- Create a "winner pulse" animation with:
-  - Brief scale-up to 1.05
-  - Cyan glow border/shadow effect
-  - 400ms duration before transitioning to next pair
-- Add haptic feedback using `navigator.vibrate(50)` on supported devices
-- Loser card fades out slightly during winner animation
+## Scene Brand Aesthetic (Reference)
+Based on the landing page and app components:
+- **Background**: Mesh gradients with cyan (top-left) and coral (bottom-right) radial glows + noise texture
+- **Logo**: SceneLogo component with luminous glow (textShadow), font-black, tracking-[0.25em], uppercase
+- **Cards**: Glassmorphism (bg-white/[0.04], backdrop-blur-sm, border-white/[0.08])
+- **Buttons**: Primary with shadow-glow, hover:scale-105 transitions
+- **Typography**: Bold headlines with textShadow glow effects
+- **Accents**: Cyan (primary) and coral (secondary) color pops
 
 ---
 
-### 3. Completion Celebration (Confetti)
-When rankings stabilize (progress reaches 100%), trigger a confetti celebration.
+## Redesign Overview
 
-**Changes:**
-- Install `canvas-confetti` package (lightweight, no dependencies)
-- Create `useConfetti` hook or inline the celebration logic
-- Trigger confetti burst when `showPair` becomes `null` and progress was previously < 100%
-- Configure confetti with brand colors (cyan, coral, gold particles)
+Transform the Auth page into an immersive, brand-consistent experience that feels like entering a premium concert venue.
 
----
+### Visual Changes
 
-### 4. Header Hierarchy with Brand Glow
-Apply SceneLogo-style luminous treatment to the "Show Ranker" headline for brand consistency.
-
-**Changes:**
-- Update header in `Rank.tsx` with:
-  - Increase tracking to match logo style (tracking-[0.15em])
-  - Add textShadow with white glow: `0 0 8px rgba(255,255,255,0.4)`
-  - Uppercase styling for consistency
+| Element | Current | New Design |
+|---------|---------|------------|
+| Background | Simple gradient | Animated mesh gradient with noise texture |
+| Logo | Plain gradient text | SceneLogo component with glow |
+| Tagline | Plain text | Luminous glow effect |
+| Card | Standard border | Glassmorphism with blur + subtle border |
+| Tabs | Muted bg | Glass pill styling matching app nav |
+| Inputs | Standard | Dark glass styling with glow focus ring |
+| Button | Default primary | Gradient with shadow-glow, scale animation |
+| Social Proof | None | Avatar stack + "Join 1,200+ music lovers" |
 
 ---
 
-### 5. Enhanced Photo Fallback
-Replace the simple gradient placeholder with a proper mesh gradient + Scene star logo.
+## Implementation Details
 
-**Changes:**
-- Update `RankingCard.tsx` photo fallback section:
-  - Add radial mesh gradients (cyan top-left, coral bottom-right at 15-20% opacity)
-  - Add 3% opacity noise texture overlay using inline SVG
-  - Increase star size and add luminous glow effect matching SceneLogo style
-  - Add subtle pulse-glow animation to the fallback
+### 1. Full-Screen Mesh Gradient Background
+Replace the simple `bg-gradient-accent` with an immersive concert-like atmosphere:
 
----
-
-## Technical Implementation Details
-
-### New Tailwind Keyframes
 ```text
-slide-in-left: { from: { opacity: 0, transform: translateX(-100%) }, to: { opacity: 1, transform: translateX(0) } }
-slide-in-right: { from: { opacity: 0, transform: translateX(100%) }, to: { opacity: 1, transform: translateX(0) } }
-winner-pulse: { 0%: { transform: scale(1) }, 50%: { transform: scale(1.05) }, 100%: { transform: scale(1) } }
-fade-scale-out: { from: { opacity: 1, transform: scale(1) }, to: { opacity: 0, transform: scale(0.95) } }
+Container:
+- min-h-screen relative overflow-hidden
+- Base: bg-background
+
+Radial Glows (animated):
+- Cyan: top-left, 40% size, 15-20% opacity, animate-pulse-glow
+- Coral: bottom-right, 35% size, 12-15% opacity
+
+Noise Texture:
+- 3% opacity SVG fractal noise overlay for premium tactile feel
 ```
 
-### Files to Modify
+### 2. Scene Logo Header
+Replace plain text with the official SceneLogo component:
+
+```text
+- Use SceneLogo size="lg" for proper brand treatment
+- Add supporting tagline below with luminous glow
+- Center alignment with proper spacing
+```
+
+### 3. Glassmorphism Auth Card
+Transform the card to match the app's glassmorphism aesthetic:
+
+```text
+Card styling:
+- bg-white/[0.03] backdrop-blur-md
+- border border-white/[0.08]
+- rounded-2xl (larger radius)
+- shadow-2xl shadow-black/20
+
+Remove CardHeader CardTitle/Description:
+- More minimal, let the form speak
+```
+
+### 4. Glass Pill Tab Toggle
+Style the tabs like the app's bottom navigation glass pill:
+
+```text
+TabsList:
+- bg-white/[0.06] backdrop-blur-sm
+- border border-white/[0.08]
+- rounded-full (pill shape)
+- p-1 for proper padding
+
+TabsTrigger:
+- rounded-full
+- data-[state=active]:bg-white/[0.12]
+- data-[state=active]:text-white
+- data-[state=active]:shadow (subtle inner glow)
+```
+
+### 5. Enhanced Input Styling
+Style inputs to match the premium dark theme:
+
+```text
+Custom input class:
+- bg-white/[0.04]
+- border-white/[0.08]
+- placeholder:text-white/30
+- focus:border-primary/50
+- focus:ring-primary/20
+- focus:shadow-[0_0_12px_hsl(var(--primary)/0.15)]
+- text-base for mobile zoom prevention
+```
+
+### 6. Gradient CTA Button
+Style the submit button with brand gradient and glow:
+
+```text
+- bg-gradient-to-r from-primary to-primary/80
+- shadow-glow
+- hover:scale-105 transition-transform
+- Active state: scale-[0.98]
+```
+
+### 7. Social Proof Section
+Add trust indicator below the card (matching landing page):
+
+```text
+- Avatar stack (3 avatars from /images/waitlist-*.png)
+- "Join 1,200+ music lovers" text
+- Subtle text-muted-foreground styling
+```
+
+---
+
+## Files to Modify
+
 | File | Changes |
 |------|---------|
-| `tailwind.config.ts` | Add slide-in-left, slide-in-right, winner-pulse, fade-scale-out keyframes and animations |
-| `src/index.css` | Add winner-glow utility class with box-shadow |
-| `src/components/Rank.tsx` | Add selectedWinner state, pairKey for re-animation, haptic feedback, confetti trigger |
-| `src/components/rankings/RankingCard.tsx` | Add position prop, slide-in animation, winner state, enhanced fallback |
-| `package.json` | Add canvas-confetti dependency |
+| `src/pages/Auth.tsx` | Complete redesign with mesh gradient background, SceneLogo, glassmorphism card, styled tabs, enhanced inputs, gradient button, social proof |
 
-### Animation Timeline (per comparison)
+---
+
+## Technical Details
+
+### Complete Auth.tsx Structure
+
 ```text
-1. [0ms]     Cards slide in from sides (300ms duration, staggered 150ms)
-2. [450ms]   User can interact
-3. [tap]     Winner card: scale + glow pulse (400ms)
-             Loser card: slight fade + shrink
-             Haptic vibration (50ms)
-4. [400ms after tap] Both cards slide out, new pair slides in
+<div> {/* Full screen container */}
+  {/* Mesh gradient backgrounds */}
+  <div> Cyan radial glow - animated </div>
+  <div> Coral radial glow </div>
+  <div> Noise texture overlay </div>
+
+  <div> {/* Content container */}
+    {/* Header */}
+    <SceneLogo size="lg" />
+    <p> Tagline with glow </p>
+
+    {/* Glass card */}
+    <div> {/* Glassmorphism card */}
+      <Tabs>
+        <TabsList> {/* Glass pill */}
+          <TabsTrigger>Sign In</TabsTrigger>
+          <TabsTrigger>Sign Up</TabsTrigger>
+        </TabsList>
+
+        <TabsContent> {/* Sign In form */}
+          <form>
+            <Input /> {/* Email - glass styled */}
+            <Input /> {/* Password - glass styled */}
+            <Button /> {/* Gradient with glow */}
+          </form>
+        </TabsContent>
+
+        <TabsContent> {/* Sign Up form */}
+          <form>
+            <Input /> {/* Username */}
+            <Input /> {/* Email */}
+            <Input /> {/* Password */}
+            <Button />
+          </form>
+        </TabsContent>
+      </Tabs>
+    </div>
+
+    {/* Social proof */}
+    <div>
+      <AvatarStack />
+      <span>Join 1,200+ music lovers</span>
+    </div>
+  </div>
+</div>
 ```
 
 ---
 
 ## Summary
-This plan delivers a polished, game-like ranking experience with:
-- Engaging card entry animations that draw attention
-- Satisfying winner feedback with visual + haptic confirmation
-- Celebration moment when rankings complete
-- Consistent brand styling throughout
-- Premium photo fallback matching the app aesthetic
+This redesign transforms the Auth page from a generic form into an immersive brand experience that:
+- Immediately communicates the Scene aesthetic
+- Uses consistent glassmorphism styling
+- Creates anticipation with concert venue atmosphere
+- Builds trust with social proof
+- Maintains excellent mobile UX with proper input sizing
+
