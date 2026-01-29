@@ -1,10 +1,10 @@
 import PhoneMockup from "./PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
-import { Instagram } from "lucide-react";
+import { Instagram, X, Plus } from "lucide-react";
 
 // Story overlay mockup
 const StoryMockup = () => (
-  <div className="h-full w-full relative">
+  <div className="h-full w-full relative bg-black">
     {/* Full-bleed concert photo */}
     <div 
       className="absolute inset-0"
@@ -18,8 +18,36 @@ const StoryMockup = () => (
     {/* Gradient overlays */}
     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40" />
     
-    {/* Top: Scene logo */}
-    <div className="absolute top-4 right-4">
+    {/* Instagram Story Header - "Your story" */}
+    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+      {/* Profile photo and text */}
+      <div className="flex items-center gap-2">
+        {/* Profile photo with + badge */}
+        <div className="relative">
+          <div 
+            className="w-8 h-8 rounded-full border-2 border-white/60"
+            style={{
+              backgroundImage: "url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center border border-black">
+            <Plus className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-white text-sm font-semibold">Your story</span>
+          <span className="text-white/50 text-sm">3h</span>
+        </div>
+      </div>
+      
+      {/* Close button */}
+      <X className="w-6 h-6 text-white/80" />
+    </div>
+
+    {/* Top right: Scene logo */}
+    <div className="absolute top-12 right-3">
       <div className="bg-black/30 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/10">
         <SceneLogo size="sm" />
       </div>
