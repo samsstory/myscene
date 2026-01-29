@@ -3,12 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift } from "lucide-react";
+import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 
 const Profile = () => {
+  const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -174,14 +176,38 @@ const Profile = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Profile Settings</h2>
-        <Button variant="outline" onClick={handleLogout}>
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
-      </div>
+    <>
+      {showWelcomeCarousel && (
+        <WelcomeCarousel onComplete={() => setShowWelcomeCarousel(false)} />
+      )}
+      
+      <div className="space-y-6 max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Profile Settings</h2>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+
+        {/* Welcome to Scene Card */}
+        <Card className="border-border shadow-card bg-gradient-to-br from-primary/10 via-transparent to-secondary/10">
+          <CardContent className="p-4">
+            <Button 
+              onClick={() => setShowWelcomeCarousel(true)}
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto py-3"
+            >
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Welcome to Scene</p>
+                <p className="text-sm text-muted-foreground">View the intro again</p>
+              </div>
+            </Button>
+          </CardContent>
+        </Card>
 
       {/* Profile Picture Card */}
       <Card className="border-border shadow-card">
@@ -349,8 +375,9 @@ const Profile = () => {
             </Button>
           </div>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </>
   );
 };
 
