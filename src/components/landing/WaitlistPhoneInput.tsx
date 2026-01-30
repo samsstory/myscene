@@ -125,7 +125,7 @@ const WaitlistPhoneInput = ({
   return <form onSubmit={handleSubmit} className="w-full max-w-md">
       <div className="sm:flex-row items-center justify-center flex flex-col gap-[8px] px-0 py-0">
         {/* Country + Phone Input */}
-        <div className="flex-1 flex rounded-lg border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/50 transition-all">
+        <div className="flex-[1.5] min-w-[200px] flex rounded-lg border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/50 transition-all">
           {/* Country Selector */}
           <Popover open={countryOpen} onOpenChange={setCountryOpen}>
             <PopoverTrigger asChild>
@@ -153,7 +153,7 @@ const WaitlistPhoneInput = ({
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" size="lg" disabled={isSubmitting || !phone} className="shadow-glow py-5 hover:scale-105 transition-transform whitespace-nowrap text-justify px-[75px]">
+        <Button type="submit" size="lg" disabled={isSubmitting || !phone} className="shadow-glow py-5 hover:scale-105 transition-transform whitespace-nowrap px-6">
           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get Early Access"}
         </Button>
       </div>
