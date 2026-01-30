@@ -31,7 +31,6 @@ const Dashboard = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
-  const [statShowsTapped, setStatShowsTapped] = useState(false);
 
   const rankButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -129,7 +128,6 @@ const Dashboard = () => {
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
-            onStatShowsTapped={showSpotlightTour && tourStepIndex === 4 ? () => setStatShowsTapped(true) : undefined}
           />
         );
       case "globe":
@@ -347,12 +345,7 @@ const Dashboard = () => {
         onOpenFabMenu={() => setShowFabMenu(true)}
         onCloseFabMenu={() => setShowFabMenu(false)}
         fabMenuOpen={showFabMenu}
-        onStepChange={(step) => {
-          setTourStepIndex(step);
-          // Reset statShowsTapped when leaving step 4
-          if (step !== 4) setStatShowsTapped(false);
-        }}
-        statShowsTapped={statShowsTapped}
+        onStepChange={setTourStepIndex}
       />
 
     </div>

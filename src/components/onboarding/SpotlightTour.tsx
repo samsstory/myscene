@@ -9,7 +9,6 @@ interface SpotlightTourProps {
   onCloseFabMenu?: () => void;
   fabMenuOpen?: boolean;
   onStepChange?: (stepIndex: number) => void;
-  statShowsTapped?: boolean;
 }
 
 // Custom tooltip component with glassmorphism styling
@@ -78,7 +77,7 @@ const GlassTooltip = ({
   );
 };
 
-const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenuOpen, onStepChange, statShowsTapped }: SpotlightTourProps) => {
+const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenuOpen, onStepChange }: SpotlightTourProps) => {
   const [stepIndex, setStepIndex] = useState(0);
 
   // Reset step index when tour starts
@@ -100,13 +99,6 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenu
       setStepIndex(1);
     }
   }, [run, stepIndex, fabMenuOpen]);
-
-  // Detect when user taps stat-shows during step 5 (index 4) - auto-advance
-  useEffect(() => {
-    if (run && stepIndex === 4 && statShowsTapped) {
-      setStepIndex(5);
-    }
-  }, [run, stepIndex, statShowsTapped]);
 
   const steps: Step[] = [
     {
@@ -140,11 +132,10 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenu
     },
     {
       target: '[data-tour="stat-shows"]',
-      content: "Tap here to see all your shows ranked in order",
+      content: "See all your shows ranked in order",
       placement: "bottom",
       disableBeacon: true,
-      data: { totalSteps: 7, isTapToAdvance: true },
-      spotlightClicks: true,
+      data: { totalSteps: 7 },
     },
     {
       target: '[data-tour="nav-globe"]',
