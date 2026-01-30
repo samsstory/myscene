@@ -192,7 +192,7 @@ const LandingHero = () => {
               }} />
               </div>
               <span className="text-sm text-muted-foreground">
-                Join 1,200+ music lovers
+                Become one of the first 50 pioneers
               </span>
             </div>
           </div>
