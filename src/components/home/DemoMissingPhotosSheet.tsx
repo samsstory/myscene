@@ -1,0 +1,522 @@
+import { useState, useMemo, useRef } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, Check, ImagePlus, X, Sparkles, ChevronRight, EyeOff, Info } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { format, parseISO, isSameDay, differenceInDays } from "date-fns";
+import { extractExifData } from "@/lib/exif-utils";
+
+interface Artist {
+  name: string;
+  isHeadliner: boolean;
+}
+
+interface Show {
+  id: string;
+  artists: Artist[];
+  venue: {
+    name: string;
+    location: string;
+  };
+  date: string;
+  photo_url?: string | null;
+}
+
+interface ShowWithoutPhoto {
+  id: string;
+  artistName: string;
+  venueName: string;
+  showDate: string;
+}
+
+interface SelectedPhoto {
+  file: File;
+  previewUrl: string;
+  extractedDate: Date | null;
+}
+
+interface PhotoShowMatch {
+  photo: SelectedPhoto;
+  assignedShowId: string | null;
+}
+
+interface DemoMissingPhotosSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  shows: Show[];
+}
+
+type Step = 'select-photos' | 'match-photos';
+
+export const DemoMissingPhotosSheet = ({ 
+  open, 
+  onOpenChange,
+  shows: allShows 
+}: DemoMissingPhotosSheetProps) => {
+  // Filter shows without photos
+  const initialShowsWithoutPhotos = useMemo(() => {
+    return allShows
+      .filter(s => !s.photo_url)
+      .map(show => ({
+        id: show.id,
+        artistName: show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || 'Unknown Artist',
+        venueName: show.venue.name,
+        showDate: show.date,
+      }));
+  }, [allShows]);
+
+  const [shows, setShows] = useState<ShowWithoutPhoto[]>(initialShowsWithoutPhotos);
+  const [step, setStep] = useState<Step>('select-photos');
+  const [selectedPhotos, setSelectedPhotos] = useState<SelectedPhoto[]>([]);
+  const [matches, setMatches] = useState<PhotoShowMatch[]>([]);
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset state when sheet opens
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setShows(initialShowsWithoutPhotos);
+      setStep('select-photos');
+      setSelectedPhotos([]);
+      setMatches([]);
+      setActivePhotoIndex(null);
+    } else {
+      // Clean up preview URLs
+      selectedPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    }
+    onOpenChange(isOpen);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const photos: SelectedPhoto[] = [];
+
+    for (const file of files) {
+      const previewUrl = URL.createObjectURL(file);
+      
+      // Extract EXIF date
+      let extractedDate: Date | null = null;
+      try {
+        const exifData = await extractExifData(file);
+        extractedDate = exifData.date;
+      } catch (error) {
+        console.error('Error extracting metadata:', error);
+      }
+
+      photos.push({ file, previewUrl, extractedDate });
+    }
+
+    setSelectedPhotos(photos);
+    
+    // Auto-match photos to shows by date
+    const autoMatches = autoMatchPhotosToShows(photos, shows);
+    setMatches(autoMatches);
+    setStep('match-photos');
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const autoMatchPhotosToShows = (photos: SelectedPhoto[], availableShows: ShowWithoutPhoto[]): PhotoShowMatch[] => {
+    const usedShowIds = new Set<string>();
+    
+    return photos.map(photo => {
+      if (!photo.extractedDate) {
+        return { photo, assignedShowId: null };
+      }
+
+      // Find best matching show by date (same day or within 1 day)
+      let bestMatch: ShowWithoutPhoto | null = null;
+      let bestDiff = Infinity;
+
+      for (const show of availableShows) {
+        if (usedShowIds.has(show.id)) continue;
+
+        const showDate = parseISO(show.showDate);
+        const diff = Math.abs(differenceInDays(photo.extractedDate, showDate));
+
+        if (diff <= 1 && diff < bestDiff) {
+          bestMatch = show;
+          bestDiff = diff;
+        }
+      }
+
+      if (bestMatch) {
+        usedShowIds.add(bestMatch.id);
+        return { photo, assignedShowId: bestMatch.id };
+      }
+
+      return { photo, assignedShowId: null };
+    });
+  };
+
+  const assignPhotoToShow = (photoIndex: number, showId: string | null) => {
+    setMatches(prev => {
+      const updated = [...prev];
+      updated[photoIndex] = { ...updated[photoIndex], assignedShowId: showId };
+      return updated;
+    });
+    setActivePhotoIndex(null);
+  };
+
+  const markShowAsDeclined = (showId: string) => {
+    // In demo mode, just remove from local list
+    setShows(prev => prev.filter(s => s.id !== showId));
+    setMatches(prev => prev.map(m => 
+      m.assignedShowId === showId ? { ...m, assignedShowId: null } : m
+    ));
+    toast.success('Show marked as no photo needed (demo)');
+  };
+
+  const getAvailableShows = (currentPhotoIndex: number): ShowWithoutPhoto[] => {
+    const assignedShowIds = new Set(
+      matches
+        .filter((m, i) => i !== currentPhotoIndex && m.assignedShowId)
+        .map(m => m.assignedShowId!)
+    );
+    return shows.filter(s => !assignedShowIds.has(s.id));
+  };
+
+  const matchedCount = useMemo(() => {
+    return matches.filter(m => m.assignedShowId !== null).length;
+  }, [matches]);
+
+  const handleSaveAll = () => {
+    // Demo mode - just show success message
+    const count = matchedCount;
+    toast.success(
+      `Demo: ${count} photo${count !== 1 ? 's' : ''} would be saved. Sign up to save for real!`,
+      { duration: 4000 }
+    );
+    
+    // Clean up preview URLs
+    selectedPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    
+    onOpenChange(false);
+  };
+
+  const handleClose = () => {
+    selectedPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    onOpenChange(false);
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent 
+        side="bottom" 
+        className="h-[90vh] overflow-hidden flex flex-col bg-background/95 backdrop-blur-xl"
+      >
+        <SheetHeader className="flex-shrink-0 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={step === 'match-photos' && selectedPhotos.length > 0 
+                ? () => setStep('select-photos') 
+                : handleClose}
+              className="h-9 w-9"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <SheetTitle className="text-lg font-bold">
+              {step === 'select-photos' ? 'Add Photos to Shows' : 'Match Photos'}
+            </SheetTitle>
+          </div>
+          
+          {/* Demo mode indicator */}
+          <div className="mt-3 flex items-center gap-2 px-1 py-2 rounded-lg bg-primary/10 border border-primary/20">
+            <Info className="h-4 w-4 text-primary flex-shrink-0" />
+            <p className="text-xs text-primary/80">
+              Demo Mode — Try the photo matching flow. Sign up to save!
+            </p>
+          </div>
+          
+          {/* Progress indicator for matching step */}
+          {step === 'match-photos' && matches.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/60">
+                  {matchedCount} of {matches.length} matched
+                </span>
+                <span className="text-white/40">
+                  {Math.round((matchedCount / matches.length) * 100)}%
+                </span>
+              </div>
+              <Progress 
+                value={(matchedCount / matches.length) * 100} 
+                className="h-1.5 bg-white/10"
+              />
+            </div>
+          )}
+        </SheetHeader>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto py-4">
+          {step === 'select-photos' ? (
+            /* Photo Selection Step */
+            <div className="space-y-6">
+              {shows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-center">
+                  <Check className="h-10 w-10 text-primary mb-2" />
+                  <p className="text-white/60">All your shows have photos!</p>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center space-y-2">
+                    <p className="text-white/60 text-sm">
+                      {shows.length} {shows.length === 1 ? 'show needs' : 'shows need'} a photo
+                    </p>
+                    <p className="text-white/40 text-xs">
+                      Select photos from your camera roll — we'll auto-match by date
+                    </p>
+                  </div>
+
+                  {/* Photo selection button */}
+                  <div className="flex justify-center">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <Button
+                      size="lg"
+                      className="gap-2 shadow-glow"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <ImagePlus className="h-5 w-5" />
+                      Select Photos
+                    </Button>
+                  </div>
+
+                  {/* List of shows without photos */}
+                  <div className="space-y-2 mt-6">
+                    <h4 className="text-xs uppercase tracking-wider text-white/40 font-medium px-1">
+                      Shows Without Photos
+                    </h4>
+                    {shows.slice(0, 10).map(show => (
+                      <div
+                        key={show.id}
+                        className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-between gap-2"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-white/80 truncate">{show.artistName}</div>
+                          <div className="text-sm text-white/50 truncate">
+                            {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
+                          onClick={() => markShowAsDeclined(show.id)}
+                        >
+                          <EyeOff className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {shows.length > 10 && (
+                      <p className="text-xs text-white/40 text-center pt-2">
+                        And {shows.length - 10} more...
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            /* Photo Matching Step */
+            <div className="space-y-4">
+              {/* Active photo selection panel */}
+              {activePhotoIndex !== null && (
+                <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl p-4 overflow-y-auto">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setActivePhotoIndex(null)}
+                      className="h-9 w-9"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <span className="font-semibold">Select a Show</span>
+                  </div>
+
+                  {/* Photo preview */}
+                  <div className="mb-4 flex justify-center">
+                    <div className="w-32 h-32 rounded-lg overflow-hidden">
+                      <img 
+                        src={matches[activePhotoIndex].photo.previewUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+
+                  {matches[activePhotoIndex].photo.extractedDate && (
+                    <p className="text-center text-sm text-white/50 mb-4">
+                      Photo taken: {format(matches[activePhotoIndex].photo.extractedDate, 'MMM d, yyyy')}
+                    </p>
+                  )}
+
+                  {/* Show list */}
+                  <div className="space-y-2">
+                    {/* Skip this photo */}
+                    <button
+                      onClick={() => assignPhotoToShow(activePhotoIndex, null)}
+                      className={cn(
+                        "w-full p-3 rounded-lg text-left transition-all",
+                        "bg-white/[0.03] border border-dashed border-white/20",
+                        "hover:bg-white/[0.08]"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <X className="h-5 w-5 text-white/40" />
+                        <span className="text-white/60">Skip this photo</span>
+                      </div>
+                    </button>
+
+                    {getAvailableShows(activePhotoIndex).map(show => {
+                      const isDateMatch = matches[activePhotoIndex].photo.extractedDate &&
+                        isSameDay(matches[activePhotoIndex].photo.extractedDate, parseISO(show.showDate));
+
+                      return (
+                        <div
+                          key={show.id}
+                          className={cn(
+                            "w-full p-3 rounded-lg transition-all flex items-center gap-2",
+                            "bg-white/[0.03] border border-white/[0.08]",
+                            isDateMatch && "border-primary/50 bg-primary/10"
+                          )}
+                        >
+                          <button
+                            onClick={() => assignPhotoToShow(activePhotoIndex, show.id)}
+                            className="flex-1 text-left"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-white/80">{show.artistName}</div>
+                                <div className="text-sm text-white/50">
+                                  {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                                </div>
+                              </div>
+                              {isDateMatch && (
+                                <div className="flex items-center gap-1 text-xs text-primary">
+                                  <Sparkles className="h-3 w-3" />
+                                  Date match
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markShowAsDeclined(show.id);
+                            }}
+                            title="Leave naked (won't ask again)"
+                          >
+                            <EyeOff className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Photo-Show match list */}
+              {matches.map((match, index) => {
+                const assignedShow = shows.find(s => s.id === match.assignedShowId);
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={() => setActivePhotoIndex(index)}
+                    className="w-full text-left"
+                  >
+                    <div className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl transition-all",
+                      "bg-white/[0.03] border",
+                      match.assignedShowId 
+                        ? "border-primary/30" 
+                        : "border-white/10 border-dashed"
+                    )}>
+                      {/* Photo thumbnail */}
+                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative">
+                        <img 
+                          src={match.photo.previewUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                        {match.assignedShowId && (
+                          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                            <Check className="h-6 w-6 text-primary" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Show info or unmatched status */}
+                      <div className="flex-1 min-w-0">
+                        {assignedShow ? (
+                          <>
+                            <div className="font-medium text-white/90 truncate">
+                              {assignedShow.artistName}
+                            </div>
+                            <div className="text-sm text-white/50 truncate">
+                              {assignedShow.venueName}
+                            </div>
+                            <div className="text-xs text-white/40">
+                              {format(parseISO(assignedShow.showDate), 'MMM d, yyyy')}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-white/40">
+                            <span className="font-medium">Tap to match</span>
+                            {match.photo.extractedDate && (
+                              <div className="text-xs mt-0.5">
+                                Photo: {format(match.photo.extractedDate, 'MMM d, yyyy')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <ChevronRight className="h-5 w-5 text-white/30 flex-shrink-0" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Save button */}
+        {step === 'match-photos' && matches.length > 0 && (
+          <div className="flex-shrink-0 pt-4 border-t border-white/10">
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={matchedCount === 0}
+              onClick={handleSaveAll}
+            >
+              {`Save ${matchedCount} Photo${matchedCount !== 1 ? 's' : ''}`}
+            </Button>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+export default DemoMissingPhotosSheet;
