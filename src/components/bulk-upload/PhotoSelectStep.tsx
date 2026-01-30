@@ -51,12 +51,9 @@ const PhotoSelectStep = ({
         <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
           <Camera className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="text-xl font-semibold">1 Photo Per Show</h2>
+        <h2 className="text-xl font-semibold">Add Multiple Shows At Once</h2>
         <p className="text-sm text-muted-foreground">
-          Add as many as you'd like!
-        </p>
-        <p className="text-xs text-muted-foreground/70 mt-1">
-          Each photo creates a separate show entry
+          Select 1, 5, or 50 — each photo becomes a show
         </p>
       </div>
 
