@@ -19,7 +19,7 @@ const LandingCTA = () => {
             className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground"
             style={{ textShadow: "0 0 60px rgba(255,255,255,0.15)" }}
           >
-            Your love for music deserves to be remembered.
+            Your love for music deserves to be remembered
           </h2>
 
           <div className="pt-4 flex justify-center">
