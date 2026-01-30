@@ -171,7 +171,7 @@ const LandingHero = () => {
 
             <div className="flex flex-col gap-4 justify-center lg:justify-start pt-2 relative z-20">
               <WaitlistSignup source="hero" />
-              <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")} className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10 w-fit mx-[100px]">
+              <Button size="lg" variant="outline" onClick={() => navigate("/demo")} className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10 w-fit mx-[100px]">
                 Try Live Demo
               </Button>
             </div>
