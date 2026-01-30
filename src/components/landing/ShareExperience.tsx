@@ -97,10 +97,6 @@ const ShareExperience = () => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: Copy */}
           <div className="space-y-6 text-center lg:text-left">
-            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
-              <Share2 className="h-3.5 w-3.5" />
-              Share
-            </Badge>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
