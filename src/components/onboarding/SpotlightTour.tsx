@@ -235,6 +235,7 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenu
         },
         spotlight: {
           borderRadius: 20,
+          backgroundColor: "transparent",
           boxShadow: "0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px hsl(189 94% 55% / 0.6), 0 0 60px hsl(189 94% 55% / 0.4)",
           animation: "spotlight-pulse 2s ease-in-out infinite",
         },
