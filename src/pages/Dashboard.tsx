@@ -245,9 +245,7 @@ const Dashboard = () => {
 
         {/* Floating Rank target for tour step 4 (index 3) */}
         <FloatingTourTarget active={showSpotlightTour && tourStepIndex === 3} targetRef={rankButtonRef} dataTour="nav-rank">
-          <div className="grid place-items-center">
-            <Scale className="h-6 w-6 text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" />
-          </div>
+          <Scale className="h-6 w-6 text-primary drop-shadow-[0_0_12px_hsl(var(--primary))]" />
         </FloatingTourTarget>
 
         {/* Floating FAB */}
