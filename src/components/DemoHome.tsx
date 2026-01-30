@@ -58,6 +58,7 @@ type ViewMode = 'home' | 'calendar' | 'rankings' | 'globe';
 interface DemoHomeProps {
   initialView?: ViewMode;
   onViewChange?: (view: ViewMode) => void;
+  onNavigateToRank?: () => void;
 }
 
 const truncate = (str: string, maxLen: number): string => {
@@ -65,7 +66,7 @@ const truncate = (str: string, maxLen: number): string => {
   return str.slice(0, maxLen - 1) + '…';
 };
 
-const DemoHome = ({ initialView = 'home', onViewChange }: DemoHomeProps) => {
+const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: DemoHomeProps) => {
   const { shows, rankings, stats, isLoading, error } = useDemoData();
   
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
@@ -251,8 +252,32 @@ const DemoHome = ({ initialView = 'home', onViewChange }: DemoHomeProps) => {
     }] : []),
   ];
 
-  // Build insights for demo
+  // Build insights for demo - including incomplete ratings for testing
   const insights: InsightData[] = [];
+  
+  // Add incomplete ratings insight (always show in demo for testing)
+  if (stats.incompleteRatingsCount > 0) {
+    insights.push({
+      type: 'incomplete_ratings',
+      title: `${stats.incompleteRatingsCount} Shows Need Ratings`,
+      message: `Complete detailed ratings to unlock full insights.`,
+      actionable: true,
+      action: 'incomplete-ratings',
+    });
+  }
+  
+  // Add ranking reminder insight for under-ranked shows
+  if (stats.underRankedCount > 0) {
+    insights.push({
+      type: 'ranking_reminder',
+      title: `${stats.underRankedCount} Shows Under-Ranked`,
+      message: `Some shows need more comparisons to lock in their rank.`,
+      actionable: true,
+      action: 'rank-tab',
+    });
+  }
+  
+  // Milestone/streak insights
   if (stats.allTimeShows > 0) {
     if ([25, 50, 100, 200].includes(stats.allTimeShows)) {
       insights.push({
@@ -261,7 +286,7 @@ const DemoHome = ({ initialView = 'home', onViewChange }: DemoHomeProps) => {
         message: `Incredible milestone! You've logged ${stats.allTimeShows} concerts.`,
       });
     }
-    if (stats.currentStreak >= 2 && insights.length === 0) {
+    if (stats.currentStreak >= 2 && insights.length < 3) {
       insights.push({
         type: 'streak_active',
         title: `${stats.currentStreak}-Month Streak`,
@@ -280,19 +305,23 @@ const DemoHome = ({ initialView = 'home', onViewChange }: DemoHomeProps) => {
         {/* Stat Pills */}
         <StatPills stats={statPills} isLoading={isLoading} onPillTap={handlePillTap} />
 
-        {/* Ranking Progress Card */}
+        {/* Ranking Progress Card - links to Rank feature */}
         {shows.length >= 2 && (
           <RankingProgressCard
             percentage={stats.globalConfirmationPercentage}
             totalShows={shows.length}
-            onTap={() => {}} // No-op in demo
+            onTap={() => onNavigateToRank?.()}
           />
         )}
 
-        {/* Dynamic Insights */}
+        {/* Dynamic Insights - link rank-tab action to Rank feature */}
         <DynamicInsight 
           insights={insights} 
-          onAction={() => {}} // No-op in demo
+          onAction={(action) => {
+            if (action === 'rank-tab') {
+              onNavigateToRank?.();
+            }
+          }}
         />
 
         {/* Recent Shows */}
