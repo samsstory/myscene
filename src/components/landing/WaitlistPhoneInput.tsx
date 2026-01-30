@@ -5,7 +5,7 @@ import { Loader2, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 interface WaitlistPhoneInputProps {
-  source: "hero" | "cta";
+  source: string;
   onSuccess: (waitlistId: string) => void;
 }
 const COUNTRIES = [{
