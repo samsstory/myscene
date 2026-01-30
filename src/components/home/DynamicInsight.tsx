@@ -1,4 +1,4 @@
-import { Sparkles, Trophy, Flame, Target, Music2, ChevronRight, Star } from "lucide-react";
+import { Sparkles, Trophy, Flame, Target, Music2, ChevronRight, Star, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type InsightType = 
@@ -7,10 +7,11 @@ export type InsightType =
   | 'streak_active'
   | 'ranking_reminder'
   | 'incomplete_ratings'
+  | 'missing_photos'
   | 'welcome'
   | null;
 
-export type InsightAction = 'rank-tab' | 'calendar' | 'rankings' | 'incomplete-ratings' | null;
+export type InsightAction = 'rank-tab' | 'calendar' | 'rankings' | 'incomplete-ratings' | 'missing-photos' | null;
 
 export interface InsightData {
   type: InsightType;
@@ -31,6 +32,7 @@ const insightConfig: Record<NonNullable<InsightType>, { icon: typeof Sparkles }>
   streak_active: { icon: Flame },
   ranking_reminder: { icon: Target },
   incomplete_ratings: { icon: Star },
+  missing_photos: { icon: Camera },
   welcome: { icon: Music2 },
 };
 

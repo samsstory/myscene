@@ -22,6 +22,7 @@ import StatPills, { StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
 import IncompleteRatingsSheet from "./home/IncompleteRatingsSheet";
+import MissingPhotosSheet from "./home/MissingPhotosSheet";
 import FocusedRankingSession from "./home/FocusedRankingSession";
 import RankingProgressCard from "./home/RankingProgressCard";
 import { useHomeStats } from "@/hooks/useHomeStats";
@@ -106,6 +107,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   
   // Incomplete ratings sheet state
   const [incompleteRatingsOpen, setIncompleteRatingsOpen] = useState(false);
+  
+  // Missing photos sheet state
+  const [missingPhotosOpen, setMissingPhotosOpen] = useState(false);
   
   // Focused ranking session state
   const [focusedRankingOpen, setFocusedRankingOpen] = useState(false);
@@ -390,6 +394,8 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
               setFocusedRankingOpen(true);
             } else if (action === 'incomplete-ratings') {
               setIncompleteRatingsOpen(true);
+            } else if (action === 'missing-photos') {
+              setMissingPhotosOpen(true);
             }
           }} 
         />
@@ -724,6 +730,16 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
       <IncompleteRatingsSheet
         open={incompleteRatingsOpen}
         onOpenChange={setIncompleteRatingsOpen}
+        onComplete={() => {
+          refetchStats();
+          fetchShows();
+        }}
+      />
+      
+      {/* Missing Photos Sheet */}
+      <MissingPhotosSheet
+        open={missingPhotosOpen}
+        onOpenChange={setMissingPhotosOpen}
         onComplete={() => {
           refetchStats();
           fetchShows();

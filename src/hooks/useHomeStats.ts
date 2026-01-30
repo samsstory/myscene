@@ -22,6 +22,7 @@ interface StatsData {
   uniqueCities: number;
   uniqueCountries: number;
   incompleteRatingsCount: number;
+  missingPhotosCount: number;
 }
 
 interface UseHomeStatsReturn {
@@ -50,6 +51,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     uniqueCities: 0,
     uniqueCountries: 0,
     incompleteRatingsCount: 0,
+    missingPhotosCount: 0,
   });
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,10 +67,10 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       const currentMonthStart = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
       const yearStart = new Date(currentYear, 0, 1).toISOString().split('T')[0];
 
-      // Get all shows for the user with detailed ratings
+      // Get all shows for the user with detailed ratings and photo status
       const { data: shows, error: showsError } = await supabase
         .from('shows')
-        .select('id, show_date, artist_performance, sound, lighting, crowd, venue_vibe')
+        .select('id, show_date, artist_performance, sound, lighting, crowd, venue_vibe, photo_url')
         .eq('user_id', userId)
         .order('show_date', { ascending: false });
 
@@ -86,6 +88,9 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         show.crowd === null ||
         show.venue_vibe === null
       ).length || 0;
+
+      // Count shows without photos
+      const missingPhotosCount = shows?.filter(show => !show.photo_url).length || 0;
 
       // Calculate streak (consecutive months with shows)
       let streak = 0;
@@ -245,6 +250,17 @@ export const useHomeStats = (): UseHomeStatsReturn => {
           });
         }
         
+        // Missing photos notification
+        if (missingPhotosCount >= 1) {
+          generatedInsights.push({
+            type: 'missing_photos',
+            title: `${missingPhotosCount} ${missingPhotosCount === 1 ? 'Show Needs' : 'Shows Need'} a Photo`,
+            message: 'Add photos to complete your show memories.',
+            actionable: true,
+            action: 'missing-photos' as InsightAction,
+          });
+        }
+        
         // Ranking reminder notification (shows with <3 comparisons)
         if (underRankedCount >= 1) {
           generatedInsights.push({
@@ -289,6 +305,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         uniqueCities: cities.size,
         uniqueCountries: countries.size,
         incompleteRatingsCount,
+        missingPhotosCount,
       });
       setInsights(generatedInsights);
     } catch (error) {
