@@ -129,10 +129,7 @@ const CaptureShowcase = () => {
 
           {/* Right: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
-            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
-              <Star className="h-3.5 w-3.5" />
-              Rate
-            </Badge>
+            
             
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
