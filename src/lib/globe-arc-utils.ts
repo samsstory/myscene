@@ -115,100 +115,110 @@ export const HOLD_DURATION = 2000; // ms to hold complete journey
 export const FADE_DURATION = 500; // ms to fade out
 
 // Journey sequences with NYC (index 0) as home base
-// Designed to minimize overlapping transatlantic routes and avoid polar appearance
-// Each region is explored before returning home
+// IMPORTANT: Avoid any direct routes between distant longitudinal points that would
+// create great-circle arcs curving over the poles. Always use regional hops.
 
-// 2024: Regional focus with minimal Atlantic crossings
+// 2024: Americas + Europe only (no Asia-Pacific to avoid long arcs)
 export const JOURNEY_2024 = [
   0, 7,       // NYC → Austin
   7, 8,       // Austin → Chicago
   8, 1,       // Chicago → LA
-  1, 0,       // LA → NYC (domestic loop complete)
-  0, 2,       // NYC → London (single Atlantic crossing)
+  1, 0,       // LA → NYC
+  0, 6,       // NYC → São Paulo
+  6, 0,       // São Paulo → NYC
+  0, 2,       // NYC → London
   2, 9,       // London → Amsterdam
   9, 3,       // Amsterdam → Berlin
   3, 2,       // Berlin → London
-  2, 0,       // London → NYC (return - same route back)
-  0, 6,       // NYC → São Paulo
-  6, 5,       // São Paulo → Sydney (southern route)
-  5, 4,       // Sydney → Tokyo
-  4, 1,       // Tokyo → LA (Pacific)
-  1, 0,       // LA → NYC
+  2, 0,       // London → NYC
 ];
 
-// 2025: Explore each region fully before moving on
+// 2025: Americas + Europe + limited Asia (via Pacific only)
 export const JOURNEY_2025 = [
   0, 1,       // NYC → LA
-  1, 4,       // LA → Tokyo (Pacific)
-  4, 12,      // Tokyo → Seoul
-  12, 4,      // Seoul → Tokyo
-  4, 14,      // Tokyo → Melbourne
-  14, 5,      // Melbourne → Sydney
-  5, 6,       // Sydney → São Paulo (southern)
+  1, 0,       // LA → NYC (domestic)
+  0, 6,       // NYC → São Paulo
   6, 13,      // São Paulo → Buenos Aires
   13, 6,      // Buenos Aires → São Paulo
   6, 0,       // São Paulo → NYC
-  0, 2,       // NYC → London (single Atlantic crossing)
+  0, 2,       // NYC → London
   2, 10,      // London → Paris
   10, 11,     // Paris → Barcelona
-  11, 10,     // Barcelona → Paris
-  10, 3,      // Paris → Berlin
+  11, 3,      // Barcelona → Berlin
   3, 2,       // Berlin → London
-  2, 0,       // London → NYC (return)
+  2, 0,       // London → NYC
+  0, 1,       // NYC → LA
+  1, 5,       // LA → Sydney (Pacific - stays southern)
+  5, 14,      // Sydney → Melbourne
+  14, 5,      // Melbourne → Sydney
+  5, 1,       // Sydney → LA (return Pacific)
+  1, 0,       // LA → NYC
 ];
 
-// 2026: Global with strategic routing
+// 2026: Full global but with careful routing
 export const JOURNEY_2026 = [
   0, 16,      // NYC → Toronto
   16, 8,      // Toronto → Chicago
   8, 21,      // Chicago → Mexico City
   21, 15,     // Mexico City → SF
   15, 1,      // SF → LA
-  1, 4,       // LA → Tokyo (Pacific)
-  4, 12,      // Tokyo → Seoul
-  12, 18,     // Seoul → Bangkok
-  18, 19,     // Bangkok → Singapore
-  19, 5,      // Singapore → Sydney
-  5, 14,      // Melbourne → Sydney
-  14, 6,      // Melbourne → São Paulo (southern)
+  1, 0,       // LA → NYC
+  0, 6,       // NYC → São Paulo
   6, 20,      // São Paulo → Cape Town
   20, 6,      // Cape Town → São Paulo
   6, 13,      // São Paulo → Buenos Aires
   13, 0,      // Buenos Aires → NYC
-  0, 2,       // NYC → London (single crossing)
+  0, 2,       // NYC → London
   2, 10,      // London → Paris
   10, 17,     // Paris → Ibiza
   17, 11,     // Ibiza → Barcelona
   11, 3,      // Barcelona → Berlin
   3, 2,       // Berlin → London
-  2, 0,       // London → NYC (return)
+  2, 0,       // London → NYC
+  0, 1,       // NYC → LA
+  1, 4,       // LA → Tokyo (Pacific)
+  4, 12,      // Tokyo → Seoul
+  12, 18,     // Seoul → Bangkok
+  18, 19,     // Bangkok → Singapore
+  19, 5,      // Singapore → Sydney
+  5, 1,       // Sydney → LA (Pacific return)
+  1, 0,       // LA → NYC
 ];
 
-// All years: Epic journey minimizing Atlantic overlap
+// All years: Comprehensive journey with no polar-crossing routes
 export const JOURNEY_ALL = [
+  // Americas loop
   0, 16,      // NYC → Toronto
   16, 8,      // Toronto → Chicago
   8, 7,       // Chicago → Austin
   7, 21,      // Austin → Mexico City
   21, 15,     // Mexico City → SF
   15, 1,      // SF → LA
-  1, 4,       // LA → Tokyo (Pacific)
-  4, 12,      // Tokyo → Seoul
-  12, 18,     // Seoul → Bangkok
-  18, 19,     // Bangkok → Singapore
-  19, 5,      // Singapore → Sydney
-  5, 14,      // Sydney → Melbourne
-  14, 6,      // Melbourne → São Paulo (southern)
+  1, 0,       // LA → NYC
+  // South America
+  0, 6,       // NYC → São Paulo
   6, 13,      // São Paulo → Buenos Aires
   13, 20,     // Buenos Aires → Cape Town
   20, 6,      // Cape Town → São Paulo
   6, 0,       // São Paulo → NYC
-  0, 2,       // NYC → London (single Atlantic crossing to Europe)
+  // Europe loop (single Atlantic crossing)
+  0, 2,       // NYC → London
   2, 10,      // London → Paris
   10, 17,     // Paris → Ibiza
   17, 11,     // Ibiza → Barcelona
   11, 9,      // Barcelona → Amsterdam
   9, 3,       // Amsterdam → Berlin
   3, 2,       // Berlin → London
-  2, 0,       // London → NYC (final return)
+  2, 0,       // London → NYC
+  // Asia-Pacific via LA (Pacific route only)
+  0, 1,       // NYC → LA
+  1, 4,       // LA → Tokyo (Pacific)
+  4, 12,      // Tokyo → Seoul
+  12, 18,     // Seoul → Bangkok
+  18, 19,     // Bangkok → Singapore
+  19, 5,      // Singapore → Sydney
+  5, 14,      // Sydney → Melbourne
+  14, 5,      // Melbourne → Sydney
+  5, 1,       // Sydney → LA (Pacific return)
+  1, 0,       // LA → NYC (final)
 ];
