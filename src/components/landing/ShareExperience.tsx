@@ -113,7 +113,7 @@ const ShareExperience = () => {
 
           {/* Right: Phone Mockup */}
           <div className="flex justify-center">
-            <PhoneMockup className="w-64 md:w-72 lg:w-80" tilt="left">
+            <PhoneMockup className="w-64 md:w-72 lg:w-80">
               <StoryMockup />
             </PhoneMockup>
           </div>
