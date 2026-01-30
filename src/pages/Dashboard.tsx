@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home as HomeIcon, Globe, Scale, Plus, Music, Camera, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,8 @@ const Dashboard = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
+
+  const rankButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Only elevate z-index for FAB-related steps (0, 1, 2, 6) - not for nav item steps
   const shouldElevateNavZ = showSpotlightTour && (tourStepIndex <= 2 || tourStepIndex === 6);
@@ -225,9 +228,11 @@ const Dashboard = () => {
             {/* Rank */}
             <button
               onClick={() => setActiveTab("rank")}
-              data-tour="nav-rank"
+              ref={rankButtonRef}
+              data-tour={showSpotlightTour && tourStepIndex === 3 ? undefined : "nav-rank"}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                showSpotlightTour && tourStepIndex === 3 && "opacity-0",
                 activeTab === "rank" 
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
@@ -237,6 +242,13 @@ const Dashboard = () => {
             </button>
           </div>
         </nav>
+
+        {/* Floating Rank target for tour step 4 (index 3) */}
+        <FloatingTourTarget active={showSpotlightTour && tourStepIndex === 3} targetRef={rankButtonRef} dataTour="nav-rank">
+          <div className="grid place-items-center">
+            <Scale className="h-6 w-6 text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" />
+          </div>
+        </FloatingTourTarget>
 
         {/* Floating FAB */}
         <div className={cn("relative", showSpotlightTour && "z-[10001]")}>
