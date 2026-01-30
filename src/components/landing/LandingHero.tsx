@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import SceneLogo from "@/components/ui/SceneLogo";
 import PhoneMockup from "./PhoneMockup";
-import WaitlistSignup from "./WaitlistSignup";
+import WaitlistModal from "./WaitlistModal";
 import { Home, Globe, Crown, Plus } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -143,6 +144,8 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
 const LandingHero = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  
   return <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background glow effects */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20" style={{
@@ -171,12 +174,16 @@ const LandingHero = () => {
               The app to capture, review, rank, and share your favorite shows.
             </p>
 
-            <div className="flex flex-col gap-4 justify-center lg:justify-start pt-2 relative z-20">
-              <WaitlistSignup source="hero" />
-              <Button size="lg" variant="outline" onClick={() => navigate("/demo")} className="text-base px-6 py-5 border-white/20 text-foreground hover:bg-white/10 w-fit mx-[100px]">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2 relative z-20">
+              <Button size="lg" onClick={() => setWaitlistOpen(true)} className="text-base px-8 py-5 shadow-glow hover:scale-105 transition-transform">
+                Join the Waitlist
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => navigate("/demo")} className="text-base px-8 py-5 border-white/20 text-foreground hover:bg-white/10">
                 Try Live Demo
               </Button>
             </div>
+
+            <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} source="hero" />
 
             {/* Social proof */}
             <div className="flex items-center gap-3 justify-center lg:justify-start pt-2">
