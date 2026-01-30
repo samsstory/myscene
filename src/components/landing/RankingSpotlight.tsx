@@ -173,7 +173,7 @@ const RankingSpotlight = () => {
           }}>Rank to uncover your true favorites</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              No more overthinking 1-10 scores. Just pick the head-to-head winner.
+              No more 1-10 scores, just pick the winner.
             </p>
 
           </div>
