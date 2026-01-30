@@ -245,7 +245,13 @@ const Dashboard = () => {
 
         {/* Floating Rank target for tour step 4 (index 3) */}
         <FloatingTourTarget active={showSpotlightTour && tourStepIndex === 3} targetRef={rankButtonRef} dataTour="nav-rank">
-          <Scale className="h-6 w-6 text-primary drop-shadow-[0_0_12px_hsl(var(--primary))]" />
+          <Scale 
+            className="h-6 w-6" 
+            style={{ 
+              color: "hsl(189 94% 55%)", 
+              filter: "drop-shadow(0 0 8px hsl(189 94% 55%)) drop-shadow(0 0 16px hsl(189 94% 55%))" 
+            }} 
+          />
         </FloatingTourTarget>
 
         {/* Floating FAB */}
