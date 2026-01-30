@@ -107,7 +107,7 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     })),
   });
 
-  // Generate all arc paths from journey pairs
+  // Generate all arc paths from journey pairs, filtering out invalid routes
   const generateJourneyArcs = useCallback((pairs: number[]): [number, number][][] => {
     const arcs: [number, number][][] = [];
     // Process pairs: [from1, to1, from2, to2, ...]
@@ -116,7 +116,10 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
       const endCity = CITY_MARKERS[pairs[i + 1]];
       if (startCity && endCity) {
         const arc = generateArcPath(startCity.coordinates, endCity.coordinates, 50);
-        arcs.push(arc);
+        // Only add non-empty arcs (empty = route was rejected for going too far north)
+        if (arc.length > 0) {
+          arcs.push(arc);
+        }
       }
     }
     return arcs;

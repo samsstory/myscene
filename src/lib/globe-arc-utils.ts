@@ -49,28 +49,45 @@ export const interpolateGreatCircle = (
 };
 
 /**
+ * Check if a route would exceed the max latitude (indicating a polar-crossing arc)
+ */
+export const wouldExceedLatitude = (
+  start: [number, number],
+  end: [number, number],
+  maxLatitude: number = 52
+): boolean => {
+  // Sample the path to check max latitude
+  for (let i = 0; i <= 20; i++) {
+    const t = i / 20;
+    const point = interpolateGreatCircle(start, end, t);
+    if (Math.abs(point[1]) > maxLatitude) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
  * Generate a curved arc path between two coordinates
- * Clamps latitude to avoid unrealistic polar routes
+ * Returns empty array if the route would cross polar regions
  */
 export const generateArcPath = (
   start: [number, number],
   end: [number, number],
   numPoints: number = 50,
-  maxLatitude: number = 65 // Clamp to avoid polar routes
+  maxLatitude: number = 52 // Reject routes that go above this
 ): [number, number][] => {
+  // Check if this route would go too far north/south
+  if (wouldExceedLatitude(start, end, maxLatitude)) {
+    // Return a straight line at lower opacity instead (will be filtered)
+    return [];
+  }
+  
   const path: [number, number][] = [];
   
   for (let i = 0; i <= numPoints; i++) {
     const t = i / numPoints;
-    let point = interpolateGreatCircle(start, end, t);
-    
-    // Clamp latitude to avoid polar routes
-    if (point[1] > maxLatitude) {
-      point = [point[0], maxLatitude];
-    } else if (point[1] < -maxLatitude) {
-      point = [point[0], -maxLatitude];
-    }
-    
+    const point = interpolateGreatCircle(start, end, t);
     path.push(point);
   }
   
@@ -115,79 +132,80 @@ export const HOLD_DURATION = 2000; // ms to hold complete journey
 export const FADE_DURATION = 500; // ms to fade out
 
 // Journey sequences with NYC (index 0) as home base
-// IMPORTANT: Avoid any direct routes between distant longitudinal points that would
-// create great-circle arcs curving over the poles. Always use regional hops.
+// CRITICAL: Only use routes that stay below 52° latitude to avoid polar arcs
+// Avoid: transpacific routes (LA↔Tokyo), transatlantic to northern Europe from west coast
 
-// 2024: Americas + Europe only (no Asia-Pacific to avoid long arcs)
+// 2024: Americas + Europe only - safe routes
 export const JOURNEY_2024 = [
   0, 7,       // NYC → Austin
-  7, 8,       // Austin → Chicago
+  7, 8,       // Austin → Chicago  
   8, 1,       // Chicago → LA
-  1, 0,       // LA → NYC
+  1, 21,      // LA → Mexico City
+  21, 0,      // Mexico City → NYC
   0, 6,       // NYC → São Paulo
+  6, 13,      // São Paulo → Buenos Aires
+  13, 0,      // Buenos Aires → NYC
+  0, 2,       // NYC → London
+  2, 10,      // London → Paris
+  10, 11,     // Paris → Barcelona
+  11, 2,      // Barcelona → London
+  2, 0,       // London → NYC
+];
+
+// 2025: Americas + Europe + Australia via South America (no transpacific)
+export const JOURNEY_2025 = [
+  0, 1,       // NYC → LA
+  1, 15,      // LA → SF
+  15, 21,     // SF → Mexico City
+  21, 0,      // Mexico City → NYC
+  0, 6,       // NYC → São Paulo
+  6, 13,      // São Paulo → Buenos Aires
+  13, 5,      // Buenos Aires → Sydney (southern route)
+  5, 14,      // Sydney → Melbourne
+  14, 6,      // Melbourne → São Paulo (southern return)
   6, 0,       // São Paulo → NYC
   0, 2,       // NYC → London
   2, 9,       // London → Amsterdam
   9, 3,       // Amsterdam → Berlin
-  3, 2,       // Berlin → London
-  2, 0,       // London → NYC
-];
-
-// 2025: Americas + Europe + limited Asia (via Pacific only)
-export const JOURNEY_2025 = [
-  0, 1,       // NYC → LA
-  1, 0,       // LA → NYC (domestic)
-  0, 6,       // NYC → São Paulo
-  6, 13,      // São Paulo → Buenos Aires
-  13, 6,      // Buenos Aires → São Paulo
-  6, 0,       // São Paulo → NYC
-  0, 2,       // NYC → London
-  2, 10,      // London → Paris
+  3, 10,      // Berlin → Paris
   10, 11,     // Paris → Barcelona
-  11, 3,      // Barcelona → Berlin
-  3, 2,       // Berlin → London
+  11, 2,      // Barcelona → London
   2, 0,       // London → NYC
-  0, 1,       // NYC → LA
-  1, 5,       // LA → Sydney (Pacific - stays southern)
-  5, 14,      // Sydney → Melbourne
-  14, 5,      // Melbourne → Sydney
-  5, 1,       // Sydney → LA (return Pacific)
-  1, 0,       // LA → NYC
 ];
 
-// 2026: Full global but with careful routing
+// 2026: Global with all southern/equatorial routing
 export const JOURNEY_2026 = [
   0, 16,      // NYC → Toronto
   16, 8,      // Toronto → Chicago
-  8, 21,      // Chicago → Mexico City
+  8, 7,       // Austin (if available) or Chicago → Austin
+  7, 21,      // Austin → Mexico City
   21, 15,     // Mexico City → SF
   15, 1,      // SF → LA
   1, 0,       // LA → NYC
   0, 6,       // NYC → São Paulo
   6, 20,      // São Paulo → Cape Town
-  20, 6,      // Cape Town → São Paulo
-  6, 13,      // São Paulo → Buenos Aires
-  13, 0,      // Buenos Aires → NYC
+  20, 13,     // Cape Town → Buenos Aires
+  13, 5,      // Buenos Aires → Sydney (southern)
+  5, 19,      // Sydney → Singapore
+  19, 18,     // Singapore → Bangkok
+  18, 12,     // Bangkok → Seoul
+  12, 4,      // Seoul → Tokyo
+  4, 19,      // Tokyo → Singapore (stay in Asia)
+  19, 6,      // Singapore → São Paulo (via southern route)
+  6, 0,       // São Paulo → NYC
   0, 2,       // NYC → London
   2, 10,      // London → Paris
   10, 17,     // Paris → Ibiza
   17, 11,     // Ibiza → Barcelona
   11, 3,      // Barcelona → Berlin
-  3, 2,       // Berlin → London
+  3, 9,       // Berlin → Amsterdam
+  9, 2,       // Amsterdam → London
   2, 0,       // London → NYC
-  0, 1,       // NYC → LA
-  1, 4,       // LA → Tokyo (Pacific)
-  4, 12,      // Tokyo → Seoul
-  12, 18,     // Seoul → Bangkok
-  18, 19,     // Bangkok → Singapore
-  19, 5,      // Singapore → Sydney
-  5, 1,       // Sydney → LA (Pacific return)
-  1, 0,       // LA → NYC
 ];
 
-// All years: Comprehensive journey with no polar-crossing routes
+// All years: Epic journey using only safe routes
 export const JOURNEY_ALL = [
-  // Americas loop
+  // Americas
   0, 16,      // NYC → Toronto
   16, 8,      // Toronto → Chicago
   8, 7,       // Chicago → Austin
@@ -195,13 +213,13 @@ export const JOURNEY_ALL = [
   21, 15,     // Mexico City → SF
   15, 1,      // SF → LA
   1, 0,       // LA → NYC
-  // South America
+  // South America + Africa
   0, 6,       // NYC → São Paulo
   6, 13,      // São Paulo → Buenos Aires
   13, 20,     // Buenos Aires → Cape Town
   20, 6,      // Cape Town → São Paulo
   6, 0,       // São Paulo → NYC
-  // Europe loop (single Atlantic crossing)
+  // Europe
   0, 2,       // NYC → London
   2, 10,      // London → Paris
   10, 17,     // Paris → Ibiza
@@ -210,15 +228,17 @@ export const JOURNEY_ALL = [
   9, 3,       // Amsterdam → Berlin
   3, 2,       // Berlin → London
   2, 0,       // London → NYC
-  // Asia-Pacific via LA (Pacific route only)
-  0, 1,       // NYC → LA
-  1, 4,       // LA → Tokyo (Pacific)
-  4, 12,      // Tokyo → Seoul
-  12, 18,     // Seoul → Bangkok
+  // Asia-Pacific via southern route
+  0, 6,       // NYC → São Paulo
+  6, 5,       // São Paulo → Sydney (southern)
+  5, 14,      // Sydney → Melbourne
+  14, 19,     // Melbourne → Singapore
+  19, 18,     // Singapore → Bangkok
+  18, 12,     // Bangkok → Seoul
+  12, 4,      // Seoul → Tokyo
+  4, 18,      // Tokyo → Bangkok (stay regional)
   18, 19,     // Bangkok → Singapore
   19, 5,      // Singapore → Sydney
-  5, 14,      // Sydney → Melbourne
-  14, 5,      // Melbourne → Sydney
-  5, 1,       // Sydney → LA (Pacific return)
-  1, 0,       // LA → NYC (final)
+  5, 6,       // Sydney → São Paulo (southern return)
+  6, 0,       // São Paulo → NYC
 ];
