@@ -15,7 +15,7 @@ const PhoneMockup = ({ children, className, tilt = "none" }: PhoneMockupProps) =
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative z-10", className)}>
       {/* Simplified phone frame - minimal chrome */}
       <div 
         className={cn(
