@@ -176,9 +176,6 @@ const RankingSpotlight = () => {
               Head-to-head rankings reveal your true favorites.
             </p>
 
-            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
-              The answer you've been searching for.
-            </p>
           </div>
         </div>
       </div>
