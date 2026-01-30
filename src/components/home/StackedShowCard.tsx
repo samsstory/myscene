@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import { cn, getScoreGradient, calculateShowScore } from "@/lib/utils";
 import { forwardRef } from "react";
 import SceneLogo from "@/components/ui/SceneLogo";
+import { Badge } from "@/components/ui/badge";
 
 interface Artist {
   name: string;
@@ -25,6 +26,7 @@ interface Show {
   lighting?: number | null;
   crowd?: number | null;
   venueVibe?: number | null;
+  isLocalDemo?: boolean; // Flag for demo-created shows
 }
 
 interface RankInfo {
@@ -140,14 +142,22 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
             {/* Floating Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             
-            {/* Top Left: Rank Badge */}
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-sm">
-              <span 
-                className="text-xs font-bold text-white tracking-wide"
-                style={{ textShadow: "0 0 8px rgba(255,255,255,0.4)" }}
-              >
-                {rankInfo.comparisonsCount > 0 && rankInfo.position ? `#${rankInfo.position} All Time` : "Unranked"}
-              </span>
+            {/* Top Left: Rank Badge or Unsaved Badge */}
+            <div className="absolute top-3 left-3 flex items-center gap-2">
+              {show.isLocalDemo ? (
+                <Badge variant="secondary" className="bg-amber-500/30 text-amber-200 border-amber-500/40 text-xs">
+                  Unsaved
+                </Badge>
+              ) : (
+                <div className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-sm">
+                  <span 
+                    className="text-xs font-bold text-white tracking-wide"
+                    style={{ textShadow: "0 0 8px rgba(255,255,255,0.4)" }}
+                  >
+                    {rankInfo.comparisonsCount > 0 && rankInfo.position ? `#${rankInfo.position} All Time` : "Unranked"}
+                  </span>
+                </div>
+              )}
             </div>
             
             {/* Top Right: Instagram Share Button */}

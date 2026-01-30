@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,7 @@ import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import MapView from "./MapView";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
 import { Skeleton } from "./ui/skeleton";
+import { Badge } from "./ui/badge";
 
 // Home components
 import StatPills, { StatPill, StatPillAction } from "./home/StatPills";
@@ -19,6 +20,7 @@ import StackedShowList from "./home/StackedShowList";
 import RankingProgressCard from "./home/RankingProgressCard";
 import { DemoIncompleteRatingsSheet } from "./home/DemoIncompleteRatingsSheet";
 import { useDemoData } from "@/hooks/useDemoData";
+import { useDemoMode } from "@/contexts/DemoContext";
 import { Music, Calendar, Trophy, Globe, Flame } from "lucide-react";
 
 interface Artist {
@@ -46,6 +48,7 @@ interface Show {
   latitude?: number;
   longitude?: number;
   photo_url?: string | null;
+  isLocalDemo?: boolean; // Flag for demo-created shows
 }
 
 interface ShowRanking {
@@ -68,7 +71,21 @@ const truncate = (str: string, maxLen: number): string => {
 };
 
 const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: DemoHomeProps) => {
-  const { shows, rankings, stats, isLoading, error } = useDemoData();
+  const { shows: fetchedShows, rankings, stats, isLoading, error } = useDemoData();
+  const { demoLocalShows } = useDemoMode();
+  
+  // Merge fetched shows with locally created demo shows
+  const shows = useMemo(() => {
+    // Convert local shows to the Show interface and merge
+    const localShowsConverted: Show[] = demoLocalShows.map(s => ({
+      ...s,
+      isLocalDemo: true,
+    }));
+    
+    // Combine and sort by date (newest first)
+    const combined = [...localShowsConverted, ...fetchedShows];
+    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [fetchedShows, demoLocalShows]);
   
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [currentMonth, setCurrentMonth] = useState(new Date());

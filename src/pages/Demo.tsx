@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import DemoHome from "@/components/DemoHome";
 import DemoRank from "@/components/DemoRank";
 import DemoBanner from "@/components/DemoBanner";
+import DemoBulkUploadFlow from "@/components/DemoBulkUploadFlow";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { DemoProvider } from "@/contexts/DemoContext";
 import { cn } from "@/lib/utils";
@@ -15,11 +16,11 @@ type ViewMode = 'home' | 'globe' | 'rankings';
 const Demo = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ViewMode>("home");
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
-  // Handler for FAB click in demo mode
+  // Handler for FAB click - now opens the demo bulk upload flow
   const handleFABClick = () => {
-    // In demo mode, FAB should prompt sign up
-    navigate("/auth");
+    setBulkUploadOpen(true);
   };
 
   return (
@@ -51,6 +52,7 @@ const Demo = () => {
               />
             )}
           </main>
+
           {/* Floating Navigation */}
           <div className="fixed bottom-24 left-0 right-0 flex justify-between items-end px-6 gap-4 z-50">
             {/* Left spacer */}
@@ -85,7 +87,7 @@ const Demo = () => {
                   <Globe className="h-6 w-6" />
                 </button>
 
-                {/* Rank - Now enabled for demo! */}
+                {/* Rank */}
                 <button
                   onClick={() => setActiveTab("rankings")}
                   className={cn(
@@ -100,7 +102,7 @@ const Demo = () => {
               </div>
             </nav>
 
-            {/* Floating FAB - Sign up prompt in demo */}
+            {/* Floating FAB - Opens demo bulk upload */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -111,13 +113,21 @@ const Demo = () => {
                 </button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Sign up to add shows</p>
+                <p>Add a show</p>
               </TooltipContent>
             </Tooltip>
           </div>
 
           {/* Demo Banner */}
           <DemoBanner />
+
+          {/* Demo Bulk Upload Flow */}
+          <DemoBulkUploadFlow
+            open={bulkUploadOpen}
+            onOpenChange={setBulkUploadOpen}
+            onNavigateToFeed={() => setActiveTab('home')}
+            onNavigateToRank={() => setActiveTab('rankings')}
+          />
         </div>
       </TooltipProvider>
     </DemoProvider>

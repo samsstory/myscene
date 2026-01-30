@@ -23,6 +23,7 @@ interface Show {
   lighting?: number | null;
   crowd?: number | null;
   venueVibe?: number | null;
+  isLocalDemo?: boolean; // Flag for demo-created shows
 }
 
 interface RankInfo {
