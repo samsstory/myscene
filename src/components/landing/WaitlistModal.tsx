@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from "@/components/ui/dialog";
 import WaitlistPhoneInput from "./WaitlistPhoneInput";
 
 interface WaitlistModalProps {
@@ -10,7 +10,8 @@ interface WaitlistModalProps {
 const WaitlistModal = ({ open, onOpenChange, source = "modal" }: WaitlistModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10">
+      <DialogOverlay className="z-[100] bg-black/80" />
+      <DialogContent className="z-[101] sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-center">
             Join the Waitlist
