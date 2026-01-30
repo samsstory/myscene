@@ -86,25 +86,19 @@ const ShowCard = ({
 // Large ranking mockup - bias-free design
 const RankingMockup = () => <div className="h-full w-full flex flex-col relative overflow-hidden">
     {/* Static gradient background */}
-    <div 
-      className="absolute inset-0"
-      style={{
-        background: `
+    <div className="absolute inset-0" style={{
+    background: `
           radial-gradient(ellipse at 50% 60%, hsl(189 94% 55% / 0.08) 0%, transparent 50%),
           radial-gradient(ellipse at 0% 0%, hsl(189 94% 55% / 0.05) 0%, transparent 40%),
           radial-gradient(ellipse at 100% 100%, hsl(17 88% 60% / 0.04) 0%, transparent 40%),
           linear-gradient(180deg, hsl(222 47% 8%), hsl(222 47% 6%))
         `
-      }}
-    />
+  }} />
     {/* Noise texture overlay */}
-    <div 
-      className="absolute inset-0 opacity-[0.03] pointer-events-none"
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'repeat'
-      }}
-    />
+    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'repeat'
+  }} />
     {/* Title below notch */}
     <div className="px-4 pt-8 pb-2 relative z-10">
       <SceneLogo size="sm" />
@@ -165,23 +159,18 @@ const RankingSpotlight = () => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: Phone Mockup */}
           <div className="flex justify-center order-2 lg:order-1">
-            <PhoneMockup className="w-72 md:w-80 lg:w-96">
+            <PhoneMockup className="w-72 md:w-80 lg:w-96" tilt="right">
               <RankingMockup />
             </PhoneMockup>
           </div>
 
           {/* Right: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
-            <Badge variant="outline" className="gap-1.5 px-3 py-1 border-primary/30 bg-primary/5 text-primary">
-              <Crown className="h-3.5 w-3.5" />
-              Rank
-            </Badge>
+            
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
-          }}>
-              Your #1 show, confirmed.
-            </h2>
+          }}>Your #1 show, confirmed</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
               Head-to-head rankings reveal your true favorites.
