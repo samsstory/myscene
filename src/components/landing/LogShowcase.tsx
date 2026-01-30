@@ -93,7 +93,7 @@ const LogShowcase = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Drop in a photo or multiple photos. We handle the rest.
+              Add one or multiple shows at a time
             </p>
             
             
