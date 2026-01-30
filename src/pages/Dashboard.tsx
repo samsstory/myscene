@@ -33,9 +33,12 @@ const Dashboard = () => {
   const [tourStepIndex, setTourStepIndex] = useState(0);
 
   const rankButtonRef = useRef<HTMLButtonElement | null>(null);
+  const showsStatRef = useRef<HTMLButtonElement | null>(null);
 
   // Only elevate z-index for FAB-related steps (0, 1, 2, 6) - not for nav item steps
   const shouldElevateNavZ = showSpotlightTour && (tourStepIndex <= 2 || tourStepIndex === 6);
+  // Step 5 (index 4) targets the Shows stat pill
+  const showsTourActive = showSpotlightTour && tourStepIndex === 4;
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -128,6 +131,8 @@ const Dashboard = () => {
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
+            showsTourActive={showsTourActive}
+            showsRef={showsStatRef}
           />
         );
       case "globe":
@@ -154,6 +159,8 @@ const Dashboard = () => {
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
+            showsTourActive={showsTourActive}
+            showsRef={showsStatRef}
           />
         );
     }
@@ -254,6 +261,35 @@ const Dashboard = () => {
                 "drop-shadow(0 0 10px hsl(var(--primary) / 0.95)) drop-shadow(0 0 26px hsl(var(--primary) / 0.7))",
             }}
           />
+        </FloatingTourTarget>
+
+        {/* Floating Shows stat pill target for tour step 5 (index 4) */}
+        <FloatingTourTarget active={showsTourActive} targetRef={showsStatRef} dataTour="stat-shows">
+          <div 
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.08] border border-white/20"
+            style={{
+              boxShadow: "0 0 12px hsl(var(--primary) / 0.4), 0 0 24px hsl(var(--primary) / 0.2)",
+            }}
+          >
+            <Music 
+              className="h-4 w-4 text-primary" 
+              style={{ 
+                filter: "drop-shadow(0 0 6px hsl(var(--primary) / 0.9))" 
+              }} 
+            />
+            <div className="flex flex-col items-start">
+              <span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">
+                Shows
+              </span>
+              <span 
+                className="text-lg font-bold text-white/90"
+                style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}
+              >
+                {/* Use placeholder; the actual count comes from the original pill */}
+                –
+              </span>
+            </div>
+          </div>
         </FloatingTourTarget>
 
         {/* Floating FAB */}

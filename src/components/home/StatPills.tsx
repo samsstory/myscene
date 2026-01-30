@@ -4,6 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import ConfirmationRing from "@/components/ui/ConfirmationRing";
 
+import { RefObject } from "react";
+
 export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | null;
 
 export interface StatPill {
@@ -23,9 +25,12 @@ interface StatPillsProps {
   stats: StatPill[];
   isLoading?: boolean;
   onPillTap?: (action: StatPillAction, payload?: string) => void;
+  // Tour-related props for Step 5
+  showsTourActive?: boolean;
+  showsRef?: RefObject<HTMLButtonElement>;
 }
 
-const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
+const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: StatPillsProps) => {
   if (isLoading) {
     return (
       <div className="flex gap-2 pb-2 items-center">
@@ -75,17 +80,21 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
             );
           }
           
+          const isShowsPill = stat.id === 'total-shows';
+          
           return (
             <button
               key={stat.id}
-              data-tour={stat.id === 'shows' ? 'stat-shows' : undefined}
+              ref={isShowsPill ? showsRef : undefined}
+              data-tour={isShowsPill && !showsTourActive ? 'stat-shows' : undefined}
               onClick={() => isInteractive && onPillTap?.(stat.action!, stat.actionPayload)}
               disabled={!isInteractive}
               className={cn(
                 "flex-shrink-0 px-3 py-2 rounded-xl transition-all text-center",
                 "bg-white/[0.03] backdrop-blur-sm",
                 isInteractive && "hover:bg-white/[0.08] active:scale-95 cursor-pointer",
-                !isInteractive && "cursor-default"
+                !isInteractive && "cursor-default",
+                isShowsPill && showsTourActive && "opacity-0"
               )}
             >
               <div className="flex items-center justify-center gap-1.5">
