@@ -99,92 +99,105 @@ export const createMultiArcGeoJSON = (
   })),
 });
 
-/**
- * Check if a point is visible from the current globe view
- * Uses the dot product between camera direction and point normal
- */
-export const isPointVisible = (
-  point: [number, number],
-  cameraCenter: { lng: number; lat: number },
-  threshold: number = 0 // 0 = exactly on horizon, negative = slightly behind
-): boolean => {
-  const lon1 = toRadians(cameraCenter.lng);
-  const lat1 = toRadians(cameraCenter.lat);
-  const lon2 = toRadians(point[0]);
-  const lat2 = toRadians(point[1]);
-  
-  // Calculate angle between camera center and point
-  const cosAngle = 
-    Math.sin(lat1) * Math.sin(lat2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
-  
-  // Point is visible if angle is less than 90 degrees (cosAngle > 0)
-  return cosAngle > threshold;
-};
-
-/**
- * Check if an arc (both endpoints) is visible
- */
-export const isArcVisible = (
-  start: [number, number],
-  end: [number, number],
-  cameraCenter: { lng: number; lat: number },
-  threshold: number = -0.1 // Slightly permissive to catch arcs near horizon
-): boolean => {
-  return isPointVisible(start, cameraCenter, threshold) && 
-         isPointVisible(end, cameraCenter, threshold);
-};
-
 // Animation timing constants
-export const ARC_DURATION = 400; // ms per arc (faster for multiple simultaneous)
-export const HUB_DELAY = 800; // ms pause between hub bursts
-export const HOLD_DURATION = 1500; // ms to hold complete hub pattern
-export const FADE_DURATION = 400; // ms to fade out
+export const ARC_DURATION = 500; // ms per arc
+export const ARC_DELAY = 80; // ms pause between arcs
+export const HOLD_DURATION = 2000; // ms to hold complete journey
+export const FADE_DURATION = 500; // ms to fade out
 
-// Hub-and-spoke configuration
-// Each hub has indices of cities to connect to (city indices from CITY_MARKERS)
-export interface HubConfig {
-  hubIndex: number;
-  spokes: number[];
-}
+// Journey sequences with NYC (index 0) as home base
+// Paths return to NYC regularly, creating crossing arcs and a chaotic travel pattern
 
-// Hub configurations by year - designed for crossing paths and visual drama
-// Hub cities radiate to multiple destinations simultaneously
-export const HUBS_2024: HubConfig[] = [
-  { hubIndex: 0, spokes: [2, 7, 8] },      // NYC → London, Austin, Chicago
-  { hubIndex: 2, spokes: [3, 9] },          // London → Berlin, Amsterdam
-  { hubIndex: 3, spokes: [4] },             // Berlin → Tokyo
-  { hubIndex: 4, spokes: [5] },             // Tokyo → Sydney
-  { hubIndex: 1, spokes: [6, 7] },          // LA → São Paulo, Austin
+// 2024: NYC-centric travels with returns home
+// NYC → London → NYC → Austin → Chicago → NYC → Berlin → Amsterdam → NYC → Tokyo → Sydney → NYC → São Paulo → LA
+export const JOURNEY_2024 = [
+  0, 2,       // NYC → London
+  2, 0,       // London → NYC (return)
+  0, 7,       // NYC → Austin
+  7, 8,       // Austin → Chicago
+  8, 0,       // Chicago → NYC (return)
+  0, 3,       // NYC → Berlin
+  3, 9,       // Berlin → Amsterdam
+  9, 0,       // Amsterdam → NYC (return)
+  0, 4,       // NYC → Tokyo
+  4, 5,       // Tokyo → Sydney
+  5, 0,       // Sydney → NYC (return)
+  0, 6,       // NYC → São Paulo
+  6, 1,       // São Paulo → LA
 ];
 
-export const HUBS_2025: HubConfig[] = [
-  { hubIndex: 0, spokes: [2, 10, 6] },      // NYC → London, Paris, São Paulo
-  { hubIndex: 2, spokes: [3, 11, 10] },     // London → Berlin, Barcelona, Paris
-  { hubIndex: 4, spokes: [12, 5, 14] },     // Tokyo → Seoul, Sydney, Melbourne
-  { hubIndex: 1, spokes: [6, 13] },         // LA → São Paulo, Buenos Aires
-  { hubIndex: 11, spokes: [3] },            // Barcelona → Berlin
+// 2025: More international, still NYC-centric
+// NYC → Paris → Barcelona → NYC → London → Berlin → NYC → Seoul → Tokyo → Melbourne → NYC → São Paulo → Buenos Aires → LA → NYC
+export const JOURNEY_2025 = [
+  0, 10,      // NYC → Paris
+  10, 11,     // Paris → Barcelona
+  11, 0,      // Barcelona → NYC (return)
+  0, 2,       // NYC → London
+  2, 3,       // London → Berlin
+  3, 0,       // Berlin → NYC (return)
+  0, 12,      // NYC → Seoul
+  12, 4,      // Seoul → Tokyo
+  4, 14,      // Tokyo → Melbourne
+  14, 0,      // Melbourne → NYC (return - long haul!)
+  0, 6,       // NYC → São Paulo
+  6, 13,      // São Paulo → Buenos Aires
+  13, 1,      // Buenos Aires → LA
+  1, 0,       // LA → NYC (return)
 ];
 
-export const HUBS_2026: HubConfig[] = [
-  { hubIndex: 0, spokes: [2, 10, 16] },     // NYC → London, Paris, Toronto
-  { hubIndex: 2, spokes: [3, 11, 17] },     // London → Berlin, Barcelona, Ibiza
-  { hubIndex: 4, spokes: [12, 18, 19] },    // Tokyo → Seoul, Bangkok, Singapore
-  { hubIndex: 19, spokes: [5, 14] },        // Singapore → Sydney, Melbourne
-  { hubIndex: 1, spokes: [15, 21, 6] },     // LA → SF, Mexico City, São Paulo
-  { hubIndex: 6, spokes: [13, 20] },        // São Paulo → Buenos Aires, Cape Town
+// 2026: Global adventures, NYC home base
+// NYC → Toronto → NYC → London → Paris → Ibiza → Barcelona → NYC → Berlin → Seoul → Tokyo → Bangkok → Singapore → Sydney → NYC → Cape Town → São Paulo → Buenos Aires → NYC → Mexico City → SF → LA
+export const JOURNEY_2026 = [
+  0, 16,      // NYC → Toronto
+  16, 0,      // Toronto → NYC (return)
+  0, 2,       // NYC → London
+  2, 10,      // London → Paris
+  10, 17,     // Paris → Ibiza
+  17, 11,     // Ibiza → Barcelona
+  11, 0,      // Barcelona → NYC (return)
+  0, 3,       // NYC → Berlin
+  3, 12,      // Berlin → Seoul
+  12, 4,      // Seoul → Tokyo
+  4, 18,      // Tokyo → Bangkok
+  18, 19,     // Bangkok → Singapore
+  19, 5,      // Singapore → Sydney
+  5, 0,       // Sydney → NYC (return - major crossing!)
+  0, 20,      // NYC → Cape Town
+  20, 6,      // Cape Town → São Paulo
+  6, 13,      // São Paulo → Buenos Aires
+  13, 0,      // Buenos Aires → NYC (return)
+  0, 21,      // NYC → Mexico City
+  21, 15,     // Mexico City → SF
+  15, 1,      // SF → LA
 ];
 
-export const HUBS_ALL: HubConfig[] = [
-  { hubIndex: 0, spokes: [2, 10, 16, 6] },  // NYC hub (major)
-  { hubIndex: 2, spokes: [3, 11, 17, 10] }, // London hub (major)
-  { hubIndex: 4, spokes: [12, 18, 19, 5] }, // Tokyo hub (major)
-  { hubIndex: 1, spokes: [15, 21, 6, 13] }, // LA hub (major)
-  { hubIndex: 6, spokes: [13, 20] },        // São Paulo secondary
-  { hubIndex: 19, spokes: [14, 18] },       // Singapore secondary
+// All years: Epic global journey with NYC anchor
+export const JOURNEY_ALL = [
+  0, 2,       // NYC → London
+  2, 10,      // London → Paris
+  10, 0,      // Paris → NYC (return)
+  0, 16,      // NYC → Toronto
+  16, 8,      // Toronto → Chicago (domestic)
+  8, 7,       // Chicago → Austin
+  7, 0,       // Austin → NYC (return)
+  0, 3,       // NYC → Berlin
+  3, 9,       // Berlin → Amsterdam
+  9, 17,      // Amsterdam → Ibiza
+  17, 11,     // Ibiza → Barcelona
+  11, 0,      // Barcelona → NYC (return)
+  0, 4,       // NYC → Tokyo
+  4, 12,      // Tokyo → Seoul
+  12, 18,     // Seoul → Bangkok
+  18, 19,     // Bangkok → Singapore
+  19, 5,      // Singapore → Sydney
+  5, 14,      // Sydney → Melbourne
+  14, 0,      // Melbourne → NYC (return - crossing everything!)
+  0, 6,       // NYC → São Paulo
+  6, 13,      // São Paulo → Buenos Aires
+  13, 20,     // Buenos Aires → Cape Town
+  20, 0,      // Cape Town → NYC (return - another major crossing)
+  0, 21,      // NYC → Mexico City
+  21, 15,     // Mexico City → SF
+  15, 1,      // SF → LA
+  1, 0,       // LA → NYC (final return home)
 ];
-
-// Legacy journey sequences (kept for backwards compatibility)
-export const JOURNEY_2024 = [0, 2, 3, 9, 4, 5, 6, 7, 8, 1];
-export const JOURNEY_2025 = [0, 10, 11, 3, 12, 4, 14, 5, 6, 13, 1, 2];
-export const JOURNEY_2026 = [0, 16, 2, 10, 11, 17, 3, 12, 4, 18, 19, 5, 14, 20, 6, 13, 21, 15, 1];
