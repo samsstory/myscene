@@ -114,7 +114,7 @@ const GlobeShowcase = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              See everywhere music has taken you.
+              See everywhere music has taken you
             </p>
 
           </div>
