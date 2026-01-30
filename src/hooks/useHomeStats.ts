@@ -70,7 +70,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       // Get all shows for the user with detailed ratings and photo status
       const { data: shows, error: showsError } = await supabase
         .from('shows')
-        .select('id, show_date, artist_performance, sound, lighting, crowd, venue_vibe, photo_url')
+        .select('id, show_date, artist_performance, sound, lighting, crowd, venue_vibe, photo_url, photo_declined')
         .eq('user_id', userId)
         .order('show_date', { ascending: false });
 
@@ -89,8 +89,8 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         show.venue_vibe === null
       ).length || 0;
 
-      // Count shows without photos
-      const missingPhotosCount = shows?.filter(show => !show.photo_url).length || 0;
+      // Count shows without photos (excluding those explicitly declined)
+      const missingPhotosCount = shows?.filter(show => !show.photo_url && !show.photo_declined).length || 0;
 
       // Calculate streak (consecutive months with shows)
       let streak = 0;
