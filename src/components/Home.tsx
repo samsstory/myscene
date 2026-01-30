@@ -69,9 +69,10 @@ interface HomeProps {
   initialView?: ViewMode;
   openShowId?: string | null;
   onShowOpened?: () => void;
+  onStatShowsTapped?: () => void;
 }
 
-const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened }: HomeProps) => {
+const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onStatShowsTapped }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
@@ -332,6 +333,11 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   const getShowsForDate = (date: Date) => shows.filter(show => isSameDay(parseISO(show.date), date));
 
   const handlePillTap = (action: StatPillAction, payload?: string) => {
+    // Notify tour if stat-shows was tapped
+    if (action === 'rankings') {
+      onStatShowsTapped?.();
+    }
+    
     switch (action) {
       case 'rankings':
         setViewMode('rankings');
