@@ -345,7 +345,7 @@ const WelcomeCarousel = ({ onComplete }: WelcomeCarouselProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col">
       {/* Mesh gradient background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div 
