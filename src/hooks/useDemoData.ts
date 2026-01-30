@@ -53,6 +53,7 @@ interface DemoStats {
   uniqueCountries: number;
   incompleteRatingsCount: number;
   underRankedCount: number;
+  missingPhotosCount: number;
 }
 
 interface DemoData {
@@ -83,6 +84,7 @@ const defaultStats: DemoStats = {
   uniqueCountries: 0,
   incompleteRatingsCount: 0,
   underRankedCount: 0,
+  missingPhotosCount: 0,
 };
 
 export const useDemoData = (): UseDemoDataReturn => {
