@@ -38,13 +38,14 @@ const WaitlistFollowUp = ({ waitlistId, onComplete }: WaitlistFollowUpProps) => 
     setIsSubmitting(true);
 
     try {
-      await supabase
-        .from("waitlist")
-        .update({
-          discovery_source: discoverySource,
-          shows_per_year: showsPerYear,
-        })
-        .eq("id", waitlistId);
+      // Use edge function to update waitlist entry securely
+      await supabase.functions.invoke('update-waitlist', {
+        body: {
+          waitlistId,
+          discoverySource,
+          showsPerYear,
+        },
+      });
     } catch (error) {
       console.error("Error updating waitlist:", error);
     }
