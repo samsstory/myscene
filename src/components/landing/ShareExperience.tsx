@@ -22,10 +22,10 @@ const StoryMockup = () => <div className="h-full w-full relative bg-black">
         {/* Profile photo with + badge */}
         <div className="relative">
           <div className="w-8 h-8 rounded-full border-2 border-white/60" style={{
-            backgroundImage: "url('/images/scene-profile.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center"
-          }} />
+          backgroundImage: "url('/images/scene-profile.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }} />
           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center border border-black">
             <Plus className="w-2.5 h-2.5 text-white" strokeWidth={3} />
           </div>
@@ -103,8 +103,8 @@ const ShareExperience = () => {
             </Badge>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
-              textShadow: "0 0 50px rgba(255,255,255,0.1)"
-            }}>
+            textShadow: "0 0 50px rgba(255,255,255,0.1)"
+          }}>
               Share and compare.
             </h2>
 
@@ -112,14 +112,12 @@ const ShareExperience = () => {
               One-tap sharing to Instagram Stories, Messages, and more.
             </p>
 
-            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
-              Your Shows. Your Story.
-            </p>
+            
           </div>
 
           {/* Right: Phone Mockup */}
           <div className="flex justify-center">
-            <PhoneMockup className="w-64 md:w-72 lg:w-80">
+            <PhoneMockup className="w-64 md:w-72 lg:w-80" tilt="left">
               <StoryMockup />
             </PhoneMockup>
           </div>
