@@ -138,7 +138,7 @@ const CaptureShowcase = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Log everything so you never forget
+              The sound, the crowd, the vibe — and your take on it all
             </p>
             
             
