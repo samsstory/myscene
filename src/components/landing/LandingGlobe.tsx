@@ -4,12 +4,16 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import {
   generateArcPath,
   createMultiArcGeoJSON,
+  isArcVisible,
   ARC_DURATION,
-  ARC_DELAY,
+  HUB_DELAY,
   HOLD_DURATION,
-  JOURNEY_2024,
-  JOURNEY_2025,
-  JOURNEY_2026,
+  FADE_DURATION,
+  HubConfig,
+  HUBS_2024,
+  HUBS_2025,
+  HUBS_2026,
+  HUBS_ALL,
 } from "@/lib/globe-arc-utils";
 
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
@@ -51,6 +55,14 @@ interface LandingGlobeProps {
   selectedYear: number | 'all';
 }
 
+interface ArcState {
+  currentHubIndex: number;
+  phase: 'drawing' | 'holding' | 'fading' | 'waiting';
+  startTime: number;
+  visibleArcs: [number, number][][];
+  completedArcs: [number, number][][];
+}
+
 const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -60,18 +72,12 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   
   // Arc animation refs
   const arcAnimationRef = useRef<number | null>(null);
-  const arcStateRef = useRef<{
-    journeyIndex: number;
-    arcProgress: number;
-    phase: 'drawing' | 'holding' | 'fading';
-    startTime: number;
-    allArcs: [number, number][][];
-  }>({
-    journeyIndex: 0,
-    arcProgress: 0,
-    phase: 'drawing',
+  const arcStateRef = useRef<ArcState>({
+    currentHubIndex: 0,
+    phase: 'waiting',
     startTime: 0,
-    allArcs: [],
+    visibleArcs: [],
+    completedArcs: [],
   });
 
   const filteredMarkers = useMemo(() => {
@@ -79,16 +85,13 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     return CITY_MARKERS.filter(m => m.years.includes(selectedYear as number));
   }, [selectedYear]);
 
-  const journeySequence = useMemo(() => {
-    if (selectedYear === 'all') {
-      // For "all" view, use the longest journey (2026) as it contains most cities
-      return JOURNEY_2026;
-    }
+  const hubConfigs = useMemo((): HubConfig[] => {
+    if (selectedYear === 'all') return HUBS_ALL;
     switch (selectedYear) {
-      case 2024: return JOURNEY_2024;
-      case 2025: return JOURNEY_2025;
-      case 2026: return JOURNEY_2026;
-      default: return JOURNEY_2024;
+      case 2024: return HUBS_2024;
+      case 2025: return HUBS_2025;
+      case 2026: return HUBS_2026;
+      default: return HUBS_2024;
     }
   }, [selectedYear]);
 
@@ -107,18 +110,18 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     })),
   });
 
-  // Generate all arc paths for the current journey
-  const generateJourneyArcs = useCallback((sequence: number[]): [number, number][][] => {
-    const arcs: [number, number][][] = [];
-    for (let i = 0; i < sequence.length - 1; i++) {
-      const startCity = CITY_MARKERS[sequence[i]];
-      const endCity = CITY_MARKERS[sequence[i + 1]];
-      if (startCity && endCity) {
-        const arc = generateArcPath(startCity.coordinates, endCity.coordinates, 50);
-        arcs.push(arc);
-      }
-    }
-    return arcs;
+  // Generate arcs for a hub burst (hub -> all spokes simultaneously)
+  const generateHubArcs = useCallback((hub: HubConfig): [number, number][][] => {
+    const hubCity = CITY_MARKERS[hub.hubIndex];
+    if (!hubCity) return [];
+    
+    return hub.spokes
+      .map(spokeIndex => {
+        const spokeCity = CITY_MARKERS[spokeIndex];
+        if (!spokeCity) return null;
+        return generateArcPath(hubCity.coordinates, spokeCity.coordinates, 40);
+      })
+      .filter((arc): arc is [number, number][] => arc !== null);
   }, []);
 
   // Stop arc animation
@@ -135,103 +138,133 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     
     stopArcAnimation();
     
-    const allArcs = generateJourneyArcs(journeySequence);
     arcStateRef.current = {
-      journeyIndex: 0,
-      arcProgress: 0,
-      phase: 'drawing',
+      currentHubIndex: 0,
+      phase: 'waiting',
       startTime: performance.now(),
-      allArcs,
+      visibleArcs: [],
+      completedArcs: [],
     };
 
     const animate = (currentTime: number) => {
       if (!mapRef.current) return;
       
+      const map = mapRef.current;
       const state = arcStateRef.current;
       const elapsed = currentTime - state.startTime;
-      
-      if (state.phase === 'drawing') {
-        // Calculate which arc we're on and its progress
-        const totalArcTime = ARC_DURATION + ARC_DELAY;
-        const currentArcIndex = Math.floor(elapsed / totalArcTime);
-        const arcElapsed = elapsed % totalArcTime;
-        const arcProgress = Math.min(arcElapsed / ARC_DURATION, 1);
+      const cameraCenter = map.getCenter();
+
+      // Find the next visible hub
+      const findNextVisibleHub = (startIndex: number): { hub: HubConfig; index: number } | null => {
+        for (let i = 0; i < hubConfigs.length; i++) {
+          const idx = (startIndex + i) % hubConfigs.length;
+          const hub = hubConfigs[idx];
+          const hubCity = CITY_MARKERS[hub.hubIndex];
+          
+          // Check if hub and at least one spoke are visible
+          const visibleSpokes = hub.spokes.filter(spokeIdx => {
+            const spokeCity = CITY_MARKERS[spokeIdx];
+            if (!spokeCity) return false;
+            return isArcVisible(hubCity.coordinates, spokeCity.coordinates, cameraCenter, -0.2);
+          });
+          
+          if (visibleSpokes.length > 0) {
+            return { hub: { ...hub, spokes: visibleSpokes }, index: idx };
+          }
+        }
+        return null;
+      };
+
+      if (state.phase === 'waiting') {
+        // Look for a visible hub to draw
+        const visibleHub = findNextVisibleHub(state.currentHubIndex);
         
-        if (currentArcIndex >= state.allArcs.length) {
-          // All arcs drawn, switch to holding phase
+        if (visibleHub) {
+          // Start drawing this hub's arcs
+          state.currentHubIndex = visibleHub.index;
+          state.visibleArcs = generateHubArcs(visibleHub.hub);
+          state.phase = 'drawing';
+          state.startTime = currentTime;
+        }
+        // Keep waiting if nothing visible
+        
+      } else if (state.phase === 'drawing') {
+        const progress = Math.min(elapsed / ARC_DURATION, 1);
+        
+        // Build partial arcs based on progress
+        const partialArcs = state.visibleArcs.map(arc => {
+          const pointsToShow = Math.max(1, Math.ceil(progress * arc.length));
+          return arc.slice(0, pointsToShow);
+        });
+        
+        // Combine with completed arcs from previous hubs
+        const allArcs = [...state.completedArcs, ...partialArcs];
+        
+        const source = map.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
+        if (source) {
+          source.setData(createMultiArcGeoJSON(allArcs));
+        }
+        
+        if (progress >= 1) {
+          // Done drawing this hub, add to completed and hold briefly
+          state.completedArcs = [...state.completedArcs, ...state.visibleArcs];
           state.phase = 'holding';
           state.startTime = currentTime;
-        } else {
-          state.journeyIndex = currentArcIndex;
-          state.arcProgress = arcProgress;
-          
-          // Build the visible arcs - all completed arcs plus current progress
-          const visibleArcs: [number, number][][] = [];
-          
-          // Add all completed arcs
-          for (let i = 0; i < currentArcIndex; i++) {
-            visibleArcs.push(state.allArcs[i]);
-          }
-          
-          // Add current arc progress with safety checks
-          const currentArc = state.allArcs[currentArcIndex];
-          if (currentArc && currentArc.length > 0) {
-            if (arcElapsed <= ARC_DURATION) {
-              const pointsToShow = Math.max(1, Math.ceil(arcProgress * currentArc.length));
-              visibleArcs.push(currentArc.slice(0, pointsToShow));
-            } else {
-              visibleArcs.push(currentArc);
-            }
-          }
-          
-          // Update the map source
-          const source = mapRef.current.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
-          if (source) {
-            source.setData(createMultiArcGeoJSON(visibleArcs));
-          }
-        }
-      } else if (state.phase === 'holding') {
-        // Show all arcs during hold
-        const source = mapRef.current.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
-        if (source) {
-          source.setData(createMultiArcGeoJSON(state.allArcs));
         }
         
-        // Fixed: use elapsed directly (already calculated from state.startTime)
-        if (elapsed > HOLD_DURATION) {
-          state.phase = 'fading';
-          state.startTime = currentTime;
+      } else if (state.phase === 'holding') {
+        // Show all completed arcs
+        const source = map.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
+        if (source) {
+          source.setData(createMultiArcGeoJSON(state.completedArcs));
         }
+        
+        if (elapsed > HOLD_DURATION) {
+          // Move to next hub or fade out
+          const nextHubIndex = (state.currentHubIndex + 1) % hubConfigs.length;
+          
+          if (nextHubIndex === 0) {
+            // Completed full cycle, fade out
+            state.phase = 'fading';
+            state.startTime = currentTime;
+          } else {
+            // Move to next hub
+            state.currentHubIndex = nextHubIndex;
+            state.phase = 'waiting';
+            state.startTime = currentTime;
+          }
+        }
+        
       } else if (state.phase === 'fading') {
-        // Update opacity for fade effect
-        const fadeProgress = Math.min(elapsed / 500, 1);
+        const fadeProgress = Math.min(elapsed / FADE_DURATION, 1);
         const opacity = 1 - fadeProgress;
         
-        if (mapRef.current.getLayer("arc-trail")) {
-          mapRef.current.setPaintProperty("arc-trail", "line-opacity", 0.4 * opacity);
+        if (map.getLayer("arc-trail")) {
+          map.setPaintProperty("arc-trail", "line-opacity", 0.4 * opacity);
         }
-        if (mapRef.current.getLayer("arc-head")) {
-          mapRef.current.setPaintProperty("arc-head", "line-opacity", 0.9 * opacity);
+        if (map.getLayer("arc-head")) {
+          map.setPaintProperty("arc-head", "line-opacity", 0.9 * opacity);
         }
         
         if (fadeProgress >= 1) {
-          // Reset and restart
-          if (mapRef.current.getLayer("arc-trail")) {
-            mapRef.current.setPaintProperty("arc-trail", "line-opacity", 0.4);
+          // Reset everything
+          if (map.getLayer("arc-trail")) {
+            map.setPaintProperty("arc-trail", "line-opacity", 0.4);
           }
-          if (mapRef.current.getLayer("arc-head")) {
-            mapRef.current.setPaintProperty("arc-head", "line-opacity", 0.9);
+          if (map.getLayer("arc-head")) {
+            map.setPaintProperty("arc-head", "line-opacity", 0.9);
           }
           
-          const source = mapRef.current.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
+          const source = map.getSource("journey-arcs") as mapboxgl.GeoJSONSource;
           if (source) {
             source.setData(createMultiArcGeoJSON([]));
           }
           
-          state.journeyIndex = 0;
-          state.arcProgress = 0;
-          state.phase = 'drawing';
-          state.startTime = currentTime;
+          state.currentHubIndex = 0;
+          state.phase = 'waiting';
+          state.startTime = currentTime + HUB_DELAY; // Brief pause before restart
+          state.visibleArcs = [];
+          state.completedArcs = [];
         }
       }
       
@@ -239,7 +272,7 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     };
     
     arcAnimationRef.current = requestAnimationFrame(animate);
-  }, [journeySequence, generateJourneyArcs, stopArcAnimation]);
+  }, [hubConfigs, generateHubArcs, stopArcAnimation]);
 
   const startAutoRotation = useCallback(() => {
     if (!mapRef.current || isUserInteractingRef.current) return;
@@ -251,7 +284,7 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
       }
       
       const center = mapRef.current.getCenter();
-      center.lng -= 0.15; // Slow rotation speed
+      center.lng -= 0.12; // Slightly slower rotation
       mapRef.current.setCenter(center);
       
       animationRef.current = requestAnimationFrame(rotateGlobe);
@@ -274,7 +307,6 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
     isUserInteractingRef.current = true;
     stopAutoRotation();
     
-    // Clear any pending resume timeout
     if (resumeTimeoutRef.current) {
       clearTimeout(resumeTimeoutRef.current);
       resumeTimeoutRef.current = null;
@@ -282,7 +314,6 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
   }, [stopAutoRotation]);
 
   const handleInteractionEnd = useCallback(() => {
-    // Resume auto-rotation immediately when interaction ends
     isUserInteractingRef.current = false;
     startAutoRotation();
   }, [startAutoRotation]);
@@ -310,10 +341,8 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
 
     mapRef.current = map;
 
-    // Enable touch rotation
     map.touchZoomRotate.enableRotation();
 
-    // Handle user interaction events
     map.on("mousedown", handleInteractionStart);
     map.on("touchstart", handleInteractionStart);
     map.on("mouseup", handleInteractionEnd);
@@ -334,7 +363,6 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
         data: createGeoJSON(filteredMarkers),
       });
 
-      // Add journey arcs source (initially empty)
       map.addSource("journey-arcs", {
         type: "geojson",
         data: createMultiArcGeoJSON([]),
@@ -404,7 +432,6 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
         },
       });
 
-      // Start auto-rotation and arc animation after map loads
       startAutoRotation();
       startArcAnimation();
     });
@@ -429,7 +456,6 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
       source.setData(createGeoJSON(filteredMarkers));
     }
     
-    // Restart arc animation with new journey
     startArcAnimation();
   }, [filteredMarkers, startArcAnimation]);
 
