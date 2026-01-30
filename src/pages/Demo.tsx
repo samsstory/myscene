@@ -6,6 +6,7 @@ import DemoHome from "@/components/DemoHome";
 import DemoRank from "@/components/DemoRank";
 import DemoBanner from "@/components/DemoBanner";
 import DemoBulkUploadFlow from "@/components/DemoBulkUploadFlow";
+import DemoAddShowFlow from "@/components/DemoAddShowFlow";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { DemoProvider } from "@/contexts/DemoContext";
 import { cn } from "@/lib/utils";
@@ -17,10 +18,17 @@ const Demo = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ViewMode>("home");
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const [manualAddOpen, setManualAddOpen] = useState(false);
 
   // Handler for FAB click - now opens the demo bulk upload flow
   const handleFABClick = () => {
     setBulkUploadOpen(true);
+  };
+
+  // Handler for "I don't have a photo" - opens manual add flow
+  const handleAddManually = () => {
+    setBulkUploadOpen(false);
+    setManualAddOpen(true);
   };
 
   return (
@@ -121,12 +129,20 @@ const Demo = () => {
           {/* Demo Banner */}
           <DemoBanner />
 
-          {/* Demo Bulk Upload Flow */}
+          {/* Demo Bulk Upload Flow (photo-based) */}
           <DemoBulkUploadFlow
             open={bulkUploadOpen}
             onOpenChange={setBulkUploadOpen}
             onNavigateToFeed={() => setActiveTab('home')}
             onNavigateToRank={() => setActiveTab('rankings')}
+            onAddManually={handleAddManually}
+          />
+
+          {/* Demo Manual Add Flow (no photo) */}
+          <DemoAddShowFlow
+            open={manualAddOpen}
+            onOpenChange={setManualAddOpen}
+            onShowAdded={() => setActiveTab('home')}
           />
         </div>
       </TooltipProvider>

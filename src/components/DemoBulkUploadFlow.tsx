@@ -16,11 +16,12 @@ interface DemoBulkUploadFlowProps {
   onOpenChange: (open: boolean) => void;
   onNavigateToFeed?: () => void;
   onNavigateToRank?: () => void;
+  onAddManually?: () => void;
 }
 
 type Step = 'select' | 'review' | 'success' | 'editor';
 
-const DemoBulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank }: DemoBulkUploadFlowProps) => {
+const DemoBulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onAddManually }: DemoBulkUploadFlowProps) => {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('select');
   const [photos, setPhotos] = useState<PhotoWithExif[]>([]);
@@ -294,6 +295,7 @@ const DemoBulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateTo
               <PhotoSelectStep
                 onPhotosSelected={handlePhotosSelected}
                 isProcessing={false}
+                onAddManually={onAddManually}
               />
             )}
 
