@@ -91,10 +91,14 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
     }
   }, [initialView]);
 
-  // Notify parent of view changes
+  // Handle view changes - only notify parent for globe (managed by Demo.tsx)
+  // Internal views (calendar, rankings) are handled within DemoHome
   const handleViewChange = (newView: ViewMode) => {
     setViewMode(newView);
-    onViewChange?.(newView);
+    // Only notify parent for globe since Demo.tsx manages that tab
+    if (newView === 'globe') {
+      onViewChange?.(newView);
+    }
   };
 
   // Normalizer for PhotoOverlayEditor show format
