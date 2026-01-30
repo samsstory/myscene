@@ -166,7 +166,7 @@ const LandingHero = () => {
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-2" style={{
             textShadow: "0 0 60px rgba(255,255,255,0.15)"
           }}>
-              Your love for concerts deserves more than a ticket stub.
+              Your love for concerts deserve more than a ticket stub
             </h1>
             
             <p className="text-base md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
