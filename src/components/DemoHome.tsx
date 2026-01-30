@@ -291,6 +291,17 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
     });
   }
   
+  // Add missing photos insight
+  if (stats.missingPhotosCount > 0) {
+    insights.push({
+      type: 'missing_photos',
+      title: `${stats.missingPhotosCount} ${stats.missingPhotosCount === 1 ? 'Show Needs' : 'Shows Need'} a Photo`,
+      message: 'Add photos to complete your show memories.',
+      actionable: true,
+      action: 'missing-photos',
+    });
+  }
+  
   // Add ranking reminder insight for under-ranked shows
   if (stats.underRankedCount > 0) {
     insights.push({
@@ -347,6 +358,11 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
               onNavigateToRank?.();
             } else if (action === 'incomplete-ratings') {
               setIncompleteRatingsOpen(true);
+            } else if (action === 'missing-photos') {
+              // Demo mode - show info that this requires signup
+              import('sonner').then(({ toast }) => {
+                toast.info('Sign up to add photos to your shows!');
+              });
             }
           }}
         />

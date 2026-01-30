@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       // Fetch stats for home page
       const { data: showsData } = await supabase
         .from("shows")
-        .select("id, show_date, artist_performance, sound, lighting, crowd, venue_vibe, venue_location")
+        .select("id, show_date, artist_performance, sound, lighting, crowd, venue_vibe, venue_location, photo_url, photo_declined")
         .eq("user_id", DEMO_USER_ID)
         .order("show_date", { ascending: false });
 
@@ -225,6 +225,11 @@ Deno.serve(async (req) => {
       }).length;
       const unrankedCount = totalShows - rankedShowIds.size;
 
+      // Count shows without photos (excluding declined ones)
+      const missingPhotosCount = shows.filter((show: { photo_url: string | null; photo_declined: boolean }) => 
+        !show.photo_url && !show.photo_declined
+      ).length;
+
       data.stats = {
         allTimeShows: totalShows,
         showsThisYear,
@@ -238,6 +243,7 @@ Deno.serve(async (req) => {
         uniqueCountries: countries.size,
         incompleteRatingsCount,
         underRankedCount,
+        missingPhotosCount,
       };
     }
 
