@@ -1,140 +1,76 @@
 
 
-# Fix: Spotlight Tour Step 1 - FAB Button Visibility & Tap-to-Advance
+# Plan: Fix Step 5 to Focus on "Shows" Stat Pill with Floating Target
 
-## Problem Analysis
+## Overview
+Step 5 of the spotlight tour currently targets `[data-tour="stat-shows"]` which highlights the "Shows" stat pill in the home page. However, there are two issues:
+1. **Bug**: The `data-tour` attribute is not being applied because the condition checks for `id === 'shows'` but the actual pill id is `'total-shows'`
+2. **Visibility**: Similar to Step 4 (Rank icon), the stat pill may appear muted behind the overlay and needs a FloatingTourTarget treatment to be bright and visible
 
-Looking at the screenshot, the FAB button (blue circle with +) is completely hidden behind the dark overlay. The spotlight creates a "hole" but the actual button isn't visible through it.
+## Technical Details
 
-**Root Causes:**
+### Files to Modify
 
-1. **Z-Index Issue**: The react-joyride overlay uses `zIndex: 10000`. Although we added `z-[10001]` to the FAB when `showSpotlightTour` is true, the parent container `fixed bottom-6...` has `z-50` which creates a stacking context that traps the FAB's higher z-index inside it.
+#### 1. `src/components/home/StatPills.tsx`
+- Fix the `data-tour` attribute condition from `stat.id === 'shows'` to `stat.id === 'total-shows'`
+- Add a prop to track when the tour is active on this step so we can hide the original during Step 5 (similar to how we handled the Rank icon)
+- Accept a `ref` for the Shows pill so Dashboard can measure its position
 
-2. **Stacking Context Hierarchy**:
-   ```
-   Joyride overlay (z-index: 10000)
-   └── Fixed nav container (z-index: 50) ← Creates stacking context
-       └── FAB container (z-index: 10001) ← Trapped inside parent's z-50
-           └── FAB button (z-index: 10001) ← Still behind overlay!
-   ```
+#### 2. `src/pages/Dashboard.tsx`
+- Add a ref (`showsStatRef`) to track the position of the "Shows" stat pill
+- Pass tour state down to the Home/StatPills component to enable the hide/show behavior during Step 5
+- Add a `FloatingTourTarget` for Step 5 (index 4) that renders a bright, glowing clone of the "Shows" stat pill above the overlay
+- The floating target will use a portal to escape stacking contexts (the proven pattern from Step 4)
 
-3. **spotlightClicks is disabled**: Currently set to `false`, which prevents users from tapping the highlighted element.
+#### 3. `src/components/Home.tsx`
+- Accept tour-related props to pass down to StatPills
+- Forward the ref and tour state for the Shows pill
 
-## Solution
+#### 4. `src/components/onboarding/SpotlightTour.tsx`
+- Ensure Step 5 copy is appropriate (currently: "See all your shows ranked in order")
 
-### 1. Fix Z-Index Stacking Context
+### Implementation Approach
 
-The **parent fixed container** (line 184) also needs elevated z-index during the tour:
+```text
+Step 5 Visibility Pattern (matching Step 4 solution):
 
-```tsx
-<div className={cn(
-  "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4",
-  showSpotlightTour ? "z-[10001]" : "z-50"
-)}>
++----------------------------------+
+|      Dark Joyride Overlay        |
+|      z-index: 10000              |
+|                                  |
+|    +------------------------+    |
+|    |  Spotlight "hole"      |    |
+|    |  (transparent center)  |    |
+|    +------------------------+    |
+|                                  |
++----------------------------------+
+            ↑
+   FloatingTourTarget (Portal to body)
+   z-index: 10002
+   - Bright cyan-glowing "Shows" pill clone
+   - Positioned via getBoundingClientRect
+   - Takes data-tour="stat-shows" during Step 5
 ```
 
-### 2. Enable Spotlight Clicks for Tap-to-Advance
+### Visual Design for Floating Shows Pill
+- Render a simplified pill with:
+  - Music icon in cyan with glow effect
+  - "SHOWS" label
+  - Show count value
+  - Double-layered drop-shadow using `--primary` HSL variable
+  - Same glassmorphism styling as original
 
-In SpotlightTour.tsx, change:
-```tsx
-spotlightClicks={false}  →  spotlightClicks={true}
-```
-
-This allows users to tap the highlighted UI element to interact with it.
-
-### 3. Handle Step Advancement on User Interaction
-
-Since users will tap the FAB to advance, we need to:
-- Listen for FAB click during tour
-- Programmatically advance to next step when FAB is tapped
-- Use Joyride's controlled mode with `stepIndex` state
-
-### 4. Simplify Step 1 to Just FAB
-
-For Step 1, only show the FAB with pulsing glow. The user taps it to open the menu, which naturally leads to Step 2.
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Dashboard.tsx` | Elevate parent fixed container z-index during tour; pass `onFabClick` callback to SpotlightTour |
-| `src/components/onboarding/SpotlightTour.tsx` | Enable `spotlightClicks`, use controlled `stepIndex`, advance step when user interacts |
-
-## Implementation Details
-
-### Dashboard.tsx Changes
-
-**Line 184 - Fixed Nav Container:**
-```tsx
-<div className={cn(
-  "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4",
-  showSpotlightTour ? "z-[10001]" : "z-50"
-)}>
-```
-
-**FAB Button onClick - Advance Tour:**
-```tsx
-onClick={() => {
-  setShowFabMenu(!showFabMenu);
-  // If tour is on step 1 (FAB), opening menu advances to step 2
-}}
-```
-
-### SpotlightTour.tsx Changes
-
-**Enable spotlightClicks:**
-```tsx
-spotlightClicks={true}
-```
-
-**Use controlled step index:**
-```tsx
-const [stepIndex, setStepIndex] = useState(0);
-
-// In callback, advance based on user actions
-const handleCallback = (data: CallBackProps) => {
-  const { status, action, type } = data;
-  
-  if (action === "next" || type === "step:after") {
-    setStepIndex(prev => prev + 1);
-  }
-  
-  // ... rest of logic
-};
-
-<Joyride
-  stepIndex={stepIndex}
-  // ...
-/>
-```
-
-### Spotlight Pulse Animation
-
-The existing CSS animation in `index.css` is correct:
-```css
-@keyframes spotlight-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px...;
-  }
-  50% {
-    box-shadow: 0 0 0 8px hsl(189 94% 55% / 0.6), 0 0 40px...;
-  }
-}
-```
-
-## Step 1 Expected Behavior
-
-1. Dark overlay covers entire screen
-2. FAB button (blue circle with +) is visible through spotlight hole
-3. Pulsing cyan glow animates around the FAB
-4. Tooltip appears to the left: "Tap here to log your first show"
-5. User taps the FAB → Menu opens → Tour advances to Step 2
+### Step Behavior
+- User does NOT need to tap the pill to advance
+- This is an informational step (user clicks "Next" button on tooltip)
+- The floating clone is purely for visibility above the overlay
 
 ## Summary of Changes
 
-| Element | Current | Fixed |
-|---------|---------|-------|
-| Fixed nav container | `z-50` | `z-[10001]` when tour active |
-| spotlightClicks | `false` | `true` |
-| Tour mode | Uncontrolled | Controlled with `stepIndex` |
+| File | Change |
+|------|--------|
+| `StatPills.tsx` | Fix `data-tour` condition; add optional `showsTourActive` + `showsRef` props |
+| `Home.tsx` | Forward tour props to StatPills |
+| `Dashboard.tsx` | Add `showsStatRef`, render `FloatingTourTarget` for Step 5 |
+| `SpotlightTour.tsx` | No changes needed (Step 5 config already correct) |
 
