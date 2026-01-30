@@ -37,13 +37,9 @@ serve(async (req) => {
     let userId: string | null = null;
     let supabaseClient: any = null;
 
-    // Try to get user ID if authenticated
-    if (authHeader) {
+    // Try to get user ID if authenticated - use proper JWT verification
+    if (authHeader?.startsWith('Bearer ')) {
       try {
-        const token = authHeader.replace('Bearer ', '');
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        userId = payload.sub;
-
         supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -53,8 +49,19 @@ serve(async (req) => {
             },
           }
         );
+
+        // Properly verify JWT using Supabase auth (validates signature)
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        
+        if (!authError && user) {
+          userId = user.id;
+        } else {
+          console.log('Invalid auth token, proceeding without user context');
+          supabaseClient = null;
+        }
       } catch (e) {
-        console.log('Could not parse auth token, proceeding without user context');
+        console.log('Could not verify auth token, proceeding without user context');
+        supabaseClient = null;
       }
     }
 
