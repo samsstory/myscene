@@ -105,7 +105,7 @@ const ShareExperience = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              One-tap sharing to Instagram Stories, Messages, and more.
+              Easily share to Instagram, your group chat, and your bosses email
             </p>
 
             
