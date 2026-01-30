@@ -105,7 +105,7 @@ const ShareExperience = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Easily share to Instagram, your group chat, and your bosses email
+              Easily share to Instagram, your group chat, and even your bosses email
             </p>
 
             
