@@ -197,13 +197,14 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
           source.setData(createMultiArcGeoJSON(state.allArcs));
         }
         
-        if (elapsed - state.startTime > HOLD_DURATION) {
+        // Fixed: use elapsed directly (already calculated from state.startTime)
+        if (elapsed > HOLD_DURATION) {
           state.phase = 'fading';
           state.startTime = currentTime;
         }
       } else if (state.phase === 'fading') {
         // Update opacity for fade effect
-        const fadeProgress = Math.min((currentTime - state.startTime) / 500, 1);
+        const fadeProgress = Math.min(elapsed / 500, 1);
         const opacity = 1 - fadeProgress;
         
         if (mapRef.current.getLayer("arc-trail")) {
