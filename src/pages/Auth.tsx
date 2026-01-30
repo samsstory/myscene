@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { useReferralCapture, getStoredReferralCode, clearStoredReferralCode } from "@/hooks/useReferralCapture";
+import { ArrowLeft } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -138,6 +139,15 @@ const Auth = () => {
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
         }}
       />
+
+      {/* Back to website link */}
+      <Link 
+        to="/" 
+        className="absolute top-4 left-4 z-20 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to website
+      </Link>
 
       {/* Content container */}
       <div className="relative z-10 w-full max-w-md">
