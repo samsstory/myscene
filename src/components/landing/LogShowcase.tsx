@@ -118,7 +118,7 @@ const LogShowcase = () => {
 
           {/* Right: Phone Mockup */}
           <div className="flex justify-center">
-            <PhoneMockup className="w-64 md:w-72 lg:w-80" tilt="right">
+            <PhoneMockup className="w-64 md:w-72 lg:w-80">
               <SmartCaptureMockup />
             </PhoneMockup>
           </div>
