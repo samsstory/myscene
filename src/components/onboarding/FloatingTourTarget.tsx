@@ -1,4 +1,5 @@
 import { ReactNode, RefObject, useEffect, useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Rect = { left: number; top: number; width: number; height: number };
 
@@ -53,8 +54,11 @@ export default function FloatingTourTarget({
   }, [active]);
 
   if (!active || !rect) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  // IMPORTANT: Portal to <body> to escape any local stacking contexts (e.g. transforms)
+  // so this can truly sit above Joyride's portal overlay.
+  return createPortal(
     <div
       {...(dataTour ? { ["data-tour" as const]: dataTour } : {})}
       className={className}
@@ -71,6 +75,7 @@ export default function FloatingTourTarget({
       }}
     >
       {children}
-    </div>
+    </div>,
+    document.body
   );
 }
