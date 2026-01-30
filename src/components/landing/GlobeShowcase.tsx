@@ -117,9 +117,6 @@ const GlobeShowcase = () => {
               See everywhere music has taken you.
             </p>
 
-            <p className="text-base text-muted-foreground/70 max-w-lg mx-auto lg:mx-0 italic">
-              Every city. Every memory.
-            </p>
           </div>
         </div>
       </div>
