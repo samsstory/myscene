@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Check, ImagePlus, X, Sparkles, ChevronRight } from "lucide-react";
+import { ArrowLeft, Check, ImagePlus, X, Sparkles, ChevronRight, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -66,12 +66,13 @@ export const MissingPhotosSheet = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch shows without photos
+      // Fetch shows without photos (excluding declined ones)
       const { data: showsData, error } = await supabase
         .from('shows')
         .select('id, venue_name, show_date')
         .eq('user_id', user.id)
         .is('photo_url', null)
+        .eq('photo_declined', false)
         .order('show_date', { ascending: false });
 
       if (error) throw error;
@@ -169,13 +170,37 @@ export const MissingPhotosSheet = ({
     });
   };
 
-  const assignPhotoToShow = (photoIndex: number, showId: string | null) => {
+  const assignPhotoToShow = async (photoIndex: number, showId: string | null) => {
     setMatches(prev => {
       const updated = [...prev];
       updated[photoIndex] = { ...updated[photoIndex], assignedShowId: showId };
       return updated;
     });
     setActivePhotoIndex(null);
+  };
+
+  const markShowAsDeclined = async (showId: string) => {
+    try {
+      const { error } = await supabase
+        .from('shows')
+        .update({ photo_declined: true })
+        .eq('id', showId);
+
+      if (error) throw error;
+
+      // Remove from local shows list
+      setShows(prev => prev.filter(s => s.id !== showId));
+      
+      // Remove any matches pointing to this show
+      setMatches(prev => prev.map(m => 
+        m.assignedShowId === showId ? { ...m, assignedShowId: null } : m
+      ));
+
+      toast.success('Show marked as no photo needed');
+    } catch (error) {
+      console.error('Error marking show as declined:', error);
+      toast.error('Failed to update show');
+    }
   };
 
   const getAvailableShows = (currentPhotoIndex: number): ShowWithoutPhoto[] => {
@@ -354,12 +379,22 @@ export const MissingPhotosSheet = ({
                     {shows.slice(0, 10).map(show => (
                       <div
                         key={show.id}
-                        className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.08]"
+                        className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-between gap-2"
                       >
-                        <div className="font-medium text-white/80 truncate">{show.artistName}</div>
-                        <div className="text-sm text-white/50 truncate">
-                          {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-white/80 truncate">{show.artistName}</div>
+                          <div className="text-sm text-white/50 truncate">
+                            {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                          </div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
+                          onClick={() => markShowAsDeclined(show.id)}
+                        >
+                          <EyeOff className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                     {shows.length > 10 && (
@@ -408,7 +443,7 @@ export const MissingPhotosSheet = ({
 
                   {/* Show list */}
                   <div className="space-y-2">
-                    {/* Leave naked option */}
+                    {/* Leave unmatched (just for this session) */}
                     <button
                       onClick={() => assignPhotoToShow(activePhotoIndex, null)}
                       className={cn(
@@ -419,7 +454,7 @@ export const MissingPhotosSheet = ({
                     >
                       <div className="flex items-center gap-3">
                         <X className="h-5 w-5 text-white/40" />
-                        <span className="text-white/60">Leave unmatched</span>
+                        <span className="text-white/60">Skip this photo</span>
                       </div>
                     </button>
 
@@ -428,31 +463,46 @@ export const MissingPhotosSheet = ({
                         isSameDay(matches[activePhotoIndex].photo.extractedDate, parseISO(show.showDate));
 
                       return (
-                        <button
+                        <div
                           key={show.id}
-                          onClick={() => assignPhotoToShow(activePhotoIndex, show.id)}
                           className={cn(
-                            "w-full p-3 rounded-lg text-left transition-all",
+                            "w-full p-3 rounded-lg transition-all flex items-center gap-2",
                             "bg-white/[0.03] border border-white/[0.08]",
-                            "hover:bg-white/[0.08]",
                             isDateMatch && "border-primary/50 bg-primary/10"
                           )}
                         >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white/80">{show.artistName}</div>
-                              <div className="text-sm text-white/50">
-                                {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                          <button
+                            onClick={() => assignPhotoToShow(activePhotoIndex, show.id)}
+                            className="flex-1 text-left"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-white/80">{show.artistName}</div>
+                                <div className="text-sm text-white/50">
+                                  {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                                </div>
                               </div>
+                              {isDateMatch && (
+                                <div className="flex items-center gap-1 text-xs text-primary">
+                                  <Sparkles className="h-3 w-3" />
+                                  Date match
+                                </div>
+                              )}
                             </div>
-                            {isDateMatch && (
-                              <div className="flex items-center gap-1 text-xs text-primary">
-                                <Sparkles className="h-3 w-3" />
-                                Date match
-                              </div>
-                            )}
-                          </div>
-                        </button>
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markShowAsDeclined(show.id);
+                            }}
+                            title="Leave naked (won't ask again)"
+                          >
+                            <EyeOff className="h-4 w-4" />
+                          </Button>
+                        </div>
                       );
                     })}
                   </div>

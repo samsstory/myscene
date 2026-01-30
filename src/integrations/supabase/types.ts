@@ -247,6 +247,7 @@ export type Database = {
           id: string
           lighting: number | null
           notes: string | null
+          photo_declined: boolean
           photo_url: string | null
           rating: number | null
           show_date: string
@@ -266,6 +267,7 @@ export type Database = {
           id?: string
           lighting?: number | null
           notes?: string | null
+          photo_declined?: boolean
           photo_url?: string | null
           rating?: number | null
           show_date: string
@@ -285,6 +287,7 @@ export type Database = {
           id?: string
           lighting?: number | null
           notes?: string | null
+          photo_declined?: boolean
           photo_url?: string | null
           rating?: number | null
           show_date?: string
