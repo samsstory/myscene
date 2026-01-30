@@ -2,7 +2,8 @@ import { useState, useMemo, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Check, ImagePlus, X, Sparkles, ChevronRight, EyeOff, Info } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Check, ImagePlus, X, Sparkles, ChevronRight, Info } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, parseISO, isSameDay, differenceInDays } from "date-fns";
@@ -72,6 +73,7 @@ export const DemoMissingPhotosSheet = ({
   const [selectedPhotos, setSelectedPhotos] = useState<SelectedPhoto[]>([]);
   const [matches, setMatches] = useState<PhotoShowMatch[]>([]);
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
+  const [leaveNakedIds, setLeaveNakedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when sheet opens
@@ -82,6 +84,7 @@ export const DemoMissingPhotosSheet = ({
       setSelectedPhotos([]);
       setMatches([]);
       setActivePhotoIndex(null);
+      setLeaveNakedIds(new Set());
     } else {
       // Clean up preview URLs
       selectedPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
@@ -165,13 +168,29 @@ export const DemoMissingPhotosSheet = ({
     setActivePhotoIndex(null);
   };
 
-  const markShowAsDeclined = (showId: string) => {
-    // In demo mode, just remove from local list
-    setShows(prev => prev.filter(s => s.id !== showId));
+  const toggleLeaveNaked = (showId: string) => {
+    setLeaveNakedIds(prev => {
+      const updated = new Set(prev);
+      if (updated.has(showId)) {
+        updated.delete(showId);
+      } else {
+        updated.add(showId);
+      }
+      return updated;
+    });
+  };
+
+  const saveLeaveNakedShows = () => {
+    // Demo mode - just remove from local list and show toast
+    const count = leaveNakedIds.size;
+    setShows(prev => prev.filter(s => !leaveNakedIds.has(s.id)));
     setMatches(prev => prev.map(m => 
-      m.assignedShowId === showId ? { ...m, assignedShowId: null } : m
+      m.assignedShowId && leaveNakedIds.has(m.assignedShowId) 
+        ? { ...m, assignedShowId: null } 
+        : m
     ));
-    toast.success('Show marked as no photo needed (demo)');
+    setLeaveNakedIds(new Set());
+    toast.success(`Demo: ${count} show${count !== 1 ? 's' : ''} marked as "Leave Naked". Sign up to save!`);
   };
 
   const getAvailableShows = (currentPhotoIndex: number): ShowWithoutPhoto[] => {
@@ -299,30 +318,53 @@ export const DemoMissingPhotosSheet = ({
 
                   {/* List of shows without photos */}
                   <div className="space-y-2 mt-6">
-                    <h4 className="text-xs uppercase tracking-wider text-white/40 font-medium px-1">
-                      Shows Without Photos
-                    </h4>
-                    {shows.slice(0, 10).map(show => (
-                      <div
-                        key={show.id}
-                        className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-between gap-2"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-white/80 truncate">{show.artistName}</div>
-                          <div className="text-sm text-white/50 truncate">
-                            {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
-                          </div>
-                        </div>
+                    <div className="flex items-center justify-between px-1">
+                      <h4 className="text-xs uppercase tracking-wider text-white/40 font-medium">
+                        Shows Without Photos
+                      </h4>
+                      {leaveNakedIds.size > 0 && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
-                          onClick={() => markShowAsDeclined(show.id)}
+                          className="h-7 px-2 text-xs text-primary hover:text-primary/80"
+                          onClick={saveLeaveNakedShows}
                         >
-                          <EyeOff className="h-4 w-4" />
+                          Leave {leaveNakedIds.size} Naked
                         </Button>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+                    {shows.slice(0, 10).map(show => {
+                      const isLeaveNaked = leaveNakedIds.has(show.id);
+                      return (
+                        <div
+                          key={show.id}
+                          className={cn(
+                            "p-3 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center gap-3 transition-all",
+                            isLeaveNaked && "opacity-50"
+                          )}
+                        >
+                          <Checkbox
+                            checked={isLeaveNaked}
+                            onCheckedChange={() => toggleLeaveNaked(show.id)}
+                            className="flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className={cn(
+                              "font-medium text-white/80 truncate",
+                              isLeaveNaked && "line-through text-white/40"
+                            )}>
+                              {show.artistName}
+                            </div>
+                            <div className={cn(
+                              "text-sm text-white/50 truncate",
+                              isLeaveNaked && "line-through text-white/30"
+                            )}>
+                              {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                     {shows.length > 10 && (
                       <p className="text-xs text-white/40 text-center pt-2">
                         And {shows.length - 10} more...
@@ -387,28 +429,44 @@ export const DemoMissingPhotosSheet = ({
                     {getAvailableShows(activePhotoIndex).map(show => {
                       const isDateMatch = matches[activePhotoIndex].photo.extractedDate &&
                         isSameDay(matches[activePhotoIndex].photo.extractedDate, parseISO(show.showDate));
+                      const isLeaveNaked = leaveNakedIds.has(show.id);
 
                       return (
                         <div
                           key={show.id}
                           className={cn(
-                            "w-full p-3 rounded-lg transition-all flex items-center gap-2",
+                            "w-full p-3 rounded-lg transition-all flex items-center gap-3",
                             "bg-white/[0.03] border border-white/[0.08]",
-                            isDateMatch && "border-primary/50 bg-primary/10"
+                            isDateMatch && "border-primary/50 bg-primary/10",
+                            isLeaveNaked && "opacity-50"
                           )}
                         >
+                          <Checkbox
+                            checked={isLeaveNaked}
+                            onCheckedChange={() => toggleLeaveNaked(show.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-shrink-0"
+                          />
                           <button
-                            onClick={() => assignPhotoToShow(activePhotoIndex, show.id)}
-                            className="flex-1 text-left"
+                            onClick={() => !isLeaveNaked && assignPhotoToShow(activePhotoIndex, show.id)}
+                            className={cn("flex-1 text-left", isLeaveNaked && "pointer-events-none")}
                           >
                             <div className="flex items-center justify-between">
                               <div>
-                                <div className="font-medium text-white/80">{show.artistName}</div>
-                                <div className="text-sm text-white/50">
+                                <div className={cn(
+                                  "font-medium text-white/80",
+                                  isLeaveNaked && "line-through text-white/40"
+                                )}>
+                                  {show.artistName}
+                                </div>
+                                <div className={cn(
+                                  "text-sm text-white/50",
+                                  isLeaveNaked && "line-through text-white/30"
+                                )}>
                                   {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
                                 </div>
                               </div>
-                              {isDateMatch && (
+                              {isDateMatch && !isLeaveNaked && (
                                 <div className="flex items-center gap-1 text-xs text-primary">
                                   <Sparkles className="h-3 w-3" />
                                   Date match
@@ -416,18 +474,6 @@ export const DemoMissingPhotosSheet = ({
                               )}
                             </div>
                           </button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markShowAsDeclined(show.id);
-                            }}
-                            title="Leave naked (won't ask again)"
-                          >
-                            <EyeOff className="h-4 w-4" />
-                          </Button>
                         </div>
                       );
                     })}
