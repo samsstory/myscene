@@ -4,6 +4,7 @@ import SceneLogo from "@/components/ui/SceneLogo";
 import PhoneMockup from "./PhoneMockup";
 import WaitlistSignup from "./WaitlistSignup";
 import { Home, Globe, Crown, Plus } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Collapsed card data with photo backgrounds
 const collapsedCards = [{
@@ -141,6 +142,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
   </div>;
 const LandingHero = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   return <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background glow effects */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20" style={{
@@ -151,7 +153,7 @@ const LandingHero = () => {
     }} />
 
       <div className="container mx-auto px-4 py-8 md:py-16">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-8 items-center">
           {/* Left: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 relative z-10">
             <SceneLogo size="lg" className="justify-center lg:justify-start" />
@@ -196,8 +198,8 @@ const LandingHero = () => {
           </div>
 
           {/* Right: Phone Mockup */}
-          <div className="flex justify-center lg:justify-end order-2 mt-4 lg:mt-0">
-            <PhoneMockup className="w-56 md:w-72 lg:w-80" tilt="left">
+          <div className="flex justify-center lg:justify-start order-2 mt-4 lg:mt-0">
+            <PhoneMockup className="w-56 md:w-72 lg:w-80" tilt={isMobile ? "left" : "none"}>
               <MockShowCard />
             </PhoneMockup>
           </div>
