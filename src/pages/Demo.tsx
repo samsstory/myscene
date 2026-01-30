@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home as HomeIcon, Globe, Scale, Plus, Music } from "lucide-react";
+import { Home as HomeIcon, Globe, Scale, Plus } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DemoHome from "@/components/DemoHome";
+import DemoRank from "@/components/DemoRank";
 import DemoBanner from "@/components/DemoBanner";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { DemoProvider } from "@/contexts/DemoContext";
@@ -40,12 +41,15 @@ const Demo = () => {
 
           {/* Main Content */}
           <main className="container mx-auto px-4 py-8">
-            <DemoHome 
-              initialView={activeTab}
-              onViewChange={(view) => setActiveTab(view as ViewMode)}
-            />
+            {activeTab === 'rankings' ? (
+              <DemoRank />
+            ) : (
+              <DemoHome 
+                initialView={activeTab}
+                onViewChange={(view) => setActiveTab(view as ViewMode)}
+              />
+            )}
           </main>
-
           {/* Floating Navigation */}
           <div className="fixed bottom-24 left-0 right-0 flex justify-between items-end px-6 gap-4 z-50">
             {/* Left spacer */}
@@ -80,19 +84,18 @@ const Demo = () => {
                   <Globe className="h-6 w-6" />
                 </button>
 
-                {/* Rank - Disabled in demo */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      className="flex flex-col items-center gap-0.5 py-1.5 text-white/30 cursor-not-allowed"
-                    >
-                      <Scale className="h-6 w-6" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Sign up to rank your shows</p>
-                  </TooltipContent>
-                </Tooltip>
+                {/* Rank - Now enabled for demo! */}
+                <button
+                  onClick={() => setActiveTab("rankings")}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                    activeTab === "rankings" 
+                      ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
+                      : "text-white/60"
+                  )}
+                >
+                  <Scale className="h-6 w-6" />
+                </button>
               </div>
             </nav>
 
