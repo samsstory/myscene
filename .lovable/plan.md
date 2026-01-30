@@ -1,113 +1,125 @@
 
-# Demo Mode Implementation Plan
+# Plan: Enable Full Add Show Flow in Demo Mode
 
 ## Overview
-Create a frictionless demo experience that showcases Scene using a snapshot of your real show data. Visitors can explore the full app without signing up, then convert to a real account when ready.
+Enable demo users to upload photos and go through the complete show creation flow without requiring authentication. Shows created in demo mode will be stored temporarily in local state (not persisted to the database) so users can experience the full product flow before signing up.
 
-## How It Works
+## Current State Analysis
+- **Demo mode** currently redirects the FAB (+ button) to the auth page with a "Sign up to add shows" tooltip
+- The **authenticated flow** uses `BulkUploadFlow` for photo-based show creation, which:
+  1. Allows photo selection with EXIF metadata extraction
+  2. Reviews shows with venue auto-detection from GPS
+  3. Uploads to Supabase storage and inserts to database
+  4. Shows success screen with sharing options
+- Demo data is fetched from a specific user's shows via the `get-demo-data` edge function
 
-1. **Special Demo Route**: `/demo` will load the Dashboard with your frozen show data
-2. **Your Account Stays Private**: Your live account at `/dashboard` remains untouched and continues syncing
-3. **No Sign-in Required**: Demo visitors see a realistic, populated experience immediately
-4. **Soft Conversion**: A subtle banner invites users to create an account to save their own shows
+## Implementation Strategy: Demo-Only Local State
 
-## Data Snapshot
+Rather than writing to the production database, demo-created shows will be:
+1. Stored in React context/state during the session
+2. Merged with the existing demo user's shows for display
+3. Cleared on page refresh (ephemeral experience)
 
-Your current data will be copied to a dedicated demo user:
-- **28 shows** (Factory Town, Seismic, Exchange LA, etc.)
-- **28 rankings** with ELO scores from your comparisons
-- **108 comparisons** for realistic ranking confidence
-- Artists, venues, photos, and notes all preserved
+This approach:
+- Avoids polluting production data with demo entries
+- Demonstrates the full flow without backend complexity
+- Encourages sign-up to "save" their progress
+
+---
+
+## Technical Implementation
+
+### 1. Extend DemoContext with Local Shows State
+**File:** `src/contexts/DemoContext.tsx`
+
+Add state management for demo-created shows:
+- `demoLocalShows`: Array of shows created during the demo session
+- `addDemoShow()`: Function to add a new show to local state
+- `clearDemoShows()`: Function to reset demo shows
+
+### 2. Create Demo-Specific Bulk Upload Hook
+**File:** `src/hooks/useDemoBulkUpload.ts` (new file)
+
+Create a demo version of `useBulkShowUpload` that:
+- Processes photos with EXIF extraction (reuses existing logic)
+- Generates local IDs and blob URLs for photos (no Supabase upload)
+- Creates show objects compatible with the existing Show interface
+- Calls `addDemoShow()` from DemoContext
+- Returns success response mimicking the real flow
+
+### 3. Create Demo Bulk Upload Flow Component
+**File:** `src/components/DemoBulkUploadFlow.tsx` (new file)
+
+A wrapper around the existing bulk upload UI that:
+- Uses the demo-specific upload hook instead of the real one
+- Handles photo storage as local blob URLs (not uploaded)
+- Shows the same success screen with "Sign up to save" CTA
+
+### 4. Update Demo Page to Enable FAB
+**File:** `src/pages/Demo.tsx`
+
+Modify the FAB button to:
+- Open `DemoBulkUploadFlow` instead of redirecting to auth
+- Update tooltip to "Add a show" instead of "Sign up to add shows"
+- Pass demo mode context to the flow
+
+### 5. Update DemoHome to Merge Local Shows
+**File:** `src/components/DemoHome.tsx`
+
+Modify the data display to:
+- Merge `demoLocalShows` from context with fetched demo shows
+- Sort combined list by date (newest first)
+- Display local shows with a subtle "Unsaved" indicator
+
+### 6. Limit Demo Functionality (Optional Guardrails)
+Consider adding:
+- Maximum number of demo shows (e.g., 3-5)
+- Prompt to sign up after adding shows
+- Visual distinction for demo-added shows
+
+---
+
+## File Changes Summary
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/contexts/DemoContext.tsx` | Modify | Add local shows state and management functions |
+| `src/hooks/useDemoBulkUpload.ts` | Create | Demo-specific show upload logic without Supabase |
+| `src/components/DemoBulkUploadFlow.tsx` | Create | Demo wrapper for bulk upload flow |
+| `src/pages/Demo.tsx` | Modify | Enable FAB to open demo bulk upload flow |
+| `src/components/DemoHome.tsx` | Modify | Merge and display locally created shows |
+
+---
 
 ## User Experience Flow
 
-```text
-Landing Page
-     │
-     ▼ Click "Live Demo"
-     │
-┌────────────────────────────────────┐
-│  /demo                             │
-│  ─────────────────────────────────│
-│  Full Dashboard Experience         │
-│  • Stat Pills (28 Shows, etc.)     │
-│  • Rankings View                   │
-│  • Globe/Map View                  │
-│  • Show Detail Sheets              │
-│  ─────────────────────────────────│
-│  [ Banner: "Create account to      │
-│    start your own collection" ]    │
-└────────────────────────────────────┘
-     │
-     ▼ Click Banner/CTA
-     │
-Sign Up → /dashboard (their own data)
-```
+1. User taps FAB (+) on demo page
+2. Photo selection screen opens (same as authenticated flow)
+3. User selects photos → EXIF data extracted
+4. Review screen shows with artist/venue inputs
+5. User completes flow → shows added to local state
+6. Success screen appears with:
+   - Option to share/edit photo
+   - Prominent "Sign up to save your shows" CTA
+7. Shows appear in demo feed with "Unsaved" badge
+8. Tapping any demo show prompts sign-up to persist
 
-## Technical Approach
+---
 
-### 1. Create Demo User and Seed Data
-- Create a demo account in the database with a fixed ID
-- Copy your current shows, artists, rankings, and comparisons to this demo user
-- Update photo URLs to point to your existing public storage URLs
+## Key Technical Considerations
 
-### 2. New Route: `/demo`
-- Add `/demo` route to App.tsx
-- Renders a `DemoProvider` wrapper around Dashboard
+1. **Photo Storage**: Use local blob URLs (`URL.createObjectURL()`) instead of Supabase storage
+2. **ID Generation**: Use `crypto.randomUUID()` for local show IDs
+3. **Data Shape**: Ensure demo shows match the existing `Show` interface exactly
+4. **Memory Management**: Revoke blob URLs when shows are cleared or page unloads
+5. **State Persistence**: Shows are intentionally NOT persisted across page refreshes
 
-### 3. Demo Context
-- `useDemoMode()` hook provides:
-  - `isDemoMode: boolean`
-  - `demoUserId: string` (the fixed demo user ID)
-- All data-fetching hooks check this context first
+---
 
-### 4. Modified Data Hooks
-- `useHomeStats`, `Home.tsx` fetch methods, etc. will:
-  - In demo mode: Query using the demo user ID (bypasses RLS via service key in edge function)
-  - In normal mode: Query using the authenticated user ID (existing behavior)
+## Success Criteria
 
-### 5. Demo Edge Function
-- New `get-demo-data` edge function
-- Uses service role key to fetch demo user's data
-- Returns the same structure as client-side queries
-- No authentication required
-
-### 6. UI Adaptations in Demo Mode
-- **Disable writes**: Add Show, Delete, Edit buttons show "Sign up to unlock"
-- **Soft banner**: Bottom banner with "Create your own collection"
-- **Hide profile settings**: No account management in demo
-
-## Files to Create/Modify
-
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Add `/demo` route |
-| `src/contexts/DemoContext.tsx` | New context for demo state |
-| `src/pages/Demo.tsx` | New page wrapping Dashboard in demo mode |
-| `src/hooks/useDemoMode.ts` | Hook to access demo context |
-| `src/components/DemoBanner.tsx` | Soft conversion CTA banner |
-| `src/components/Home.tsx` | Check demo mode for data fetching |
-| `src/hooks/useHomeStats.ts` | Support demo user ID queries |
-| `src/pages/Dashboard.tsx` | Conditionally hide write actions in demo |
-| `supabase/functions/get-demo-data/index.ts` | Edge function to serve demo data |
-| Database migration | Create demo user + seed data |
-
-## Demo Restrictions (What's Disabled)
-
-- Adding new shows (FAB shows tooltip "Sign up to add")
-- Editing/deleting shows
-- Profile settings
-- Photo uploads
-- Ranking comparisons (view-only)
-
-## Privacy Considerations
-
-- Your email/profile info is NOT included in the demo
-- Only show data (artists, venues, dates, photos, rankings) is copied
-- Demo user has a generic display name like "Music Fan"
-
-## Next Steps After Implementation
-
-1. Update Landing Page button to link to `/demo` instead of `/dashboard`
-2. Track demo engagement for conversion analytics
-3. Consider adding a "Copy my demo data" feature for converting users
+- Users can upload photos and add shows without authentication
+- The flow feels identical to the authenticated experience
+- Demo-created shows appear in the feed immediately
+- Clear indication that shows aren't saved prompts sign-up
+- No data is written to production database from demo mode
