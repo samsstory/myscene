@@ -16,11 +16,12 @@ interface BulkUploadFlowProps {
   onNavigateToFeed?: () => void;
   onNavigateToRank?: () => void;
   onShareShow?: (show: AddedShowData) => void;
+  onAddManually?: () => void;
 }
 
 type Step = 'select' | 'review' | 'success' | 'editor';
 
-const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow }: BulkUploadFlowProps) => {
+const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
   const [photos, setPhotos] = useState<PhotoWithExif[]>([]);
   const [addedCount, setAddedCount] = useState(0);
@@ -110,7 +111,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   const getTitle = () => {
     switch (step) {
       case 'select':
-        return 'Add from Photos';
+        return 'Add a Show';
       case 'review':
         return 'Add Shows';
       case 'success':
@@ -120,6 +121,11 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
       default:
         return 'Add Shows';
     }
+  };
+
+  const handleAddManually = () => {
+    handleClose();
+    onAddManually?.();
   };
 
   // Normalize show data for PhotoOverlayEditor
@@ -181,6 +187,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
           <PhotoSelectStep
             onPhotosSelected={handlePhotosSelected}
             isProcessing={false}
+            onAddManually={onAddManually ? handleAddManually : undefined}
           />
         )}
 

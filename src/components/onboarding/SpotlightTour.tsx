@@ -5,9 +5,6 @@ import { ChevronLeft } from "lucide-react";
 interface SpotlightTourProps {
   run: boolean;
   onComplete: () => void;
-  onOpenFabMenu?: () => void;
-  onCloseFabMenu?: () => void;
-  fabMenuOpen?: boolean;
   onStepChange?: (stepIndex: number) => void;
 }
 
@@ -54,7 +51,7 @@ const GlassTooltip = ({
               </button>
             )}
             <span className="text-xs text-white/40">
-              {index + 1} of {step.data?.totalSteps || 3}
+              {index + 1} of {step.data?.totalSteps || 5}
             </span>
           </div>
 
@@ -77,7 +74,7 @@ const GlassTooltip = ({
   );
 };
 
-const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenuOpen, onStepChange }: SpotlightTourProps) => {
+const SpotlightTour = ({ run, onComplete, onStepChange }: SpotlightTourProps) => {
   const [stepIndex, setStepIndex] = useState(0);
 
   // Reset step index when tour starts
@@ -93,63 +90,43 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenu
     onStepChange?.(stepIndex);
   }, [stepIndex, onStepChange]);
 
-  // Detect when user taps FAB to open menu during step 1 - auto-advance
-  useEffect(() => {
-    if (run && stepIndex === 0 && fabMenuOpen) {
-      setStepIndex(1);
-    }
-  }, [run, stepIndex, fabMenuOpen]);
-
+  // Simplified tour with unified add flow (removed FAB menu steps)
   const steps: Step[] = [
     {
       target: '[data-tour="fab"]',
-      content: "Tap here to log your first show",
+      content: "Tap here to log your first show — just upload a photo or add manually",
       placement: "left",
       disableBeacon: true,
-      data: { totalSteps: 7 },
+      data: { totalSteps: 5 },
       spotlightPadding: 12,
     },
     {
-      target: '[data-tour="add-photos"]',
-      content: "Upload multiple shows at once by adding 1 photo per show",
-      placement: "left",
-      disableBeacon: true,
-      data: { totalSteps: 7 },
-    },
-    {
-      target: '[data-tour="add-single"]',
-      content: "No photo? Add by artist/venue",
-      placement: "left",
-      disableBeacon: true,
-      data: { totalSteps: 7 },
-    },
-    {
       target: '[data-tour="nav-rank"]',
-      content: "Rank shows against each other",
+      content: "Rank shows against each other to build your all-time list",
       placement: "top",
       disableBeacon: true,
-      data: { totalSteps: 7 },
+      data: { totalSteps: 5 },
     },
     {
       target: '[data-tour="stat-shows"]',
       content: "See all your shows ranked in order",
       placement: "bottom",
       disableBeacon: true,
-      data: { totalSteps: 7 },
+      data: { totalSteps: 5 },
     },
     {
       target: '[data-tour="nav-globe"]',
-      content: "See everywhere you've been",
+      content: "See everywhere you've been on the map",
       placement: "top",
       disableBeacon: true,
-      data: { totalSteps: 7 },
+      data: { totalSteps: 5 },
     },
     {
       target: '[data-tour="fab"]',
-      content: "Ready to log your first show? Tap here to get started!",
+      content: "Ready to start? Tap here to log your first show!",
       placement: "left",
       disableBeacon: true,
-      data: { totalSteps: 7, isFinal: true },
+      data: { totalSteps: 5, isFinal: true },
       spotlightPadding: 12,
     },
   ];
@@ -159,54 +136,17 @@ const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenu
 
     // Handle step advancement
     if (type === EVENTS.STEP_AFTER) {
-      // User clicked Next button - advance to next step
       if (action === ACTIONS.NEXT) {
-        const nextIndex = index + 1;
-        
-        // Open FAB menu before step 2 (Add Photos)
-        if (nextIndex === 1) {
-          setTimeout(() => {
-            onOpenFabMenu?.();
-            setStepIndex(nextIndex);
-          }, 100);
-          return;
-        }
-        
-        // Close FAB menu after step 3 (Add Single Show)
-        if (index === 2) {
-          onCloseFabMenu?.();
-        }
-        
-        setStepIndex(nextIndex);
+        setStepIndex(index + 1);
       }
       
-      // User clicked Back button - go to previous step
       if (action === ACTIONS.PREV) {
-        const prevIndex = index - 1;
-        
-        // If going back from step 2+ to step 1, close FAB menu
-        if (prevIndex === 0 && index >= 1) {
-          onCloseFabMenu?.();
-        }
-        
-        // If going back to step 2 or 3, ensure FAB menu is open
-        if (prevIndex === 1 || prevIndex === 2) {
-          onOpenFabMenu?.();
-        }
-        
-        setStepIndex(prevIndex);
+        setStepIndex(index - 1);
       }
-    }
-
-    // Handle target click (tap-to-advance)
-    if (type === EVENTS.TARGET_NOT_FOUND) {
-      // Target disappeared - likely user interacted with it
-      // This can happen when FAB menu opens/closes
     }
 
     // Tour finished or skipped
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      onCloseFabMenu?.();
       onComplete();
     }
   };

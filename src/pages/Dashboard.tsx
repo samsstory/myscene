@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home as HomeIcon, Globe, Scale, Plus, Music, Camera, X } from "lucide-react";
+import { Home as HomeIcon, Globe, Scale, Plus, Music } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/components/Home";
@@ -22,8 +22,7 @@ import SceneLogo from "@/components/ui/SceneLogo";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [showFabMenu, setShowFabMenu] = useState(false);
+  const [showUnifiedAdd, setShowUnifiedAdd] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
@@ -36,12 +35,14 @@ const Dashboard = () => {
   const globeButtonRef = useRef<HTMLButtonElement | null>(null);
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
 
-  // Only elevate z-index for FAB-related steps (0, 1, 2, 6) - not for nav item steps
-  const shouldElevateNavZ = showSpotlightTour && (tourStepIndex <= 2 || tourStepIndex === 6);
-  // Step 5 (index 4) targets the Shows stat pill
-  const showsTourActive = showSpotlightTour && tourStepIndex === 4;
-  // Step 6 (index 5) targets the Globe icon
-  const globeTourActive = showSpotlightTour && tourStepIndex === 5;
+  // Only elevate z-index for FAB during tour steps 0 and 4 (first and last)
+  const shouldElevateNavZ = showSpotlightTour && (tourStepIndex === 0 || tourStepIndex === 4);
+  // Step 3 (index 2) targets the Shows stat pill
+  const showsTourActive = showSpotlightTour && tourStepIndex === 2;
+  // Step 4 (index 3) targets the Globe icon
+  const globeTourActive = showSpotlightTour && tourStepIndex === 3;
+  // Step 2 (index 1) targets the Rank icon
+  const rankTourActive = showSpotlightTour && tourStepIndex === 1;
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -130,7 +131,7 @@ const Dashboard = () => {
         return (
           <Home 
             onNavigateToRank={() => setActiveTab("rank")} 
-            onAddFromPhotos={() => setShowBulkUpload(true)}
+            onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
@@ -143,7 +144,7 @@ const Dashboard = () => {
           <Home 
             initialView="globe"
             onNavigateToRank={() => setActiveTab("rank")} 
-            onAddFromPhotos={() => setShowBulkUpload(true)}
+            onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
           />
         );
@@ -158,7 +159,7 @@ const Dashboard = () => {
         return (
           <Home 
             onNavigateToRank={() => setActiveTab("rank")} 
-            onAddFromPhotos={() => setShowBulkUpload(true)}
+            onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
@@ -241,10 +242,10 @@ const Dashboard = () => {
             <button
               onClick={() => setActiveTab("rank")}
               ref={rankButtonRef}
-              data-tour={showSpotlightTour && tourStepIndex === 3 ? undefined : "nav-rank"}
+              data-tour={rankTourActive ? undefined : "nav-rank"}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1.5",
-                showSpotlightTour && tourStepIndex === 3 && "opacity-0",
+                rankTourActive && "opacity-0",
                 activeTab === "rank" 
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
@@ -255,20 +256,19 @@ const Dashboard = () => {
           </div>
         </nav>
 
-        {/* Floating Rank target for tour step 4 (index 3) */}
-        <FloatingTourTarget active={showSpotlightTour && tourStepIndex === 3} targetRef={rankButtonRef} dataTour="nav-rank">
+        {/* Floating Rank target for tour step 2 (index 1) */}
+        <FloatingTourTarget active={rankTourActive} targetRef={rankButtonRef} dataTour="nav-rank">
           <Scale
             className="h-7 w-7 text-primary"
             strokeWidth={2.75}
             style={{
-              // Use design-token primary so it stays on-brand across themes.
               filter:
                 "drop-shadow(0 0 10px hsl(var(--primary) / 0.95)) drop-shadow(0 0 26px hsl(var(--primary) / 0.7))",
             }}
           />
         </FloatingTourTarget>
 
-        {/* Floating Globe target for tour step 6 (index 5) */}
+        {/* Floating Globe target for tour step 4 (index 3) */}
         <FloatingTourTarget active={globeTourActive} targetRef={globeButtonRef} dataTour="nav-globe">
           <Globe
             className="h-7 w-7 text-primary"
@@ -280,7 +280,7 @@ const Dashboard = () => {
           />
         </FloatingTourTarget>
 
-        {/* Floating Shows stat pill target for tour step 5 (index 4) */}
+        {/* Floating Shows stat pill target for tour step 3 (index 2) */}
         <FloatingTourTarget active={showsTourActive} targetRef={showsStatRef} dataTour="stat-shows">
           <div 
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.08] border border-white/20"
@@ -309,73 +309,21 @@ const Dashboard = () => {
           </div>
         </FloatingTourTarget>
 
-        {/* Floating FAB */}
+        {/* Floating FAB - Single tap to add */}
         <div className={cn("relative", showSpotlightTour && "z-[10001]")}>
-          {showFabMenu && (
-            <>
-              {/* Backdrop */}
-              <div 
-                className="fixed inset-0 bg-black/40 z-40"
-                onClick={() => setShowFabMenu(false)}
-              />
-              
-              {/* Menu Options */}
-              <div className={cn(
-                "absolute bottom-16 right-0 flex flex-col gap-3 items-end",
-                showSpotlightTour ? "z-[10001]" : "z-50"
-              )}>
-                {/* Add from Photos */}
-                <button
-                  onClick={() => {
-                    if (showSpotlightTour) return; // Don't trigger during tour
-                    setShowFabMenu(false);
-                    setShowBulkUpload(true);
-                  }}
-                  data-tour="add-photos"
-                  className={cn(
-                    "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
-                    showSpotlightTour && "z-[10001]"
-                  )}
-                >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Camera className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="font-medium whitespace-nowrap">Add from Photos</span>
-                </button>
-                
-                {/* Add Single Show */}
-                <button
-                  onClick={() => {
-                    if (showSpotlightTour) return; // Don't trigger during tour
-                    setShowFabMenu(false);
-                    setShowAddDialog(true);
-                  }}
-                  data-tour="add-single"
-                  className={cn(
-                    "flex items-center gap-3 bg-card border border-border rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-accent transition-colors animate-in fade-in slide-in-from-bottom-2",
-                    showSpotlightTour && "z-[10001]"
-                  )}
-                >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Music className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="font-medium whitespace-nowrap">Add Single Show</span>
-                </button>
-              </div>
-            </>
-          )}
-          
           {/* FAB Button */}
           <button
-            onClick={() => setShowFabMenu(!showFabMenu)}
+            onClick={() => {
+              if (showSpotlightTour) return; // Don't trigger during tour
+              setShowUnifiedAdd(true);
+            }}
             data-tour="fab"
             className={cn(
               "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95",
-              showSpotlightTour ? "z-[10001]" : "z-50",
-              showFabMenu && "rotate-45 bg-white/20"
+              showSpotlightTour ? "z-[10001]" : "z-50"
             )}
           >
-            {showFabMenu ? <X className="h-9 w-9" /> : <Plus className="h-9 w-9" />}
+            <Plus className="h-9 w-9" />
           </button>
         </div>
       </div>
@@ -393,19 +341,17 @@ const Dashboard = () => {
       />
 
       <BulkUploadFlow
-        open={showBulkUpload}
-        onOpenChange={setShowBulkUpload}
+        open={showUnifiedAdd}
+        onOpenChange={setShowUnifiedAdd}
         onNavigateToFeed={() => setActiveTab("home")}
         onNavigateToRank={() => setActiveTab("rank")}
+        onAddManually={() => setShowAddDialog(true)}
       />
 
-      {/* Spotlight Tour */}
+      {/* Spotlight Tour - simplified, no longer needs FAB menu callbacks */}
       <SpotlightTour
         run={showSpotlightTour}
         onComplete={handleSpotlightTourComplete}
-        onOpenFabMenu={() => setShowFabMenu(true)}
-        onCloseFabMenu={() => setShowFabMenu(false)}
-        fabMenuOpen={showFabMenu}
         onStepChange={setTourStepIndex}
       />
 
