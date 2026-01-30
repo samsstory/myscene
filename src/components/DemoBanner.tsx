@@ -14,7 +14,7 @@ const DemoBanner = ({
       initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 2, duration: 0.5, type: "spring" }}
-      className={`fixed bottom-54 left-0 right-0 z-50 flex justify-center px-4 ${className}`}
+      className={`fixed bottom-34 left-0 right-0 z-50 flex justify-center px-4 ${className}`}
     >
       <div className="backdrop-blur-xl bg-white/[0.08] border border-white/20 px-4 py-2 shadow-2xl rounded-2xl max-w-sm">
         <div className="flex items-center gap-3">
