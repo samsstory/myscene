@@ -69,9 +69,12 @@ interface HomeProps {
   initialView?: ViewMode;
   openShowId?: string | null;
   onShowOpened?: () => void;
+  // Tour-related props for Step 5 (Shows stat pill)
+  showsTourActive?: boolean;
+  showsRef?: React.RefObject<HTMLButtonElement>;
 }
 
-const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened }: HomeProps) => {
+const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
@@ -368,7 +371,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
     return (
       <div className="space-y-6">
         {/* Stat Pills */}
-        <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} />
+        <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} showsTourActive={showsTourActive} showsRef={showsRef} />
 
         {/* Ranking Progress Card - Always visible when user has 2+ shows */}
         {shows.length >= 2 && (
