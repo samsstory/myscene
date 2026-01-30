@@ -17,6 +17,7 @@ import StatPills, { StatPill, StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightData, InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
 import RankingProgressCard from "./home/RankingProgressCard";
+import { DemoIncompleteRatingsSheet } from "./home/DemoIncompleteRatingsSheet";
 import { useDemoData } from "@/hooks/useDemoData";
 import { Music, Calendar, Trophy, Globe, Flame } from "lucide-react";
 
@@ -79,6 +80,9 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
   // Photo overlay editor state
   const [directEditShow, setDirectEditShow] = useState<Show | null>(null);
   const [directEditOpen, setDirectEditOpen] = useState(false);
+  
+  // Incomplete ratings sheet state
+  const [incompleteRatingsOpen, setIncompleteRatingsOpen] = useState(false);
 
   // Sync viewMode when initialView prop changes
   useEffect(() => {
@@ -314,12 +318,14 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
           />
         )}
 
-        {/* Dynamic Insights - link rank-tab action to Rank feature */}
+        {/* Dynamic Insights - link actions to features */}
         <DynamicInsight 
           insights={insights} 
           onAction={(action) => {
             if (action === 'rank-tab') {
               onNavigateToRank?.();
+            } else if (action === 'incomplete-ratings') {
+              setIncompleteRatingsOpen(true);
             }
           }}
         />
@@ -666,6 +672,13 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
         }}
         allShows={shows} 
         rankings={rankings} 
+      />
+      
+      {/* Demo Incomplete Ratings Sheet */}
+      <DemoIncompleteRatingsSheet
+        open={incompleteRatingsOpen}
+        onOpenChange={setIncompleteRatingsOpen}
+        shows={shows}
       />
     </div>
   );
