@@ -5,10 +5,12 @@ import { PhotoWithExif, processPhotosWithExif } from "@/lib/exif-utils";
 interface PhotoSelectStepProps {
   onPhotosSelected: (photos: PhotoWithExif[]) => void;
   isProcessing: boolean;
+  onAddManually?: () => void;
 }
 const PhotoSelectStep = ({
   onPhotosSelected,
-  isProcessing
+  isProcessing,
+  onAddManually
 }: PhotoSelectStepProps) => {
   const [selectedPhotos, setSelectedPhotos] = useState<PhotoWithExif[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -83,13 +85,34 @@ const PhotoSelectStep = ({
         </div>}
 
       {/* Initial add button */}
-      {selectedPhotos.length === 0 && <button onClick={() => fileInputRef.current?.click()} disabled={processing} className="w-full h-48 rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 transition-colors">
-          {processing ? <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" /> : <>
-              <ImagePlus className="h-10 w-10 text-muted-foreground" />
-              
-              <span className="text-xs text-muted-foreground">Tap to browse your photo library</span>
-            </>}
-        </button>}
+      {selectedPhotos.length === 0 && (
+        <div className="space-y-4">
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            disabled={processing} 
+            className="w-full h-48 rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 transition-colors"
+          >
+            {processing ? (
+              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <ImagePlus className="h-10 w-10 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Tap to browse your photo library</span>
+              </>
+            )}
+          </button>
+          
+          {/* Escape hatch for manual entry */}
+          {onAddManually && (
+            <button
+              onClick={onAddManually}
+              className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors py-2"
+            >
+              I don't have a photo
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
