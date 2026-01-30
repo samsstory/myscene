@@ -19,6 +19,7 @@ import DynamicInsight, { InsightData, InsightAction } from "./home/DynamicInsigh
 import StackedShowList from "./home/StackedShowList";
 import RankingProgressCard from "./home/RankingProgressCard";
 import { DemoIncompleteRatingsSheet } from "./home/DemoIncompleteRatingsSheet";
+import DemoMissingPhotosSheet from "./home/DemoMissingPhotosSheet";
 import { useDemoData } from "@/hooks/useDemoData";
 import { useDemoMode } from "@/contexts/DemoContext";
 import { Music, Calendar, Trophy, Globe, Flame } from "lucide-react";
@@ -100,6 +101,9 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
   
   // Incomplete ratings sheet state
   const [incompleteRatingsOpen, setIncompleteRatingsOpen] = useState(false);
+  
+  // Missing photos sheet state
+  const [missingPhotosOpen, setMissingPhotosOpen] = useState(false);
 
   // Sync viewMode when initialView prop changes
   useEffect(() => {
@@ -359,10 +363,7 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
             } else if (action === 'incomplete-ratings') {
               setIncompleteRatingsOpen(true);
             } else if (action === 'missing-photos') {
-              // Demo mode - show info that this requires signup
-              import('sonner').then(({ toast }) => {
-                toast.info('Sign up to add photos to your shows!');
-              });
+              setMissingPhotosOpen(true);
             }
           }}
         />
@@ -715,6 +716,13 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
       <DemoIncompleteRatingsSheet
         open={incompleteRatingsOpen}
         onOpenChange={setIncompleteRatingsOpen}
+        shows={shows}
+      />
+      
+      {/* Demo Missing Photos Sheet */}
+      <DemoMissingPhotosSheet
+        open={missingPhotosOpen}
+        onOpenChange={setMissingPhotosOpen}
         shows={shows}
       />
     </div>
