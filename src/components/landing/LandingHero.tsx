@@ -5,7 +5,7 @@ import SceneLogo from "@/components/ui/SceneLogo";
 import PhoneMockup from "./PhoneMockup";
 import WaitlistModal from "./WaitlistModal";
 import { Home, Globe, Crown, Plus } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+
 
 // Collapsed card data with photo backgrounds
 const collapsedCards = [{
@@ -143,7 +143,6 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
   </div>;
 const LandingHero = () => {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   
   return <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -206,7 +205,7 @@ const LandingHero = () => {
 
           {/* Right: Phone Mockup */}
           <div className="flex justify-center lg:justify-start order-2 mt-4 lg:mt-0">
-            <PhoneMockup className="w-56 md:w-72 lg:w-80" tilt={isMobile ? "left" : "none"}>
+            <PhoneMockup className="w-56 md:w-72 lg:w-80">
               <MockShowCard />
             </PhoneMockup>
           </div>
