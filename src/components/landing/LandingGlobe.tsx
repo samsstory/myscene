@@ -351,11 +351,11 @@ const LandingGlobe = ({ selectedYear }: LandingGlobeProps) => {
 
     map.on("style.load", () => {
       map.setFog({
-        color: "hsl(222, 47%, 8%)",
-        "high-color": "hsl(222, 47%, 12%)",
-        "horizon-blend": 0.08,
-        "space-color": "hsl(222, 47%, 4%)",
-        "star-intensity": 0.15,
+        color: "hsl(222, 47%, 11%)",
+        "high-color": "hsl(222, 47%, 11%)",
+        "horizon-blend": 0.02,
+        "space-color": "hsl(222, 47%, 6%)",
+        "star-intensity": 0.12,
       });
 
       map.addSource("city-markers", {
