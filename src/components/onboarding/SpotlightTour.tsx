@@ -8,6 +8,7 @@ interface SpotlightTourProps {
   onOpenFabMenu?: () => void;
   onCloseFabMenu?: () => void;
   fabMenuOpen?: boolean;
+  onStepChange?: (stepIndex: number) => void;
 }
 
 // Custom tooltip component with glassmorphism styling
@@ -76,15 +77,21 @@ const GlassTooltip = ({
   );
 };
 
-const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenuOpen }: SpotlightTourProps) => {
+const SpotlightTour = ({ run, onComplete, onOpenFabMenu, onCloseFabMenu, fabMenuOpen, onStepChange }: SpotlightTourProps) => {
   const [stepIndex, setStepIndex] = useState(0);
 
   // Reset step index when tour starts
   useEffect(() => {
     if (run) {
       setStepIndex(0);
+      onStepChange?.(0);
     }
-  }, [run]);
+  }, [run, onStepChange]);
+
+  // Notify parent when step changes
+  useEffect(() => {
+    onStepChange?.(stepIndex);
+  }, [stepIndex, onStepChange]);
 
   // Detect when user taps FAB to open menu during step 1 - auto-advance
   useEffect(() => {

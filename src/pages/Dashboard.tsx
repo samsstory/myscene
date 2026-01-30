@@ -29,6 +29,10 @@ const Dashboard = () => {
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
+
+  // Only elevate z-index for FAB-related steps (0, 1, 2, 6) - not for nav item steps
+  const shouldElevateNavZ = showSpotlightTour && (tourStepIndex <= 2 || tourStepIndex === 6);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -183,7 +187,7 @@ const Dashboard = () => {
       {/* Floating Navigation */}
       <div className={cn(
         "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4",
-        showSpotlightTour ? "z-[10001]" : "z-50"
+        shouldElevateNavZ ? "z-[10001]" : "z-50"
       )}>
         {/* Left spacer to balance FAB for centering pill */}
         <div className="w-0 shrink-0" />
@@ -331,6 +335,7 @@ const Dashboard = () => {
         onOpenFabMenu={() => setShowFabMenu(true)}
         onCloseFabMenu={() => setShowFabMenu(false)}
         fabMenuOpen={showFabMenu}
+        onStepChange={setTourStepIndex}
       />
 
     </div>
