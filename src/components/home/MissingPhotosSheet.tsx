@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Check, ImagePlus, X, Sparkles, ChevronRight, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Check, ImagePlus, X, Sparkles, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export const MissingPhotosSheet = ({
   const [matches, setMatches] = useState<PhotoShowMatch[]>([]);
   const [saving, setSaving] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
+  const [leaveNakedIds, setLeaveNakedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch shows without photos when sheet opens
@@ -57,6 +59,7 @@ export const MissingPhotosSheet = ({
       setSelectedPhotos([]);
       setMatches([]);
       setActivePhotoIndex(null);
+      setLeaveNakedIds(new Set());
     }
   }, [open]);
 
@@ -179,27 +182,47 @@ export const MissingPhotosSheet = ({
     setActivePhotoIndex(null);
   };
 
-  const markShowAsDeclined = async (showId: string) => {
+  const toggleLeaveNaked = (showId: string) => {
+    setLeaveNakedIds(prev => {
+      const updated = new Set(prev);
+      if (updated.has(showId)) {
+        updated.delete(showId);
+      } else {
+        updated.add(showId);
+      }
+      return updated;
+    });
+  };
+
+  const saveLeaveNakedShows = async () => {
+    if (leaveNakedIds.size === 0) return;
+    
+    setSaving(true);
     try {
       const { error } = await supabase
         .from('shows')
         .update({ photo_declined: true })
-        .eq('id', showId);
+        .in('id', Array.from(leaveNakedIds));
 
       if (error) throw error;
 
       // Remove from local shows list
-      setShows(prev => prev.filter(s => s.id !== showId));
+      setShows(prev => prev.filter(s => !leaveNakedIds.has(s.id)));
       
-      // Remove any matches pointing to this show
+      // Remove any matches pointing to these shows
       setMatches(prev => prev.map(m => 
-        m.assignedShowId === showId ? { ...m, assignedShowId: null } : m
+        m.assignedShowId && leaveNakedIds.has(m.assignedShowId) 
+          ? { ...m, assignedShowId: null } 
+          : m
       ));
 
-      toast.success('Show marked as no photo needed');
+      toast.success(`${leaveNakedIds.size} ${leaveNakedIds.size === 1 ? 'show' : 'shows'} marked as "Leave Naked"`);
+      setLeaveNakedIds(new Set());
     } catch (error) {
-      console.error('Error marking show as declined:', error);
-      toast.error('Failed to update show');
+      console.error('Error marking shows as declined:', error);
+      toast.error('Failed to update shows');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -373,30 +396,56 @@ export const MissingPhotosSheet = ({
 
                   {/* List of shows without photos */}
                   <div className="space-y-2 mt-6">
-                    <h4 className="text-xs uppercase tracking-wider text-white/40 font-medium px-1">
-                      Shows Without Photos
-                    </h4>
-                    {shows.slice(0, 10).map(show => (
-                      <div
-                        key={show.id}
-                        className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-between gap-2"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-white/80 truncate">{show.artistName}</div>
-                          <div className="text-sm text-white/50 truncate">
-                            {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
-                          </div>
-                        </div>
+                    <div className="flex items-center justify-between px-1">
+                      <h4 className="text-xs uppercase tracking-wider text-white/40 font-medium">
+                        Shows Without Photos
+                      </h4>
+                      {leaveNakedIds.size > 0 && (
                         <Button
-                          variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
-                          onClick={() => markShowAsDeclined(show.id)}
+                          variant="outline"
+                          className="h-7 text-xs border-white/20"
+                          onClick={saveLeaveNakedShows}
+                          disabled={saving}
                         >
-                          <EyeOff className="h-4 w-4" />
+                          {saving ? 'Saving...' : `Leave ${leaveNakedIds.size} Naked`}
                         </Button>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+                    <p className="text-xs text-white/40 px-1 mb-2">
+                      Check shows you'll never have a photo for
+                    </p>
+                    {shows.slice(0, 10).map(show => {
+                      const isChecked = leaveNakedIds.has(show.id);
+                      return (
+                        <button
+                          key={show.id}
+                          onClick={() => toggleLeaveNaked(show.id)}
+                          className={cn(
+                            "w-full p-3 rounded-lg flex items-center gap-3 transition-all text-left",
+                            isChecked 
+                              ? "bg-white/[0.08] border border-white/20" 
+                              : "bg-white/[0.03] border border-white/[0.08]"
+                          )}
+                        >
+                          <Checkbox 
+                            checked={isChecked}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className={cn(
+                              "font-medium truncate transition-opacity",
+                              isChecked ? "text-white/50 line-through" : "text-white/80"
+                            )}>
+                              {show.artistName}
+                            </div>
+                            <div className="text-sm text-white/50 truncate">
+                              {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                     {shows.length > 10 && (
                       <p className="text-xs text-white/40 text-center pt-2">
                         And {shows.length - 10} more...
@@ -463,46 +512,30 @@ export const MissingPhotosSheet = ({
                         isSameDay(matches[activePhotoIndex].photo.extractedDate, parseISO(show.showDate));
 
                       return (
-                        <div
+                        <button
                           key={show.id}
+                          onClick={() => assignPhotoToShow(activePhotoIndex, show.id)}
                           className={cn(
-                            "w-full p-3 rounded-lg transition-all flex items-center gap-2",
+                            "w-full p-3 rounded-lg transition-all text-left",
                             "bg-white/[0.03] border border-white/[0.08]",
                             isDateMatch && "border-primary/50 bg-primary/10"
                           )}
                         >
-                          <button
-                            onClick={() => assignPhotoToShow(activePhotoIndex, show.id)}
-                            className="flex-1 text-left"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-medium text-white/80">{show.artistName}</div>
-                                <div className="text-sm text-white/50">
-                                  {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
-                                </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-white/80">{show.artistName}</div>
+                              <div className="text-sm text-white/50">
+                                {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
                               </div>
-                              {isDateMatch && (
-                                <div className="flex items-center gap-1 text-xs text-primary">
-                                  <Sparkles className="h-3 w-3" />
-                                  Date match
-                                </div>
-                              )}
                             </div>
-                          </button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex-shrink-0 text-white/40 hover:text-white/60 h-8 px-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markShowAsDeclined(show.id);
-                            }}
-                            title="Leave naked (won't ask again)"
-                          >
-                            <EyeOff className="h-4 w-4" />
-                          </Button>
-                        </div>
+                            {isDateMatch && (
+                              <div className="flex items-center gap-1 text-xs text-primary">
+                                <Sparkles className="h-3 w-3" />
+                                Date match
+                              </div>
+                            )}
+                          </div>
+                        </button>
                       );
                     })}
                   </div>
