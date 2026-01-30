@@ -47,6 +47,7 @@ const Demo = () => {
               <DemoHome 
                 initialView={activeTab}
                 onViewChange={(view) => setActiveTab(view as ViewMode)}
+                onNavigateToRank={() => setActiveTab('rankings')}
               />
             )}
           </main>
