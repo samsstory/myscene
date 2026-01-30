@@ -170,10 +170,10 @@ const RankingSpotlight = () => {
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
-          }}>Your #1 show, confirmed</h2>
+          }}>Find out which one was actually better</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Head-to-head rankings reveal your true favorites.
+              No more overthinking 1-10 scores. Just pick the winner.
             </p>
 
           </div>
