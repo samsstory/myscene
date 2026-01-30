@@ -33,12 +33,15 @@ const Dashboard = () => {
   const [tourStepIndex, setTourStepIndex] = useState(0);
 
   const rankButtonRef = useRef<HTMLButtonElement | null>(null);
+  const globeButtonRef = useRef<HTMLButtonElement | null>(null);
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
 
   // Only elevate z-index for FAB-related steps (0, 1, 2, 6) - not for nav item steps
   const shouldElevateNavZ = showSpotlightTour && (tourStepIndex <= 2 || tourStepIndex === 6);
   // Step 5 (index 4) targets the Shows stat pill
   const showsTourActive = showSpotlightTour && tourStepIndex === 4;
+  // Step 6 (index 5) targets the Globe icon
+  const globeTourActive = showSpotlightTour && tourStepIndex === 5;
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -221,9 +224,11 @@ const Dashboard = () => {
             {/* Globe */}
             <button
               onClick={() => setActiveTab("globe")}
-              data-tour="nav-globe"
+              ref={globeButtonRef}
+              data-tour={globeTourActive ? undefined : "nav-globe"}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                globeTourActive && "opacity-0",
                 activeTab === "globe" 
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
                   : "text-white/60"
@@ -257,6 +262,18 @@ const Dashboard = () => {
             strokeWidth={2.75}
             style={{
               // Use design-token primary so it stays on-brand across themes.
+              filter:
+                "drop-shadow(0 0 10px hsl(var(--primary) / 0.95)) drop-shadow(0 0 26px hsl(var(--primary) / 0.7))",
+            }}
+          />
+        </FloatingTourTarget>
+
+        {/* Floating Globe target for tour step 6 (index 5) */}
+        <FloatingTourTarget active={globeTourActive} targetRef={globeButtonRef} dataTour="nav-globe">
+          <Globe
+            className="h-7 w-7 text-primary"
+            strokeWidth={2.75}
+            style={{
               filter:
                 "drop-shadow(0 0 10px hsl(var(--primary) / 0.95)) drop-shadow(0 0 26px hsl(var(--primary) / 0.7))",
             }}
