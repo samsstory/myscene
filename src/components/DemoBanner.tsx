@@ -26,15 +26,15 @@ const DemoBanner = ({
               Start Your Collection
             </h3>
             <p className="text-xs text-white/60">
-              Create an account to log your own shows
+              Be among the first to start tracking your shows
             </p>
           </div>
           <Button 
-            onClick={() => navigate("/auth")} 
+            onClick={() => navigate("/")} 
             size="sm" 
             className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-3 text-xs"
           >
-            Sign Up
+            Join Waitlist
           </Button>
         </div>
       </div>
