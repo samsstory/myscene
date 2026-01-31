@@ -6,7 +6,6 @@ import PhoneMockup from "./PhoneMockup";
 import WaitlistModal from "./WaitlistModal";
 import { Home, Globe, Crown, Plus } from "lucide-react";
 
-
 // Collapsed card data with photo backgrounds
 const collapsedCards = [{
   artist: "Odesza",
@@ -144,7 +143,6 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
 const LandingHero = () => {
   const navigate = useNavigate();
   const [waitlistOpen, setWaitlistOpen] = useState(false);
-  
   return <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background glow effects */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20" style={{
@@ -165,9 +163,7 @@ const LandingHero = () => {
             
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-2" style={{
             textShadow: "0 0 60px rgba(255,255,255,0.15)"
-          }}>
-              Your love for concerts deserve more than a ticket stub
-            </h1>
+          }}>Your love for concerts deserves more than a ticket stub</h1>
             
             <p className="text-base md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
               Capture, review, rank, and share your favorite shows with your friends
