@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -68,13 +68,20 @@ export const DemoMissingPhotosSheet = ({
       }));
   }, [allShows]);
 
-  const [shows, setShows] = useState<ShowWithoutPhoto[]>(initialShowsWithoutPhotos);
+  const [shows, setShows] = useState<ShowWithoutPhoto[]>([]);
   const [step, setStep] = useState<Step>('select-photos');
   const [selectedPhotos, setSelectedPhotos] = useState<SelectedPhoto[]>([]);
   const [matches, setMatches] = useState<PhotoShowMatch[]>([]);
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
   const [leaveNakedIds, setLeaveNakedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync shows state with initialShowsWithoutPhotos when it changes (e.g., data loads after mount)
+  useEffect(() => {
+    if (open && step === 'select-photos' && initialShowsWithoutPhotos.length > 0 && shows.length === 0) {
+      setShows(initialShowsWithoutPhotos);
+    }
+  }, [open, step, initialShowsWithoutPhotos, shows.length]);
 
   // Reset state when sheet opens
   const handleOpenChange = (isOpen: boolean) => {
