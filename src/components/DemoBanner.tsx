@@ -34,7 +34,7 @@ const DemoBanner = ({
             size="sm" 
             className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-3 text-xs"
           >
-            Join Waitlist
+            Join Beta
           </Button>
         </div>
       </div>
