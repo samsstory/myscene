@@ -194,7 +194,7 @@ const LandingHeroV2 = () => {
               }} />
               </div>
               <span className="text-sm text-muted-foreground">
-                For people who don't forget their best nights.
+                For people who want to remember their best nights.
               </span>
             </div>
           </div>
