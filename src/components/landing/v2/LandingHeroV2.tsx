@@ -164,7 +164,7 @@ const LandingHeroV2 = () => {
           }}>Your concert life, finally understood</h1>
             
             <p className="text-base md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
-              Capture, review, rank, and share your favorite shows with your friends
+              Scene turns every show you've been to into a living history — so you can discover your #1 show of all time and understand your taste over time.
             </p>
             {/* END V2 COPY */}
 
