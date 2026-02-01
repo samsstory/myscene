@@ -194,7 +194,7 @@ const LandingHeroV2 = () => {
               }} />
               </div>
               <span className="text-sm text-muted-foreground">
-                Be one of the first 50 beta testers
+                For people who don't forget their best nights.
               </span>
             </div>
           </div>
