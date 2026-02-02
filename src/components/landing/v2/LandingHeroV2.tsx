@@ -161,7 +161,7 @@ const LandingHeroV2 = () => {
             {/* V2 COPY - Edit this section to test different variations */}
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-2" style={{
             textShadow: "0 0 60px rgba(255,255,255,0.15)"
-          }}>Collect your favorite concert</h1>
+          }}>Collect your favorite concerts</h1>
             
             <p className="text-base md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
               Scene turns every show you've been to into a living history — so you can discover your #1 show of all time and understand your taste over time.
