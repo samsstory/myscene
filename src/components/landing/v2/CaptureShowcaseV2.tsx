@@ -7,9 +7,11 @@ const tagCategories = [
   {
     label: "The Show",
     tags: [
-      { text: "Surprise song", selected: false },
+      { text: "Speechless..", selected: false },
       { text: "Played the classics", selected: false },
       { text: "Extended encore", selected: false },
+      { text: "Mid tbh", selected: false },
+      { text: "Total miss", selected: false },
     ],
   },
   {
@@ -17,24 +19,26 @@ const tagCategories = [
     tags: [
       { text: "Emotional", selected: true },
       { text: "Crowd went off", selected: true },
-      { text: "Front row energy", selected: false },
-      { text: "Mid tbh", selected: false },
+      { text: "it was ok", selected: false },
     ],
   },
   {
     label: "The Space",
     tags: [
       { text: "Perfect sound", selected: true },
-      { text: "Sweaty basement", selected: false },
+      { text: "Sweaty", selected: false },
       { text: "Beautiful production", selected: false },
+      { text: "Sick venue", selected: false },
+      { text: "Smooth operator", selected: false },
     ],
   },
   {
     label: "The People",
     tags: [
-      { text: "Went with friends", selected: true },
+      { text: "All time squad", selected: true },
       { text: "Everyone sang", selected: false },
       { text: "Felt connected", selected: false },
+      { text: "Not the vibe", selected: false },
     ],
   },
 ];
