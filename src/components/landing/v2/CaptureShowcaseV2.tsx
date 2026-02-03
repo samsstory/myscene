@@ -108,11 +108,11 @@ const ShowReviewMockup = () => (
     </div>
 
     {/* Tag Categories */}
-    <div className="px-3 py-1 space-y-2 flex-1 overflow-hidden">
+    <div className="px-3 py-1 space-y-1.5">
       {tagCategories.map((category) => (
         <div key={category.label}>
           {/* Subtle category label */}
-          <p className="text-white/30 text-[8px] uppercase tracking-wider mb-1">
+          <p className="text-white/30 text-[8px] uppercase tracking-wider mb-0.5">
             {category.label}
           </p>
           {/* Tag grid */}
@@ -126,7 +126,7 @@ const ShowReviewMockup = () => (
     </div>
 
     {/* Freeform Note - Reframed */}
-    <div className="px-3 pb-2">
+    <div className="px-3 py-2">
       <div className="bg-white/[0.03] rounded-lg p-2 border border-white/[0.06]">
         <p className="text-white/40 text-[8px] mb-0.5">My take (optional)</p>
         <p className="text-white/60 text-[10px] leading-relaxed">
@@ -135,36 +135,16 @@ const ShowReviewMockup = () => (
       </div>
     </div>
 
-    {/* Action Buttons - Updated CTAs */}
-    <div className="px-3 pb-1.5 space-y-1.5">
+    {/* Primary CTA only */}
+    <div className="px-3 pb-3">
       <button
-        className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-white text-[10px] font-medium"
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-white text-[10px] font-medium"
         style={{
           background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))",
         }}
       >
         <span>Save this memory</span>
       </button>
-      <button className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/40 text-[9px]">
-        <Instagram className="w-2.5 h-2.5" />
-        <span>Share to Instagram</span>
-      </button>
-      <p className="text-white/30 text-[8px] text-center">Logged on Oct 12, 2024</p>
-    </div>
-
-    {/* Bottom Nav - Glass Pill + FAB */}
-    <div className="px-4 py-2.5 flex items-center justify-center gap-4">
-      <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
-        <Home className="w-4 h-4 text-white/40" />
-        <Globe className="w-4 h-4 text-white/40" />
-        <Crown className="w-4 h-4 text-white/40" />
-      </div>
-      <div
-        className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30"
-        style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.6)" }}
-      >
-        <Plus className="w-4 h-4 text-primary-foreground" />
-      </div>
     </div>
   </div>
 );
