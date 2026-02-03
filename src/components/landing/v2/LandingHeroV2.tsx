@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // Icons removed - no navigation in ceremonial reveal
 
 // Emotional tags for the #1 show
-const emotionalTags = ["Emotional", "Crowd went off", "Surprise set"];
+const emotionalTags = ["Emotional..", "Crowd went off", "Surprise set"];
 
 // Runner-up shows (faded depth stack)
 const runnerUps = [
@@ -79,7 +79,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
       {/* Emotional Tags */}
       <div className="flex flex-wrap gap-2 mt-4 justify-center">
         {emotionalTags.map((tag) => {
-          const isEmphasis = tag === "Emotional";
+          const isEmphasis = tag === "Emotional..";
           return (
             <span
               key={tag}
