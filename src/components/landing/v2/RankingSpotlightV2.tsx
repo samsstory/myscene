@@ -96,8 +96,9 @@ const RankingMockup = () => (
         <ShowCard show={rightShow} />
       </div>
 
-      {/* Interaction hint - reassuring, not instructional */}
+      {/* Interaction hints */}
       <p className="text-white/30 text-[10px]">Tap the show you loved more</p>
+      <p className="text-white/20 text-[9px] underline underline-offset-2 cursor-pointer hover:text-white/30 transition-colors">Can't compare</p>
     </div>
 
     {/* Bottom Nav - Glass Pill + FAB */}
