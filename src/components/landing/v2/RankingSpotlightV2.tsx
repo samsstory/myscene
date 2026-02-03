@@ -1,6 +1,84 @@
 import PhoneMockup from "../PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { Home, Globe, Crown, Plus } from "lucide-react";
+import { motion } from "framer-motion";
+
+// Aurora wave component for dynamic background
+const AuroraWaves = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    {/* Primary cyan wave */}
+    <motion.div
+      className="absolute w-[150%] h-[60%] -left-[25%] top-[20%] rounded-full blur-3xl opacity-20"
+      style={{
+        background: "linear-gradient(90deg, transparent 0%, hsl(189 94% 55%) 30%, hsl(189 94% 55% / 0.5) 50%, hsl(189 94% 55%) 70%, transparent 100%)",
+      }}
+      animate={{
+        x: ["-10%", "10%", "-10%"],
+        y: ["0%", "5%", "0%"],
+        scale: [1, 1.1, 1],
+        rotate: [-5, 5, -5],
+      }}
+      transition={{
+        duration: 12,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+    
+    {/* Secondary coral wave */}
+    <motion.div
+      className="absolute w-[120%] h-[50%] -right-[10%] bottom-[10%] rounded-full blur-3xl opacity-15"
+      style={{
+        background: "linear-gradient(90deg, transparent 0%, hsl(17 88% 60%) 30%, hsl(17 88% 60% / 0.5) 50%, hsl(17 88% 60%) 70%, transparent 100%)",
+      }}
+      animate={{
+        x: ["10%", "-10%", "10%"],
+        y: ["0%", "-5%", "0%"],
+        scale: [1.1, 1, 1.1],
+        rotate: [5, -5, 5],
+      }}
+      transition={{
+        duration: 15,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+    
+    {/* Tertiary purple/violet accent */}
+    <motion.div
+      className="absolute w-[80%] h-[40%] left-[10%] top-[40%] rounded-full blur-3xl opacity-10"
+      style={{
+        background: "linear-gradient(135deg, hsl(280 70% 50%) 0%, hsl(320 70% 50%) 100%)",
+      }}
+      animate={{
+        x: ["-5%", "5%", "-5%"],
+        y: ["5%", "-5%", "5%"],
+        scale: [1, 1.15, 1],
+      }}
+      transition={{
+        duration: 18,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+    
+    {/* Subtle shimmer overlay */}
+    <motion.div
+      className="absolute inset-0"
+      style={{
+        background: "radial-gradient(ellipse at 50% 50%, hsl(189 94% 55% / 0.05) 0%, transparent 50%)",
+      }}
+      animate={{
+        opacity: [0.3, 0.6, 0.3],
+      }}
+      transition={{
+        duration: 4,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+  </div>
+);
 
 // Simplified show data - memory-focused, no analytics
 const leftShow = {
@@ -121,11 +199,11 @@ const RankingMockup = () => (
 const RankingSpotlightV2 = () => {
   return (
     <section className="py-24 md:py-32 relative overflow-hidden">
-      {/* Background accent */}
-      <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-10" 
-        style={{ background: "hsl(var(--primary))" }} 
-      />
+      {/* Aurora background effect */}
+      <AuroraWaves />
+      
+      {/* Dark overlay for contrast */}
+      <div className="absolute inset-0 bg-background/40" />
 
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
