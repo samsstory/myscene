@@ -1,7 +1,6 @@
 import PhoneMockup from "../PhoneMockup";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { Check, MapPin, Home, Globe, Crown, Plus } from "lucide-react";
-
 const SmartCaptureMockup = () => <div className="h-full w-full bg-background flex flex-col">
     {/* Spacer for dynamic island */}
     <div className="h-6" />
@@ -73,7 +72,6 @@ const SmartCaptureMockup = () => <div className="h-full w-full bg-background fle
       </div>
     </div>
   </div>;
-
 const LogShowcaseV2 = () => {
   return <section className="py-24 md:py-32 relative overflow-hidden">
       {/* Background accent */}
@@ -87,9 +85,7 @@ const LogShowcaseV2 = () => {
           <div className="space-y-6 text-center lg:text-left">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
-          }}>
-              Track every show with a single photo
-            </h2>
+          }}>Add any show with a single photo</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
               Scene automatically recognizes the show — turning your camera roll into your concert history.
