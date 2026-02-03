@@ -10,7 +10,7 @@ const tagCategories = [
       { text: "Didn't see that coming", selected: true },
       { text: "Played the classics", selected: false },
       { text: "Took me somewhere", selected: false },
-      { text: "One of a kind", selected: false },
+      { text: "Never seen that before", selected: false },
       { text: "Mid tbh", selected: false },
     ],
   },
