@@ -1,125 +1,155 @@
 
-# Plan: Enable Full Add Show Flow in Demo Mode
+
+# Hero Phone Mockup Redesign: "#1 Show of All Time" Reveal
 
 ## Overview
-Enable demo users to upload photos and go through the complete show creation flow without requiring authentication. Shows created in demo mode will be stored temporarily in local state (not persisted to the database) so users can experience the full product flow before signing up.
 
-## Current State Analysis
-- **Demo mode** currently redirects the FAB (+ button) to the auth page with a "Sign up to add shows" tooltip
-- The **authenticated flow** uses `BulkUploadFlow` for photo-based show creation, which:
-  1. Allows photo selection with EXIF metadata extraction
-  2. Reviews shows with venue auto-detection from GPS
-  3. Uploads to Supabase storage and inserts to database
-  4. Shows success screen with sharing options
-- Demo data is fetched from a specific user's shows via the `get-demo-data` edge function
+Transform the hero phone mockup from a "rankings list" view into a **ceremonial reveal moment** that celebrates the user's #1 show. The design shifts from analytical (numeric scores) to emotional (shareable tags), creating a Spotify Wrapped-like sense of personal discovery.
 
-## Implementation Strategy: Demo-Only Local State
+---
 
-Rather than writing to the production database, demo-created shows will be:
-1. Stored in React context/state during the session
-2. Merged with the existing demo user's shows for display
-3. Cleared on page refresh (ephemeral experience)
+## Current State vs. Target State
 
-This approach:
-- Avoids polluting production data with demo entries
-- Demonstrates the full flow without backend complexity
-- Encourages sign-up to "save" their progress
+| Element | Current | Target |
+|---------|---------|--------|
+| Top card emphasis | Part of a stacked list | **Ceremonial #1 reveal** |
+| Numeric score | White "9.2" badge prominent | **Removed entirely** |
+| Ranking badge | "#1 All Time" small pill | **"Your #1 Show of All Time" headline** |
+| Metadata | Artist + Venue only | Artist + Venue + **Date** |
+| Emotional context | None | **2-3 frosted pill tags** |
+| Secondary cards | 5 collapsed cards with photos | **3-4 faded/blurred runner-ups** |
+| Tone | Dashboard/analytical | Sacred/definitive |
+
+---
+
+## Visual Design Changes
+
+### 1. Page Title Area
+**Replace** the SceneLogo header with a centered, calm headline:
+
+```
+Your #1 Show of All Time
+```
+
+- Styling: `text-[11px]` uppercase, `tracking-widest`, white with subtle `textShadow` glow
+- Positioned below the dynamic island, centered
+- No profile avatar (removes "app UI" feeling)
+
+### 2. Main #1 Card (Hero Moment)
+
+**Layout changes:**
+- Increase aspect ratio to `16/11` for more visual weight
+- Remove the white "9.2" score badge entirely
+- Remove the "#1 All Time" rank pill (redundant with headline)
+- Remove "SCENE ✦" watermark (keep focus on the moment)
+
+**Content overlay redesign:**
+- Artist name: `Fred again..` (bold, 14px, luminous glow)
+- Venue + city: `Alexandra Palace · London` (11px, white/70)
+- Date: `September 2023` (9px, white/40, new addition)
+
+**Photo treatment:**
+- Keep the existing `fred-again-msg.png` image
+- Apply a slightly darker gradient overlay for mood
+- Add subtle vignette effect at edges
+
+### 3. Emotional Tags (New Element)
+
+Add a row of **2-3 frosted pill tags** below the main card metadata:
+
+```tsx
+const emotionalTags = ["Emotional", "Crowd went off", "Surprise set"];
+```
+
+**Tag styling:**
+- Background: `bg-white/[0.08]` with `backdrop-blur-sm`
+- Border: `border-white/[0.12]`
+- Text: `text-[8px]` white/80
+- Padding: `px-2 py-0.5`
+- Subtle glow: `boxShadow: "0 0 8px rgba(255,255,255,0.1)"`
+- Horizontal flex layout with small gaps
+
+### 4. Runner-Up Cards (Depth Stack)
+
+**Replace** the current 5 collapsed cards with **3 faded runner-ups**:
+
+```tsx
+const runnerUps = [
+  { rank: 2, artist: "ODESZA", venue: "The Gorge" },
+  { rank: 3, artist: "Rufus Du Sol", venue: "Red Rocks" },
+  { rank: 4, artist: "Jamie xx", venue: "London" },
+];
+```
+
+**Visual treatment:**
+- Single-line format: `#2 — ODESZA · The Gorge`
+- Progressive opacity fade: 50% → 40% → 30%
+- Remove photo backgrounds (cleaner, less competing)
+- Add subtle blur to bottom cards (`blur-[0.5px]`)
+- Smaller vertical spacing (`mt-[-4px]` or no overlap)
+- Glass background with very low opacity: `bg-white/[0.02]`
+
+### 5. Remove Navigation Elements
+
+**Remove** the bottom nav bar (Home/Globe/Crown icons and FAB):
+- This is a "reveal moment," not an app interface
+- Creates more vertical space for the ceremonial feeling
+- Adds subtle breathing room at bottom
+
+---
+
+## File Changes
+
+### `src/components/landing/v2/LandingHeroV2.tsx`
+
+**Lines 9-40**: Replace `collapsedCards` array with simpler `runnerUps` data
+
+**Lines 42-142**: Rewrite `MockShowCard` component:
+- New header with "Your #1 Show of All Time" text
+- Updated main card without score/rank badges
+- Add emotional tags section
+- Simplified runner-up cards
+- Remove bottom navigation
 
 ---
 
 ## Technical Implementation
 
-### 1. Extend DemoContext with Local Shows State
-**File:** `src/contexts/DemoContext.tsx`
-
-Add state management for demo-created shows:
-- `demoLocalShows`: Array of shows created during the demo session
-- `addDemoShow()`: Function to add a new show to local state
-- `clearDemoShows()`: Function to reset demo shows
-
-### 2. Create Demo-Specific Bulk Upload Hook
-**File:** `src/hooks/useDemoBulkUpload.ts` (new file)
-
-Create a demo version of `useBulkShowUpload` that:
-- Processes photos with EXIF extraction (reuses existing logic)
-- Generates local IDs and blob URLs for photos (no Supabase upload)
-- Creates show objects compatible with the existing Show interface
-- Calls `addDemoShow()` from DemoContext
-- Returns success response mimicking the real flow
-
-### 3. Create Demo Bulk Upload Flow Component
-**File:** `src/components/DemoBulkUploadFlow.tsx` (new file)
-
-A wrapper around the existing bulk upload UI that:
-- Uses the demo-specific upload hook instead of the real one
-- Handles photo storage as local blob URLs (not uploaded)
-- Shows the same success screen with "Sign up to save" CTA
-
-### 4. Update Demo Page to Enable FAB
-**File:** `src/pages/Demo.tsx`
-
-Modify the FAB button to:
-- Open `DemoBulkUploadFlow` instead of redirecting to auth
-- Update tooltip to "Add a show" instead of "Sign up to add shows"
-- Pass demo mode context to the flow
-
-### 5. Update DemoHome to Merge Local Shows
-**File:** `src/components/DemoHome.tsx`
-
-Modify the data display to:
-- Merge `demoLocalShows` from context with fetched demo shows
-- Sort combined list by date (newest first)
-- Display local shows with a subtle "Unsaved" indicator
-
-### 6. Limit Demo Functionality (Optional Guardrails)
-Consider adding:
-- Maximum number of demo shows (e.g., 3-5)
-- Prompt to sign up after adding shows
-- Visual distinction for demo-added shows
+```text
+┌─────────────────────────────────┐
+│        [Dynamic Island]         │
+├─────────────────────────────────┤
+│                                 │
+│   Your #1 Show of All Time      │  ← Centered, uppercase, glowing
+│                                 │
+├─────────────────────────────────┤
+│  ┌───────────────────────────┐  │
+│  │                           │  │
+│  │    [Concert Photo]        │  │  ← Moody, cinematic
+│  │                           │  │
+│  │  Fred again..             │  │  ← Bold, luminous
+│  │  Alexandra Palace·London  │  │
+│  │  September 2023           │  │  ← New: date metadata
+│  └───────────────────────────┘  │
+│                                 │
+│  [Emotional] [Crowd went off]   │  ← Frosted pill tags
+│                                 │
+├─────────────────────────────────┤
+│  #2 — ODESZA · The Gorge        │  ← Faded 50%
+│  #3 — Rufus Du Sol · Red Rocks  │  ← Faded 40%
+│  #4 — Jamie xx · London         │  ← Faded 30%
+│                                 │
+│         [Breathing room]        │  ← No bottom nav
+└─────────────────────────────────┘
+```
 
 ---
 
-## File Changes Summary
+## Design Principles Applied
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/contexts/DemoContext.tsx` | Modify | Add local shows state and management functions |
-| `src/hooks/useDemoBulkUpload.ts` | Create | Demo-specific show upload logic without Supabase |
-| `src/components/DemoBulkUploadFlow.tsx` | Create | Demo wrapper for bulk upload flow |
-| `src/pages/Demo.tsx` | Modify | Enable FAB to open demo bulk upload flow |
-| `src/components/DemoHome.tsx` | Modify | Merge and display locally created shows |
+1. **Ceremonial over functional**: This is a celebration, not a dashboard
+2. **Emotional over analytical**: Tags replace scores
+3. **Singular focus**: One clear #1, everything else recedes
+4. **Quiet confidence**: No busy overlays, no instruction text
+5. **Personal and shareable**: Feels like something you'd screenshot
 
----
-
-## User Experience Flow
-
-1. User taps FAB (+) on demo page
-2. Photo selection screen opens (same as authenticated flow)
-3. User selects photos → EXIF data extracted
-4. Review screen shows with artist/venue inputs
-5. User completes flow → shows added to local state
-6. Success screen appears with:
-   - Option to share/edit photo
-   - Prominent "Sign up to save your shows" CTA
-7. Shows appear in demo feed with "Unsaved" badge
-8. Tapping any demo show prompts sign-up to persist
-
----
-
-## Key Technical Considerations
-
-1. **Photo Storage**: Use local blob URLs (`URL.createObjectURL()`) instead of Supabase storage
-2. **ID Generation**: Use `crypto.randomUUID()` for local show IDs
-3. **Data Shape**: Ensure demo shows match the existing `Show` interface exactly
-4. **Memory Management**: Revoke blob URLs when shows are cleared or page unloads
-5. **State Persistence**: Shows are intentionally NOT persisted across page refreshes
-
----
-
-## Success Criteria
-
-- Users can upload photos and add shows without authentication
-- The flow feels identical to the authenticated experience
-- Demo-created shows appear in the feed immediately
-- Clear indication that shows aren't saved prompts sign-up
-- No data is written to production database from demo mode
