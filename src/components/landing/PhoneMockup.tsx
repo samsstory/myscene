@@ -5,9 +5,10 @@ interface PhoneMockupProps {
   children: ReactNode;
   className?: string;
   tilt?: "left" | "right" | "none";
+  breakoutContent?: ReactNode;
 }
 
-const PhoneMockup = ({ children, className, tilt = "none" }: PhoneMockupProps) => {
+const PhoneMockup = ({ children, className, tilt = "none", breakoutContent }: PhoneMockupProps) => {
   const tiltClasses = {
     left: "rotate-[-8deg]",
     right: "rotate-[8deg]",
@@ -34,6 +35,9 @@ const PhoneMockup = ({ children, className, tilt = "none" }: PhoneMockupProps) =
           {children}
         </div>
       </div>
+      
+      {/* Breakout content - renders outside phone frame for overlap effect */}
+      {breakoutContent}
     </div>
   );
 };
