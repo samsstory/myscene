@@ -36,7 +36,6 @@ const tagCategories = [
     tags: [
       { text: "All time squad", selected: true },
       { text: "Crowd went off", selected: true },
-      { text: "Everyone sang", selected: false },
       { text: "Felt connected", selected: false },
       { text: "Not the vibe", selected: false },
     ],
