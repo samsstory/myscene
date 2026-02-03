@@ -147,7 +147,7 @@ const LandingHeroV2 = () => {
           }}>Collect your favorite concerts</h1>
             
             <p className="text-base md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
-              Compare the shows you've been to and keep the ones that mattered most.
+              Compare the shows you've been to and share the ones that mattered most.
             </p>
             {/* END V2 COPY */}
 
