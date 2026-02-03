@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import SceneLogo from "@/components/ui/SceneLogo";
 import PhoneMockup from "../PhoneMockup";
 import WaitlistModal from "../WaitlistModal";
+import { cn } from "@/lib/utils";
 // Icons removed - no navigation in ceremonial reveal
 
 // Emotional tags for the #1 show
@@ -22,12 +23,9 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
     <div className="h-6" />
 
     {/* Ceremonial headline - replaces app header */}
-    <div className="px-4 py-3 text-center">
-      <span 
-        className="text-[11px] uppercase tracking-widest text-white/90 font-medium"
-        style={{ textShadow: "0 0 20px rgba(255,255,255,0.4)" }}
-      >
-        Your #1 Show of All Time
+    <div className="px-4 py-4 text-center">
+      <span className="text-[11px] tracking-wide text-white/70 font-normal">
+        Your #1 show of all time
       </span>
     </div>
 
@@ -35,8 +33,11 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
     <div className="flex-1 px-3 py-1 flex flex-col min-h-0">
       {/* Hero #1 Card - Fred again.. */}
       <div 
-        className="relative rounded-xl overflow-hidden shadow-lg"
-        style={{ aspectRatio: "16/11" }}
+        className="relative rounded-xl overflow-hidden"
+        style={{ 
+          aspectRatio: "16/11",
+          boxShadow: "0 8px 32px -8px rgba(0,0,0,0.6), 0 4px 16px -4px rgba(0,0,0,0.4)"
+        }}
       >
         {/* Photo with moody treatment */}
         <div 
@@ -61,7 +62,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
         {/* Content overlay - artist, venue, date */}
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <div 
-            className="text-white font-bold text-sm"
+            className="text-white font-bold text-[15px]"
             style={{ textShadow: "0 0 20px rgba(255,255,255,0.5)" }}
           >
             Fred again..
@@ -76,28 +77,35 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
       </div>
 
       {/* Emotional Tags */}
-      <div className="flex flex-wrap gap-1.5 mt-3 justify-center">
-        {emotionalTags.map((tag) => (
-          <span
-            key={tag}
-            className="px-2 py-0.5 rounded-full text-[8px] text-white/80 bg-white/[0.08] backdrop-blur-sm border border-white/[0.12]"
-            style={{ boxShadow: "0 0 8px rgba(255,255,255,0.1)" }}
-          >
-            {tag}
-          </span>
-        ))}
+      <div className="flex flex-wrap gap-2 mt-4 justify-center">
+        {emotionalTags.map((tag) => {
+          const isEmphasis = tag === "Emotional";
+          return (
+            <span
+              key={tag}
+              className={cn(
+                "rounded-full backdrop-blur-sm border",
+                isEmphasis 
+                  ? "px-3 py-1 text-[10px] text-white/95 bg-white/[0.12] border-white/[0.18] font-medium"
+                  : "px-2.5 py-0.5 text-[10px] text-white/80 bg-white/[0.08] border-white/[0.12]"
+              )}
+            >
+              {tag}
+            </span>
+          );
+        })}
       </div>
 
       {/* Runner-up cards - faded depth stack */}
-      <div className="mt-4 space-y-1">
+      <div className="mt-3 space-y-0.5">
         {runnerUps.map((show, index) => {
-          const opacity = 0.5 - (index * 0.1); // 50%, 40%, 30%
-          const blur = index > 0 ? `blur(${index * 0.3}px)` : "none";
+          const opacity = 0.5 - (index * 0.12); // 50%, 38%, 26%
+          const blur = index > 0 ? `blur(${index * 0.4}px)` : "none";
           
           return (
             <div 
               key={show.rank}
-              className="py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05]"
+              className="py-1.5 px-3 rounded-lg bg-white/[0.02] border border-white/[0.04]"
               style={{ 
                 opacity, 
                 filter: blur,
