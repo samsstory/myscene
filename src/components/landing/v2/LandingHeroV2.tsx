@@ -22,10 +22,10 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
     {/* Spacer for dynamic island */}
     <div className="h-6" />
 
-    {/* Ceremonial headline - replaces app header */}
-    <div className="px-4 py-4 text-center">
-      <span className="text-[11px] tracking-wide text-white/70 font-normal">
-        The show that mattered most
+    {/* Quiet reveal caption - not a headline */}
+    <div className="px-4 pt-5 pb-4 text-center">
+      <span className="text-[10px] tracking-wide text-white/50 font-normal">
+        That show.
       </span>
     </div>
 
