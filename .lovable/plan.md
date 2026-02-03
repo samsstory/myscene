@@ -1,10 +1,10 @@
 
 
-# Hero Phone Mockup Refinement: Breakout Card + Emotional Polish
+# Hero Mockup Refinement: Elevated Tags + Calm Authority (No Breakout)
 
 ## Overview
 
-Refine the ceremonial "#1 Show" reveal with a card that visually breaks free of the phone frame, softer tag styling, and improved visual hierarchy—all while maintaining the dark, cinematic Scene aesthetic.
+Refine the ceremonial "#1 Show" reveal by making the emotional tags the clear signal of meaning, improving title styling, and adding subtle authority to the featured card—all while keeping everything inside the phone frame.
 
 ---
 
@@ -12,202 +12,200 @@ Refine the ceremonial "#1 Show" reveal with a card that visually breaks free of 
 
 | Element | Current | Target |
 |---------|---------|--------|
-| Title case | `UPPERCASE + tracking-widest` | **Sentence case, calm, no glow** |
-| Card containment | Inside phone frame | **Breaks out 10-15% at top** |
-| Card size | `aspectRatio: 16/11` | **~5% wider, 6-8% taller** |
-| Artist name | `text-sm` (14px) | **Slightly larger (15-16px)** |
-| Tag styling | Heavy glow, uniform width | **Softer pills, varied widths, "Emotional" emphasized** |
-| Runner-ups | `space-y-1` spacing | **Tighter stack, slightly more blur** |
+| Title style | `UPPERCASE tracking-widest` + glow | **Sentence case, no glow, calm** |
+| Title spacing | `py-3` | **`py-4` for generous breathing room** |
+| Card shadow | `shadow-lg` | **Enhanced depth shadow** |
+| Artist name | `text-sm` (14px) | **`text-[15px]` for more weight** |
+| Tag size | `text-[8px]` | **`text-[10px]` — larger, more legible** |
+| Tag gap | `gap-1.5` | **`gap-2` — more breathing room** |
+| Tag styling | Glow effect, uniform | **No glow, varied padding, "Emotional" emphasized** |
+| Runner-ups | `space-y-1`, `mt-4` | **`space-y-0.5`, `mt-3` — tighter stack** |
 
 ---
 
 ## Technical Implementation
 
-### 1. PhoneMockup Component Changes
+### 1. Title Refinement (Lines 25-32)
 
-The phone frame currently has `overflow-hidden`, which prevents the card from breaking out. We need to restructure so the breakout card renders **outside** the phone's clipping context.
-
-**File: `src/components/landing/PhoneMockup.tsx`**
-
-- Add a new optional prop: `breakoutContent?: ReactNode`
-- This content renders as a sibling to the phone frame (not inside it)
-- Position it with `absolute` positioning to overlap the phone edge
-- Apply a soft drop shadow for depth
-
+**Current:**
 ```tsx
-interface PhoneMockupProps {
-  children: ReactNode;
-  className?: string;
-  tilt?: "left" | "right" | "none";
-  breakoutContent?: ReactNode;  // NEW
-}
+<span 
+  className="text-[11px] uppercase tracking-widest text-white/90 font-medium"
+  style={{ textShadow: "0 0 20px rgba(255,255,255,0.4)" }}
+>
+  Your #1 Show of All Time
+</span>
 ```
 
-**Breakout positioning:**
-- The breakout card will be positioned at approximately `top: 12%` (below dynamic island + title)
-- Overlap the phone edge by ~10-15% of the card height
-- Add `boxShadow: "0 20px 40px -10px rgba(0,0,0,0.5)"` for depth
-
----
-
-### 2. LandingHeroV2 Component Changes
-
-**File: `src/components/landing/v2/LandingHeroV2.tsx`**
-
-#### 2a. Split MockShowCard into Two Parts
-
-Create a new `BreakoutCard` component for the #1 card that renders outside the phone frame:
-
+**Updated:**
 ```tsx
-const BreakoutCard = () => (
-  <div 
-    className="absolute z-30 left-1/2 -translate-x-1/2 w-[105%] rounded-xl overflow-hidden"
-    style={{ 
-      top: "15%",  // Position below title
-      aspectRatio: "16/10",  // Slightly taller
-      boxShadow: "0 25px 50px -12px rgba(0,0,0,0.6)"
-    }}
-  >
-    {/* Photo + overlay content */}
-  </div>
-);
-```
-
-The inner `MockShowCard` will contain:
-- Title ("Your #1 Show of All Time") 
-- Empty spacer where the card would be
-- Emotional tags
-- Runner-up stack
-
-#### 2b. Title Refinement
-
-Change from:
-```tsx
-<span className="text-[11px] uppercase tracking-widest text-white/90 font-medium"
-      style={{ textShadow: "0 0 20px rgba(255,255,255,0.4)" }}>
-```
-
-To:
-```tsx
-<span className="text-[11px] tracking-wide text-white/80 font-normal">
+<span className="text-[11px] tracking-wide text-white/70 font-normal">
   Your #1 show of all time
 </span>
 ```
+
+Changes:
 - Sentence case (only "Your" capitalized)
-- Remove glow (`textShadow`)
-- Lighter weight, calmer presence
-
-#### 2c. Breakout Card Styling
-
-**Size increase:**
-- Width: `w-[105%]` (5% wider than container)
-- Aspect ratio: `16/10` (taller than current 16/11)
-- Position: Overlaps phone top edge by ~10-15%
-
-**Visual treatment:**
-- Slightly stronger contrast: `brightness(0.92) contrast(1.08)`
-- Deeper shadow for lift effect
-- Artist name: `text-[15px]` instead of `text-sm`
-
-#### 2d. Emotional Tags Polish
-
-Current:
-```tsx
-className="px-2 py-0.5 rounded-full text-[8px] text-white/80 bg-white/[0.08] backdrop-blur-sm border border-white/[0.12]"
-style={{ boxShadow: "0 0 8px rgba(255,255,255,0.1)" }}
-```
-
-Updated:
-```tsx
-// Base tag
-className="px-2.5 py-0.5 rounded-full text-[8px] text-white/75 bg-white/[0.06] border border-white/[0.08]"
-// No glow shadow
-
-// "Emotional" tag (emphasized)
-className="px-3 py-0.5 rounded-full text-[8px] text-white/90 bg-white/[0.1] border border-white/[0.12]"
-```
-
-- Softer backgrounds (0.06 instead of 0.08)
-- Remove glow shadows
-- Varied padding for organic feel (`px-2.5`, `px-3`, `px-2`)
-- "Emotional" slightly brighter/larger
-
-#### 2e. Runner-Up Stack Tightening
-
-Current:
-```tsx
-<div className="mt-4 space-y-1">
-```
-
-Updated:
-```tsx
-<div className="mt-3 space-y-0.5">
-```
-
-- Tighter vertical spacing (`space-y-0.5` vs `space-y-1`)
-- Less top margin (`mt-3` vs `mt-4`)
-- Slightly more blur on lower cards: `blur(${index * 0.4}px)`
+- Remove `uppercase` and reduce `tracking-widest` to `tracking-wide`
+- Remove the glowing `textShadow`
+- Softer opacity (`white/70` vs `white/90`)
+- `font-normal` instead of `font-medium`
+- Increase container padding from `py-3` to `py-4` for generous spacing
 
 ---
 
-## Visual Architecture
+### 2. Featured Card Authority (Lines 37-76)
+
+**Card container enhancement:**
+```tsx
+<div 
+  className="relative rounded-xl overflow-hidden"
+  style={{ 
+    aspectRatio: "16/11",
+    boxShadow: "0 8px 32px -8px rgba(0,0,0,0.6), 0 4px 16px -4px rgba(0,0,0,0.4)"
+  }}
+>
+```
+- Replace `shadow-lg` class with a custom multi-layer shadow for realistic depth
+- This creates a subtle "lift" without changing size
+
+**Artist name increase:**
+```tsx
+<div 
+  className="text-white font-bold text-[15px]"
+  style={{ textShadow: "0 0 20px rgba(255,255,255,0.5)" }}
+>
+  Fred again..
+</div>
+```
+- Increase from `text-sm` (14px) to `text-[15px]`
+- Keep the luminous glow on the artist name (it's the focal element)
+
+---
+
+### 3. Emotional Tags — The Core Refinement (Lines 78-89)
+
+This is the critical change. Tags must feel intentional and equal in importance to the artist name.
+
+**Updated tag container:**
+```tsx
+<div className="flex flex-wrap gap-2 mt-4 justify-center">
+```
+- Increase `gap-1.5` to `gap-2` for breathing room
+- Increase `mt-3` to `mt-4` for separation from card
+
+**Updated tag styling with variation:**
+```tsx
+{emotionalTags.map((tag, index) => {
+  // "Emotional" gets emphasis, others are standard
+  const isEmphasis = tag === "Emotional";
+  
+  return (
+    <span
+      key={tag}
+      className={cn(
+        "rounded-full backdrop-blur-sm border",
+        isEmphasis 
+          ? "px-3 py-1 text-[10px] text-white/95 bg-white/[0.12] border-white/[0.18] font-medium"
+          : "px-2.5 py-0.5 text-[10px] text-white/80 bg-white/[0.08] border-white/[0.12]"
+      )}
+    >
+      {tag}
+    </span>
+  );
+})}
+```
+
+Key changes:
+- **Size increase**: `text-[8px]` → `text-[10px]` (25% larger)
+- **Remove glow**: No more `boxShadow` on tags
+- **Varied padding**: 
+  - "Emotional": `px-3 py-1` (emphasized)
+  - Others: `px-2.5 py-0.5`
+- **"Emotional" emphasis**: Brighter background (`0.12`), stronger border, `font-medium`
+- **Softer contrast**: Slightly transparent but clearly legible
+
+---
+
+### 4. Runner-Up Stack Tightening (Lines 91-112)
+
+**Container update:**
+```tsx
+<div className="mt-3 space-y-0.5">
+```
+- Reduce top margin from `mt-4` to `mt-3`
+- Tighten vertical spacing from `space-y-1` to `space-y-0.5`
+
+**Card styling update:**
+```tsx
+<div 
+  key={show.rank}
+  className="py-1.5 px-3 rounded-lg bg-white/[0.02] border border-white/[0.04]"
+  style={{ 
+    opacity: 0.5 - (index * 0.12),  // 50%, 38%, 26%
+    filter: index > 0 ? `blur(${index * 0.4}px)` : "none",
+  }}
+>
+```
+- Reduce vertical padding from `py-2` to `py-1.5`
+- Softer border (`0.04` vs `0.05`)
+- Steeper opacity fade for more depth
+- Slightly more blur (`0.4` vs `0.3` per step)
+
+---
+
+## Visual Hierarchy (ASCII)
 
 ```text
-┌─────────────────────────────────────┐
-│  PhoneMockup container (relative)   │
-│  ┌─────────────────────────────┐    │
-│  │    Phone Frame              │    │
-│  │  ┌───────────────────────┐  │    │
-│  │  │   [Dynamic Island]    │  │    │
-│  │  │                       │  │    │
-│  │  │  Your #1 show of all  │  │    │  ← Sentence case, calm
-│  │  │       time            │  │    │
-│  │  │                       │  │    │
-│  │  │   [Spacer for card]   │  │    │
-│  │  │                       │  │    │
-│  │  │   [Tags]  [Tags]      │  │    │
-│  │  │                       │  │    │
-│  │  │   #2 — ODESZA...      │  │    │
-│  │  │   #3 — Rufus...       │  │    │
-│  │  │   #4 — Jamie...       │  │    │
-│  │  └───────────────────────┘  │    │
-│  └─────────────────────────────┘    │
-│                                     │
-│  ┌─────────────────────────────┐    │
-│  │   BREAKOUT CARD (z-30)     │    │  ← 105% width, overlaps top
-│  │   [Fred again.. photo]      │    │
-│  │   Fred again..              │    │
-│  │   Alexandra Palace · London │    │
-│  │   September 2023            │    │
-│  └─────────────────────────────┘    │
-│        ↑ soft shadow                │
-└─────────────────────────────────────┘
+┌─────────────────────────────────┐
+│        [Dynamic Island]         │
+│                                 │
+│   Your #1 show of all time      │  ← Sentence case, calm, no glow
+│                                 │
+│  ┌───────────────────────────┐  │
+│  │                           │  │
+│  │    [Concert Photo]        │  │  ← Moody, cinematic
+│  │                           │  │
+│  │  Fred again..             │  │  ← 15px, luminous
+│  │  Alexandra Palace·London  │  │
+│  │  September 2023           │  │
+│  └───────────────────────────┘  │
+│        ↑ enhanced shadow        │
+│                                 │
+│  [Emotional] [Crowd went off]   │  ← 10px, prominent
+│         [Surprise set]          │     breathing room
+│                                 │
+│  #2 — ODESZA · The Gorge        │  ← Faded 50%, tight
+│  #3 — Rufus Du Sol · Red Rocks  │  ← Faded 38%, blurred
+│  #4 — Jamie xx · London         │  ← Faded 26%, more blur
+│                                 │
+│         [Breathing room]        │
+└─────────────────────────────────┘
 ```
 
 ---
 
 ## File Changes
 
-### `src/components/landing/PhoneMockup.tsx`
-- Add `breakoutContent` prop
-- Render breakout content as absolute-positioned sibling
-- Keep phone frame with `overflow-hidden`
-
 ### `src/components/landing/v2/LandingHeroV2.tsx`
-- Create `BreakoutCard` component
-- Update `MockShowCard` to leave space for breakout
-- Refine title to sentence case, no glow
-- Polish tag styling with varied widths
-- Tighten runner-up spacing and increase blur
-- Pass breakout card to `PhoneMockup`
+
+| Lines | Change |
+|-------|--------|
+| 25-32 | Title: sentence case, remove glow, increase padding |
+| 37-39 | Card: enhanced shadow for lift |
+| 63-68 | Artist name: increase to `text-[15px]` |
+| 79-89 | Tags: larger text, varied widths, "Emotional" emphasis, remove glow |
+| 92-111 | Runner-ups: tighter spacing, steeper fade, more blur |
+
+No changes needed to `PhoneMockup.tsx` since we're staying inside the frame.
 
 ---
 
 ## Design Principles
 
-1. **Breakout = memory escaping the interface** — not a UI trick, but emotional resonance
-2. **Calm confidence** — sentence case, no glow, no shouting
-3. **Organic tags** — varied widths, soft backgrounds, one emphasized
-4. **Context not competition** — runner-ups fade into supporting texture
-5. **Premium finish** — realistic shadows, subtle contrast, cinematic mood
+1. **Tags = meaning**: Larger, more prominent, equal to artist name in importance
+2. **Calm authority**: No glow tricks, no layout experiments
+3. **Organic variation**: "Emotional" stands out subtly, widths vary naturally
+4. **Depth through fade**: Runner-ups recede into texture, not competition
+5. **Composed finish**: Everything feels intentional and premium
 
