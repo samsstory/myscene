@@ -12,7 +12,6 @@ const tagCategories = [
       { text: "Extended encore", selected: false },
       { text: "One of a kind", selected: false },
       { text: "Mid tbh", selected: false },
-      { text: "Total miss", selected: false },
     ],
   },
   {
@@ -20,14 +19,14 @@ const tagCategories = [
     tags: [
       { text: "Emotional", selected: true },
       { text: "Crowd went off", selected: true },
-      { text: "it was ok", selected: false },
+      { text: "Never hit for me", selected: false },
     ],
   },
   {
     label: "The Space",
     tags: [
       { text: "Perfect sound", selected: true },
-      { text: "Sweaty", selected: false },
+      { text: "Room to dance", selected: false },
       { text: "Beautiful production", selected: false },
       { text: "Sick venue", selected: false },
       { text: "Smooth operator", selected: false },
@@ -39,7 +38,6 @@ const tagCategories = [
     tags: [
       { text: "All time squad", selected: true },
       { text: "Everyone sang", selected: false },
-      { text: "Felt connected", selected: false },
       { text: "Connected Consciousness", selected: false },
       { text: "Not the vibe", selected: false },
     ],
