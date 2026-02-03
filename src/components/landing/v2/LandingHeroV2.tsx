@@ -25,7 +25,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
     {/* Ceremonial headline - replaces app header */}
     <div className="px-4 py-4 text-center">
       <span className="text-[11px] tracking-wide text-white/70 font-normal">
-        Your #1 show of all time
+        The show that mattered most
       </span>
     </div>
 
