@@ -7,7 +7,7 @@ const tagCategories = [
   {
     label: "The Show",
     tags: [
-      { text: "Speechless..", selected: false },
+      { text: "Speechless..", selected: true },
       { text: "Played the classics", selected: false },
       { text: "Extended encore", selected: false },
       { text: "Mid tbh", selected: false },
