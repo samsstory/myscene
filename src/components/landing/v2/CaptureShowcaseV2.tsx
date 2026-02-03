@@ -17,7 +17,7 @@ const tagCategories = [
   {
     label: "The Moment",
     tags: [
-      { text: "Emotional", selected: true },
+      { text: "Got emotional", selected: true },
       { text: "Crowd went off", selected: true },
       { text: "Never hit for me", selected: false },
     ],
