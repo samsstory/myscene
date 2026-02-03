@@ -25,11 +25,10 @@ const tagCategories = [
   {
     label: "The Space",
     tags: [
-      { text: "Perfect sound", selected: true },
+      { text: "Sound was dialed", selected: true },
       { text: "Room to dance", selected: false },
-      { text: "Beautiful production", selected: false },
+      { text: "Insane production", selected: false },
       { text: "Sick venue", selected: false },
-      { text: "Smooth operator", selected: false },
       { text: "Ubers were f**kd", selected: false },
     ],
   },
