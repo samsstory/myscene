@@ -26,7 +26,7 @@ const tagCategories = [
     label: "The Space",
     tags: [
       { text: "Sound was dialed", selected: true },
-      { text: "Room to dance", selected: false },
+      { text: "Space to dance", selected: false },
       { text: "Insane lights", selected: false },
       { text: "Sick venue", selected: false },
       { text: "Ubers were f**kd", selected: false },
