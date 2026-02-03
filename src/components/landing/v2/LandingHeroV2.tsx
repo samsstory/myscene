@@ -170,10 +170,10 @@ const LandingHeroV2 = () => {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2 relative z-20">
               <Button size="lg" onClick={() => setWaitlistOpen(true)} className="text-base px-8 py-5 shadow-glow hover:scale-105 transition-transform">
-                Find Your #1 Show
+                Start Your Collection
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate("/demo")} className="text-base px-8 py-5 border-white/20 text-foreground hover:bg-white/10">
-                Try Live Demo
+                See a Live Demo
               </Button>
             </div>
 
@@ -193,7 +193,7 @@ const LandingHeroV2 = () => {
               }} />
               </div>
               <span className="text-sm text-muted-foreground">
-                For people who want to remember their best nights.
+                For people who care which shows mattered
               </span>
             </div>
           </div>
