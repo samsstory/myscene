@@ -20,6 +20,7 @@ const tagCategories = [
       { text: "Never hit for me", selected: false },
       { text: "Chills", selected: false },
       { text: "Was locked in", selected: false },
+      { text: "Core memory", selected: false },
     ],
   },
   {
