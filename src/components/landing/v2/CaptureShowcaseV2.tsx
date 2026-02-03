@@ -37,7 +37,7 @@ const tagCategories = [
     tags: [
       { text: "All time squad", selected: true },
       { text: "Everyone sang", selected: false },
-      { text: "Connected Consciousness", selected: false },
+      { text: "Felt connected", selected: false },
       { text: "Not the vibe", selected: false },
     ],
   },
