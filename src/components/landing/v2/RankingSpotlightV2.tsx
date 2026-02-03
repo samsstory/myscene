@@ -168,7 +168,7 @@ const RankingSpotlightV2 = () => {
           }}>Choose your favorite. We'll do the ranking.</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              No more 1-10 scores, just pick the winner
+              No scores. No overthinking. Just choose the show you loved more.
             </p>
             {/* END V2 COPY */}
           </div>
