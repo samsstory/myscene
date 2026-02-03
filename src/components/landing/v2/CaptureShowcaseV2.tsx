@@ -17,7 +17,6 @@ const tagCategories = [
     label: "The Moment",
     tags: [
       { text: "Got emotional", selected: true },
-      { text: "Crowd went off", selected: true },
       { text: "Never hit for me", selected: false },
       { text: "Chills", selected: false },
       { text: "Was locked in", selected: false },
@@ -36,6 +35,7 @@ const tagCategories = [
     label: "The People",
     tags: [
       { text: "All time squad", selected: true },
+      { text: "Crowd went off", selected: true },
       { text: "Everyone sang", selected: false },
       { text: "Felt connected", selected: false },
       { text: "Not the vibe", selected: false },
