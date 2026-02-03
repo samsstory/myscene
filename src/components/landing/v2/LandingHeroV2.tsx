@@ -180,7 +180,7 @@ const LandingHeroV2 = () => {
             <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} source="hero-v2" />
 
             {/* Social proof */}
-            <div className="flex items-center gap-3 justify-center lg:justify-start pt-2">
+            <div className="items-center gap-3 justify-center lg:justify-start pt-2 flex flex-col">
               <div className="flex -space-x-2">
                 <div className="w-8 h-8 rounded-full border-2 border-background bg-cover bg-center" style={{
                 backgroundImage: "url('/images/waitlist-1.png')"
