@@ -30,6 +30,7 @@ const tagCategories = [
       { text: "Beautiful production", selected: false },
       { text: "Sick venue", selected: false },
       { text: "Smooth operator", selected: false },
+      { text: "Ubers were f**kd", selected: false },
     ],
   },
   {
