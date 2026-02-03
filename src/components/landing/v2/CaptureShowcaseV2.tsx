@@ -27,7 +27,7 @@ const tagCategories = [
     tags: [
       { text: "Sound was dialed", selected: true },
       { text: "Room to dance", selected: false },
-      { text: "Insane production", selected: false },
+      { text: "Insane lights", selected: false },
       { text: "Sick venue", selected: false },
       { text: "Ubers were f**kd", selected: false },
     ],
