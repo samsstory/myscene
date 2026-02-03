@@ -9,7 +9,7 @@ const tagCategories = [
     tags: [
       { text: "Speechless..", selected: true },
       { text: "Played the classics", selected: false },
-      { text: "Extended encore", selected: false },
+      { text: "It was a journey", selected: false },
       { text: "One of a kind", selected: false },
       { text: "Mid tbh", selected: false },
     ],
