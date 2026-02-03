@@ -181,7 +181,7 @@ const CaptureShowcaseV2 = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Tap what made the night. No Scores. No sliders.
+              Tap what made the night, or didn't.
             </p>
             {/* END V2 COPY */}
           </div>
