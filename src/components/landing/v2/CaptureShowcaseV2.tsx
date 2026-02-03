@@ -20,6 +20,9 @@ const tagCategories = [
       { text: "Got emotional", selected: true },
       { text: "Crowd went off", selected: true },
       { text: "Never hit for me", selected: false },
+      { text: "Chills", selected: false },
+      { text: "Hit way harder live", selected: false },
+      { text: "Was locked in", selected: false },
     ],
   },
   {
