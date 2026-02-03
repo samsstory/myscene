@@ -7,7 +7,11 @@ import WaitlistModal from "../WaitlistModal";
 // Icons removed - no navigation in ceremonial reveal
 
 // Emotional tags for the #1 show
-const emotionalTags = ["Emotional", "Crowd went off", "Surprise set"];
+const emotionalTags = [
+  { label: "Emotional", emphasized: true },
+  { label: "Crowd went off", emphasized: false },
+  { label: "Surprise set", emphasized: false },
+];
 
 // Runner-up shows (faded depth stack)
 const runnerUps = [
@@ -16,105 +20,115 @@ const runnerUps = [
   { rank: 4, artist: "Jamie xx", venue: "London" },
 ];
 
-// Mock show card for the phone display - Ceremonial #1 Reveal
-const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex flex-col">
+// Breakout card that renders outside the phone frame
+const BreakoutCard = () => (
+  <div 
+    className="absolute z-30 left-1/2 -translate-x-1/2 rounded-xl overflow-hidden"
+    style={{ 
+      top: "14%",
+      width: "105%",
+      aspectRatio: "16/10",
+      boxShadow: "0 25px 50px -12px rgba(0,0,0,0.6), 0 10px 20px -5px rgba(0,0,0,0.4)"
+    }}
+  >
+    {/* Photo with moody treatment */}
+    <div 
+      className="absolute inset-0" 
+      style={{
+        backgroundImage: "url('/images/fred-again-msg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        filter: "brightness(0.92) contrast(1.08)"
+      }} 
+    />
+    {/* Darker gradient overlay for mood */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
+    {/* Vignette effect */}
+    <div 
+      className="absolute inset-0" 
+      style={{ 
+        boxShadow: "inset 0 0 80px rgba(0,0,0,0.5)" 
+      }} 
+    />
+    
+    {/* Content overlay - artist, venue, date */}
+    <div className="absolute bottom-0 left-0 right-0 p-3.5">
+      <div 
+        className="text-white font-bold text-[15px]"
+        style={{ textShadow: "0 0 20px rgba(255,255,255,0.5)" }}
+      >
+        Fred again..
+      </div>
+      <div className="text-white/70 text-[11px]">
+        Alexandra Palace · London
+      </div>
+      <div className="text-white/40 text-[9px] mt-0.5">
+        September 2023
+      </div>
+    </div>
+  </div>
+);
+
+// Mock show card for the phone display - Ceremonial #1 Reveal (without the main card)
+const MockShowCard = () => (
+  <div className="h-full w-full bg-gradient-accent flex flex-col">
     {/* Spacer for dynamic island */}
     <div className="h-6" />
 
-    {/* Ceremonial headline - replaces app header */}
+    {/* Ceremonial headline - sentence case, calm */}
     <div className="px-4 py-3 text-center">
-      <span 
-        className="text-[11px] uppercase tracking-widest text-white/90 font-medium"
-        style={{ textShadow: "0 0 20px rgba(255,255,255,0.4)" }}
-      >
-        Your #1 Show of All Time
+      <span className="text-[11px] tracking-wide text-white/80 font-normal">
+        Your #1 show of all time
       </span>
     </div>
 
-    {/* Main content area */}
-    <div className="flex-1 px-3 py-1 flex flex-col min-h-0">
-      {/* Hero #1 Card - Fred again.. */}
-      <div 
-        className="relative rounded-xl overflow-hidden shadow-lg"
-        style={{ aspectRatio: "16/11" }}
-      >
-        {/* Photo with moody treatment */}
-        <div 
-          className="absolute inset-0" 
-          style={{
-            backgroundImage: "url('/images/fred-again-msg.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "brightness(0.95) contrast(1.05)"
-          }} 
-        />
-        {/* Darker gradient overlay for mood */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
-        {/* Vignette effect */}
-        <div 
-          className="absolute inset-0" 
-          style={{ 
-            boxShadow: "inset 0 0 60px rgba(0,0,0,0.4)" 
-          }} 
-        />
-        
-        {/* Content overlay - artist, venue, date */}
-        <div className="absolute bottom-0 left-0 right-0 p-3">
-          <div 
-            className="text-white font-bold text-sm"
-            style={{ textShadow: "0 0 20px rgba(255,255,255,0.5)" }}
-          >
-            Fred again..
-          </div>
-          <div className="text-white/70 text-[11px]">
-            Alexandra Palace · London
-          </div>
-          <div className="text-white/40 text-[9px] mt-0.5">
-            September 2023
-          </div>
-        </div>
-      </div>
+    {/* Spacer for breakout card */}
+    <div style={{ aspectRatio: "16/9" }} className="mx-3" />
 
-      {/* Emotional Tags */}
-      <div className="flex flex-wrap gap-1.5 mt-3 justify-center">
-        {emotionalTags.map((tag) => (
-          <span
-            key={tag}
-            className="px-2 py-0.5 rounded-full text-[8px] text-white/80 bg-white/[0.08] backdrop-blur-sm border border-white/[0.12]"
-            style={{ boxShadow: "0 0 8px rgba(255,255,255,0.1)" }}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      {/* Runner-up cards - faded depth stack */}
-      <div className="mt-4 space-y-1">
-        {runnerUps.map((show, index) => {
-          const opacity = 0.5 - (index * 0.1); // 50%, 40%, 30%
-          const blur = index > 0 ? `blur(${index * 0.3}px)` : "none";
-          
-          return (
-            <div 
-              key={show.rank}
-              className="py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05]"
-              style={{ 
-                opacity, 
-                filter: blur,
-              }}
-            >
-              <span className="text-[9px] text-white/60">
-                #{show.rank} — {show.artist} · {show.venue}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+    {/* Emotional Tags - softer, varied widths */}
+    <div className="flex flex-wrap gap-1.5 mt-3 justify-center px-3">
+      {emotionalTags.map((tag) => (
+        <span
+          key={tag.label}
+          className={
+            tag.emphasized
+              ? "px-3 py-0.5 rounded-full text-[8px] text-white/90 bg-white/[0.1] border border-white/[0.12]"
+              : "px-2.5 py-0.5 rounded-full text-[8px] text-white/75 bg-white/[0.06] border border-white/[0.08]"
+          }
+        >
+          {tag.label}
+        </span>
+      ))}
     </div>
 
-    {/* Breathing room at bottom - no navigation */}
-    <div className="h-6" />
-  </div>;
+    {/* Runner-up cards - tighter stack, more blur */}
+    <div className="mt-3 space-y-0.5 px-3">
+      {runnerUps.map((show, index) => {
+        const opacity = 0.5 - (index * 0.1); // 50%, 40%, 30%
+        const blur = index > 0 ? `blur(${index * 0.4}px)` : "none";
+        
+        return (
+          <div 
+            key={show.rank}
+            className="py-1.5 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05]"
+            style={{ 
+              opacity, 
+              filter: blur,
+            }}
+          >
+            <span className="text-[9px] text-white/60">
+              #{show.rank} — {show.artist} · {show.venue}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* Breathing room at bottom */}
+    <div className="flex-1" />
+  </div>
+);
+
 const LandingHeroV2 = () => {
   const navigate = useNavigate();
   const [waitlistOpen, setWaitlistOpen] = useState(false);
@@ -173,9 +187,12 @@ const LandingHeroV2 = () => {
             </div>
           </div>
 
-          {/* Right: Phone Mockup */}
+          {/* Right: Phone Mockup with Breakout Card */}
           <div className="flex justify-center lg:justify-start order-2 mt-4 lg:mt-0">
-            <PhoneMockup className="w-56 md:w-72 lg:w-80">
+            <PhoneMockup 
+              className="w-56 md:w-72 lg:w-80"
+              breakoutContent={<BreakoutCard />}
+            >
               <MockShowCard />
             </PhoneMockup>
           </div>
