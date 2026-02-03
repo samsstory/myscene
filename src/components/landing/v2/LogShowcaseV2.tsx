@@ -92,7 +92,7 @@ const LogShowcaseV2 = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Add one or multiple shows at a time
+              Scene automatically recognizes the show — turning your camera roll into your concert history.
             </p>
             {/* END V2 COPY */}
           </div>
