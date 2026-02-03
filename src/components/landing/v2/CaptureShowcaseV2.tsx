@@ -136,7 +136,7 @@ const CaptureShowcaseV2 = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Rate the sound, crowd, vibe, and even add that funny thing your friend said
+              Tap what made the night — no scores, no sliders
             </p>
             {/* END V2 COPY */}
           </div>
