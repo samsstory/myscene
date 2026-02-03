@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // Icons removed - no navigation in ceremonial reveal
 
 // Emotional tags for the #1 show
-const emotionalTags = ["Emotional..", "Crowd went off", "Surprise set"];
+const emotionalTags = ["Emotional..", "Crowd went off", "Venue was insane!"];
 
 // Runner-up shows (faded depth stack)
 const runnerUps = [
