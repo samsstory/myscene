@@ -1,192 +1,137 @@
 
-# Redesign: Tag-Based Memory Capture Screen
+# Ranking Section Mockup Redesign
 
-## Overview
-Transform the phone mockup in `CaptureShowcaseV2.tsx` from a numerical rating system to an expressive, tag-based memory capture experience. The redesign shifts the tone from "reviewing" to "remembering."
+## Objective
+Transform the Ranking section from an analytical, gamified UI into an emotional, memory-driven experience that communicates Scene's core mechanic: simple instinctive choices that reveal taste without effort.
 
 ---
 
-## Visual Structure
+## Changes Overview
 
-```text
-┌─────────────────────────────────────┐
-│  [Dynamic Island Spacer]            │
-├─────────────────────────────────────┤
-│  ┌─────────────────────────────────┐│
-│  │                                 ││
-│  │     [PHOTO - Rufus Du Sol]      ││
-│  │                                 ││
-│  │  ┌─Scene Logo─┐                 ││
-│  │  └────────────┘                 ││
-│  │                                 ││
-│  │  ┌─────────────────────────────┐││
-│  │  │ Rufus Du Sol                │││
-│  │  │ Red Rocks Amphitheatre      │││  ← No score, no rank
-│  │  │ September 14, 2024          │││
-│  │  └─────────────────────────────┘││
-│  └─────────────────────────────────┘│
-├─────────────────────────────────────┤
-│  What stood out?                    │  ← Friendly, conversational
-│  Pick what made the night.          │  ← Subtle helper
-├─────────────────────────────────────┤
-│  The Show                           │  ← Lightweight category label
-│  ┌─────────┐ ┌───────────────┐     │
-│  │Surprise │ │Played classics│     │  ← Pill tags
-│  │ song ✓  │ └───────────────┘     │
-│  └─────────┘ ┌────────────┐        │
-│              │Extended    │        │
-│              │encore      │        │
-│              └────────────┘        │
-├─────────────────────────────────────┤
-│  The Moment                         │
-│  ┌─────────┐ ┌───────────┐         │
-│  │Emotional│ │Crowd went │         │
-│  │   ✓     │ │off  ✓     │         │
-│  └─────────┘ └───────────┘         │
-│  ┌─────────────┐ ┌──────────┐      │
-│  │Front row    │ │ Mid tbh  │      │
-│  │energy       │ └──────────┘      │
-│  └─────────────┘                   │
-├─────────────────────────────────────┤
-│  The Space                          │
-│  ┌──────────┐ ┌─────────────┐      │
-│  │Sweaty    │ │Perfect      │      │
-│  │basement  │ │sound ✓      │      │
-│  └──────────┘ └─────────────┘      │
-│  ┌───────────────┐                 │
-│  │Beautiful      │                 │
-│  │production     │                 │
-│  └───────────────┘                 │
-├─────────────────────────────────────┤
-│  The People                         │
-│  ┌──────────┐ ┌─────────────┐      │
-│  │Went with │ │Everyone     │      │
-│  │friends ✓ │ │sang         │      │
-│  └──────────┘ └─────────────┘      │
-├─────────────────────────────────────┤
-│  ┌─────────────────────────────────┐│
-│  │ "The sunrise set was unreal."  ││  ← Freeform note
-│  │  My take (optional)            ││
-│  └─────────────────────────────────┘│
-├─────────────────────────────────────┤
-│  ┌─────────────────────────────────┐│
-│  │      Save this memory           ││  ← Primary CTA
-│  └─────────────────────────────────┘│
-│  ┌─────────────────────────────────┐│
-│  │   Share to Instagram (subtle)   ││  ← De-emphasized
-│  └─────────────────────────────────┘│
-│  Logged on Oct 12, 2024            │
-├─────────────────────────────────────┤
-│        [Bottom Navigation]          │
-└─────────────────────────────────────┘
+### 1. Copy Updates
+
+**Headline** (already implemented - needs line break)
+```
+Choose your favorite.
+We'll do the ranking.
+```
+- Add line break between the two sentences using `<br />` or separate elements
+
+**Subheadline** (already implemented - no changes needed)
+```
+No scores. No overthinking. Just choose the show you loved more.
 ```
 
----
-
-## Implementation Details
-
-### 1. Show Card (Top Anchor) - Simplified
-**Remove:**
-- Numeric score badge (9.4)
-- "#1 All Time" ranking text
-- Right-aligned score section
-
-**Keep:**
-- Photo with gradient overlay
-- Scene watermark
-- Glass metadata bar with artist, venue, date only
-
-### 2. Replace Rating Section with Tag System
-
-**Section Header:**
-- "What stood out?" - friendly, not bold (`text-white/60 text-[10px] font-normal`)
-- Helper text: "Pick what made the night." - subtle (`text-white/40 text-[8px]`)
-
-**Tag Categories (4 total):**
-
-| Category | Example Tags |
-|----------|-------------|
-| The Show | Surprise song, Played the classics, Extended encore |
-| The Moment | Emotional, Crowd went off, Mid tbh, Front row energy |
-| The Space | Sweaty basement, Perfect sound, Beautiful production |
-| The People | Went with friends, Everyone sang, Met someone new, Felt connected |
-
-**Tag Styling:**
-
-```text
-Unselected:
-- bg-white/[0.03]
-- border border-white/[0.08]
-- text-white/50
-- text-[8px]
-- rounded-full px-2 py-0.5
-
-Selected:
-- background: linear-gradient (primary to secondary at 20% opacity)
-- border-primary/40
-- text-white/80
-- slight scale transform (scale-[1.02])
-- subtle glow shadow
+**New: Micro-prompt above cards**
 ```
-
-**Pre-selected tags for mockup visual:**
-- "Emotional" (The Moment)
-- "Crowd went off" (The Moment)  
-- "Perfect sound" (The Space)
-- "Went with friends" (The People)
-
-### 3. Freeform Note Section
-- Remove italic styling and quotes
-- Label: "My take (optional)" - subtle text-white/40
-- Placeholder visible: "The sunrise set was unreal."
-- Simple glass container, same as current
-
-### 4. CTAs
-**Primary:**
-- Text: "Save this memory"
-- Keep gradient background
-- Emotion-forward styling
-
-**Secondary:**
-- "Share to Instagram" 
-- More subtle: reduce opacity, smaller text
-- Remove from primary visual flow
-
-### 5. Remove Instagram Emphasis
-- Keep the button but make it more subtle
-- text-white/40 instead of text-white/70
-- Optional: remove icon or shrink it
+Which night meant more?
+```
+- Styled as light, secondary copy (small, muted color)
+- Positioned above the comparison cards inside the phone mockup
 
 ---
 
-## File Changes
+### 2. Remove Analytical UI Elements
 
-### `src/components/landing/v2/CaptureShowcaseV2.tsx`
+Remove from the phone mockup:
+- **Progress bar** (lines 109-113) - the cyan progress indicator
+- **MiniRatingBar component** (lines 6-22) - entire component can be removed
+- **Ratings display in ShowCard** (lines 70-76) - the sound/crowd/lighting bars
+- **Notes section in ShowCard** (lines 78-81) - the quoted notes
 
-1. **Define tag data structure** at top of file with categories and selection states
-2. **Modify ShowReviewMockup component:**
-   - Remove score badge and ranking from metadata bar
-   - Replace rating bars with tag grid system
-   - Update note section styling
-   - Update CTA text
-   - De-emphasize share button
-
----
-
-## Styling Approach
-
-The design follows Scene's brand aesthetic:
-- Dark background with subtle glass containers
-- Cyan-to-coral gradient for selected states (at low opacity)
-- White text with varying opacity levels for hierarchy
-- Rounded pill shapes for tags
-- No bold dividers - subtle category labels only
+Remove from data:
+- `ratings` object from show data
+- `notes` field from show data
 
 ---
 
-## Technical Notes
+### 3. Simplified ShowCard Component
 
-- This is a **static mockup** - no actual state management needed
-- Pre-select ~4 tags visually to show the "filled" state
-- Keep layout compact to fit within phone mockup viewport
-- Maintain existing bottom navigation and FAB styling
+Each card will show only:
+| Element | Style |
+|---------|-------|
+| Large photo | Primary focus, larger aspect ratio (e.g., 3:4 or 1:1 for more immersion) |
+| Artist name | White, semibold, slightly larger |
+| Venue + City | Muted, small |
+| Date | Muted, small (same line as venue) |
+
+Update show data to include city:
+- Left: "The Gorge, WA"
+- Right: "Red Rocks, CO"
+
+---
+
+### 4. VS Indicator Styling
+
+Current: `w-10 h-10` with gradient background and bold text
+Updated:
+- Smaller size: `w-8 h-8`
+- Subtler styling: reduce border opacity, softer glow
+- Smaller text: `text-[10px]`
+- Keep the VS but make it feel like a gentle separator, not a competition badge
+
+---
+
+### 5. Interaction Cue Update
+
+Current text: "Tap to choose the winner"
+New text: "Tap the show you loved more"
+
+Styling:
+- Small (`text-[10px]`)
+- Neutral/muted (`text-white/30`)
+- Reassuring, not instructional
+
+---
+
+### 6. Visual Hierarchy in Phone Mockup
+
+Final order (top to bottom):
+1. Scene logo (keep as is)
+2. **Micro-prompt**: "Which night meant more?" - new addition
+3. **Comparison cards** - larger, cleaner, more immersive
+4. **Interaction hint**: "Tap the show you loved more" - subtle
+
+---
+
+## Technical Implementation
+
+### Files to Modify
+- `src/components/landing/v2/RankingSpotlightV2.tsx`
+
+### Code Changes
+
+1. **Delete `MiniRatingBar` component** (lines 5-22)
+
+2. **Simplify show data** (lines 24-48)
+   - Remove `ratings` and `notes` fields
+   - Add `city` field to venue
+
+3. **Redesign `ShowCard` component** (lines 50-83)
+   - Larger photo (change aspect ratio to 1:1 or 4:5)
+   - Remove ratings section
+   - Remove notes section
+   - Display venue with city
+   - Cleaner, more minimal card styling
+
+4. **Update `RankingMockup` component** (lines 85-146)
+   - Remove progress bar (lines 109-113)
+   - Add micro-prompt "Which night meant more?" above cards
+   - Make VS badge smaller and subtler
+   - Update interaction hint text
+
+5. **Update headline in outer section** (lines 166-168)
+   - Add line break between sentences
+
+---
+
+## Expected Result
+
+The mockup will feel like comparing two memories side-by-side:
+- Clean, photo-forward cards
+- No analytical data (ratings, progress, categories)
+- Subtle VS indicator
+- Gentle interaction prompt
+- Calm, confident, effortless emotional tone
+
+This aligns with the design philosophy: "revealing taste without effort."
