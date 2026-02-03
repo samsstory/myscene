@@ -165,7 +165,7 @@ const RankingSpotlightV2 = () => {
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
-          }}>Rank to uncover your true favorites</h2>
+          }}>Choose your favorite. We'll do the ranking.</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
               No more 1-10 scores, just pick the winner
