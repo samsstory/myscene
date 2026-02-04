@@ -101,7 +101,7 @@ const ShareExperienceV2 = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              Post your concert memories with one tap — beautifully styled for sharing
+              Turn your favorite shows into stories worth sharing
             </p>
             {/* END V2 COPY */}
           </div>
