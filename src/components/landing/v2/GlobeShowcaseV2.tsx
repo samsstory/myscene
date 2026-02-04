@@ -124,7 +124,7 @@ const GlobeShowcaseV2 = () => {
           }}>See everywhere music has taken you</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              A living record of the places music mattered most
+              A living record of the places music mattered most to you
             </p>
             {/* END V2 COPY */}
           </div>
