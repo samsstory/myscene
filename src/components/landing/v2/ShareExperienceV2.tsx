@@ -77,7 +77,7 @@ const StoryMockup = () => <div className="h-full w-full relative bg-black">
         <p className="text-white/60 text-[10px] italic mt-2" style={{
           textShadow: "0 1px 3px rgba(0,0,0,0.5)"
         }}>
-          "Sunrise set was unreal."
+          "I didn't know that was possible with sound"
         </p>
       </div>
     </div>
