@@ -4,81 +4,59 @@ import { Home, Globe, Crown, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
 // Aurora wave component for dynamic background
-const AuroraWaves = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+const AuroraWaves = () => <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {/* Primary cyan wave */}
-    <motion.div
-      className="absolute w-[150%] h-[60%] -left-[25%] top-[20%] rounded-full blur-3xl opacity-20"
-      style={{
-        background: "linear-gradient(90deg, transparent 0%, hsl(189 94% 55%) 30%, hsl(189 94% 55% / 0.5) 50%, hsl(189 94% 55%) 70%, transparent 100%)",
-      }}
-      animate={{
-        x: ["-10%", "10%", "-10%"],
-        y: ["0%", "5%", "0%"],
-        scale: [1, 1.1, 1],
-        rotate: [-5, 5, -5],
-      }}
-      transition={{
-        duration: 12,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
+    <motion.div className="absolute w-[150%] h-[60%] -left-[25%] top-[20%] rounded-full blur-3xl opacity-20" style={{
+    background: "linear-gradient(90deg, transparent 0%, hsl(189 94% 55%) 30%, hsl(189 94% 55% / 0.5) 50%, hsl(189 94% 55%) 70%, transparent 100%)"
+  }} animate={{
+    x: ["-10%", "10%", "-10%"],
+    y: ["0%", "5%", "0%"],
+    scale: [1, 1.1, 1],
+    rotate: [-5, 5, -5]
+  }} transition={{
+    duration: 12,
+    repeat: Infinity,
+    ease: "easeInOut"
+  }} />
     
     {/* Secondary coral wave */}
-    <motion.div
-      className="absolute w-[120%] h-[50%] -right-[10%] bottom-[10%] rounded-full blur-3xl opacity-15"
-      style={{
-        background: "linear-gradient(90deg, transparent 0%, hsl(17 88% 60%) 30%, hsl(17 88% 60% / 0.5) 50%, hsl(17 88% 60%) 70%, transparent 100%)",
-      }}
-      animate={{
-        x: ["10%", "-10%", "10%"],
-        y: ["0%", "-5%", "0%"],
-        scale: [1.1, 1, 1.1],
-        rotate: [5, -5, 5],
-      }}
-      transition={{
-        duration: 15,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
+    <motion.div className="absolute w-[120%] h-[50%] -right-[10%] bottom-[10%] rounded-full blur-3xl opacity-15" style={{
+    background: "linear-gradient(90deg, transparent 0%, hsl(17 88% 60%) 30%, hsl(17 88% 60% / 0.5) 50%, hsl(17 88% 60%) 70%, transparent 100%)"
+  }} animate={{
+    x: ["10%", "-10%", "10%"],
+    y: ["0%", "-5%", "0%"],
+    scale: [1.1, 1, 1.1],
+    rotate: [5, -5, 5]
+  }} transition={{
+    duration: 15,
+    repeat: Infinity,
+    ease: "easeInOut"
+  }} />
     
     {/* Tertiary purple/violet accent */}
-    <motion.div
-      className="absolute w-[80%] h-[40%] left-[10%] top-[40%] rounded-full blur-3xl opacity-10"
-      style={{
-        background: "linear-gradient(135deg, hsl(280 70% 50%) 0%, hsl(320 70% 50%) 100%)",
-      }}
-      animate={{
-        x: ["-5%", "5%", "-5%"],
-        y: ["5%", "-5%", "5%"],
-        scale: [1, 1.15, 1],
-      }}
-      transition={{
-        duration: 18,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
+    <motion.div className="absolute w-[80%] h-[40%] left-[10%] top-[40%] rounded-full blur-3xl opacity-10" style={{
+    background: "linear-gradient(135deg, hsl(280 70% 50%) 0%, hsl(320 70% 50%) 100%)"
+  }} animate={{
+    x: ["-5%", "5%", "-5%"],
+    y: ["5%", "-5%", "5%"],
+    scale: [1, 1.15, 1]
+  }} transition={{
+    duration: 18,
+    repeat: Infinity,
+    ease: "easeInOut"
+  }} />
     
     {/* Subtle shimmer overlay */}
-    <motion.div
-      className="absolute inset-0"
-      style={{
-        background: "radial-gradient(ellipse at 50% 50%, hsl(189 94% 55% / 0.05) 0%, transparent 50%)",
-      }}
-      animate={{
-        opacity: [0.3, 0.6, 0.3],
-      }}
-      transition={{
-        duration: 4,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
-  </div>
-);
+    <motion.div className="absolute inset-0" style={{
+    background: "radial-gradient(ellipse at 50% 50%, hsl(189 94% 55% / 0.05) 0%, transparent 50%)"
+  }} animate={{
+    opacity: [0.3, 0.6, 0.3]
+  }} transition={{
+    duration: 4,
+    repeat: Infinity,
+    ease: "easeInOut"
+  }} />
+  </div>;
 
 // Simplified show data - memory-focused, no analytics
 const leftShow = {
@@ -86,15 +64,14 @@ const leftShow = {
   artist: "Odesza",
   venue: "The Gorge",
   city: "WA",
-  date: "Aug 2024",
+  date: "Aug 2024"
 };
-
 const rightShow = {
   photo: "/images/rufus-du-sol-red-rocks.png",
   artist: "Rufus Du Sol",
   venue: "Red Rocks",
   city: "CO",
-  date: "Jun 2023",
+  date: "Jun 2023"
 };
 
 // Simplified ShowCard - photo-forward, memory-driven
@@ -102,18 +79,14 @@ const ShowCard = ({
   show
 }: {
   show: typeof leftShow;
-}) => (
-  <div className="flex-1 group cursor-pointer">
+}) => <div className="flex-1 group cursor-pointer">
     <div className="rounded-xl bg-white/[0.03] border border-white/[0.08] p-2 transition-all group-hover:border-primary/50 group-hover:bg-white/[0.06]">
       {/* Large immersive photo */}
-      <div 
-        className="w-full aspect-[4/5] rounded-lg mb-2" 
-        style={{
-          backgroundImage: `url('${show.photo}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }} 
-      />
+      <div className="w-full aspect-[4/5] rounded-lg mb-2" style={{
+      backgroundImage: `url('${show.photo}')`,
+      backgroundSize: "cover",
+      backgroundPosition: "center"
+    }} />
       
       {/* Artist name - prominent */}
       <div className="text-white text-xs font-semibold">{show.artist}</div>
@@ -123,33 +96,25 @@ const ShowCard = ({
         {show.venue}, {show.city} · {show.date}
       </div>
     </div>
-  </div>
-);
+  </div>;
 
 // Ranking mockup - emotional, effortless
-const RankingMockup = () => (
-  <div className="h-full w-full flex flex-col relative overflow-hidden">
+const RankingMockup = () => <div className="h-full w-full flex flex-col relative overflow-hidden">
     {/* Static gradient background */}
-    <div 
-      className="absolute inset-0" 
-      style={{
-        background: `
+    <div className="absolute inset-0" style={{
+    background: `
           radial-gradient(ellipse at 50% 60%, hsl(189 94% 55% / 0.08) 0%, transparent 50%),
           radial-gradient(ellipse at 0% 0%, hsl(189 94% 55% / 0.05) 0%, transparent 40%),
           radial-gradient(ellipse at 100% 100%, hsl(17 88% 60% / 0.04) 0%, transparent 40%),
           linear-gradient(180deg, hsl(222 47% 8%), hsl(222 47% 6%))
         `
-      }} 
-    />
+  }} />
     
     {/* Noise texture overlay */}
-    <div 
-      className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'repeat'
-      }} 
-    />
+    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'repeat'
+  }} />
     
     {/* Logo */}
     <div className="px-4 pt-8 pb-2 relative z-10">
@@ -184,26 +149,24 @@ const RankingMockup = () => (
       <div className="flex items-center gap-5 px-5 py-2 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.08]">
         <Home className="w-4 h-4 text-white/40" />
         <Globe className="w-4 h-4 text-white/40" />
-        <Crown className="w-4 h-4 text-primary" style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary)))" }} />
+        <Crown className="w-4 h-4 text-primary" style={{
+        filter: "drop-shadow(0 0 4px hsl(var(--primary)))"
+      }} />
       </div>
-      <div 
-        className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg" 
-        style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}
-      >
+      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg" style={{
+      boxShadow: "0 0 20px hsl(var(--primary) / 0.4)"
+    }}>
         <Plus className="w-4 h-4 text-primary-foreground" />
       </div>
     </div>
-  </div>
-);
-
+  </div>;
 const RankingSpotlightV2 = () => {
-  return (
-    <section className="py-24 md:py-32 relative overflow-hidden">
+  return <section className="py-24 md:py-32 relative overflow-hidden">
       {/* Aurora background effect */}
       <AuroraWaves />
       
       {/* Dark overlay for contrast */}
-      <div className="absolute inset-0 bg-background/40" />
+      <div className="absolute inset-0 bg-background/40 opacity-0" />
 
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -216,10 +179,9 @@ const RankingSpotlightV2 = () => {
 
           {/* Right: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
-            <h2 
-              className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" 
-              style={{ textShadow: "0 0 50px rgba(255,255,255,0.1)" }}
-            >
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
+            textShadow: "0 0 50px rgba(255,255,255,0.1)"
+          }}>
               Choose your favorite.<br />We'll do the ranking.
             </h2>
 
@@ -229,8 +191,6 @@ const RankingSpotlightV2 = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default RankingSpotlightV2;
