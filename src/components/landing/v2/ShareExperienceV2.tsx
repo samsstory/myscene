@@ -64,12 +64,26 @@ const StoryMockup = () => <div className="h-full w-full relative bg-black">
         <p className="text-white/50 text-[10px] mt-0.5">December 14, 2024</p>
         
         {/* Emotional tags - memory signals */}
-        <div className="flex gap-1.5 mt-2.5">
-          <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-[9px] text-white/90 border border-white/10">
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
+          {/* Primary emotional tag - elevated */}
+          <span 
+            className="px-2.5 py-1 bg-white/20 backdrop-blur-sm rounded-full text-[11px] font-medium text-white border border-white/20"
+            style={{
+              textShadow: "0 0 8px rgba(255,255,255,0.4)",
+              boxShadow: "0 0 12px rgba(255,255,255,0.15)"
+            }}
+          >
             Got emotional
           </span>
-          <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-[9px] text-white/90 border border-white/10">
+          {/* Secondary tags - supportive, quieter */}
+          <span className="px-2 py-0.5 bg-white/10 rounded-full text-[9px] text-white/70 border border-white/5">
             Took me somewhere
+          </span>
+          <span className="px-2 py-0.5 bg-white/10 rounded-full text-[9px] text-white/70 border border-white/5">
+            Lights went crazy
+          </span>
+          <span className="px-2 py-0.5 bg-white/10 rounded-full text-[9px] text-white/70 border border-white/5">
+            All time squad
           </span>
         </div>
         
