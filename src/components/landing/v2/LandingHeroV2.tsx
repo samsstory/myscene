@@ -176,7 +176,7 @@ const LandingHeroV2 = () => {
               }} />
               </div>
               <span className="text-sm text-muted-foreground">
-                For people who care which shows mattered
+                For people who live for live music
               </span>
             </div>
           </div>
