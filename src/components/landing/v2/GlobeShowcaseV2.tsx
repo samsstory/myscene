@@ -4,7 +4,6 @@ import SceneLogo from "@/components/ui/SceneLogo";
 import LandingGlobe, { CITY_MARKERS } from "../LandingGlobe";
 import { Home, Globe, Crown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 const YEARS = [2024, 2025, 2026, "all"] as const;
 type YearOption = (typeof YEARS)[number];
 
@@ -46,21 +45,27 @@ const GlobeMockup = () => {
             {/* Stats - prominent */}
             <div className="flex items-center gap-4 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
               <div className="text-center">
-                <span className="text-white font-bold text-sm block" style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}>
+                <span className="text-white font-bold text-sm block" style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.3)"
+              }}>
                   {yearStats.countries}
                 </span>
                 <span className="text-white/50 text-[9px]">countries</span>
               </div>
               <span className="text-white/20">·</span>
               <div className="text-center">
-                <span className="text-white font-bold text-sm block" style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}>
+                <span className="text-white font-bold text-sm block" style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.3)"
+              }}>
                   {yearStats.cities}
                 </span>
                 <span className="text-white/50 text-[9px]">cities</span>
               </div>
               <span className="text-white/20">·</span>
               <div className="text-center">
-                <span className="text-white font-bold text-sm block" style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}>
+                <span className="text-white font-bold text-sm block" style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.3)"
+              }}>
                   {yearStats.shows}
                 </span>
                 <span className="text-white/50 text-[9px]">shows</span>
@@ -96,7 +101,6 @@ const GlobeMockup = () => {
       </div>
     </div>;
 };
-
 const GlobeShowcaseV2 = () => {
   return <section className="py-24 md:py-32 relative overflow-hidden">
       {/* Background accent */}
@@ -117,9 +121,7 @@ const GlobeShowcaseV2 = () => {
           <div className="space-y-6 text-center lg:text-left order-1 lg:order-2">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground" style={{
             textShadow: "0 0 50px rgba(255,255,255,0.1)"
-          }}>
-              Everywhere music has taken you
-            </h2>
+          }}>See everywhere music has taken you</h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
               A living record of the places music mattered most
