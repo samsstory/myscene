@@ -113,7 +113,7 @@ const GlobeShowcaseV2 = () => {
             </h2>
 
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
-              See everywhere music has taken you
+              From hometown shows to faraway festivals, Scene shows where your music journey has led
             </p>
             {/* END V2 COPY */}
           </div>
