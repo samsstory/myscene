@@ -53,35 +53,32 @@ const StoryMockup = () => <div className="h-full w-full relative bg-black">
       <a href="https://www.instagram.com/jamie___xx" target="_blank" rel="noopener noreferrer" className="text-white/90 hover:underline">@jamie__xx</a> speechless..
     </div>
 
-    {/* Show info overlay - positioned below light trussing, reduced size */}
+    {/* Show info overlay - emotional memory style */}
     <div className="absolute top-[35%] left-3 right-3">
-      <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10 transform scale-[0.7] origin-top-left">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h3 className="text-white text-base font-bold">Jamie xx</h3>
-            <p className="text-white/70 text-xs">Printworks · London</p>
-            <p className="text-white/50 text-[10px] mt-0.5">December 14, 2024</p>
-          </div>
-          <div className="text-right">
-            <span className="text-lg font-bold text-white block" style={{
-            textShadow: "0 0 12px rgba(255,255,255,0.5)"
-          }}>
-              #3
-            </span>
-            <span className="text-white/50 text-[10px]">All Time</span>
-          </div>
+      <div className="bg-black/30 backdrop-blur-md rounded-xl p-3 border border-white/10 transform scale-[0.75] origin-top-left">
+        {/* Artist & Venue - stamped on the moment */}
+        <h3 className="text-white text-lg font-bold tracking-tight" style={{
+          textShadow: "0 2px 8px rgba(0,0,0,0.5)"
+        }}>Jamie xx</h3>
+        <p className="text-white/80 text-xs mt-0.5">Printworks · London</p>
+        <p className="text-white/50 text-[10px] mt-0.5">December 14, 2024</p>
+        
+        {/* Emotional tags - memory signals */}
+        <div className="flex gap-1.5 mt-2.5">
+          <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-[9px] text-white/90 border border-white/10">
+            Got emotional
+          </span>
+          <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-[9px] text-white/90 border border-white/10">
+            Took me somewhere
+          </span>
         </div>
         
-        {/* Rating bar */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
-            <div className="h-full rounded-full" style={{
-            width: "91%",
-            background: "linear-gradient(90deg, hsl(142 76% 45%), hsl(142 76% 55%))"
-          }} />
-          </div>
-          <span className="text-white font-bold text-xs">9.1</span>
-        </div>
+        {/* Optional personal note */}
+        <p className="text-white/60 text-[10px] italic mt-2" style={{
+          textShadow: "0 1px 3px rgba(0,0,0,0.5)"
+        }}>
+          "Sunrise set was unreal."
+        </p>
       </div>
     </div>
   </div>;
