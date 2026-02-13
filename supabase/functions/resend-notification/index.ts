@@ -6,6 +6,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function wrapInHtmlEmail(plainText: string): string {
+  const escaped = plainText
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #333; line-height: 1.6;">
+      ${escaped}
+    </div>
+  `;
+}
+
+const DEFAULT_SUBJECT = "You're in! Your Scene beta access is ready";
+const DEFAULT_HTML = `
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+    <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
+    <p style="color: #555; line-height: 1.6;">Your beta access is ready! Log in with the credentials you were given.</p>
+    <p style="color: #555; line-height: 1.6;">Head to <a href="https://myscene.lovable.app" style="color: #6366f1;">myscene.lovable.app</a> to start logging your shows.</p>
+    <p style="color: #999; font-size: 13px; margin-top: 32px;">If you've forgotten your password, use the reset option on the login page.</p>
+  </div>
+`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -17,7 +40,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -27,10 +49,7 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -53,7 +72,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { waitlistId, email } = await req.json();
+    const { waitlistId, email, emailSubject, emailBody } = await req.json();
 
     if (!waitlistId || !email) {
       return new Response(
@@ -62,13 +81,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Send email via Resend
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
       return new Response(
         JSON.stringify({ error: "RESEND_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    const subject = emailSubject || DEFAULT_SUBJECT;
+    let html: string;
+
+    if (emailBody) {
+      const replaced = emailBody.replace(/\{\{email\}\}/g, email);
+      html = wrapInHtmlEmail(replaced);
+    } else {
+      html = DEFAULT_HTML;
     }
 
     const emailRes = await fetch("https://api.resend.com/emails", {
@@ -80,15 +108,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Scene <onboarding@resend.dev>",
         to: [email],
-        subject: "You're in! Your Scene beta access is ready",
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
-            <p style="color: #555; line-height: 1.6;">Your beta access is ready! Log in with the credentials you were given.</p>
-            <p style="color: #555; line-height: 1.6;">Head to <a href="https://myscene.lovable.app" style="color: #6366f1;">myscene.lovable.app</a> to start logging your shows.</p>
-            <p style="color: #999; font-size: 13px; margin-top: 32px;">If you've forgotten your password, use the reset option on the login page.</p>
-          </div>
-        `,
+        subject,
+        html,
       }),
     });
 
@@ -101,7 +122,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update notified_at
     await supabase
       .from("waitlist")
       .update({ notified_at: new Date().toISOString() })
