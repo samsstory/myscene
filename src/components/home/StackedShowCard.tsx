@@ -166,14 +166,14 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               <Instagram className="h-4 w-4" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.3))" }} />
             </button>
             
-            {/* Tag Badge or Rank */}
-            {primaryTag && (
-              <div className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium text-white/90 mb-2 bg-white/[0.15] backdrop-blur-sm border border-white/[0.2]">
-                {primaryTag}
-              </div>
-            )}
+            {/* Bottom Content */}
+            <div className="absolute bottom-4 left-4 right-4">
+              {primaryTag && (
+                <div className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium text-white/90 mb-2 bg-white/[0.15] backdrop-blur-sm border border-white/[0.2]">
+                  {primaryTag}
+                </div>
+              )}
               
-              {/* Artist Name */}
               <div 
                 className="font-bold text-xl text-white leading-tight"
                 style={{ textShadow: "0 0 16px rgba(255,255,255,0.5)" }}
@@ -184,18 +184,17 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
                 )}
               </div>
               
-              {/* Venue & Date */}
               <div 
                 className="text-white/70 text-sm mt-1"
                 style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
               >
                 {show.venue.name} · {formattedDate}
               </div>
-              
-              {/* Scene Logo */}
-              <div className="absolute bottom-4 right-4">
-                <SceneLogo />
-              </div>
+            </div>
+            
+            {/* Scene Logo */}
+            <div className="absolute bottom-4 right-4">
+              <SceneLogo />
             </div>
           </div>
         </Card>
