@@ -71,10 +71,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
           ref={ref}
           data-show-id={show.id}
           className="cursor-pointer"
-          onClick={() => {
-            onExpand();
-            onTap();
-          }}
+          onClick={onExpand}
         >
           <div className="rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-sm border border-white/[0.05] transition-all hover:bg-white/[0.06]">
             <div className="relative">

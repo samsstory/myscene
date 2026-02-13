@@ -40,33 +40,44 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Set up intersection observer to detect which card is in the center
+  // After scroll settles, update expanded card based on which is most visible
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-            const showId = (entry.target as HTMLElement).dataset.showId;
-            if (showId) {
-              setExpandedId(showId);
-            }
+    let scrollTimer: ReturnType<typeof setTimeout>;
+
+    const handleScroll = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        // Find the card closest to the center of the container
+        const containerRect = container.getBoundingClientRect();
+        const containerCenter = containerRect.top + containerRect.height / 2;
+        
+        let closestId: string | null = null;
+        let closestDistance = Infinity;
+        
+        cardRefs.current.forEach((el, showId) => {
+          const rect = el.getBoundingClientRect();
+          const cardCenter = rect.top + rect.height / 2;
+          const distance = Math.abs(cardCenter - containerCenter);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestId = showId;
           }
         });
-      },
-      {
-        root: containerRef.current,
-        threshold: [0.6],
-        rootMargin: "-30% 0px -30% 0px",
-      }
-    );
+        
+        if (closestId) {
+          setExpandedId(closestId);
+        }
+      }, 100);
+    };
 
-    cardRefs.current.forEach((el) => {
-      observer.observe(el);
-    });
-
-    return () => observer.disconnect();
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      clearTimeout(scrollTimer);
+    };
   }, [shows]);
 
   // Handle card expansion when tapped (scrolls it into view)
