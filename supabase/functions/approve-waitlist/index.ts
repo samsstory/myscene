@@ -151,16 +151,44 @@ Deno.serve(async (req) => {
     // Auto-generate a secure password
     const password = generatePassword();
 
-    // Create user account
-    const { data: { user: newUser }, error: createError } = await supabase.auth.admin.createUser({
+    // Try to create user account; if email already exists, look up the existing user
+    let newUser;
+    const { data: createData, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     });
 
-    if (createError || !newUser) {
+    if (createError) {
+      if (createError.message?.includes("already been registered")) {
+        // User already exists in auth — find them
+        const { data: listData, error: listError } = await supabase.auth.admin.listUsers();
+        if (listError) {
+          return new Response(
+            JSON.stringify({ error: "Failed to look up existing user" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        newUser = listData.users.find((u) => u.email === email);
+        if (!newUser) {
+          return new Response(
+            JSON.stringify({ error: "User exists but could not be found" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        return new Response(
+          JSON.stringify({ error: createError.message || "Failed to create user" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      newUser = createData.user;
+    }
+
+    if (!newUser) {
       return new Response(
-        JSON.stringify({ error: createError?.message || "Failed to create user" }),
+        JSON.stringify({ error: "Failed to create or find user" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
