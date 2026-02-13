@@ -14,6 +14,7 @@ import {
 import { ApproveModal } from "./ApproveModal";
 import { ResendDialog } from "./ResendDialog";
 import { EmailTemplateEditor } from "./EmailTemplateEditor";
+import { AddWaitlistDialog } from "./AddWaitlistDialog";
 import { format } from "date-fns";
 import { CheckCircle, Clock, Users, Mail, Send } from "lucide-react";
 
@@ -79,8 +80,9 @@ export function WaitlistTab() {
       {/* Email Template Editor */}
       <EmailTemplateEditor />
 
-      {/* Stats */}
-      <div className="flex gap-4">
+      {/* Stats + Add */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-4">
         <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2">
           <Users className="h-4 w-4 text-primary" />
           <span className="text-sm text-muted-foreground">Total</span>
@@ -96,6 +98,8 @@ export function WaitlistTab() {
           <span className="text-sm text-muted-foreground">Approved</span>
           <span className="font-semibold">{approvedCount}</span>
         </div>
+        </div>
+        <AddWaitlistDialog onAdded={fetchEntries} />
       </div>
 
       {/* Filter chips */}
