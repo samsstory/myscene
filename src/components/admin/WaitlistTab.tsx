@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -16,7 +17,8 @@ import { ResendDialog } from "./ResendDialog";
 import { EmailTemplateEditor } from "./EmailTemplateEditor";
 import { AddWaitlistDialog } from "./AddWaitlistDialog";
 import { format } from "date-fns";
-import { CheckCircle, Clock, Users, Mail, Send } from "lucide-react";
+import { CheckCircle, Clock, Users, Mail, Send, Pencil, Check, X } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface WaitlistEntry {
   id: string;
@@ -39,6 +41,38 @@ export function WaitlistTab() {
   const [filter, setFilter] = useState<Filter>("all");
   const [approveEntry, setApproveEntry] = useState<WaitlistEntry | null>(null);
   const [resendEntry, setResendEntry] = useState<WaitlistEntry | null>(null);
+  const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
+  const [editingEmailValue, setEditingEmailValue] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  const handleSaveEmail = async (entryId: string) => {
+    if (!editingEmailValue.trim()) return;
+    setSavingEmail(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-waitlist`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ waitlistId: entryId, email: editingEmailValue.trim() }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to update");
+      toast({ title: "Email saved" });
+      setEditingEmailId(null);
+      fetchEntries();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingEmail(false);
+    }
+  };
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -145,7 +179,39 @@ export function WaitlistTab() {
               {filtered.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="font-mono text-sm">
-                    {entry.email || <span className="text-muted-foreground italic">{entry.phone_number}</span>}
+                    {editingEmailId === entry.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="email"
+                          value={editingEmailValue}
+                          onChange={(e) => setEditingEmailValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEmail(entry.id);
+                            if (e.key === "Escape") setEditingEmailId(null);
+                          }}
+                          className="h-7 text-xs w-44"
+                          placeholder="email@example.com"
+                          autoFocus
+                          disabled={savingEmail}
+                        />
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveEmail(entry.id)} disabled={savingEmail}>
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingEmailId(null)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : entry.email ? (
+                      <span>{entry.email}</span>
+                    ) : (
+                      <button
+                        className="flex items-center gap-1 text-muted-foreground italic hover:text-foreground transition-colors"
+                        onClick={() => { setEditingEmailId(entry.id); setEditingEmailValue(""); }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        <span>{entry.phone_number || "Add email"}</span>
+                      </button>
+                    )}
                   </TableCell>
                   <TableCell>{entry.source}</TableCell>
                   <TableCell>{entry.discovery_source || "—"}</TableCell>

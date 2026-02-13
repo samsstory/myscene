@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { waitlistId, discoverySource, showsPerYear } = await req.json();
+    const { waitlistId, discoverySource, showsPerYear, email } = await req.json();
 
     // Validate required fields
     if (!waitlistId) {
@@ -42,6 +42,24 @@ serve(async (req) => {
       ? showsPerYear 
       : null;
 
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      discovery_source: sanitizedDiscoverySource,
+      shows_per_year: sanitizedShowsPerYear,
+    };
+
+    // Validate and add email if provided
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (email && !emailRegex.test(email)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid email format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      updateData.email = email || null;
+    }
+
     // Use service role to bypass RLS and update the waitlist entry
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -50,10 +68,7 @@ serve(async (req) => {
 
     const { error } = await supabaseAdmin
       .from('waitlist')
-      .update({
-        discovery_source: sanitizedDiscoverySource,
-        shows_per_year: sanitizedShowsPerYear,
-      })
+      .update(updateData)
       .eq('id', waitlistId);
 
     if (error) {
