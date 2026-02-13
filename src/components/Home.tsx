@@ -25,6 +25,7 @@ import IncompleteTagsSheet from "./home/IncompleteTagsSheet";
 import MissingPhotosSheet from "./home/MissingPhotosSheet";
 import FocusedRankingSession from "./home/FocusedRankingSession";
 import RankingProgressCard from "./home/RankingProgressCard";
+import FriendTeaser from "./home/FriendTeaser";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
 
@@ -411,6 +412,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
               onShowShare={handleShareFromCard}
             />
           )}
+          
+          {/* Friend teaser - show when user has logged shows */}
+          {recentShows.length > 0 && <FriendTeaser />}
         </div>
       </div>
     );
