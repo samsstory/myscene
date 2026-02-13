@@ -398,18 +398,10 @@ export const PhotoOverlayEditor = ({
       saveAndSet(htmlEl, 'whiteSpace', 'normal');
     });
 
-    // Fix MapPin SVG alignment for html2canvas (renders SVGs slightly higher than DOM)
-    // Instead of shifting SVG outside its box (which html2canvas clips), we enlarge the
-    // venue line's padding so the pin has room within the element bounds.
+    // Fix MapPin SVG alignment for html2canvas export — center pin with venue text
     const mapPinSvg = overlayEl?.querySelector('svg') as unknown as HTMLElement | null;
     if (mapPinSvg) {
-      // Use vertical-align to push pin down within the line box (no overflow needed)
-      saveAndSet(mapPinSvg, 'verticalAlign', '-3.5px');
-      // Add padding to the venue <p> so the taller line box has room
-      const venueP = mapPinSvg.closest('p') as HTMLElement | null;
-      if (venueP) {
-        saveAndSet(venueP, 'paddingBottom', '2px');
-      }
+      saveAndSet(mapPinSvg, 'verticalAlign', 'middle');
     }
 
     const wrapperRect = photoWrapper.getBoundingClientRect();
