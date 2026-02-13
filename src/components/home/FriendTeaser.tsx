@@ -1,5 +1,7 @@
-import { User, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+
+const avatars = ["/images/waitlist-1.png", "/images/waitlist-2.png", "/images/waitlist-3.png"];
 
 const FriendTeaser = () => {
   const handleTap = () => {
@@ -12,29 +14,23 @@ const FriendTeaser = () => {
   return (
     <button
       onClick={handleTap}
-      className="w-full flex items-center gap-4 p-4 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-sm transition-all active:scale-[0.98] hover:bg-white/[0.06]"
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] transition-all active:scale-[0.98]"
     >
-      {/* Overlapping avatar placeholders */}
-      <div className="flex -space-x-2.5 shrink-0">
-        {[0, 1, 2].map((i) => (
+      <div className="flex -space-x-2 shrink-0">
+        {avatars.map((src, i) => (
           <div
             key={i}
-            className="w-8 h-8 rounded-full bg-white/10 border border-white/[0.12] flex items-center justify-center"
-          >
-            <User className="w-3.5 h-3.5 text-white/30" />
-          </div>
+            className="w-6 h-6 rounded-full border border-white/[0.1] bg-cover bg-center"
+            style={{ backgroundImage: `url('${src}')` }}
+          />
         ))}
       </div>
 
-      {/* Text */}
-      <div className="flex-1 text-left">
-        <p className="text-sm font-medium text-white/90">See who else was there</p>
-        <p className="text-xs text-primary/70 mt-0.5" style={{ textShadow: "0 0 12px hsl(189 94% 55% / 0.4)" }}>
-          Coming soon
-        </p>
-      </div>
+      <p className="text-xs text-white/40 flex-1 text-left">
+        See who else was there
+      </p>
 
-      <Sparkles className="w-4 h-4 text-primary/50 shrink-0" />
+      <Sparkles className="w-3 h-3 text-white/20 shrink-0" />
     </button>
   );
 };
