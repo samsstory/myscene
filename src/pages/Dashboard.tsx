@@ -98,16 +98,17 @@ const Dashboard = () => {
     return null;
   }
 
-  const handleOnboardingComplete = async () => {
+  const handleOnboardingComplete = () => {
+    // Set state synchronously first to avoid race conditions
+    setShowOnboarding(false);
+    setShowUnifiedAdd(true);
+    // Then persist to DB in background
     if (session) {
-      await supabase
+      supabase
         .from("profiles")
         .update({ onboarding_step: "completed" })
         .eq("id", session.user.id);
     }
-    setShowOnboarding(false);
-    // Go directly to the add flow
-    setShowUnifiedAdd(true);
   };
 
   const handleTakeTour = async () => {
