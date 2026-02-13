@@ -281,8 +281,8 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
   if (stats.incompleteRatingsCount > 0) {
     insights.push({
       type: 'incomplete_ratings',
-      title: `${stats.incompleteRatingsCount} Shows Need Ratings`,
-      message: `Complete detailed ratings to unlock full insights.`,
+      title: `${stats.incompleteRatingsCount} Shows Need Moments`,
+      message: `Add moments to unlock full insights.`,
       actionable: true,
       action: 'incomplete-ratings',
     });
