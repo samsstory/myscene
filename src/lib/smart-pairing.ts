@@ -17,6 +17,7 @@ export interface Show {
   venue_vibe: number | null;
   photo_url: string | null;
   notes: string | null;
+  tags?: string[];
   artists: Array<{ artist_name: string; is_headliner: boolean }>;
 }
 

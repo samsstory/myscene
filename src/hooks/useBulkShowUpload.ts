@@ -10,11 +10,7 @@ export interface AddedShowData {
   date: string;
   rating: number;
   photo_url: string | null;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
   notes?: string | null;
 }
 
@@ -161,14 +157,8 @@ export function useBulkShowUpload() {
               venue_id: venueIdToUse,
               show_date: showDate,
               date_precision: dbDatePrecision,
-              rating: null, // No default rating - use ELO system
+              rating: null,
               photo_url: publicUrl,
-              // Optional ratings from bulk upload
-              artist_performance: show.artistPerformance,
-              sound: show.sound,
-              lighting: show.lighting,
-              crowd: show.crowd,
-              venue_vibe: show.venueVibe,
               notes: show.notes || null,
             })
             .select('id')
@@ -195,7 +185,22 @@ export function useBulkShowUpload() {
             }
           }
 
-          // 5. Update user_venues if venue exists
+          // 5. Insert tags if any
+          if (show.tags && show.tags.length > 0) {
+            const tagInserts = show.tags.map(tag => {
+              // Determine category from tag constants
+              const category = 'the_show'; // Default; tags are matched by value
+              return {
+                show_id: newShow.id,
+                tag,
+                category,
+              };
+            });
+
+            await supabase.from('show_tags').insert(tagInserts);
+          }
+
+          // 6. Update user_venues if venue exists
           if (venueIdToUse) {
             await supabase
               .from('user_venues')
@@ -210,7 +215,7 @@ export function useBulkShowUpload() {
               });
           }
 
-          // 6. Track added show data for success screen
+          // 7. Track added show data for success screen
           addedShows.push({
             id: newShow.id,
             artists: show.artists.map(a => ({ name: a.name, isHeadliner: a.isHeadliner })),
@@ -218,11 +223,7 @@ export function useBulkShowUpload() {
             date: showDate,
             rating: 3,
             photo_url: publicUrl,
-            artistPerformance: show.artistPerformance,
-            sound: show.sound,
-            lighting: show.lighting,
-            crowd: show.crowd,
-            venueVibe: show.venueVibe,
+            tags: show.tags,
             notes: show.notes,
           });
 

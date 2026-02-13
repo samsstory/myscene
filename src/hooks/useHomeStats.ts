@@ -67,10 +67,10 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       const currentMonthStart = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
       const yearStart = new Date(currentYear, 0, 1).toISOString().split('T')[0];
 
-      // Get all shows for the user with detailed ratings and photo status
+      // Get all shows for the user with photo status
       const { data: shows, error: showsError } = await supabase
         .from('shows')
-        .select('id, show_date, artist_performance, sound, lighting, crowd, venue_vibe, photo_url, photo_declined')
+        .select('id, show_date, photo_url, photo_declined')
         .eq('user_id', userId)
         .order('show_date', { ascending: false });
 
@@ -80,14 +80,17 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       const showsThisYear = shows?.filter(show => show.show_date >= yearStart).length || 0;
       const showsThisMonth = shows?.filter(show => show.show_date >= currentMonthStart).length || 0;
 
-      // Count shows with incomplete detailed ratings
-      const incompleteRatingsCount = shows?.filter(show => 
-        show.artist_performance === null ||
-        show.sound === null ||
-        show.lighting === null ||
-        show.crowd === null ||
-        show.venue_vibe === null
-      ).length || 0;
+      // Count shows with no tags
+      const showIds = shows?.map(s => s.id) || [];
+      let incompleteRatingsCount = 0;
+      if (showIds.length > 0) {
+        const { data: taggedShows } = await supabase
+          .from('show_tags')
+          .select('show_id')
+          .in('show_id', showIds);
+        const taggedShowIds = new Set((taggedShows || []).map(t => t.show_id));
+        incompleteRatingsCount = showIds.filter(id => !taggedShowIds.has(id)).length;
+      }
 
       // Count shows without photos (excluding those explicitly declined)
       const missingPhotosCount = shows?.filter(show => !show.photo_url && !show.photo_declined).length || 0;
@@ -243,8 +246,8 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         if (incompleteRatingsCount >= 1) {
           generatedInsights.push({
             type: 'incomplete_ratings',
-            title: `${incompleteRatingsCount} ${incompleteRatingsCount === 1 ? 'Show Needs' : 'Shows Need'} Ratings`,
-            message: 'Tap to complete your show reviews.',
+            title: `${incompleteRatingsCount} ${incompleteRatingsCount === 1 ? 'Show Needs' : 'Shows Need'} Tags`,
+            message: 'Tap to add moments to your shows.',
             actionable: true,
             action: 'incomplete-ratings' as InsightAction,
           });

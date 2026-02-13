@@ -33,12 +33,7 @@ export interface ReviewedShow {
   selectedMonth: string;
   selectedYear: string;
   isValid: boolean;
-  // Optional rating fields
-  artistPerformance: number | null;
-  sound: number | null;
-  lighting: number | null;
-  crowd: number | null;
-  venueVibe: number | null;
+  tags: string[];
   notes: string;
 }
 
@@ -54,40 +49,8 @@ interface PhotoReviewCardProps {
   onToggle: () => void;
 }
 
-// Compact rating pills for bulk upload
-const CompactRatingPills = ({ 
-  value, 
-  onChange,
-  label 
-}: { 
-  value: number | null; 
-  onChange: (val: number | null) => void;
-  label: string;
-}) => (
-  <div className="flex items-center justify-between gap-2">
-    <Label className="text-xs text-muted-foreground whitespace-nowrap">{label}</Label>
-    <div className="flex gap-1.5">
-      {[1, 2, 3, 4, 5].map((num) => (
-        <button
-          key={num}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onChange(value === num ? null : num);
-          }}
-          className={cn(
-            "w-7 h-7 rounded-full text-xs font-medium transition-all duration-150",
-            value === num
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          )}
-        >
-          {num}
-        </button>
-      ))}
-    </div>
-  </div>
-);
+// Tag categories for bulk upload
+import { TAG_CATEGORIES } from "@/lib/tag-constants";
 
 interface SearchResult {
   type: 'artist' | 'venue';
@@ -134,13 +97,9 @@ const PhotoReviewCard = ({
   const [showVenueResults, setShowVenueResults] = useState(false);
   const [isSearchingVenue, setIsSearchingVenue] = useState(false);
 
-  // Rating & notes state
+  // Tags & notes state
   const [showRatings, setShowRatings] = useState(false);
-  const [artistPerformance, setArtistPerformance] = useState<number | null>(initialData?.artistPerformance ?? null);
-  const [sound, setSound] = useState<number | null>(initialData?.sound ?? null);
-  const [lighting, setLighting] = useState<number | null>(initialData?.lighting ?? null);
-  const [crowd, setCrowd] = useState<number | null>(initialData?.crowd ?? null);
-  const [venueVibe, setVenueVibe] = useState<number | null>(initialData?.venueVibe ?? null);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialData?.tags || []);
   const [notes, setNotes] = useState(initialData?.notes ?? "");
 
   const isValid = artists.length > 0;
@@ -154,8 +113,8 @@ const PhotoReviewCard = ({
   const hasVenueSuggestions = allVenueSuggestions.length > 0;
   const isVenueMatching = photo.venueMatchStatus === 'pending';
   
-  // Check if any ratings have been added
-  const hasRatings = artistPerformance !== null || sound !== null || lighting !== null || crowd !== null || venueVibe !== null || notes.trim().length > 0;
+  // Check if any tags or notes have been added
+  const hasRatings = selectedTags.length > 0 || notes.trim().length > 0;
 
   // Update venue when photo's suggested venue changes
   useEffect(() => {
@@ -222,14 +181,10 @@ const PhotoReviewCard = ({
       selectedMonth,
       selectedYear,
       isValid,
-      artistPerformance,
-      sound,
-      lighting,
-      crowd,
-      venueVibe,
+      tags: selectedTags,
       notes,
     });
-  }, [artists, venue, venueId, venueLocation, date, datePrecision, selectedMonth, selectedYear, isValid, artistPerformance, sound, lighting, crowd, venueVibe, notes]);
+  }, [artists, venue, venueId, venueLocation, date, datePrecision, selectedMonth, selectedYear, isValid, selectedTags, notes]);
 
   // Search venues when manual search is active OR when there are no GPS suggestions
   useEffect(() => {
@@ -384,23 +339,20 @@ const PhotoReviewCard = ({
                   {venue}
                 </p>
               )}
-              {/* Rating preview pills in collapsed state */}
+              {/* Tag preview pills in collapsed state */}
               {hasRatings && !isExpanded && (
-                <div className="flex gap-1 mt-1.5">
-                  {[artistPerformance, sound, lighting, crowd, venueVibe]
-                    .filter(v => v !== null)
-                    .slice(0, 3)
-                    .map((val, idx) => (
-                      <span 
-                        key={idx} 
-                        className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-medium"
-                      >
-                        {val}
-                      </span>
-                    ))}
-                  {[artistPerformance, sound, lighting, crowd, venueVibe].filter(v => v !== null).length > 3 && (
-                    <span className="w-5 h-5 rounded-full bg-white/10 text-muted-foreground text-[10px] flex items-center justify-center">
-                      +{[artistPerformance, sound, lighting, crowd, venueVibe].filter(v => v !== null).length - 3}
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {selectedTags.slice(0, 2).map((tag) => (
+                    <span 
+                      key={tag} 
+                      className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {selectedTags.length > 2 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-muted-foreground text-[9px]">
+                      +{selectedTags.length - 2}
                     </span>
                   )}
                 </div>
@@ -565,37 +517,43 @@ const PhotoReviewCard = ({
               ) : (
                 <Plus className="h-3.5 w-3.5" />
               )}
-              {hasRatings ? "Edit rating & notes" : "Add rating & notes"}
+              {hasRatings ? "Edit tags & notes" : "Add tags & notes"}
             </button>
 
             {/* Inline rating section */}
             {showRatings && (
               <div className="space-y-4 pt-2 border-t border-white/[0.06]">
-                <CompactRatingPills
-                  label="Performance"
-                  value={artistPerformance}
-                  onChange={setArtistPerformance}
-                />
-                <CompactRatingPills
-                  label="Sound"
-                  value={sound}
-                  onChange={setSound}
-                />
-                <CompactRatingPills
-                  label="Lighting"
-                  value={lighting}
-                  onChange={setLighting}
-                />
-                <CompactRatingPills
-                  label="Crowd"
-                  value={crowd}
-                  onChange={setCrowd}
-                />
-                <CompactRatingPills
-                  label="Venue Vibe"
-                  value={venueVibe}
-                  onChange={setVenueVibe}
-                />
+                {/* Tag picker */}
+                {TAG_CATEGORIES.map((category) => (
+                  <div key={category.id} className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">{category.label}</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {category.tags.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTags(prev => 
+                                isSelected ? prev.filter(t => t !== tag) : [...prev, tag]
+                              );
+                            }}
+                            className={cn(
+                              "px-2 py-1 rounded-full text-[10px] font-medium transition-all",
+                              isSelected
+                                ? "bg-primary/20 border border-primary/40 text-white/90"
+                                : "bg-white/[0.05] border border-white/[0.1] text-white/50 hover:bg-white/[0.08]"
+                            )}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
                 
                 {/* Notes */}
                 <div className="space-y-1.5">

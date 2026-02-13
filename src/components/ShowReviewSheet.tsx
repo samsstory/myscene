@@ -6,11 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { calculateShowScore } from "@/lib/utils";
 
 import { cn } from "@/lib/utils";
 import { HeroPhotoSection } from "./show-review/HeroPhotoSection";
-import { CompactRatingBar } from "./show-review/CompactRatingBar";
 import { NotesQuoteCard } from "./show-review/NotesQuoteCard";
 import {
   AlertDialog,

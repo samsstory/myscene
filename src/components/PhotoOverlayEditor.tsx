@@ -440,7 +440,7 @@ export const PhotoOverlayEditor = ({
 
     // Large score at top - the visual anchor
     if (overlayConfig.showRating) {
-      const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
+      const score = calculateShowScore();
       ctx.font = `900 ${48 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
 
       // Score gradient
@@ -872,7 +872,7 @@ export const PhotoOverlayEditor = ({
   const headlinerForDisplay = show.artists.find(a => a.is_headliner) || show.artists[0];
   const artistName = headlinerForDisplay?.name || "Unknown Artist";
   const supportingArtists = show.artists.filter(a => !a.is_headliner && a.name !== headlinerForDisplay?.name);
-  const score = calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe);
+  const score = calculateShowScore();
   const formattedDateForDisplay = new Date(show.show_date).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric"
@@ -1064,7 +1064,7 @@ export const PhotoOverlayEditor = ({
                 e.stopPropagation();
                 toggleConfig("showRating");
               }}>
-                  {calculateShowScore(show.rating, show.artist_performance, show.sound, show.lighting, show.crowd, show.venue_vibe).toFixed(1)}
+                  {calculateShowScore().toFixed(1)}
                 </div>}
               
               {/* Artist name below score */}

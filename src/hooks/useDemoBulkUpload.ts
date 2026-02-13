@@ -10,11 +10,7 @@ export interface DemoAddedShowData {
   date: string;
   rating: number;
   photo_url: string | null;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
   notes?: string | null;
 }
 
@@ -88,13 +84,9 @@ export function useDemoBulkUpload() {
           artists: show.artists.map(a => ({ name: a.name, isHeadliner: a.isHeadliner })),
           venue: { name: show.venue || 'Unknown Venue', location: show.venueLocation || '' },
           date: showDate,
-          rating: 3, // Default rating
+          rating: 3,
           photo_url: photoUrl,
-          artistPerformance: show.artistPerformance,
-          sound: show.sound,
-          lighting: show.lighting,
-          crowd: show.crowd,
-          venueVibe: show.venueVibe,
+          tags: show.tags || [],
           notes: show.notes,
         };
         addedShows.push(addedShowData);

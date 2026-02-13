@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Instagram } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { cn, getScoreGradient, calculateShowScore } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { forwardRef } from "react";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { Badge } from "@/components/ui/badge";
