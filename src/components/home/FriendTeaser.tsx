@@ -26,9 +26,10 @@ const FriendTeaser = () => {
         ))}
       </div>
 
-      <p className="text-xs text-white/40 flex-1 text-left">
-        See who else was there
-      </p>
+      <div className="flex-1 text-left">
+        <p className="text-xs text-white/40">See who else was there</p>
+        <p className="text-[10px] text-white/20 mt-0.5">Coming soon...</p>
+      </div>
 
       <Sparkles className="w-3 h-3 text-white/20 shrink-0" />
     </button>
