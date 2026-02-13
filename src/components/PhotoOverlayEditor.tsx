@@ -341,6 +341,33 @@ export const PhotoOverlayEditor = ({
   // Use transform.scale for canvas generation
   const overlayScale = transform.scale;
 
+  // Helper: draw text with manual letter spacing (cross-browser safe)
+  const drawSpacedText = (
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    spacingEm: number,
+    align: 'left' | 'center' | 'right' = 'center'
+  ) => {
+    // Measure each character and total width with spacing
+    const chars = [...text];
+    const charWidths = chars.map(c => ctx.measureText(c).width);
+    const fontSize = parseFloat(ctx.font);
+    const spacing = fontSize * spacingEm;
+    const totalWidth = charWidths.reduce((sum, w) => sum + w, 0) + spacing * (chars.length - 1);
+
+    let startX = x;
+    if (align === 'center') startX = x - totalWidth / 2;
+    else if (align === 'right') startX = x - totalWidth;
+
+    let cx = startX;
+    for (let i = 0; i < chars.length; i++) {
+      ctx.fillText(chars[i], cx, y);
+      cx += charWidths[i] + spacing;
+    }
+  };
+
   // Reusable canvas generation function
   const generateCanvas = async (): Promise<HTMLCanvasElement> => {
     if (!effectivePhotoUrl) {
@@ -368,150 +395,311 @@ export const PhotoOverlayEditor = ({
 
     // Use the image's natural dimensions, scaled to max 1920px on longest side
     const maxDimension = 1920;
-    const scale = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
-    canvas.width = Math.round(img.width * scale);
-    canvas.height = Math.round(img.height * scale);
+    const imgScale = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
+    canvas.width = Math.round(img.width * imgScale);
+    canvas.height = Math.round(img.height * imgScale);
 
     // Draw photo at full canvas size (native aspect ratio)
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Get overlay position
-    const overlayElement = document.getElementById("rating-overlay");
-    const canvasContainer = document.getElementById("canvas-container");
-    if (!overlayElement || !canvasContainer) throw new Error("Elements not found");
-    const containerRect = canvasContainer.getBoundingClientRect();
-    const overlayRect = overlayElement.getBoundingClientRect();
-    const scaleX = canvas.width / containerRect.width;
-    const scaleY = canvas.height / containerRect.height;
-    const overlayX = (overlayRect.left - containerRect.left) * scaleX;
-    const overlayY = (overlayRect.top - containerRect.top) * scaleY;
-    const overlayWidth = overlayRect.width * scaleX;
-    const overlayHeight = overlayRect.height * scaleY;
+    // --- Self-contained overlay drawing (no DOM reads) ---
+    // We need to replicate the exact same coordinate system as the preview.
+    // The preview has a container (canvas-container) that wraps a photo-wrapper div.
+    // The photo-wrapper has object-cover and specific aspect ratio.
+    // The overlay is positioned with transform.x, transform.y (in CSS px) relative to
+    // the photo-wrapper, and scaled/rotated via transform.scale/rotation.
 
-    // Draw overlay background if opacity > 0
+    // Get the container and photo-wrapper dimensions from the DOM (just for the scale factor)
+    const canvasContainer = document.getElementById("canvas-container");
+    if (!canvasContainer) throw new Error("Container not found");
+    const containerRect = canvasContainer.getBoundingClientRect();
+
+    // Find the photo-wrapper (the touch-none div inside the container)
+    const photoWrapper = canvasContainer.querySelector('.touch-none') as HTMLElement;
+    if (!photoWrapper) throw new Error("Photo wrapper not found");
+    const wrapperRect = photoWrapper.getBoundingClientRect();
+
+    // Scale factor: canvas pixels per CSS pixel of the photo wrapper
+    const sf = canvas.width / wrapperRect.width;
+    const sfY = canvas.height / wrapperRect.height;
+
+    // Offset of photo wrapper within the container (for centering)
+    const wrapperOffsetX = (wrapperRect.left - containerRect.left);
+    const wrapperOffsetY = (wrapperRect.top - containerRect.top);
+
+    // The overlay is positioned at (transform.x, transform.y) relative to the photo wrapper
+    // with CSS width=160px, transform: scale(S) rotate(R)
+    const overlayDomWidth = 160; // CSS px, matches the JSX `width: 160`
+    const s = transform.scale;
+
+    // Calculate overlay content layout in DOM px (before scaling to canvas)
+    // We'll build the overlay content layout, then draw it onto canvas
+    const padding = 16; // p-4 = 16px
+    const fontFamily = 'system-ui, -apple-system, sans-serif';
+
+    // We need to measure text to compute overlay height, so use a temporary approach:
+    // Layout all text lines first, then compute total height, then draw.
+    interface LayoutItem {
+      type: 'artist' | 'venue' | 'date' | 'notes' | 'rank' | 'logo';
+      text: string;
+      fontSize: number;
+      fontWeight: string;
+      fontStyle: string;
+      color: string;
+      opacity: number;
+      lineHeight: number;
+      icon?: 'mappin';
+      letterSpacing?: number; // em
+      textShadow?: boolean;
+      glowShadow?: boolean;
+    }
+
+    const items: LayoutItem[] = [];
+
+    // Artist name
+    if (overlayConfig.showArtists) {
+      const headlinersList = show.artists.filter(a => a.is_headliner);
+      items.push({
+        type: 'artist',
+        text: headlinersList.map(a => a.name).join(", "),
+        fontSize: 16,
+        fontWeight: 'bold',
+        fontStyle: 'normal',
+        color: 'white',
+        opacity: 1,
+        lineHeight: 20, // text-base + mb-1
+        textShadow: true,
+      });
+    }
+
+    // Venue
+    if (overlayConfig.showVenue) {
+      items.push({
+        type: 'venue',
+        text: show.venue_name,
+        fontSize: 12,
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+        color: 'white',
+        opacity: 1,
+        lineHeight: 16,
+        icon: 'mappin',
+      });
+    }
+
+    // Date
+    if (overlayConfig.showDate) {
+      const dateStr = new Date(show.show_date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      items.push({
+        type: 'date',
+        text: dateStr,
+        fontSize: 10,
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+        color: 'white',
+        opacity: 0.8,
+        lineHeight: 18, // includes mb-2
+      });
+    }
+
+    // Notes
+    if (overlayConfig.showNotes && show.notes) {
+      items.push({
+        type: 'notes',
+        text: `"${show.notes}"`,
+        fontSize: 10,
+        fontWeight: 'normal',
+        fontStyle: 'italic',
+        color: 'white',
+        opacity: 0.8,
+        lineHeight: 14,
+      });
+    }
+
+    // Rank
+    if (overlayConfig.showRank && rankData.total > 0) {
+      const timePeriodText = rankingTimeFilter === 'this-year' ? 'This Year' : rankingTimeFilter === 'last-year' ? 'Last Year' : 'All Time';
+      items.push({
+        type: 'rank',
+        text: `#${rankData.position} ${timePeriodText}`,
+        fontSize: 15,
+        fontWeight: '600',
+        fontStyle: 'normal',
+        color: 'white',
+        opacity: 1,
+        lineHeight: 20,
+        glowShadow: true,
+      });
+    }
+
+    // SCENE logo - always shown
+    items.push({
+      type: 'logo',
+      text: 'SCENE ✦',
+      fontSize: 10,
+      fontWeight: '900',
+      fontStyle: 'normal',
+      color: 'rgba(255,255,255,0.75)',
+      opacity: 1,
+      lineHeight: 14,
+      letterSpacing: 0.25,
+      glowShadow: true,
+    });
+
+    // Compute total content height in DOM px
+    let contentHeight = padding; // top padding
+    for (const item of items) {
+      if (item.type === 'notes') {
+        // Notes can wrap - estimate 2 lines max
+        contentHeight += item.lineHeight * 2 + 4;
+      } else {
+        contentHeight += item.lineHeight;
+      }
+    }
+    // Add gap before footer (mt-2 = 8px) and bottom padding
+    contentHeight += 8 + padding;
+
+    // Now draw everything onto the canvas
+    // Apply overlay transform: translate to overlay position, then scale and rotate
+    ctx.save();
+
+    // The overlay's CSS position is (transform.x, transform.y) relative to the photo wrapper's top-left.
+    // In canvas coordinates, the photo fills the entire canvas (object-cover on the wrapper).
+    const overlayCanvasX = transform.x * sf;
+    const overlayCanvasY = transform.y * sfY;
+    const overlayCanvasWidth = overlayDomWidth * sf;
+    const overlayCanvasHeight = contentHeight * sfY;
+
+    // Move to overlay center, apply rotation and scale
+    const centerX = overlayCanvasX + (overlayCanvasWidth * s) / 2;
+    const centerY = overlayCanvasY + (overlayCanvasHeight * s) / 2;
+
+    ctx.translate(centerX, centerY);
+    ctx.rotate((transform.rotation * Math.PI) / 180);
+    ctx.scale(s, s);
+    ctx.translate(-overlayCanvasWidth / 2, -overlayCanvasHeight / 2);
+
+    // Draw background if opacity > 0
     if (overlayOpacity > 0) {
-      const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
-      gradient.addColorStop(0, "hsl(220, 50%, 30%)");
-      gradient.addColorStop(1, "hsl(240, 40%, 20%)");
+      const gradient = ctx.createLinearGradient(0, 0, overlayCanvasWidth, overlayCanvasHeight);
+      // Matches getOverlayGradient(): rgba(30, 41, 59, 0.85) -> rgba(15, 23, 42, 0.90)
+      gradient.addColorStop(0, "rgba(30, 41, 59, 1)");
+      gradient.addColorStop(1, "rgba(15, 23, 42, 1)");
       ctx.globalAlpha = overlayOpacity / 100;
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, 24 * scaleX);
+      ctx.roundRect(0, 0, overlayCanvasWidth, overlayCanvasHeight, 16 * sf);
       ctx.fill();
       ctx.globalAlpha = 1;
     }
 
-    // Draw text matching screen layout exactly - VERTICAL STACKED LAYOUT
-    const padding = 16 * scaleX;
-    let yPos = overlayY + padding;
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    const centerX = overlayX + overlayWidth / 2;
+    // Draw text items
+    let yPos = padding * sfY;
+    const textCenterX = overlayCanvasWidth / 2;
 
-    // Artist name below score
-    if (overlayConfig.showArtists) {
-      const headliners = show.artists.filter(a => a.is_headliner);
-      const artistText = headliners.map(a => a.name).join(", ");
-      ctx.font = `bold ${16 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = overlayOpacity > 0 ? primaryColor : "white";
-      if (overlayOpacity === 0) {
+    for (const item of items) {
+      const scaledFontSize = item.fontSize * sf;
+      ctx.font = `${item.fontStyle === 'italic' ? 'italic ' : ''}${item.fontWeight} ${scaledFontSize}px ${fontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = item.color;
+      ctx.globalAlpha = item.opacity;
+
+      // Apply text shadow
+      if (item.textShadow) {
+        ctx.shadowColor = "rgba(255,255,255,0.5)";
+        ctx.shadowBlur = 8 * sf;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      } else if (item.glowShadow) {
+        ctx.shadowColor = "rgba(255,255,255,0.5)";
+        ctx.shadowBlur = 8 * sf;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      } else if (overlayOpacity === 0) {
+        // No background - add dark shadow for readability
         ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-        ctx.shadowBlur = 8 * scaleX;
-        ctx.shadowOffsetY = 2 * scaleY;
+        ctx.shadowBlur = 8 * sf;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 2 * sf;
+      } else {
+        ctx.shadowBlur = 0;
       }
-      ctx.fillText(artistText, centerX, yPos);
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-      yPos += 20 * scaleY;
-    }
 
-    // Venue - centered compact
-    if (overlayConfig.showVenue) {
-      ctx.font = `${12 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "white";
-      ctx.fillText(show.venue_name, centerX, yPos);
-      yPos += 16 * scaleY;
-    }
+      if (item.type === 'venue' && item.icon === 'mappin') {
+        // Draw MapPin icon + venue text
+        const iconSize = 12 * sf;
+        const gap = 4 * sf;
+        const textWidth = ctx.measureText(item.text).width;
+        const totalWidth = iconSize + gap + textWidth;
+        const startX = textCenterX - totalWidth / 2;
 
-    // Date - centered compact
-    if (overlayConfig.showDate) {
-      ctx.font = `${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      const dateStr = new Date(show.show_date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-      });
-      ctx.fillText(dateStr, centerX, yPos);
-      yPos += 18 * scaleY;
-    }
+        // Draw simple map pin icon
+        ctx.save();
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 1.5 * sf;
+        ctx.fillStyle = 'transparent';
+        const pinX = startX + iconSize / 2;
+        const pinY = yPos + iconSize / 2;
+        ctx.beginPath();
+        ctx.arc(pinX, pinY - 2 * sf, 3 * sf, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pinX - 3 * sf, pinY - 2 * sf);
+        ctx.quadraticCurveTo(pinX, pinY + 5 * sf, pinX + 3 * sf, pinY - 2 * sf);
+        ctx.stroke();
+        ctx.restore();
 
-    // (Legacy detailed ratings removed - tags replace them)
-
-    // Notes - centered, smaller
-    if (overlayConfig.showNotes && show.notes) {
-      ctx.font = `italic ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      const maxWidth = overlayWidth - padding * 2;
-      const words = `"${show.notes}"`.split(" ");
-      let line = "";
-      let lineCount = 0;
-      words.forEach(word => {
-        const testLine = line + word + " ";
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && line !== "") {
-          if (lineCount < 2) {
-            ctx.fillText(line.trim(), centerX, yPos);
-            line = word + " ";
-            yPos += 14 * scaleY;
-            lineCount++;
+        // Draw venue text
+        ctx.textAlign = 'left';
+        ctx.fillStyle = item.color;
+        ctx.fillText(item.text, startX + iconSize + gap, yPos);
+        ctx.textAlign = 'center';
+        yPos += item.lineHeight * sfY;
+      } else if (item.type === 'notes') {
+        // Word-wrap notes (max 2 lines)
+        const maxWidth = overlayCanvasWidth - padding * 2 * sf;
+        const words = item.text.split(" ");
+        let line = "";
+        let lineCount = 0;
+        for (const word of words) {
+          const testLine = line + word + " ";
+          if (ctx.measureText(testLine).width > maxWidth && line !== "") {
+            if (lineCount < 2) {
+              ctx.fillText(line.trim(), textCenterX, yPos);
+              line = word + " ";
+              yPos += item.lineHeight * sf;
+              lineCount++;
+            }
+          } else {
+            line = testLine;
           }
-        } else {
-          line = testLine;
         }
-      });
-      if (lineCount < 2 && line !== "") {
-        ctx.fillText(line.trim(), centerX, yPos);
+        if (lineCount < 2 && line !== "") {
+          ctx.fillText(line.trim(), textCenterX, yPos);
+        }
+        yPos += item.lineHeight * sf + 4 * sf;
+      } else if (item.letterSpacing) {
+        // Draw with manual letter spacing (SCENE logo)
+        drawSpacedText(ctx, item.text, textCenterX, yPos + scaledFontSize * 0.8, item.letterSpacing, 'center');
+        yPos += item.lineHeight * sfY;
+      } else {
+        ctx.fillText(item.text, textCenterX, yPos);
+        yPos += item.lineHeight * sfY;
       }
-      yPos += 10 * scaleY;
+
+      // Reset shadow
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.globalAlpha = 1;
     }
 
-    // Footer: Rank on left, Scene logo on right
-    const bottomY = overlayY + overlayHeight - 10 * scaleY;
-
-    // Rank on the left
-    if (overlayConfig.showRank && rankData.total > 0) {
-      ctx.font = `600 ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      const rankGradientColors = (() => {
-        if (rankData.percentile >= 90) return ["hsl(45, 93%, 58%)", "hsl(189, 94%, 55%)"];
-        if (rankData.percentile >= 75) return ["hsl(189, 94%, 55%)", "hsl(260, 80%, 60%)"];
-        if (rankData.percentile >= 50) return ["hsl(260, 80%, 60%)", "hsl(330, 85%, 65%)"];
-        return ["hsl(330, 85%, 65%)", "hsl(0, 84%, 60%)"];
-      })();
-      const gradient = ctx.createLinearGradient(overlayX + padding, bottomY, overlayX + overlayWidth - padding, bottomY);
-      gradient.addColorStop(0, rankGradientColors[0]);
-      gradient.addColorStop(1, rankGradientColors[1]);
-      ctx.fillStyle = gradient;
-      ctx.textAlign = "left";
-      const timePeriodText = rankingTimeFilter === 'this-year' ? 'this year' : rankingTimeFilter === 'last-year' ? 'last year' : 'all time';
-      ctx.fillText(`#${rankData.position} ${timePeriodText}`, overlayX + padding, bottomY);
-    }
-
-    // Scene logo on the right - stylized with glow
-    ctx.font = `900 ${10 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-    ctx.textAlign = "right";
-    ctx.letterSpacing = `${0.25 * scaleX}em`;
-
-    // Add soft glow effect
-    ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
-    ctx.shadowBlur = 8 * scaleX;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-    ctx.fillText("SCENE ✦", overlayX + overlayWidth - padding, bottomY);
-
-    // Reset shadow
-    ctx.shadowBlur = 0;
+    ctx.restore();
     return canvas;
   };
   const handleDownloadImage = async () => {
