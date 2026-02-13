@@ -1055,33 +1055,14 @@ export const PhotoOverlayEditor = ({
         </div>
         
         {/* Bottom controls - fixed height */}
-        <div className="flex-shrink-0 pt-3 space-y-3 px-1">
-          {/* Instagram Hero Button */}
-          <Button onClick={handleShareToInstagram} disabled={isGenerating} className="w-full h-12 text-base font-semibold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 border-0 shadow-lg shadow-purple-500/25">
-            <Instagram className="mr-2 h-5 w-5" />
-            {isGenerating ? "Generating..." : "Share to Instagram"}
-          </Button>
-          
-          {/* Secondary actions - compact row */}
-          <div className="flex gap-2">
-            <Button onClick={handleShareWithFriends} disabled={isGenerating} variant="secondary" className="flex-1 h-10">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Send
-            </Button>
-            <Button onClick={handleDownloadImage} disabled={isGenerating} variant="ghost" className="flex-1 h-10">
-              <Download className="mr-2 h-4 w-4" />
-              Save
-            </Button>
-          </div>
-          
-          {/* Referral link */}
+        <div className="flex-shrink-0 pt-3 px-1">
           <Button 
-            onClick={handleCopyReferralLink} 
-            variant="outline" 
-            className="w-full h-9 text-sm text-muted-foreground hover:text-foreground"
+            onClick={handleShareWithFriends} 
+            disabled={isGenerating} 
+            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 border-0 shadow-lg shadow-primary/25"
           >
-            <Link2 className="mr-2 h-4 w-4" />
-            Copy Invite Link
+            <Download className="mr-2 h-5 w-5" />
+            {isGenerating ? "Generating..." : "Share"}
           </Button>
         </div>
       </div>
