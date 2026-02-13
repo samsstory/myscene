@@ -17,7 +17,7 @@ interface Show {
   artists: Artist[];
   venue: { name: string; location: string };
   date: string;
-  rating: number;
+  rating?: number | null;
   tags?: string[];
   photo_url?: string | null;
 }

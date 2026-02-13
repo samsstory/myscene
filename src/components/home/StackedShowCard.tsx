@@ -19,7 +19,7 @@ interface Show {
     location: string;
   };
   date: string;
-  rating: number;
+  rating?: number | null;
   photo_url?: string | null;
   tags?: string[];
   isLocalDemo?: boolean;

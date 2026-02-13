@@ -41,7 +41,6 @@ interface Show {
     location: string;
   };
   date: string;
-  rating: number;
   datePrecision?: string;
   tags?: string[];
   notes?: string | null;
@@ -121,8 +120,6 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
     })),
     venue_name: show.venue?.name || "",
     show_date: show.date || "",
-    artist_performance: null,
-    venue_vibe: null,
   });
   
   // Smart share handler - direct to editor if photo exists, otherwise quick photo add
@@ -246,7 +243,6 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           artists: (artistsData || []).map(a => ({ name: a.artist_name, isHeadliner: a.is_headliner })),
           venue: { name: show.venue_name, location: show.venue_location || '' },
           date: show.show_date,
-          rating: show.rating,
           datePrecision: show.date_precision,
           tags: (tagsData || []).map(t => t.tag),
           notes: show.notes,
@@ -802,7 +798,6 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           date: editShow.date,
           datePrecision: editShow.datePrecision || 'exact',
           artists: editShow.artists,
-          rating: editShow.rating,
           tags: editShow.tags,
           notes: editShow.notes,
           venueId: editShow.venueId,

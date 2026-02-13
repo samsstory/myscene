@@ -31,7 +31,7 @@ interface Show {
   artists: Artist[];
   venue: { name: string; location: string };
   date: string;
-  rating: number;
+  rating?: number | null;
   datePrecision?: string;
   tags?: string[];
   notes?: string | null;
