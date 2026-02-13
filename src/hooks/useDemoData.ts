@@ -16,11 +16,7 @@ interface Show {
   date: string;
   rating: number;
   datePrecision?: string;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
   notes?: string | null;
   venueId?: string | null;
   latitude?: number;
