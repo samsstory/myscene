@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { ApproveModal } from "./ApproveModal";
 import { format } from "date-fns";
-import { CheckCircle, Clock, Users, Mail } from "lucide-react";
+import { CheckCircle, Clock, Users, Mail, Send } from "lucide-react";
 
 interface WaitlistEntry {
   id: string;
@@ -34,6 +35,37 @@ export function WaitlistTab() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [approveEntry, setApproveEntry] = useState<WaitlistEntry | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResendNotification = async (entry: WaitlistEntry) => {
+    const email = prompt("Enter the email address for this user:");
+    if (!email) return;
+
+    setResendingId(entry.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resend-notification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ waitlistId: entry.id, email }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to send");
+      toast({ title: "Email sent", description: `Notification resent to ${email}` });
+      fetchEntries();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -163,11 +195,21 @@ export function WaitlistTab() {
                     {format(new Date(entry.created_at), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell>
-                    {entry.status === "pending" && (
+                    {entry.status === "pending" ? (
                       <Button size="sm" onClick={() => setApproveEntry(entry)}>
                         Approve
                       </Button>
-                    )}
+                    ) : entry.status === "approved" && !entry.notified_at ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleResendNotification(entry)}
+                        disabled={resendingId === entry.id}
+                      >
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        {resendingId === entry.id ? "Sending..." : "Send Email"}
+                      </Button>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}
