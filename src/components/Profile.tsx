@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles, Navigation } from "lucide-react";
+import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles, Navigation, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -218,6 +218,20 @@ const Profile = ({ onStartTour }: { onStartTour?: () => void }) => {
               <div className="text-left">
                 <p className="font-semibold">Interactive Tour</p>
                 <p className="text-sm text-muted-foreground">Learn your way around</p>
+              </div>
+            </Button>
+
+            <Button 
+              onClick={() => navigate("/install")}
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto py-3"
+            >
+              <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
+                <Download className="h-5 w-5 text-accent" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Install App</p>
+                <p className="text-sm text-muted-foreground">Add SCENE to your home screen</p>
               </div>
             </Button>
           </CardContent>
