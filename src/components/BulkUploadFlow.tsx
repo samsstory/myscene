@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import PhotoSelectStep from "./bulk-upload/PhotoSelectStep";
 import BulkReviewStep from "./bulk-upload/BulkReviewStep";
 import BulkSuccessStep from "./bulk-upload/BulkSuccessStep";
+import SmartMatchStep from "./bulk-upload/SmartMatchStep";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
-import { PhotoWithExif, cleanupPhotoUrls } from "@/lib/exif-utils";
+import { PhotoWithExif, VenueSuggestion, cleanupPhotoUrls } from "@/lib/exif-utils";
 import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
 
@@ -19,7 +20,7 @@ interface BulkUploadFlowProps {
   onAddManually?: () => void;
 }
 
-type Step = 'select' | 'review' | 'success' | 'editor';
+type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor';
 
 const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
@@ -52,6 +53,34 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
 
   const handlePhotosSelected = (selectedPhotos: PhotoWithExif[]) => {
     setPhotos(selectedPhotos);
+    // Single photo with GPS → smart match step
+    if (selectedPhotos.length === 1 && selectedPhotos[0].exifData.gps) {
+      setStep('smart-match');
+    } else {
+      setStep('review');
+    }
+  };
+
+  const handleSmartMatchConfirm = (venue: VenueSuggestion) => {
+    setPhotos((prev) =>
+      prev.map((p) => ({
+        ...p,
+        suggestedVenue: venue,
+        venueMatchStatus: 'found' as const,
+      }))
+    );
+    setStep('review');
+  };
+
+  const handleSmartMatchReject = () => {
+    setPhotos((prev) =>
+      prev.map((p) => ({
+        ...p,
+        suggestedVenue: undefined,
+        alternativeVenues: undefined,
+        venueMatchStatus: 'not_found' as const,
+      }))
+    );
     setStep('review');
   };
 
@@ -95,7 +124,9 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   };
 
   const handleBack = () => {
-    if (step === 'review') {
+    if (step === 'smart-match') {
+      setStep('select');
+    } else if (step === 'review') {
       setStep('select');
     } else if (step === 'editor') {
       setEditorShow(null);
@@ -112,6 +143,8 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     switch (step) {
       case 'select':
         return 'Add a Show';
+      case 'smart-match':
+        return 'We Found It';
       case 'review':
         return 'Add Shows';
       case 'success':
@@ -169,7 +202,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
           <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center gap-3 mb-4">
-            {(step === 'review' || step === 'editor') && (
+            {(step === 'smart-match' || step === 'review' || step === 'editor') && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -188,6 +221,14 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             onPhotosSelected={handlePhotosSelected}
             isProcessing={false}
             onAddManually={onAddManually ? handleAddManually : undefined}
+          />
+        )}
+
+        {step === 'smart-match' && photos.length === 1 && (
+          <SmartMatchStep
+            photo={photos[0]}
+            onConfirm={handleSmartMatchConfirm}
+            onReject={handleSmartMatchReject}
           />
         )}
 
