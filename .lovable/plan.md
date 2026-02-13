@@ -1,54 +1,47 @@
 
 
-## Updated Welcome Screen: Hero Mockup + New Copy
+## Fix: Welcome Screen Tour Link + Add Flow Navigation
 
-### What Changes
+### Bug 1: Tour Link Not Visible
 
-Replace the current `StackedCardsMockup` in the welcome screen with the **V2 hero mockup** from `LandingHeroV2.tsx` (the "ceremonial reveal" design with emotional tags and faded runner-ups). Update the subheadline copy.
+**Root cause**: The welcome screen content overflows the mobile viewport. The `flex-1 justify-center` layout centers content vertically but does not allow scrolling, so the "Take a quick tour first" link gets clipped below the fold.
 
-### New Welcome Screen Layout
+**Fix in `WelcomeCarousel.tsx`**:
+- Reduce vertical spacing: smaller `mt-6` gaps, reduce mockup container padding
+- Add `overflow-y-auto` to the content area so it scrolls if needed
+- Reduce the button height from `h-14` to `h-12` to save space
+- Tighten the gap between the headline and subheadline
 
-1. **Scene logo** at top
-2. **Mockup visual** -- The V2 hero `MockShowCard` design featuring:
-   - "That show." quiet caption
-   - Fred again.. #1 card with moody photo treatment and vignette
-   - Three emotional tag pills ("Emotional..", "Crowd went off", "Venue was insane!")
-   - Faded runner-up stack (ODESZA, Rufus Du Sol, Jamie xx) with opacity decay
-3. **Headline**: "Your live music journey starts here"
-4. **Subheadline**: "Log shows, rank them against each other, and compare with friends."
-5. **Primary CTA**: "Log Your First Show"
-6. **Secondary link**: "Take a quick tour first"
+### Bug 2: "Log Your First Show" Opens Profile Instead of Add Flow
 
-### Technical Changes
+**Root cause**: When `setShowOnboarding(false)` fires, the WelcomeCarousel unmounts and the full Dashboard renders. However, React may batch or defer the `setShowUnifiedAdd(true)` state, causing the `BulkUploadFlow` dialog to not open reliably. Additionally, the Dashboard's auth `useEffect` runs on mount and may interfere with the transition.
 
-**`src/components/onboarding/WelcomeCarousel.tsx`**
+**Fix in `Dashboard.tsx`**:
+- Use a `useEffect` that watches for a flag (e.g. `pendingAddFlow`) to open the BulkUploadFlow after the dashboard has fully rendered post-onboarding
+- This ensures the dialog opens after the dashboard layout has mounted, not during the unmount/remount transition
 
-- Remove the multi-slide carousel, pagination dots, `Carousel`/`CarouselContent`/`CarouselItem` imports, and `CarouselApi` state
-- Remove `StackedCardsMockup`, `ShowReviewMockup`, `StoryShareMockup`, `CarouselSlide`, `collapsedCards`, and `slides` constants
-- Add a new `HeroMockup` component ported from `LandingHeroV2.tsx`'s `MockShowCard`:
-  - "That show." caption
-  - Fred again.. hero card (16/11 aspect, moody filter, vignette, artist/venue/date overlay)
-  - Emotional tag pills row (`emotionalTags` array)
-  - Runner-up faded stack (`runnerUps` array with opacity/blur fade)
-- Render a single static screen with:
-  - Mesh gradient background (keep existing)
-  - SceneLogo at top (keep existing)
-  - `HeroMockup` in a 4:3 rounded container
-  - Headline + updated subheadline
-  - "Log Your First Show" button calling `onComplete`
-  - "Take a quick tour first" text button calling new `onTakeTour` prop
-- Add `onTakeTour` prop to `WelcomeCarouselProps`
+Alternatively (simpler approach):
+- Use `setTimeout(() => setShowUnifiedAdd(true), 0)` to defer the add flow opening to the next tick, ensuring the dashboard has fully rendered first
+- Or use `queueMicrotask` for the same effect
 
-**`src/pages/Dashboard.tsx`**
+### Technical Details
 
-- Update `handleOnboardingComplete` to skip the spotlight tour, set `onboarding_step` to `"completed"`, and open the unified add flow (`setShowUnifiedAdd(true)`)
-- Add a new `handleTakeTour` handler that sets `onboarding_step` to `"spotlight_tour"` and starts the tour (existing behavior)
-- Pass both `onComplete={handleOnboardingComplete}` and `onTakeTour={handleTakeTour}` to `WelcomeCarousel`
+**`src/components/onboarding/WelcomeCarousel.tsx`**:
+- Change `flex-1 ... justify-center` to `flex-1 ... justify-center overflow-y-auto`
+- Reduce `mt-6` after mockup to `mt-4`
+- Reduce `mt-6` before button to `mt-4`
+- Reduce button from `h-14` to `h-12`
+- Reduce `mb-3` after headline to `mb-2`
+- Add bottom padding (`pb-8`) to ensure tour link has breathing room
+
+**`src/pages/Dashboard.tsx`**:
+- In `handleOnboardingComplete`, wrap `setShowUnifiedAdd(true)` in a `setTimeout(..., 50)` to ensure it fires after the dashboard re-render completes
+- This guarantees BulkUploadFlow's Dialog is mounted and ready to receive the `open={true}` prop
 
 ### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/onboarding/WelcomeCarousel.tsx` | Replace carousel with single screen using V2 hero mockup; update subheadline; add `onTakeTour` prop |
-| `src/pages/Dashboard.tsx` | Split onboarding completion into two paths: direct-to-add-flow and take-tour |
+| `src/components/onboarding/WelcomeCarousel.tsx` | Tighten spacing, add overflow scroll, ensure tour link is visible on mobile |
+| `src/pages/Dashboard.tsx` | Defer `setShowUnifiedAdd(true)` to next tick to ensure reliable dialog opening |
 
