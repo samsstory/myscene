@@ -102,11 +102,22 @@ const Dashboard = () => {
     if (session) {
       await supabase
         .from("profiles")
+        .update({ onboarding_step: "completed" })
+        .eq("id", session.user.id);
+    }
+    setShowOnboarding(false);
+    // Go directly to the add flow
+    setShowUnifiedAdd(true);
+  };
+
+  const handleTakeTour = async () => {
+    if (session) {
+      await supabase
+        .from("profiles")
         .update({ onboarding_step: "spotlight_tour" })
         .eq("id", session.user.id);
     }
     setShowOnboarding(false);
-    // Start the spotlight tour after carousel
     setShowSpotlightTour(true);
   };
 
@@ -122,7 +133,7 @@ const Dashboard = () => {
 
   // Show onboarding carousel for new users
   if (showOnboarding) {
-    return <WelcomeCarousel onComplete={handleOnboardingComplete} />;
+    return <WelcomeCarousel onComplete={handleOnboardingComplete} onTakeTour={handleTakeTour} />;
   }
 
   const renderContent = () => {
