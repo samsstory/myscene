@@ -63,6 +63,9 @@ export default function Install() {
           ))}
         </motion.div>
 
+        {/* Section heading */}
+        <h2 className="text-xl font-bold text-foreground">How to Install Scene</h2>
+
         {/* iOS Instructions */}
         {(platform === "ios" || platform === "desktop") && (
           <motion.div
