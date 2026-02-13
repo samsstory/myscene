@@ -74,7 +74,7 @@ async function sendWelcomeEmail(email: string, password: string, customSubject?:
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: "Scene <onboarding@resend.dev>",
+        from: "Scene <hello@tryscene.app>",
         to: [email],
         subject,
         html,
