@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
         .in("show_id", showIdsForTags);
       
       const showsWithTags = new Set((allTagsData || []).map((t: { show_id: string }) => t.show_id));
-      const incompleteRatingsCount = shows.filter((show: { id: string }) => !showsWithTags.has(show.id)).length;
+      const incompleteTagsCount = shows.filter((show: { id: string }) => !showsWithTags.has(show.id)).length;
 
       const COMPARISON_THRESHOLD = 3;
       const rankedShowIds = new Set(rankings.filter((r: { comparisons_count: number }) => r.comparisons_count > 0).map((r: { show_id: string }) => r.show_id));
@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
         globalConfirmationPercentage,
         uniqueCities: cities.size,
         uniqueCountries: countries.size,
-        incompleteRatingsCount,
+        incompleteTagsCount,
         underRankedCount,
         missingPhotosCount,
       };
