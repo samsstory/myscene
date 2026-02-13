@@ -16,7 +16,7 @@ Your beta access is ready. Here are your login details:
 Email: {{email}}
 Temporary Password: {{password}}
 
-👉 Log in now: https://myscene.lovable.app
+👉 Log in now: https://tryscene.app
 
 We recommend changing your password after your first login.`;
 
@@ -25,7 +25,7 @@ export const DEFAULT_RESEND_BODY = `Welcome to Scene!
 
 Your beta access is ready! Log in with the credentials you were given.
 
-👉 Go to Scene: https://myscene.lovable.app
+👉 Go to Scene: https://tryscene.app
 
 If you've forgotten your password, use the reset option on the login page.`;
 

@@ -29,7 +29,7 @@ const DEFAULT_HTML = `
     <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
     <p style="color: #555; line-height: 1.6;">Your beta access is ready! Log in with the credentials you were given.</p>
     <div style="text-align: center; margin: 32px 0;">
-      <a href="https://myscene.lovable.app" style="display: inline-block; background: #6366f1; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Go to Scene →</a>
+      <a href="https://tryscene.app" style="display: inline-block; background: #6366f1; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Go to Scene →</a>
     </div>
     <p style="color: #999; font-size: 13px; margin-top: 32px;">If you've forgotten your password, use the reset option on the login page.</p>
   </div>

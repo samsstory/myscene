@@ -40,7 +40,7 @@ function buildWelcomeHtml(email: string, password: string): string {
         <p style="margin: 0;"><strong>Temporary Password:</strong> ${password}</p>
       </div>
       <div style="text-align: center; margin: 32px 0;">
-        <a href="https://myscene.lovable.app" style="display: inline-block; background: #6366f1; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Log in to Scene →</a>
+        <a href="https://tryscene.app" style="display: inline-block; background: #6366f1; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Log in to Scene →</a>
       </div>
       <p style="color: #999; font-size: 13px; margin-top: 32px;">We recommend changing your password after your first login.</p>
     </div>
