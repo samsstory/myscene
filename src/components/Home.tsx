@@ -775,9 +775,20 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           setDirectEditShow(show);
           setDirectEditOpen(true);
         }}
-        onDelete={(showId) => {
-          const showToDelete = shows.find(s => s.id === showId);
-          if (showToDelete) setDeleteConfirmShow(showToDelete);
+        onDelete={async (showId) => {
+          try {
+            await supabase.from('show_tags').delete().eq('show_id', showId);
+            await supabase.from('show_artists').delete().eq('show_id', showId);
+            await supabase.from('show_rankings').delete().eq('show_id', showId);
+            await supabase.from('show_comparisons').delete().or(`show1_id.eq.${showId},show2_id.eq.${showId}`);
+            const { error } = await supabase.from('shows').delete().eq('id', showId);
+            if (error) throw error;
+            toast.success('Show deleted');
+            setShows(prev => prev.filter(s => s.id !== showId));
+          } catch (error) {
+            console.error('Error deleting show:', error);
+            toast.error('Failed to delete show');
+          }
         }}
         allShows={shows} 
         rankings={rankings}
