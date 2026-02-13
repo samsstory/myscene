@@ -398,6 +398,13 @@ export const PhotoOverlayEditor = ({
       saveAndSet(htmlEl, 'whiteSpace', 'normal');
     });
 
+    // Fix MapPin SVG alignment for html2canvas (renders SVGs slightly higher than DOM)
+    const mapPinSvg = overlayEl?.querySelector('svg') as unknown as HTMLElement | null;
+    if (mapPinSvg) {
+      saveAndSet(mapPinSvg, 'position', 'relative');
+      saveAndSet(mapPinSvg, 'top', '2px');
+    }
+
     const wrapperRect = photoWrapper.getBoundingClientRect();
     const scaleFactor = Math.min(1920 / wrapperRect.width, 1920 / wrapperRect.height, 3);
 
@@ -855,7 +862,7 @@ export const PhotoOverlayEditor = ({
                 e.stopPropagation();
                 toggleConfig("showVenue");
               }}>
-                  <MapPin className="flex-shrink-0 inline-block" style={{ width: 12, height: 12, minWidth: 12, minHeight: 12, position: 'relative', top: '2.5px' }} />
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
                   <span className="truncate align-middle" style={{ verticalAlign: 'middle' }}>{show.venue_name}</span>
                 </p>}
               
