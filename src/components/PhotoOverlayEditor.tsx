@@ -389,6 +389,15 @@ export const PhotoOverlayEditor = ({
       saveAndSet(notesEl, 'display', 'block');
     }
 
+    // Remove truncate from all truncated elements (venue text, etc.)
+    const truncatedEls = overlayEl?.querySelectorAll('.truncate') ?? [];
+    truncatedEls.forEach(el => {
+      const htmlEl = el as HTMLElement;
+      saveAndSet(htmlEl, 'overflow', 'visible');
+      saveAndSet(htmlEl, 'textOverflow', 'clip');
+      saveAndSet(htmlEl, 'whiteSpace', 'normal');
+    });
+
     const wrapperRect = photoWrapper.getBoundingClientRect();
     const scaleFactor = Math.min(1920 / wrapperRect.width, 1920 / wrapperRect.height, 3);
 
