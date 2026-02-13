@@ -14,7 +14,6 @@ interface Show {
     location: string;
   };
   date: string;
-  rating: number;
   datePrecision?: string;
   tags?: string[];
   notes?: string | null;

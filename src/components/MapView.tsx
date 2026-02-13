@@ -22,7 +22,7 @@ interface Show {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   venue: { name: string; location: string };
   date: string;
-  rating: number;
+  rating?: number | null;
   latitude?: number;
   longitude?: number;
   photo_url?: string | null;

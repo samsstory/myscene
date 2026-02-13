@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Download, MapPin, Instagram, Move, Eye, EyeOff, Mic2, Building2, Calendar, Star, BarChart3, MessageSquareQuote, Trophy, RotateCcw, SunDim, MessageCircle, Camera, Upload, Link2 } from "lucide-react";
+import { Download, MapPin, Instagram, Move, Eye, EyeOff, Mic2, Building2, Calendar, MessageSquareQuote, Trophy, RotateCcw, SunDim, MessageCircle, Camera, Upload, Link2 } from "lucide-react";
 import { toast } from "sonner";
-import { calculateShowScore, getScoreGradient } from "@/lib/utils";
 import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,14 +15,9 @@ interface Show {
   artists: Artist[];
   venue_name: string;
   show_date: string;
-  rating: number;
-  artist_performance?: number;
-  sound?: number;
-  lighting?: number;
-  crowd?: number;
-  venue_vibe?: number;
   notes?: string;
   photo_url?: string;
+  tags?: string[];
 }
 interface ShowRanking {
   show_id: string;
@@ -36,19 +30,9 @@ interface PhotoOverlayEditorProps {
   allShows?: Show[];
   rankings?: ShowRanking[];
 }
-const getRatingGradient = (rating: number): string => {
-  // Darker, more muted gradients that blend better with photos
-  if (rating >= 4.5) return "linear-gradient(135deg, rgba(45, 55, 72, 0.85), rgba(26, 32, 44, 0.90))";
-  if (rating >= 3.5) return "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.90))";
-  if (rating >= 2.5) return "linear-gradient(135deg, rgba(55, 48, 45, 0.85), rgba(28, 25, 23, 0.90))";
-  return "linear-gradient(135deg, rgba(60, 35, 35, 0.85), rgba(30, 20, 20, 0.90))";
-};
-const getRatingAccent = (rating: number): string => {
-  // Subtle accent colors for text highlights
-  if (rating >= 4.5) return "hsl(45, 93%, 58%)"; // Gold
-  if (rating >= 3.5) return "hsl(189, 94%, 55%)"; // Blue
-  if (rating >= 2.5) return "hsl(17, 88%, 60%)"; // Orange
-  return "hsl(0, 84%, 60%)"; // Red
+// Neutral overlay gradient (no longer rating-based)
+const getOverlayGradient = (): string => {
+  return "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.90))";
 };
 export const PhotoOverlayEditor = ({
   show,
@@ -60,8 +44,6 @@ export const PhotoOverlayEditor = ({
     showArtists: true,
     showVenue: true,
     showDate: true,
-    showRating: true,
-    showDetailedRatings: true,
     showNotes: true,
     showBackground: true,
     showRank: false
@@ -409,20 +391,8 @@ export const PhotoOverlayEditor = ({
     // Draw overlay background if opacity > 0
     if (overlayOpacity > 0) {
       const gradient = ctx.createLinearGradient(overlayX, overlayY, overlayX + overlayWidth, overlayY + overlayHeight);
-      const ratingValue = show.rating;
-      if (ratingValue >= 4.5) {
-        gradient.addColorStop(0, "hsl(220, 90%, 56%)");
-        gradient.addColorStop(1, "hsl(280, 70%, 55%)");
-      } else if (ratingValue >= 3.5) {
-        gradient.addColorStop(0, "hsl(45, 100%, 60%)");
-        gradient.addColorStop(1, "hsl(330, 85%, 65%)");
-      } else if (ratingValue >= 2.5) {
-        gradient.addColorStop(0, "hsl(30, 100%, 55%)");
-        gradient.addColorStop(1, "hsl(45, 100%, 60%)");
-      } else {
-        gradient.addColorStop(0, "hsl(0, 70%, 50%)");
-        gradient.addColorStop(1, "hsl(30, 100%, 55%)");
-      }
+      gradient.addColorStop(0, "hsl(220, 50%, 30%)");
+      gradient.addColorStop(1, "hsl(240, 40%, 20%)");
       ctx.globalAlpha = overlayOpacity / 100;
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -437,34 +407,6 @@ export const PhotoOverlayEditor = ({
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     const centerX = overlayX + overlayWidth / 2;
-
-    // Large score at top - the visual anchor
-    if (overlayConfig.showRating) {
-      const score = calculateShowScore();
-      ctx.font = `900 ${48 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-
-      // Score gradient
-      const scoreGradient = ctx.createLinearGradient(centerX - 30 * scaleX, yPos, centerX + 30 * scaleX, yPos);
-      if (score >= 9) {
-        scoreGradient.addColorStop(0, "hsl(170, 80%, 50%)");
-        scoreGradient.addColorStop(1, "hsl(189, 94%, 55%)");
-      } else if (score >= 7) {
-        scoreGradient.addColorStop(0, "hsl(85, 85%, 50%)");
-        scoreGradient.addColorStop(1, "hsl(120, 75%, 45%)");
-      } else if (score >= 5) {
-        scoreGradient.addColorStop(0, "hsl(45, 100%, 55%)");
-        scoreGradient.addColorStop(1, "hsl(60, 90%, 50%)");
-      } else if (score >= 3) {
-        scoreGradient.addColorStop(0, "hsl(30, 100%, 50%)");
-        scoreGradient.addColorStop(1, "hsl(45, 100%, 55%)");
-      } else {
-        scoreGradient.addColorStop(0, "hsl(0, 84%, 55%)");
-        scoreGradient.addColorStop(1, "hsl(20, 90%, 50%)");
-      }
-      ctx.fillStyle = scoreGradient;
-      ctx.fillText(score.toFixed(1), centerX, yPos + 36 * scaleY);
-      yPos += 52 * scaleY;
-    }
 
     // Artist name below score
     if (overlayConfig.showArtists) {
@@ -504,54 +446,7 @@ export const PhotoOverlayEditor = ({
       yPos += 18 * scaleY;
     }
 
-    // Detailed ratings - Horizontal bar graph with text labels
-    if (overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe)) {
-      const ratings = [{
-        label: "Show",
-        value: show.artist_performance
-      }, {
-        label: "Sound",
-        value: show.sound
-      }, {
-        label: "Light",
-        value: show.lighting
-      }, {
-        label: "Crowd",
-        value: show.crowd
-      }, {
-        label: "Vibe",
-        value: show.venue_vibe
-      }].filter(r => r.value);
-      const labelWidth = 32 * scaleX;
-      const barHeight = 6 * scaleY;
-      const rowGap = 4 * scaleY;
-      const barMaxWidth = overlayWidth - padding * 2 - labelWidth - 8 * scaleX;
-      ctx.font = `${9 * overlayScale * scaleX}px system-ui, -apple-system, sans-serif`;
-      ctx.textAlign = "right";
-      ratings.forEach((rating, index) => {
-        const rowY = yPos + index * (barHeight + rowGap);
-
-        // Text label on left
-        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-        ctx.fillText(rating.label, overlayX + padding + labelWidth, rowY + barHeight * 0.8);
-
-        // Bar background
-        const barX = overlayX + padding + labelWidth + 8 * scaleX;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.beginPath();
-        ctx.roundRect(barX, rowY, barMaxWidth, barHeight, barHeight / 2);
-        ctx.fill();
-
-        // Bar fill
-        const fillWidth = rating.value! / 5 * barMaxWidth;
-        ctx.fillStyle = "rgba(255, 255, 255, 1)";
-        ctx.beginPath();
-        ctx.roundRect(barX, rowY, fillWidth, barHeight, barHeight / 2);
-        ctx.fill();
-      });
-      ctx.textAlign = "center";
-      yPos += ratings.length * (barHeight + rowGap) + 8 * scaleY;
-    }
+    // (Legacy detailed ratings removed - tags replace them)
 
     // Notes - centered, smaller
     if (overlayConfig.showNotes && show.notes) {
@@ -872,7 +767,6 @@ export const PhotoOverlayEditor = ({
   const headlinerForDisplay = show.artists.find(a => a.is_headliner) || show.artists[0];
   const artistName = headlinerForDisplay?.name || "Unknown Artist";
   const supportingArtists = show.artists.filter(a => !a.is_headliner && a.name !== headlinerForDisplay?.name);
-  const score = calculateShowScore();
   const formattedDateForDisplay = new Date(show.show_date).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric"
@@ -928,13 +822,8 @@ export const PhotoOverlayEditor = ({
                       </div>
                       <p className="text-white/50 text-xs mt-0.5">{formattedDateForDisplay}</p>
                     </div>
-                    {/* Score badge */}
-                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                      <div className="px-3 py-1.5 rounded-full bg-white border border-white/20">
-                        <span className="text-sm font-black text-black tracking-wide">
-                          {score.toFixed(1)}
-                        </span>
-                      </div>
+                    {/* Rank badge */}
+                    <div className="flex-shrink-0">
                       <span className="text-xs font-bold text-primary tracking-wide" style={{
                       textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
                     }}>
@@ -983,20 +872,8 @@ export const PhotoOverlayEditor = ({
     active: overlayConfig.showDate,
     group: "content" as const
   },
-  // Ratings group - amber
+  // Notes group - amber
   {
-    key: "showRating" as const,
-    icon: Star,
-    label: "Score",
-    active: overlayConfig.showRating,
-    group: "ratings" as const
-  }, {
-    key: "showDetailedRatings" as const,
-    icon: BarChart3,
-    label: "Details",
-    active: overlayConfig.showDetailedRatings,
-    group: "ratings" as const
-  }, {
     key: "showNotes" as const,
     icon: MessageSquareQuote,
     label: "Notes",
@@ -1052,22 +929,12 @@ export const PhotoOverlayEditor = ({
               top: transform.y,
               transform: `scale(${transform.scale}) rotate(${transform.rotation}deg)`,
               transformOrigin: "center center",
-              background: showBackground ? getRatingGradient(show.rating) : "transparent",
+              background: showBackground ? getOverlayGradient() : "transparent",
               opacity: showBackground ? overlayOpacity / 100 : 1,
               width: 160,
               touchAction: "none"
             }}>
-              {/* Large score at top - the visual anchor */}
-              {overlayConfig.showRating && <div className="text-5xl font-black text-white leading-none mb-2 cursor-pointer transition-opacity hover:opacity-70" style={{
-                textShadow: "0 0 12px rgba(255,255,255,0.6), 0 0 24px rgba(255,255,255,0.3)"
-              }} onClick={e => {
-                e.stopPropagation();
-                toggleConfig("showRating");
-              }}>
-                  {calculateShowScore().toFixed(1)}
-                </div>}
-              
-              {/* Artist name below score */}
+              {/* Artist name - the visual anchor */}
               {overlayConfig.showArtists && <h2 className="text-base font-bold mb-1 cursor-pointer transition-opacity hover:opacity-70 leading-tight text-white" style={{
                 textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 16px rgba(255,255,255,0.25)"
               }} onClick={e => {
@@ -1098,37 +965,7 @@ export const PhotoOverlayEditor = ({
                 })}
                 </p>}
 
-              {/* Detailed ratings - Horizontal bar graph with text labels */}
-              {overlayConfig.showDetailedRatings && (show.artist_performance || show.sound || show.lighting || show.crowd || show.venue_vibe) && <div className="flex flex-col gap-1 mb-2 w-full cursor-pointer transition-opacity hover:opacity-70" onClick={e => {
-                e.stopPropagation();
-                toggleConfig("showDetailedRatings");
-              }}>
-                  {[{
-                  label: "Show",
-                  value: show.artist_performance
-                }, {
-                  label: "Sound",
-                  value: show.sound
-                }, {
-                  label: "Light",
-                  value: show.lighting
-                }, {
-                  label: "Crowd",
-                  value: show.crowd
-                }, {
-                  label: "Vibe",
-                  value: show.venue_vibe
-                }].filter(r => r.value).map((rating, idx) => <div key={idx} className="gap-2 flex items-center justify-start">
-                      {/* Text label on left */}
-                      <span className="text-[9px] opacity-70 w-8 shrink-0 text-left">{rating.label}</span>
-                      {/* Horizontal bar */}
-                      <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white rounded-full" style={{
-                      width: `${rating.value! / 5 * 100}%`
-                    }} />
-                      </div>
-                    </div>)}
-                </div>}
+              {/* (Legacy detailed ratings removed) */}
 
               {/* Notes - centered, smaller */}
               {overlayConfig.showNotes && show.notes && <p className="text-[10px] italic opacity-80 line-clamp-2 mb-2 cursor-pointer transition-opacity hover:opacity-70" onClick={e => {

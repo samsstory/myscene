@@ -9,16 +9,13 @@ export interface Show {
   id: string;
   venue_name: string;
   show_date: string;
-  rating: number;
-  artist_performance: number | null;
-  sound: number | null;
-  lighting: number | null;
-  crowd: number | null;
-  venue_vibe: number | null;
   photo_url: string | null;
   notes: string | null;
   tags?: string[];
   artists: Array<{ artist_name: string; is_headliner: boolean }>;
+  // Legacy fields kept for backward compat (ignored)
+  rating?: number | null;
+  venue_location?: string;
 }
 
 export interface ShowRanking {

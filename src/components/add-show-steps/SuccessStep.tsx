@@ -10,7 +10,7 @@ interface AddedShowData {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   venue: { name: string; location: string };
   date: string;
-  rating: number | null;
+  rating?: number | null;
 }
 
 interface SuccessStepProps {

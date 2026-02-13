@@ -37,7 +37,6 @@ interface Show {
     location: string;
   };
   date: string;
-  rating: number;
   datePrecision?: string;
   tags?: string[];
   notes?: string | null;
@@ -127,8 +126,6 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
     })),
     venue_name: show.venue?.name || "",
     show_date: show.date || "",
-    artist_performance: null,
-    venue_vibe: null,
   });
 
   const handleShowTap = (show: Show) => {

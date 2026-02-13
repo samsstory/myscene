@@ -10,7 +10,6 @@ interface RankingCardProps {
     id: string;
     venue_name: string;
     show_date: string;
-    rating: number;
     photo_url: string | null;
     notes?: string | null;
     tags?: string[];

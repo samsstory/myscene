@@ -30,7 +30,7 @@ interface ShowData {
   selectedMonth: string;
   selectedYear: string;
   artists: Array<{ name: string; isHeadliner: boolean }>;
-  rating: number | null;
+  rating?: number | null;
   locationFilter: string;
   tags: string[];
   notes: string;

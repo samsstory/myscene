@@ -23,7 +23,7 @@ interface AddShowFlowProps {
     date: string;
     datePrecision: string;
     artists: Array<{ name: string; isHeadliner: boolean }>;
-    rating: number;
+    rating?: number | null;
     tags?: string[];
     notes?: string | null;
     venueId?: string | null;
@@ -36,7 +36,7 @@ export interface AddedShowData {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   venue: { name: string; location: string };
   date: string;
-  rating: number | null;
+  rating?: number | null;
   tags?: string[];
 }
 
@@ -52,7 +52,7 @@ export interface ShowData {
   selectedMonth: string;
   selectedYear: string;
   artists: Array<{ name: string; isHeadliner: boolean }>;
-  rating: number | null;
+  rating?: number | null;
   locationFilter: string;
   tags: string[];
   notes: string;

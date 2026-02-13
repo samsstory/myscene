@@ -12,15 +12,6 @@ interface RatingStepProps {
   onSubmit: () => void;
   onSkip?: () => void;
   isEditMode?: boolean;
-  // Legacy props kept for backward compat (ignored)
-  rating?: number | null;
-  onRatingChange?: (rating: number) => void;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
-  onDetailChange?: (field: string, value: number | string) => void;
 }
 
 const RatingStep = ({

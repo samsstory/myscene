@@ -75,7 +75,6 @@ Deno.serve(async (req) => {
           location: show.venue_location || "",
         },
         date: show.show_date,
-        rating: show.rating,
         datePrecision: show.date_precision,
         tags: tagsByShow[show.id as string] || [],
         notes: show.notes,
