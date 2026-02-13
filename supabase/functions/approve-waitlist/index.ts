@@ -18,6 +18,10 @@ function wrapInHtmlEmail(plainText: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
+    .replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+      const clean = url.replace(/&amp;/g, "&");
+      return `<a href="${clean}" style="display: inline-block; background: #6366f1; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 8px 0;">${clean}</a>`;
+    })
     .replace(/\n/g, "<br>");
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #333; line-height: 1.6;">
@@ -35,7 +39,9 @@ function buildWelcomeHtml(email: string, password: string): string {
         <p style="margin: 0 0 8px;"><strong>Email:</strong> ${email}</p>
         <p style="margin: 0;"><strong>Temporary Password:</strong> ${password}</p>
       </div>
-      <p style="color: #555; line-height: 1.6;">Log in at <a href="https://myscene.lovable.app" style="color: #6366f1;">myscene.lovable.app</a> and start logging your shows.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="https://myscene.lovable.app" style="display: inline-block; background: #6366f1; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Log in to Scene →</a>
+      </div>
       <p style="color: #999; font-size: 13px; margin-top: 32px;">We recommend changing your password after your first login.</p>
     </div>
   `;
