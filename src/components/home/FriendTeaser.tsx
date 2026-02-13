@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const avatars = ["/images/waitlist-1.png", "/images/waitlist-2.png", "/images/waitlist-3.png"];
@@ -31,7 +30,7 @@ const FriendTeaser = () => {
         <p className="text-[10px] text-white/20 mt-0.5">Coming soon...</p>
       </div>
 
-      <Sparkles className="w-3 h-3 text-white/20 shrink-0" />
+      
     </button>
   );
 };
