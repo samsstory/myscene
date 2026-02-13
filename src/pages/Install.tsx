@@ -21,7 +21,7 @@ export default function Install() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-5 py-8 space-y-10">
+      <div className="max-w-lg mx-auto px-5 py-4 space-y-10">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
