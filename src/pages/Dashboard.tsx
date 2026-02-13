@@ -34,6 +34,7 @@ const Dashboard = () => {
   const rankButtonRef = useRef<HTMLButtonElement | null>(null);
   const globeButtonRef = useRef<HTMLButtonElement | null>(null);
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
+  const pendingAddFlowRef = useRef(false);
 
   // Only elevate z-index for FAB during tour steps 0 and 4 (first and last)
   const shouldElevateNavZ = showSpotlightTour && (tourStepIndex === 0 || tourStepIndex === 4);
@@ -90,6 +91,14 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Open add flow once dashboard has rendered after onboarding
+  useEffect(() => {
+    if (!showOnboarding && !loading && pendingAddFlowRef.current) {
+      pendingAddFlowRef.current = false;
+      setShowUnifiedAdd(true);
+    }
+  }, [showOnboarding, loading]);
+
   if (loading) {
     return <BrandedLoader fullScreen />;
   }
@@ -99,11 +108,8 @@ const Dashboard = () => {
   }
 
   const handleOnboardingComplete = () => {
+    pendingAddFlowRef.current = true;
     setShowOnboarding(false);
-    // Defer opening add flow to next tick so Dashboard fully mounts first
-    setTimeout(() => {
-      setShowUnifiedAdd(true);
-    }, 50);
     // Persist to DB in background
     if (session) {
       supabase
