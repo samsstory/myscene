@@ -20,3 +20,12 @@ verify_jwt = false
 
 [functions.update-waitlist]
 verify_jwt = false
+
+[functions.admin-list-waitlist]
+verify_jwt = false
+
+[functions.approve-waitlist]
+verify_jwt = false
+
+[functions.admin-list-users]
+verify_jwt = false
