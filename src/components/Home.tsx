@@ -775,8 +775,12 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           setDirectEditShow(show);
           setDirectEditOpen(true);
         }}
+        onDelete={(showId) => {
+          const showToDelete = shows.find(s => s.id === showId);
+          if (showToDelete) setDeleteConfirmShow(showToDelete);
+        }}
         allShows={shows} 
-        rankings={rankings} 
+        rankings={rankings}
       />
 
       <FocusedRankingSession
