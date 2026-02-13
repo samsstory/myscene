@@ -6,11 +6,58 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-async function sendWelcomeEmail(email: string, password: string): Promise<boolean> {
+function wrapInHtmlEmail(plainText: string): string {
+  const escaped = plainText
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #333; line-height: 1.6;">
+      ${escaped}
+    </div>
+  `;
+}
+
+const DEFAULT_SUBJECT = "You're in! Your Scene beta access is ready";
+
+function defaultApproveHtml(email: string, password: string): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+      <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
+      <p style="color: #555; line-height: 1.6;">You've been approved for beta access! Here are your login details:</p>
+      <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 24px 0;">
+        <p style="margin: 0 0 8px;"><strong>Email:</strong> ${email}</p>
+        <p style="margin: 0;"><strong>Temporary Password:</strong> ${password}</p>
+      </div>
+      <p style="color: #555; line-height: 1.6;">Log in at <a href="https://myscene.lovable.app" style="color: #6366f1;">myscene.lovable.app</a> and start logging your shows.</p>
+      <p style="color: #999; font-size: 13px; margin-top: 32px;">We recommend changing your password after your first login.</p>
+    </div>
+  `;
+}
+
+async function sendWelcomeEmail(
+  email: string,
+  password: string,
+  customSubject?: string,
+  customBody?: string
+): Promise<boolean> {
   const resendKey = Deno.env.get("RESEND_API_KEY");
   if (!resendKey) {
     console.error("RESEND_API_KEY not configured");
     return false;
+  }
+
+  const subject = customSubject || DEFAULT_SUBJECT;
+  let html: string;
+
+  if (customBody) {
+    const replaced = customBody
+      .replace(/\{\{email\}\}/g, email)
+      .replace(/\{\{password\}\}/g, password);
+    html = wrapInHtmlEmail(replaced);
+  } else {
+    html = defaultApproveHtml(email, password);
   }
 
   try {
@@ -23,19 +70,8 @@ async function sendWelcomeEmail(email: string, password: string): Promise<boolea
       body: JSON.stringify({
         from: "Scene <onboarding@resend.dev>",
         to: [email],
-        subject: "You're in! Your Scene beta access is ready",
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
-            <p style="color: #555; line-height: 1.6;">You've been approved for beta access! Here are your login details:</p>
-            <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 24px 0;">
-              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${email}</p>
-              <p style="margin: 0;"><strong>Temporary Password:</strong> ${password}</p>
-            </div>
-            <p style="color: #555; line-height: 1.6;">Log in at <a href="https://myscene.lovable.app" style="color: #6366f1;">myscene.lovable.app</a> and start logging your shows.</p>
-            <p style="color: #999; font-size: 13px; margin-top: 32px;">We recommend changing your password after your first login.</p>
-          </div>
-        `,
+        subject,
+        html,
       }),
     });
 
@@ -62,7 +98,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -72,10 +107,7 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -84,7 +116,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
@@ -99,23 +130,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { waitlistId, email, password } = await req.json();
+    const { waitlistId, email, password, emailSubject, emailBody } = await req.json();
 
     if (!waitlistId || !email || !password) {
       return new Response(
         JSON.stringify({ error: "waitlistId, email, and password are required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Create user via admin API
-    const {
-      data: { user: newUser },
-      error: createError,
-    } = await supabase.auth.admin.createUser({
+    const { data: { user: newUser }, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -124,34 +148,24 @@ Deno.serve(async (req) => {
     if (createError || !newUser) {
       return new Response(
         JSON.stringify({ error: createError?.message || "Failed to create user" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Assign 'user' role
     const { error: roleError } = await supabase
       .from("user_roles")
       .insert({ user_id: newUser.id, role: "user" });
 
-    if (roleError) {
-      console.error("Failed to assign role:", roleError);
-    }
+    if (roleError) console.error("Failed to assign role:", roleError);
 
-    // Update waitlist status
     const { error: updateError } = await supabase
       .from("waitlist")
       .update({ status: "approved" })
       .eq("id", waitlistId);
 
-    if (updateError) {
-      console.error("Failed to update waitlist:", updateError);
-    }
+    if (updateError) console.error("Failed to update waitlist:", updateError);
 
-    // Send welcome email (non-blocking)
-    const notified = await sendWelcomeEmail(email, password);
+    const notified = await sendWelcomeEmail(email, password, emailSubject, emailBody);
 
     if (notified) {
       const { error: notifyError } = await supabase
@@ -159,16 +173,12 @@ Deno.serve(async (req) => {
         .update({ notified_at: new Date().toISOString() })
         .eq("id", waitlistId);
 
-      if (notifyError) {
-        console.error("Failed to update notified_at:", notifyError);
-      }
+      if (notifyError) console.error("Failed to update notified_at:", notifyError);
     }
 
     return new Response(
       JSON.stringify({ success: true, userId: newUser.id, notified }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {

@@ -19,16 +19,13 @@ import { toast } from "@/hooks/use-toast";
 const DEFAULT_SUBJECT = "You're in! Your Scene beta access is ready";
 const DEFAULT_BODY = `Welcome to Scene!
 
-Your beta access is ready. Here are your login details:
+Your beta access is ready! Log in with the credentials you were given.
 
-Email: {{email}}
-Temporary Password: {{password}}
+Head to myscene.lovable.app to start logging your shows.
 
-Log in at myscene.lovable.app to start logging your shows.
+If you've forgotten your password, use the reset option on the login page.`;
 
-We recommend changing your password after your first login.`;
-
-interface ApproveModalProps {
+interface ResendDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   waitlistEntry: {
@@ -36,25 +33,24 @@ interface ApproveModalProps {
     phone_number: string;
     country_code: string;
   } | null;
-  onApproved: () => void;
+  onSent: () => void;
 }
 
-export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: ApproveModalProps) {
+export function ResendDialog({ open, onOpenChange, waitlistEntry, onSent }: ResendDialogProps) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [emailSubject, setEmailSubject] = useState(DEFAULT_SUBJECT);
   const [emailBody, setEmailBody] = useState(DEFAULT_BODY);
   const [loading, setLoading] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
-  const handleApprove = async () => {
-    if (!waitlistEntry || !email || !password) return;
+  const handleSend = async () => {
+    if (!waitlistEntry || !email) return;
     setLoading(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/approve-waitlist`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resend-notification`,
         {
           method: "POST",
           headers: {
@@ -65,28 +61,20 @@ export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: 
           body: JSON.stringify({
             waitlistId: waitlistEntry.id,
             email,
-            password,
             emailSubject,
             emailBody,
           }),
         }
       );
-
       const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.error || "Failed to approve");
-      }
-
-      const notifiedMsg = result.notified ? " A welcome email was sent." : "";
-      toast({ title: "User approved", description: `Account created for ${email}.${notifiedMsg}` });
+      if (!res.ok) throw new Error(result.error || "Failed to send");
+      toast({ title: "Email sent", description: `Notification sent to ${email}` });
       setEmail("");
-      setPassword("");
       setEmailSubject(DEFAULT_SUBJECT);
       setEmailBody(DEFAULT_BODY);
       setCustomizeOpen(false);
       onOpenChange(false);
-      onApproved();
+      onSent();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -98,30 +86,20 @@ export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Approve Waitlist Entry</DialogTitle>
+          <DialogTitle>Send Welcome Email</DialogTitle>
           <DialogDescription>
-            Create an account for {waitlistEntry?.phone_number} ({waitlistEntry?.country_code})
+            Send notification to {waitlistEntry?.phone_number} ({waitlistEntry?.country_code})
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="resend-email">Email Address</Label>
             <Input
-              id="email"
+              id="resend-email"
               type="email"
               placeholder="user@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Temporary Password</Label>
-            <Input
-              id="password"
-              type="text"
-              placeholder="Temp password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
@@ -134,34 +112,32 @@ export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: 
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-2">
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
+                <Label htmlFor="resend-subject">Subject</Label>
                 <Input
-                  id="subject"
+                  id="resend-subject"
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="body">Body</Label>
+                <Label htmlFor="resend-body">Body</Label>
                 <Textarea
-                  id="body"
+                  id="resend-body"
                   rows={8}
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Use <code className="bg-muted px-1 rounded">{"{{email}}"}</code> and <code className="bg-muted px-1 rounded">{"{{password}}"}</code> as placeholders.
+                Use <code className="bg-muted px-1 rounded">{"{{email}}"}</code> as a placeholder.
               </p>
             </CollapsibleContent>
           </Collapsible>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleApprove} disabled={loading || !email || !password}>
-            {loading ? "Creating..." : "Approve & Create Account"}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSend} disabled={loading || !email}>
+            {loading ? "Sending..." : "Send Email"}
           </Button>
         </DialogFooter>
       </DialogContent>
