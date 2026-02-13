@@ -15,15 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-const DEFAULT_SUBJECT = "You're in! Your Scene beta access is ready";
-const DEFAULT_BODY = `Welcome to Scene!
-
-Your beta access is ready! Log in with the credentials you were given.
-
-Head to myscene.lovable.app to start logging your shows.
-
-If you've forgotten your password, use the reset option on the login page.`;
+import { getStoredTemplate } from "./EmailTemplateEditor";
 
 interface ResendDialogProps {
   open: boolean;
@@ -38,9 +30,10 @@ interface ResendDialogProps {
 }
 
 export function ResendDialog({ open, onOpenChange, waitlistEntry, onSent }: ResendDialogProps) {
+  const stored = getStoredTemplate();
   const [email, setEmail] = useState("");
-  const [emailSubject, setEmailSubject] = useState(DEFAULT_SUBJECT);
-  const [emailBody, setEmailBody] = useState(DEFAULT_BODY);
+  const [emailSubject, setEmailSubject] = useState(stored.resendSubject);
+  const [emailBody, setEmailBody] = useState(stored.resendBody);
   const [loading, setLoading] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
@@ -74,9 +67,10 @@ export function ResendDialog({ open, onOpenChange, waitlistEntry, onSent }: Rese
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Failed to send");
       toast({ title: "Email sent", description: `Notification sent to ${email}` });
+      const fresh = getStoredTemplate();
       setEmail("");
-      setEmailSubject(DEFAULT_SUBJECT);
-      setEmailBody(DEFAULT_BODY);
+      setEmailSubject(fresh.resendSubject);
+      setEmailBody(fresh.resendBody);
       setCustomizeOpen(false);
       onOpenChange(false);
       onSent();

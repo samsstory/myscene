@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getStoredTemplate } from "./EmailTemplateEditor";
 
 interface ApproveModalProps {
   open: boolean;
@@ -32,6 +33,8 @@ export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: 
     if (!waitlistEntry || !email) return;
     setLoading(true);
 
+    const template = getStoredTemplate();
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
@@ -46,6 +49,8 @@ export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: 
           body: JSON.stringify({
             waitlistId: waitlistEntry.id,
             email,
+            emailSubject: template.approveSubject,
+            emailBody: template.approveBody,
           }),
         }
       );

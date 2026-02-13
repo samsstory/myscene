@@ -13,6 +13,19 @@ function generatePassword(length = 16): string {
   return Array.from(array, (b) => chars[b % chars.length]).join("");
 }
 
+function wrapInHtmlEmail(plainText: string): string {
+  const escaped = plainText
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #333; line-height: 1.6;">
+      ${escaped}
+    </div>
+  `;
+}
+
 function buildWelcomeHtml(email: string, password: string): string {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
@@ -28,11 +41,23 @@ function buildWelcomeHtml(email: string, password: string): string {
   `;
 }
 
-async function sendWelcomeEmail(email: string, password: string): Promise<boolean> {
+async function sendWelcomeEmail(email: string, password: string, customSubject?: string, customBody?: string): Promise<boolean> {
   const resendKey = Deno.env.get("RESEND_API_KEY");
   if (!resendKey) {
     console.error("RESEND_API_KEY not configured");
     return false;
+  }
+
+  const subject = customSubject || "You're in! Your Scene beta access is ready";
+  let html: string;
+
+  if (customBody) {
+    const replaced = customBody
+      .replace(/\{\{email\}\}/g, email)
+      .replace(/\{\{password\}\}/g, password);
+    html = wrapInHtmlEmail(replaced);
+  } else {
+    html = buildWelcomeHtml(email, password);
   }
 
   try {
@@ -45,8 +70,8 @@ async function sendWelcomeEmail(email: string, password: string): Promise<boolea
       body: JSON.stringify({
         from: "Scene <onboarding@resend.dev>",
         to: [email],
-        subject: "You're in! Your Scene beta access is ready",
-        html: buildWelcomeHtml(email, password),
+        subject,
+        html,
       }),
     });
 
@@ -106,7 +131,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { waitlistId, email } = await req.json();
+    const { waitlistId, email, emailSubject, emailBody } = await req.json();
 
     if (!waitlistId || !email) {
       return new Response(
@@ -114,6 +139,8 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const DEFAULT_SUBJECT = "You're in! Your Scene beta access is ready";
 
     // Auto-generate a secure password
     const password = generatePassword();
@@ -146,7 +173,7 @@ Deno.serve(async (req) => {
     if (updateError) console.error("Failed to update waitlist:", updateError);
 
     // Send welcome email with auto-generated credentials
-    const notified = await sendWelcomeEmail(email, password);
+    const notified = await sendWelcomeEmail(email, password, emailSubject, emailBody);
 
     if (notified) {
       await supabase
