@@ -1,5 +1,5 @@
 import { useState } from "react";
-import WaitlistPhoneInput from "./WaitlistPhoneInput";
+import WaitlistEmailInput from "./WaitlistEmailInput";
 import WaitlistSuccess from "./WaitlistSuccess";
 
 interface WaitlistSignupProps {
@@ -14,7 +14,7 @@ const WaitlistSignup = ({ source }: WaitlistSignupProps) => {
   }
 
   return (
-    <WaitlistPhoneInput
+    <WaitlistEmailInput
       source={source}
       onSuccess={(id) => setWaitlistId(id)}
     />

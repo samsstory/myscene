@@ -36,7 +36,7 @@ const WaitlistSuccess = ({ waitlistId }: WaitlistSuccessProps) => {
         </div>
         <div>
           <p className="font-medium text-foreground">Thanks! See you soon 🎸</p>
-          <p className="text-sm text-muted-foreground">We'll text you when Scene launches.</p>
+          <p className="text-sm text-muted-foreground">We'll email you when you're in.</p>
         </div>
       </div>
     );
@@ -51,7 +51,7 @@ const WaitlistSuccess = ({ waitlistId }: WaitlistSuccessProps) => {
         </div>
         <div>
           <p className="font-medium text-foreground">You're in!</p>
-          <p className="text-sm text-muted-foreground">We'll text you when Scene launches.</p>
+          <p className="text-sm text-muted-foreground">We'll email you when you're in.</p>
         </div>
       </div>
 
