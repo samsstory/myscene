@@ -22,17 +22,17 @@ interface Show {
   photo_url?: string | null;
 }
 
-interface DemoIncompleteRatingsSheetProps {
+interface DemoIncompleteTagsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shows: Show[];
 }
 
-export const DemoIncompleteRatingsSheet = ({ 
+export const DemoIncompleteTagsSheet = ({ 
   open, 
   onOpenChange,
   shows: allShows,
-}: DemoIncompleteRatingsSheetProps) => {
+}: DemoIncompleteTagsSheetProps) => {
   const incompleteShows = useMemo(() => {
     return allShows.filter(show => !show.tags || show.tags.length === 0);
   }, [allShows]);
@@ -202,4 +202,4 @@ export const DemoIncompleteRatingsSheet = ({
   );
 };
 
-export default DemoIncompleteRatingsSheet;
+export default DemoIncompleteTagsSheet;

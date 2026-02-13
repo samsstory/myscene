@@ -18,7 +18,7 @@ import StatPills, { StatPill, StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightData, InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
 import RankingProgressCard from "./home/RankingProgressCard";
-import { DemoIncompleteRatingsSheet } from "./home/DemoIncompleteRatingsSheet";
+import { DemoIncompleteTagsSheet } from "./home/DemoIncompleteTagsSheet";
 import DemoMissingPhotosSheet from "./home/DemoMissingPhotosSheet";
 import { useDemoData } from "@/hooks/useDemoData";
 import { useDemoMode } from "@/contexts/DemoContext";
@@ -706,7 +706,7 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
       />
       
       {/* Demo Incomplete Ratings Sheet */}
-      <DemoIncompleteRatingsSheet
+      <DemoIncompleteTagsSheet
         open={incompleteRatingsOpen}
         onOpenChange={setIncompleteRatingsOpen}
         shows={shows}
