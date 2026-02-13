@@ -851,12 +851,12 @@ export const PhotoOverlayEditor = ({
                 </h2>}
               
               {/* Venue - centered compact */}
-              {overlayConfig.showVenue && <p className="text-xs mb-0.5 flex items-center justify-center gap-1 cursor-pointer transition-opacity hover:opacity-70" onClick={e => {
+              {overlayConfig.showVenue && <p className="text-xs mb-0.5 inline-flex items-center justify-center gap-1 cursor-pointer transition-opacity hover:opacity-70 w-full" onClick={e => {
                 e.stopPropagation();
                 toggleConfig("showVenue");
               }}>
-                  <MapPin className="flex-shrink-0" style={{ width: 12, height: 12, minWidth: 12, minHeight: 12 }} />
-                  <span className="truncate">{show.venue_name}</span>
+                  <MapPin className="flex-shrink-0 inline-block align-middle" style={{ width: 12, height: 12, minWidth: 12, minHeight: 12, verticalAlign: 'middle', position: 'relative', top: '-0.5px' }} />
+                  <span className="truncate align-middle" style={{ verticalAlign: 'middle' }}>{show.venue_name}</span>
                 </p>}
               
               {/* Date - centered compact */}
