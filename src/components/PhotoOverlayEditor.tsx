@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import html2canvas from "html2canvas";
 interface Artist {
   name: string;
   is_headliner: boolean;
@@ -341,271 +342,39 @@ export const PhotoOverlayEditor = ({
   // Use transform.scale for canvas generation
   const overlayScale = transform.scale;
 
-  // Helper: draw text with manual letter spacing (cross-browser safe)
-  const drawSpacedText = (
-    ctx: CanvasRenderingContext2D,
-    text: string,
-    x: number,
-    y: number,
-    spacingEm: number,
-    align: 'left' | 'center' | 'right' = 'center'
-  ) => {
-    const chars = [...text];
-    const charWidths = chars.map(c => ctx.measureText(c).width);
-    const fontSize = parseFloat(ctx.font);
-    const spacing = fontSize * spacingEm;
-    const totalWidth = charWidths.reduce((sum, w) => sum + w, 0) + spacing * (chars.length - 1);
-
-    let startX = x;
-    if (align === 'center') startX = x - totalWidth / 2;
-    else if (align === 'right') startX = x - totalWidth;
-
-    // Use textAlign left for individual chars
-    const prevAlign = ctx.textAlign;
-    ctx.textAlign = 'left';
-    let cx = startX;
-    for (let i = 0; i < chars.length; i++) {
-      ctx.fillText(chars[i], cx, y);
-      cx += charWidths[i] + spacing;
-    }
-    ctx.textAlign = prevAlign;
-  };
-
-  // Reusable canvas generation function
+  // Capture the photo wrapper as a canvas using html2canvas (pixel-perfect)
   const generateCanvas = async (): Promise<HTMLCanvasElement> => {
     if (!effectivePhotoUrl) {
       throw new Error("No photo available");
     }
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas not supported");
 
-    // Load background photo
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Image loading timeout')), 10000);
-      img.onload = () => { clearTimeout(timeout); resolve(null); };
-      img.onerror = () => { clearTimeout(timeout); reject(new Error('Failed to load image.')); };
-      img.src = effectivePhotoUrl!;
-    });
-
-    // Canvas at image native resolution (max 1920px)
-    const maxDimension = 1920;
-    const imgScale = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
-    canvas.width = Math.round(img.width * imgScale);
-    canvas.height = Math.round(img.height * imgScale);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    // Get the photo wrapper's CSS size to compute the scale factor
     const canvasContainer = document.getElementById("canvas-container");
     if (!canvasContainer) throw new Error("Container not found");
     const photoWrapper = canvasContainer.querySelector('.touch-none') as HTMLElement;
     if (!photoWrapper) throw new Error("Photo wrapper not found");
+
+    // Hide UI controls temporarily (opacity slider, etc.)
+    const uiElements = canvasContainer.querySelectorAll('[data-export-hide]');
+    uiElements.forEach(el => (el as HTMLElement).style.display = 'none');
+
+    // Use html2canvas to screenshot the photo wrapper at high resolution
     const wrapperRect = photoWrapper.getBoundingClientRect();
+    const scaleFactor = Math.min(1920 / wrapperRect.width, 1920 / wrapperRect.height, 3);
 
-    // Single uniform scale factor: canvas px per CSS px
-    const sf = canvas.width / wrapperRect.width;
-
-    // Overlay parameters (all in CSS px, will be multiplied by sf for canvas)
-    const overlayDomWidth = 160;
-    const padding = 16;
-    const s = transform.scale;
-
-    // Build layout items
-    const fontFamily = 'system-ui, -apple-system, sans-serif';
-    interface LayoutItem {
-      type: string;
-      text: string;
-      fontSize: number;
-      fontWeight: string;
-      fontStyle: string;
-      color: string;
-      opacity: number;
-      marginBottom: number; // CSS px after this item
-      icon?: 'mappin';
-      letterSpacing?: number;
-      textShadow?: boolean;
-      glowShadow?: boolean;
-    }
-    const items: LayoutItem[] = [];
-
-    if (overlayConfig.showArtists) {
-      items.push({
-        type: 'artist',
-        text: show.artists.filter(a => a.is_headliner).map(a => a.name).join(", "),
-        fontSize: 16, fontWeight: 'bold', fontStyle: 'normal',
-        color: 'white', opacity: 1, marginBottom: 4, textShadow: true,
-      });
-    }
-    if (overlayConfig.showVenue) {
-      items.push({
-        type: 'venue',
-        text: show.venue_name,
-        fontSize: 12, fontWeight: 'normal', fontStyle: 'normal',
-        color: 'white', opacity: 1, marginBottom: 2, icon: 'mappin',
-      });
-    }
-    if (overlayConfig.showDate) {
-      items.push({
-        type: 'date',
-        text: new Date(show.show_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        fontSize: 10, fontWeight: 'normal', fontStyle: 'normal',
-        color: 'white', opacity: 0.8, marginBottom: 8,
-      });
-    }
-    if (overlayConfig.showNotes && show.notes) {
-      items.push({
-        type: 'notes',
-        text: `"${show.notes}"`,
-        fontSize: 10, fontWeight: 'normal', fontStyle: 'italic',
-        color: 'white', opacity: 0.8, marginBottom: 8,
-      });
-    }
-    if (overlayConfig.showRank && rankData.total > 0) {
-      const tp = rankingTimeFilter === 'this-year' ? 'This Year' : rankingTimeFilter === 'last-year' ? 'Last Year' : 'All Time';
-      items.push({
-        type: 'rank',
-        text: `#${rankData.position} ${tp}`,
-        fontSize: 15, fontWeight: '600', fontStyle: 'normal',
-        color: 'white', opacity: 1, marginBottom: 2, glowShadow: true,
-      });
-    }
-    items.push({
-      type: 'logo',
-      text: 'SCENE ✦',
-      fontSize: 10, fontWeight: '900', fontStyle: 'normal',
-      color: 'rgba(255,255,255,0.75)', opacity: 1, marginBottom: 0,
-      letterSpacing: 0.25, glowShadow: true,
+    const canvas = await html2canvas(photoWrapper, {
+      scale: scaleFactor,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: null,
+      logging: false,
+      // Ensure we capture the full element
+      width: wrapperRect.width,
+      height: wrapperRect.height,
     });
 
-    // Compute overlay height in CSS px
-    let contentH = padding;
-    for (const item of items) {
-      contentH += item.fontSize * 1.3; // line height ~1.3x font size
-      if (item.type === 'notes') contentH += item.fontSize * 1.3; // extra line for wrap
-      contentH += item.marginBottom;
-    }
-    contentH += padding;
+    // Restore hidden UI elements
+    uiElements.forEach(el => (el as HTMLElement).style.display = '');
 
-    // Canvas-space overlay dimensions
-    const ow = overlayDomWidth * sf;
-    const oh = contentH * sf;
-
-    // Position and transform
-    ctx.save();
-    const cx = transform.x * sf + (ow * s) / 2;
-    const cy = transform.y * sf + (oh * s) / 2;
-    ctx.translate(cx, cy);
-    ctx.rotate((transform.rotation * Math.PI) / 180);
-    ctx.scale(s, s);
-    ctx.translate(-ow / 2, -oh / 2);
-
-    // Draw background
-    if (overlayOpacity > 0) {
-      const grad = ctx.createLinearGradient(0, 0, ow, oh);
-      grad.addColorStop(0, "rgba(30, 41, 59, 1)");
-      grad.addColorStop(1, "rgba(15, 23, 42, 1)");
-      ctx.globalAlpha = overlayOpacity / 100;
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(0, 0, ow, oh, 16 * sf);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    // Draw items
-    let yPos = padding * sf;
-    const textCX = ow / 2;
-
-    for (const item of items) {
-      const fs = item.fontSize * sf;
-      ctx.font = `${item.fontStyle === 'italic' ? 'italic ' : ''}${item.fontWeight} ${fs}px ${fontFamily}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = item.color;
-      ctx.globalAlpha = item.opacity;
-
-      // Shadows
-      if (item.textShadow || item.glowShadow) {
-        ctx.shadowColor = "rgba(255,255,255,0.5)";
-        ctx.shadowBlur = 8 * sf;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-      } else if (overlayOpacity === 0) {
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.shadowBlur = 8 * sf;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 2 * sf;
-      } else {
-        ctx.shadowBlur = 0;
-      }
-
-      if (item.type === 'venue' && item.icon === 'mappin') {
-        // MapPin icon + text
-        const iconSz = 12 * sf;
-        const gap = 4 * sf;
-        const tw = ctx.measureText(item.text).width;
-        const total = iconSz + gap + tw;
-        const sx = textCX - total / 2;
-
-        // Simple pin shape
-        ctx.save();
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 1.5 * sf;
-        const px = sx + iconSz / 2;
-        const py = yPos + iconSz / 2;
-        ctx.beginPath();
-        ctx.arc(px, py - 2 * sf, 3 * sf, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(px - 3 * sf, py - 2 * sf);
-        ctx.quadraticCurveTo(px, py + 5 * sf, px + 3 * sf, py - 2 * sf);
-        ctx.stroke();
-        ctx.restore();
-
-        ctx.fillStyle = item.color;
-        ctx.textAlign = 'left';
-        ctx.fillText(item.text, sx + iconSz + gap, yPos);
-        yPos += fs * 1.3 + item.marginBottom * sf;
-      } else if (item.type === 'notes') {
-        // Word-wrap notes (max 2 lines)
-        const maxW = ow - padding * 2 * sf;
-        const words = item.text.split(" ");
-        let line = "";
-        let lc = 0;
-        for (const word of words) {
-          const test = line + word + " ";
-          if (ctx.measureText(test).width > maxW && line !== "") {
-            if (lc < 2) {
-              ctx.fillText(line.trim(), textCX, yPos);
-              line = word + " ";
-              yPos += fs * 1.3;
-              lc++;
-            }
-          } else {
-            line = test;
-          }
-        }
-        if (lc < 2 && line !== "") {
-          ctx.fillText(line.trim(), textCX, yPos);
-        }
-        yPos += fs * 1.3 + item.marginBottom * sf;
-      } else if (item.letterSpacing) {
-        drawSpacedText(ctx, item.text, textCX, yPos, item.letterSpacing, 'center');
-        yPos += fs * 1.3 + item.marginBottom * sf;
-      } else {
-        ctx.fillText(item.text, textCX, yPos);
-        yPos += fs * 1.3 + item.marginBottom * sf;
-      }
-
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.restore();
     return canvas;
   };
   const handleDownloadImage = async () => {
@@ -1092,7 +861,7 @@ export const PhotoOverlayEditor = ({
             </div>{/* Close photo wrapper */}
             
             {/* Vertical Opacity Slider - inside image on right edge, hidden in preview mode */}
-            {!isPreviewMode && <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5" onClick={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onMouseMove={e => e.stopPropagation()} onMouseUp={e => e.stopPropagation()}>
+            {!isPreviewMode && <div data-export-hide className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5" onClick={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onMouseMove={e => e.stopPropagation()} onMouseUp={e => e.stopPropagation()}>
                 <SunDim className="h-3.5 w-3.5 text-white/60" />
                 <div className="relative h-20 w-4 flex items-center justify-center">
                   <input type="range" min={0} max={100} step={5} value={overlayOpacity} onChange={e => setOverlayOpacity(Number(e.target.value))} className="absolute h-1 w-16 cursor-pointer origin-center" style={{
