@@ -107,7 +107,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
 const LandingHeroV2 = () => {
   const navigate = useNavigate();
   const [waitlistOpen, setWaitlistOpen] = useState(false);
-  return <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
+  return <section className="min-h-screen flex items-center justify-center relative overflow-hidden pt-safe">
       {/* Background glow effects */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20" style={{
       background: "hsl(var(--primary))"
@@ -116,7 +116,7 @@ const LandingHeroV2 = () => {
       background: "hsl(var(--secondary))"
     }} />
 
-      <div className="container mx-auto px-4 py-8 md:py-16">
+      <div className="container mx-auto px-4 py-12 md:py-16">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-8 items-center">
           {/* Left: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 relative z-10">
