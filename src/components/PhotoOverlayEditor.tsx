@@ -402,7 +402,7 @@ export const PhotoOverlayEditor = ({
     const mapPinSvg = overlayEl?.querySelector('svg') as unknown as HTMLElement | null;
     if (mapPinSvg) {
       saveAndSet(mapPinSvg, 'position', 'relative');
-      saveAndSet(mapPinSvg, 'top', '2px');
+      saveAndSet(mapPinSvg, 'top', '3.5px');
     }
 
     const wrapperRect = photoWrapper.getBoundingClientRect();
