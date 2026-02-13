@@ -44,10 +44,23 @@ Deno.serve(async (req) => {
         .select("*")
         .in("show_id", showIds);
 
+      // Fetch tags for each show
+      const { data: tagsData } = await supabase
+        .from("show_tags")
+        .select("show_id, tag")
+        .in("show_id", showIds);
+
       // Map artists to shows
       const artistsByShow = (artistsData || []).reduce((acc: Record<string, Array<{ artist_name: string; is_headliner: boolean }>>, artist: { show_id: string; artist_name: string; is_headliner: boolean }) => {
         if (!acc[artist.show_id]) acc[artist.show_id] = [];
         acc[artist.show_id].push(artist);
+        return acc;
+      }, {});
+
+      // Map tags to shows
+      const tagsByShow = (tagsData || []).reduce((acc: Record<string, string[]>, tag: { show_id: string; tag: string }) => {
+        if (!acc[tag.show_id]) acc[tag.show_id] = [];
+        acc[tag.show_id].push(tag.tag);
         return acc;
       }, {});
 
@@ -64,11 +77,7 @@ Deno.serve(async (req) => {
         date: show.show_date,
         rating: show.rating,
         datePrecision: show.date_precision,
-        artistPerformance: show.artist_performance,
-        sound: show.sound,
-        lighting: show.lighting,
-        crowd: show.crowd,
-        venueVibe: show.venue_vibe,
+        tags: tagsByShow[show.id as string] || [],
         notes: show.notes,
         venueId: show.venue_id,
         latitude: (show.venues as { latitude?: number } | null)?.latitude,
@@ -208,14 +217,15 @@ Deno.serve(async (req) => {
         ? (totalCappedBackToBacks / (totalShows * MAX_BACK_TO_BACKS)) * 100 
         : 0;
 
-      // Count incomplete ratings and underranked shows
-      const incompleteRatingsCount = shows.filter((show: { artist_performance: number | null; sound: number | null; lighting: number | null; crowd: number | null; venue_vibe: number | null }) => 
-        show.artist_performance === null ||
-        show.sound === null ||
-        show.lighting === null ||
-        show.crowd === null ||
-        show.venue_vibe === null
-      ).length;
+      // Count shows with zero tags (incomplete moments)
+      const showIdsForTags = shows.map((s: { id: string }) => s.id);
+      const { data: allTagsData } = await supabase
+        .from("show_tags")
+        .select("show_id")
+        .in("show_id", showIdsForTags);
+      
+      const showsWithTags = new Set((allTagsData || []).map((t: { show_id: string }) => t.show_id));
+      const incompleteRatingsCount = shows.filter((show: { id: string }) => !showsWithTags.has(show.id)).length;
 
       const COMPARISON_THRESHOLD = 3;
       const rankedShowIds = new Set(rankings.filter((r: { comparisons_count: number }) => r.comparisons_count > 0).map((r: { show_id: string }) => r.show_id));

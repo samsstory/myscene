@@ -377,7 +377,6 @@ export const ShowReviewSheet = ({
             <HeroPhotoSection
               photoUrl={photoUrl}
               uploading={uploading}
-              score={0}
               artists={show.artists}
               venue={show.venue}
               date={show.date}

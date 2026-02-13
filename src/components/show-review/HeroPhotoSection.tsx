@@ -5,7 +5,7 @@ import SceneLogo from "@/components/ui/SceneLogo";
 import ConfirmationRing from "@/components/ui/ConfirmationRing";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-import { getScoreGradient } from "@/lib/utils";
+
 
 interface Artist {
   name: string;
@@ -15,7 +15,6 @@ interface Artist {
 interface HeroPhotoSectionProps {
   photoUrl: string | null;
   uploading: boolean;
-  score: number;
   artists: Artist[];
   venue: {
     name: string;
@@ -40,7 +39,6 @@ const calculateShowConfirmation = (comparisons: number): number => {
 export const HeroPhotoSection = ({
   photoUrl,
   uploading,
-  score,
   artists,
   venue,
   date,
@@ -86,14 +84,8 @@ export const HeroPhotoSection = ({
           </div>
           <p className="text-white/50 text-xs mt-0.5">{formattedDate}</p>
         </div>
-        {/* Score, Rank & Confirmation Column */}
+        {/* Rank & Confirmation Column */}
         <div className="gap-2 flex-shrink-0 flex-col flex items-end justify-center py-[12px]">
-          {/* Score Badge - White background, black text */}
-          <div className="px-3 py-1.5 rounded-full bg-white border border-white/20">
-            <span className="text-sm font-black text-black tracking-wide">
-              {score.toFixed(1)}
-            </span>
-          </div>
           {/* Rank Badge - Prominent with glow */}
           <span className="text-sm font-bold text-primary tracking-wide" style={{
             textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
