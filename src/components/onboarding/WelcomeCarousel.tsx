@@ -124,7 +124,7 @@ const WelcomeCarousel = ({ onComplete, onTakeTour }: WelcomeCarouselProps) => {
       </div>
 
       {/* Single screen content */}
-      <div className="flex-1 relative z-10 flex flex-col items-center justify-center px-6">
+      <div className="flex-1 relative z-10 flex flex-col items-center justify-center px-6 overflow-y-auto pb-8">
         {/* Mockup container */}
         <div
           className="w-full max-w-[280px] rounded-2xl overflow-hidden border border-white/10 p-4 bg-white/[0.02]"
@@ -136,9 +136,9 @@ const WelcomeCarousel = ({ onComplete, onTakeTour }: WelcomeCarouselProps) => {
         </div>
 
       {/* Text content + CTAs together */}
-        <div className="mt-6 text-center">
+        <div className="mt-4 text-center">
           <h2
-            className="text-2xl font-bold mb-3"
+            className="text-2xl font-bold mb-2"
             style={{ textShadow: "0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1)" }}
           >
             Your live music journey starts here
@@ -147,10 +147,10 @@ const WelcomeCarousel = ({ onComplete, onTakeTour }: WelcomeCarouselProps) => {
             Log shows, rank them against each other, and compare with friends.
           </p>
 
-          <div className="mt-6 w-full max-w-xs mx-auto">
+          <div className="mt-4 w-full max-w-xs mx-auto">
             <Button
               onClick={onComplete}
-              className="w-full h-14 text-lg font-semibold rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="w-full h-12 text-lg font-semibold rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Log Your First Show
             </Button>
