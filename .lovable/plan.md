@@ -1,68 +1,54 @@
 
 
-# Customizable Welcome Email in Admin Dashboard
+## Updated Welcome Screen: Hero Mockup + New Copy
 
-## Overview
+### What Changes
 
-Add an expandable "Customize Email" section to the Approve Modal so you can preview and edit the welcome email subject and body before approving a user. The same customization will also appear when using the Resend/Send Email button.
+Replace the current `StackedCardsMockup` in the welcome screen with the **V2 hero mockup** from `LandingHeroV2.tsx` (the "ceremonial reveal" design with emotional tags and faded runner-ups). Update the subheadline copy.
 
-## Changes
+### New Welcome Screen Layout
 
-### 1. ApproveModal.tsx -- Add Email Customization Fields
+1. **Scene logo** at top
+2. **Mockup visual** -- The V2 hero `MockShowCard` design featuring:
+   - "That show." quiet caption
+   - Fred again.. #1 card with moody photo treatment and vignette
+   - Three emotional tag pills ("Emotional..", "Crowd went off", "Venue was insane!")
+   - Faded runner-up stack (ODESZA, Rufus Du Sol, Jamie xx) with opacity decay
+3. **Headline**: "Your live music journey starts here"
+4. **Subheadline**: "Log shows, rank them against each other, and compare with friends."
+5. **Primary CTA**: "Log Your First Show"
+6. **Secondary link**: "Take a quick tour first"
 
-- Add a collapsible "Customize Email" section below the password field using a `Collapsible` component
-- Include two editable fields:
-  - **Subject** (Input) -- pre-filled with `"You're in! Your Scene beta access is ready"`
-  - **Body** (Textarea) -- pre-filled with a default plain-text version of the welcome message, with `{{email}}` and `{{password}}` placeholders that get replaced automatically
-- A small info note explaining the `{{email}}` and `{{password}}` placeholder tokens
-- Pass `emailSubject` and `emailBody` to the edge function alongside the existing fields
+### Technical Changes
 
-### 2. WaitlistTab.tsx -- Resend Flow Customization
+**`src/components/onboarding/WelcomeCarousel.tsx`**
 
-- Replace the browser `prompt()` with a small dialog/sheet that includes:
-  - Email address input (same as now)
-  - Subject and body fields (pre-filled with defaults, same as above but without password placeholder)
-- Pass `emailSubject` and `emailBody` to the `resend-notification` edge function
+- Remove the multi-slide carousel, pagination dots, `Carousel`/`CarouselContent`/`CarouselItem` imports, and `CarouselApi` state
+- Remove `StackedCardsMockup`, `ShowReviewMockup`, `StoryShareMockup`, `CarouselSlide`, `collapsedCards`, and `slides` constants
+- Add a new `HeroMockup` component ported from `LandingHeroV2.tsx`'s `MockShowCard`:
+  - "That show." caption
+  - Fred again.. hero card (16/11 aspect, moody filter, vignette, artist/venue/date overlay)
+  - Emotional tag pills row (`emotionalTags` array)
+  - Runner-up faded stack (`runnerUps` array with opacity/blur fade)
+- Render a single static screen with:
+  - Mesh gradient background (keep existing)
+  - SceneLogo at top (keep existing)
+  - `HeroMockup` in a 4:3 rounded container
+  - Headline + updated subheadline
+  - "Log Your First Show" button calling `onComplete`
+  - "Take a quick tour first" text button calling new `onTakeTour` prop
+- Add `onTakeTour` prop to `WelcomeCarouselProps`
 
-### 3. approve-waitlist Edge Function
+**`src/pages/Dashboard.tsx`**
 
-- Accept optional `emailSubject` and `emailBody` parameters
-- If provided, use them instead of the hardcoded HTML template
-- Replace `{{email}}` and `{{password}}` tokens in the custom body
-- Wrap the body in a basic HTML layout for email rendering
+- Update `handleOnboardingComplete` to skip the spotlight tour, set `onboarding_step` to `"completed"`, and open the unified add flow (`setShowUnifiedAdd(true)`)
+- Add a new `handleTakeTour` handler that sets `onboarding_step` to `"spotlight_tour"` and starts the tour (existing behavior)
+- Pass both `onComplete={handleOnboardingComplete}` and `onTakeTour={handleTakeTour}` to `WelcomeCarousel`
 
-### 4. resend-notification Edge Function
+### Files Modified
 
-- Accept optional `emailSubject` and `emailBody` parameters
-- Same token replacement logic (minus password)
-- Fall back to defaults if not provided
-
-## Technical Details
-
-- Default subject: `"You're in! Your Scene beta access is ready"`
-- Default body template for approval:
-  ```
-  Welcome to Scene!
-
-  Your beta access is ready. Here are your login details:
-
-  Email: {{email}}
-  Temporary Password: {{password}}
-
-  Log in at myscene.lovable.app to start logging your shows.
-
-  We recommend changing your password after your first login.
-  ```
-- Default body template for resend (no password):
-  ```
-  Welcome to Scene!
-
-  Your beta access is ready! Log in with the credentials you were given.
-
-  Head to myscene.lovable.app to start logging your shows.
-
-  If you've forgotten your password, use the reset option on the login page.
-  ```
-- The textarea body is sent as plain text; the edge function wraps it in a styled HTML email container
-- No database changes needed
+| File | Change |
+|------|--------|
+| `src/components/onboarding/WelcomeCarousel.tsx` | Replace carousel with single screen using V2 hero mockup; update subheadline; add `onTakeTour` prop |
+| `src/pages/Dashboard.tsx` | Split onboarding completion into two paths: direct-to-add-flow and take-tour |
 
