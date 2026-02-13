@@ -58,7 +58,8 @@ export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: 
         throw new Error(result.error || "Failed to approve");
       }
 
-      toast({ title: "User approved", description: `Account created for ${email}` });
+      const notifiedMsg = result.notified ? " A welcome email was sent." : "";
+      toast({ title: "User approved", description: `Account created for ${email}.${notifiedMsg}` });
       setEmail("");
       setPassword("");
       onOpenChange(false);

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { ApproveModal } from "./ApproveModal";
 import { format } from "date-fns";
-import { CheckCircle, Clock, Users } from "lucide-react";
+import { CheckCircle, Clock, Users, Mail } from "lucide-react";
 
 interface WaitlistEntry {
   id: string;
@@ -24,6 +24,7 @@ interface WaitlistEntry {
   shows_per_year: string | null;
   status: string;
   created_at: string;
+  notified_at: string | null;
 }
 
 type Filter = "all" | "pending" | "approved";
@@ -125,6 +126,7 @@ export function WaitlistTab() {
                 <TableHead>Discovery</TableHead>
                 <TableHead>Shows/Year</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Notified</TableHead>
                 <TableHead>Submitted</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -145,6 +147,18 @@ export function WaitlistTab() {
                       {entry.status}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    {entry.notified_at ? (
+                      <div className="flex items-center gap-1.5 text-green-400">
+                        <Mail className="h-3.5 w-3.5" />
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(entry.notified_at), "MMM d")}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {format(new Date(entry.created_at), "MMM d, yyyy")}
                   </TableCell>
@@ -159,7 +173,7 @@ export function WaitlistTab() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     No entries found
                   </TableCell>
                 </TableRow>
