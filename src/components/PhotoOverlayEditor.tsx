@@ -352,12 +352,43 @@ export const PhotoOverlayEditor = ({
     if (!canvasContainer) throw new Error("Container not found");
     const photoWrapper = canvasContainer.querySelector('.touch-none') as HTMLElement;
     if (!photoWrapper) throw new Error("Photo wrapper not found");
+    const overlayEl = document.getElementById("rating-overlay") as HTMLElement;
 
-    // Hide UI controls temporarily (opacity slider, etc.)
+    // Hide UI controls temporarily
     const uiElements = canvasContainer.querySelectorAll('[data-export-hide]');
     uiElements.forEach(el => (el as HTMLElement).style.display = 'none');
 
-    // Use html2canvas to screenshot the photo wrapper at high resolution
+    // html2canvas doesn't support backdrop-filter, so temporarily replace it
+    // with a more opaque solid background to simulate the glass effect
+    const savedStyles: { el: HTMLElement; prop: string; val: string }[] = [];
+    const saveAndSet = (el: HTMLElement | null, prop: string, val: string) => {
+      if (!el) return;
+      savedStyles.push({ el, prop, val: (el.style as any)[prop] });
+      (el.style as any)[prop] = val;
+    };
+
+    if (overlayEl) {
+      // Remove backdrop-blur (unsupported) and boost background opacity
+      saveAndSet(overlayEl, 'backdropFilter', 'none');
+      saveAndSet(overlayEl, 'webkitBackdropFilter', 'none');
+      // Make the background more opaque to compensate for lost blur
+      if (overlayOpacity > 0) {
+        saveAndSet(overlayEl, 'background', 'linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95))');
+      }
+    }
+
+    // Remove overflow:hidden from wrapper so text isn't clipped
+    const prevOverflow = photoWrapper.style.overflow;
+    photoWrapper.style.overflow = 'visible';
+
+    // Remove line-clamp from notes (causes clipping in html2canvas)
+    const notesEl = overlayEl?.querySelector('.line-clamp-2') as HTMLElement | null;
+    if (notesEl) {
+      saveAndSet(notesEl, 'webkitLineClamp', 'unset');
+      saveAndSet(notesEl, 'overflow', 'visible');
+      saveAndSet(notesEl, 'display', 'block');
+    }
+
     const wrapperRect = photoWrapper.getBoundingClientRect();
     const scaleFactor = Math.min(1920 / wrapperRect.width, 1920 / wrapperRect.height, 3);
 
@@ -367,12 +398,15 @@ export const PhotoOverlayEditor = ({
       allowTaint: false,
       backgroundColor: null,
       logging: false,
-      // Ensure we capture the full element
       width: wrapperRect.width,
       height: wrapperRect.height,
     });
 
-    // Restore hidden UI elements
+    // Restore all modified styles
+    photoWrapper.style.overflow = prevOverflow;
+    savedStyles.forEach(({ el, prop, val }) => {
+      (el.style as any)[prop] = val;
+    });
     uiElements.forEach(el => (el as HTMLElement).style.display = '');
 
     return canvas;
