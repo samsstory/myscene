@@ -24,11 +24,7 @@ interface AddShowFlowProps {
     datePrecision: string;
     artists: Array<{ name: string; isHeadliner: boolean }>;
     rating: number;
-    artistPerformance?: number | null;
-    sound?: number | null;
-    lighting?: number | null;
-    crowd?: number | null;
-    venueVibe?: number | null;
+    tags?: string[];
     notes?: string | null;
     venueId?: string | null;
     photo_url?: string | null;
@@ -41,11 +37,7 @@ export interface AddedShowData {
   venue: { name: string; location: string };
   date: string;
   rating: number | null;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
 }
 
 export interface ShowData {
@@ -62,13 +54,10 @@ export interface ShowData {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   rating: number | null;
   locationFilter: string;
-  artistPerformance: number | null;
-  sound: number | null;
-  lighting: number | null;
-  crowd: number | null;
-  venueVibe: number | null;
+  tags: string[];
   notes: string;
 }
+
 
 type EntryPoint = 'artist' | 'venue' | null;
 
@@ -90,11 +79,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     artists: [],
     rating: null,
     locationFilter: "",
-    artistPerformance: null,
-    sound: null,
-    lighting: null,
-    crowd: null,
-    venueVibe: null,
+    tags: [],
     notes: "",
   });
   const [userHomeCity, setUserHomeCity] = useState<string>("");
@@ -129,11 +114,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         artists: editShow.artists,
         rating: editShow.rating,
         locationFilter: "",
-        artistPerformance: editShow.artistPerformance || null,
-        sound: editShow.sound || null,
-        lighting: editShow.lighting || null,
-        crowd: editShow.crowd || null,
-        venueVibe: editShow.venueVibe || null,
+        tags: editShow.tags || [],
         notes: editShow.notes || "",
       });
       setEditPhotoUrl(editShow.photo_url || null);
@@ -446,11 +427,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             show_date: showDate,
             date_precision: showData.datePrecision,
             rating: showData.rating,
-            artist_performance: showData.artistPerformance,
-            sound: showData.sound,
-            lighting: showData.lighting,
-            crowd: showData.crowd,
-            venue_vibe: showData.venueVibe,
             notes: showData.notes || null,
           })
           .eq('id', editShow.id)
@@ -475,11 +451,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             show_date: showDate,
             date_precision: showData.datePrecision,
             rating: showData.rating,
-            artist_performance: showData.artistPerformance,
-            sound: showData.sound,
-            lighting: showData.lighting,
-            crowd: showData.crowd,
-            venue_vibe: showData.venueVibe,
             notes: showData.notes || null,
           })
           .select()
@@ -515,6 +486,27 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
       if (artistsError) throw artistsError;
 
+      // Insert/update tags
+      if (isEditing) {
+        // Delete existing tags for this show
+        await supabase.from("show_tags").delete().eq('show_id', show.id);
+      }
+      
+      if (showData.tags.length > 0) {
+        const { getCategoryForTag } = await import("@/lib/tag-constants");
+        const tagsToInsert = showData.tags.map(tag => ({
+          show_id: show.id,
+          tag,
+          category: getCategoryForTag(tag) || "the_show",
+        }));
+        
+        const { error: tagsError } = await supabase
+          .from("show_tags")
+          .insert(tagsToInsert);
+        
+        if (tagsError) throw tagsError;
+      }
+
       if (isEditing) {
         toast.success("Show updated successfully! 🎉");
         resetAndClose();
@@ -526,11 +518,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           venue: { name: showData.venue, location: showData.venueLocation },
           date: showDate,
           rating: null, // No rating in new system
-          artistPerformance: showData.artistPerformance,
-          sound: showData.sound,
-          lighting: showData.lighting,
-          crowd: showData.crowd,
-          venueVibe: showData.venueVibe,
+          tags: showData.tags,
         };
         setAddedShow(newShowData);
         setStep(5); // Success step
@@ -626,11 +614,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       artists: [],
       rating: null,
       locationFilter: "",
-      artistPerformance: null,
-      sound: null,
-      lighting: null,
-      crowd: null,
-      venueVibe: null,
+      tags: [],
       notes: "",
     });
     setStep(1);
@@ -874,15 +858,10 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         // Show RatingStep for both new shows and edit mode
         return (
           <RatingStep
-            rating={showData.rating}
-            onRatingChange={(rating) => updateShowData({ rating })}
-            artistPerformance={showData.artistPerformance}
-            sound={showData.sound}
-            lighting={showData.lighting}
-            crowd={showData.crowd}
-            venueVibe={showData.venueVibe}
+            tags={showData.tags}
+            onTagsChange={(tags) => updateShowData({ tags })}
             notes={showData.notes}
-            onDetailChange={(field, value) => updateShowData({ [field]: value })}
+            onNotesChange={(notes) => updateShowData({ notes })}
             onSubmit={handleSubmit}
             onSkip={handleSubmit}
             isEditMode={showStepSelector}
@@ -947,15 +926,10 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         // Show RatingStep for both new shows and edit mode
         return (
           <RatingStep
-            rating={showData.rating}
-            onRatingChange={(rating) => updateShowData({ rating })}
-            artistPerformance={showData.artistPerformance}
-            sound={showData.sound}
-            lighting={showData.lighting}
-            crowd={showData.crowd}
-            venueVibe={showData.venueVibe}
+            tags={showData.tags}
+            onTagsChange={(tags) => updateShowData({ tags })}
             notes={showData.notes}
-            onDetailChange={(field, value) => updateShowData({ [field]: value })}
+            onNotesChange={(notes) => updateShowData({ notes })}
             onSubmit={handleSubmit}
             onSkip={handleSubmit}
             isEditMode={showStepSelector}

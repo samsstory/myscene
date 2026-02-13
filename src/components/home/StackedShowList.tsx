@@ -18,12 +18,8 @@ interface Show {
   date: string;
   rating: number;
   photo_url?: string | null;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
-  isLocalDemo?: boolean; // Flag for demo-created shows
+  tags?: string[];
+  isLocalDemo?: boolean;
 }
 
 interface RankInfo {

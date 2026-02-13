@@ -2,115 +2,94 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { TAG_CATEGORIES } from "@/lib/tag-constants";
 
 interface RatingStepProps {
-  rating: number | null;
-  onRatingChange: (rating: number) => void;
-  artistPerformance: number | null;
-  sound: number | null;
-  lighting: number | null;
-  crowd: number | null;
-  venueVibe: number | null;
+  tags: string[];
+  onTagsChange: (tags: string[]) => void;
   notes: string;
-  onDetailChange: (field: string, value: number | string) => void;
+  onNotesChange: (notes: string) => void;
   onSubmit: () => void;
   onSkip?: () => void;
   isEditMode?: boolean;
+  // Legacy props kept for backward compat (ignored)
+  rating?: number | null;
+  onRatingChange?: (rating: number) => void;
+  artistPerformance?: number | null;
+  sound?: number | null;
+  lighting?: number | null;
+  crowd?: number | null;
+  venueVibe?: number | null;
+  onDetailChange?: (field: string, value: number | string) => void;
 }
 
-// Compact pill buttons for detail ratings
-const DetailRatingPills = ({ 
-  value, 
-  onChange,
-  label 
-}: { 
-  value: number | null; 
-  onChange: (val: number) => void;
-  label: string;
-}) => (
-  <div className="space-y-2">
-    <Label className="text-sm text-muted-foreground">{label}</Label>
-    <div className="flex gap-2">
-      {[1, 2, 3, 4, 5].map((num) => (
-        <button
-          key={num}
-          type="button"
-          onClick={() => onChange(num)}
-          className={cn(
-            "w-10 h-8 rounded-full text-sm font-medium transition-all duration-150",
-            value === num
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          )}
-        >
-          {num}
-        </button>
-      ))}
-    </div>
-  </div>
-);
-
 const RatingStep = ({
-  rating, 
-  onRatingChange, 
-  artistPerformance,
-  sound,
-  lighting,
-  crowd,
-  venueVibe,
+  tags,
+  onTagsChange,
   notes,
-  onDetailChange,
+  onNotesChange,
   onSubmit,
   onSkip,
-  isEditMode = false
+  isEditMode = false,
 }: RatingStepProps) => {
+  const toggleTag = (tag: string) => {
+    if (tags.includes(tag)) {
+      onTagsChange(tags.filter(t => t !== tag));
+    } else {
+      onTagsChange([...tags, tag]);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
         <Label className="text-base font-semibold">
-          {isEditMode ? "Edit Details" : "Add Details (Optional)"}
+          {isEditMode ? "Edit Moments" : "What stood out?"}
         </Label>
         <p className="text-sm text-muted-foreground">
-          Rate specific aspects of the show for your own reference.
+          Tag the moments that made this show memorable.
         </p>
       </div>
 
-      {/* Detail ratings - always shown */}
+      {/* Tag categories */}
       <div className="space-y-5">
-        <DetailRatingPills
-          label="Artist Performance"
-          value={artistPerformance}
-          onChange={(val) => onDetailChange("artistPerformance", val)}
-        />
-        <DetailRatingPills
-          label="Sound"
-          value={sound}
-          onChange={(val) => onDetailChange("sound", val)}
-        />
-        <DetailRatingPills
-          label="Lighting"
-          value={lighting}
-          onChange={(val) => onDetailChange("lighting", val)}
-        />
-        <DetailRatingPills
-          label="Crowd"
-          value={crowd}
-          onChange={(val) => onDetailChange("crowd", val)}
-        />
-        <DetailRatingPills
-          label="Venue Vibe"
-          value={venueVibe}
-          onChange={(val) => onDetailChange("venueVibe", val)}
-        />
+        {TAG_CATEGORIES.map((category) => (
+          <div key={category.id} className="space-y-2.5">
+            <span className="text-xs font-medium uppercase tracking-[0.15em] text-white/40">
+              {category.label}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {category.tags.map((tag) => {
+                const isSelected = tags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
+                      "border backdrop-blur-sm",
+                      isSelected
+                        ? "bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]"
+                        : "bg-white/[0.04] border-white/[0.1] text-white/60 hover:bg-white/[0.08] hover:text-white/80"
+                    )}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
         {/* My Take */}
         <div className="space-y-2 pt-2">
-          <Label className="text-sm text-muted-foreground">My Take</Label>
+          <Label className="text-sm text-muted-foreground">My Take (optional)</Label>
           <Textarea
             placeholder="Add your thoughts..."
             value={notes}
-            onChange={(e) => onDetailChange("notes", e.target.value)}
+            onChange={(e) => onNotesChange(e.target.value)}
             maxLength={500}
             className="min-h-[80px] resize-none bg-muted/30 border-border"
           />

@@ -21,12 +21,8 @@ interface Show {
   date: string;
   rating: number;
   photo_url?: string | null;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
-  isLocalDemo?: boolean; // Flag for demo-created shows
+  tags?: string[];
+  isLocalDemo?: boolean;
 }
 
 interface RankInfo {
@@ -49,16 +45,10 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
     const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
     const artistName = headliner?.name || "Unknown Artist";
     
-    const score = calculateShowScore(
-      show.rating,
-      show.artistPerformance,
-      show.sound,
-      show.lighting,
-      show.crowd,
-      show.venueVibe
-    );
+    // Use first tag as a badge if available
+    const primaryTag = show.tags?.[0];
     
-    const scoreGradient = getScoreGradient(score);
+    const scoreGradient = primaryTag ? "from-primary to-primary/70" : "from-muted to-muted/70";
     
     const formattedDate = format(
       parseISO(show.date),
@@ -176,12 +166,12 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               <Instagram className="h-4 w-4" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.3))" }} />
             </button>
             
-            {/* Content Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              {/* Score Badge - White background */}
-              <div className="inline-flex items-center justify-center px-3 py-1 rounded-full text-lg font-black text-black mb-2 bg-white shadow-lg">
-                {score.toFixed(1)}
+            {/* Tag Badge or Rank */}
+            {primaryTag && (
+              <div className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium text-white/90 mb-2 bg-white/[0.15] backdrop-blur-sm border border-white/[0.2]">
+                {primaryTag}
               </div>
+            )}
               
               {/* Artist Name */}
               <div 
