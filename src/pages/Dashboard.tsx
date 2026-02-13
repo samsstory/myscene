@@ -314,16 +314,19 @@ const Dashboard = () => {
           {/* FAB Button */}
           <button
             onClick={() => {
-              if (showSpotlightTour) return; // Don't trigger during tour
+              if (showSpotlightTour) return;
               setShowUnifiedAdd(true);
             }}
             data-tour="fab"
             className={cn(
-              "backdrop-blur-xl bg-primary/90 border border-white/30 text-primary-foreground rounded-full p-5 shadow-2xl transition-all hover:scale-105 active:scale-95",
+              "relative overflow-hidden backdrop-blur-xl rounded-full p-5 shadow-[0_0_30px_hsl(189_94%_55%/0.4),0_0_60px_hsl(189_94%_55%/0.15)] transition-all hover:scale-110 active:scale-95 hover:shadow-[0_0_40px_hsl(189_94%_55%/0.6),0_0_80px_hsl(189_94%_55%/0.25)]",
+              "bg-gradient-to-br from-primary via-primary to-[hsl(250,80%,60%)] border border-white/20",
               showSpotlightTour ? "z-[10001]" : "z-50"
             )}
           >
-            <Plus className="h-9 w-9" />
+            {/* Shimmer overlay */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-500" />
+            <Plus className="h-9 w-9 text-primary-foreground relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" />
           </button>
         </div>
       </div>
