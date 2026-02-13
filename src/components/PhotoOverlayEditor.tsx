@@ -855,7 +855,7 @@ export const PhotoOverlayEditor = ({
                 e.stopPropagation();
                 toggleConfig("showVenue");
               }}>
-                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <MapPin className="flex-shrink-0" style={{ width: 12, height: 12, minWidth: 12, minHeight: 12 }} />
                   <span className="truncate">{show.venue_name}</span>
                 </p>}
               
