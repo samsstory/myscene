@@ -403,11 +403,13 @@ export const PhotoOverlayEditor = ({
     if (mapPinSvg) {
       saveAndSet(mapPinSvg, 'position', 'relative');
       saveAndSet(mapPinSvg, 'top', '3.5px');
-      // Also ensure the parent <p> doesn't clip the shifted icon
-      const venueP = mapPinSvg.closest('p') as HTMLElement | null;
-      if (venueP) {
-        saveAndSet(venueP, 'overflow', 'visible');
-        saveAndSet(venueP, 'lineHeight', '1.5');
+      saveAndSet(mapPinSvg, 'overflow', 'visible');
+      saveAndSet(mapPinSvg, 'zIndex', '10');
+      // Ensure all ancestor elements up to the overlay don't clip the shifted icon
+      let ancestor = mapPinSvg.parentElement;
+      while (ancestor && ancestor !== photoWrapper) {
+        saveAndSet(ancestor, 'overflow', 'visible');
+        ancestor = ancestor.parentElement;
       }
     }
 
