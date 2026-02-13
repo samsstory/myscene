@@ -99,10 +99,12 @@ const Dashboard = () => {
   }
 
   const handleOnboardingComplete = () => {
-    // Set state synchronously first to avoid race conditions
     setShowOnboarding(false);
-    setShowUnifiedAdd(true);
-    // Then persist to DB in background
+    // Defer opening add flow to next tick so Dashboard fully mounts first
+    setTimeout(() => {
+      setShowUnifiedAdd(true);
+    }, 50);
+    // Persist to DB in background
     if (session) {
       supabase
         .from("profiles")
