@@ -199,7 +199,7 @@ export function WaitlistTab() {
                       <Button size="sm" onClick={() => setApproveEntry(entry)}>
                         Approve
                       </Button>
-                    ) : entry.status === "approved" && !entry.notified_at ? (
+                    ) : entry.status === "approved" ? (
                       <Button
                         size="sm"
                         variant="outline"
@@ -207,7 +207,7 @@ export function WaitlistTab() {
                         disabled={resendingId === entry.id}
                       >
                         <Send className="h-3.5 w-3.5 mr-1.5" />
-                        {resendingId === entry.id ? "Sending..." : "Send Email"}
+                        {resendingId === entry.id ? "Sending..." : entry.notified_at ? "Resend" : "Send Email"}
                       </Button>
                     ) : null}
                   </TableCell>
