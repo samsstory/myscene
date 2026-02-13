@@ -120,7 +120,12 @@ const LandingHeroV2 = () => {
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-8 items-center">
           {/* Left: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 relative z-10">
-            <SceneLogo size="lg" className="justify-center lg:justify-start" />
+            <div className="flex items-center justify-between lg:justify-start gap-4">
+              <SceneLogo size="lg" />
+              <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-muted-foreground hover:text-foreground text-sm">
+                Log in
+              </Button>
+            </div>
             
             {/* V2 COPY - Edit this section to test different variations */}
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight -mt-2" style={{
