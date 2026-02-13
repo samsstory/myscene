@@ -67,11 +67,14 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
     if (!isExpanded) {
       // Collapsed State - Minimal glass peek header
       return (
-        <div
+      <div
           ref={ref}
           data-show-id={show.id}
           className="cursor-pointer"
-          onClick={onExpand}
+          onClick={() => {
+            onExpand();
+            onTap();
+          }}
         >
           <div className="rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-sm border border-white/[0.05] transition-all hover:bg-white/[0.06]">
             <div className="relative">
