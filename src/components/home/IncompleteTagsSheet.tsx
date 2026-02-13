@@ -17,17 +17,17 @@ interface IncompleteShow {
   photoUrl: string | null;
 }
 
-interface IncompleteRatingsSheetProps {
+interface IncompleteTagsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete?: () => void;
 }
 
-export const IncompleteRatingsSheet = ({ 
+export const IncompleteTagsSheet = ({ 
   open, 
   onOpenChange,
   onComplete 
-}: IncompleteRatingsSheetProps) => {
+}: IncompleteTagsSheetProps) => {
   const [shows, setShows] = useState<IncompleteShow[]>([]);
   const [edits, setEdits] = useState<Record<string, string[]>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -274,4 +274,4 @@ export const IncompleteRatingsSheet = ({
   );
 };
 
-export default IncompleteRatingsSheet;
+export default IncompleteTagsSheet;

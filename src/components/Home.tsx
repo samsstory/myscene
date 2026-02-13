@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import StatPills, { StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
-import IncompleteRatingsSheet from "./home/IncompleteRatingsSheet";
+import IncompleteTagsSheet from "./home/IncompleteTagsSheet";
 import MissingPhotosSheet from "./home/MissingPhotosSheet";
 import FocusedRankingSession from "./home/FocusedRankingSession";
 import RankingProgressCard from "./home/RankingProgressCard";
@@ -716,7 +716,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
 
       
       {/* Incomplete Ratings Sheet */}
-      <IncompleteRatingsSheet
+      <IncompleteTagsSheet
         open={incompleteRatingsOpen}
         onOpenChange={setIncompleteRatingsOpen}
         onComplete={() => {
