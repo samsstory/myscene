@@ -94,8 +94,8 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
   const [directEditShow, setDirectEditShow] = useState<Show | null>(null);
   const [directEditOpen, setDirectEditOpen] = useState(false);
   
-  // Incomplete ratings sheet state
-  const [incompleteRatingsOpen, setIncompleteRatingsOpen] = useState(false);
+  // Incomplete tags sheet state
+  const [incompleteTagsOpen, setIncompleteTagsOpen] = useState(false);
   
   // Missing photos sheet state
   const [missingPhotosOpen, setMissingPhotosOpen] = useState(false);
@@ -278,10 +278,10 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
   const insights: InsightData[] = [];
   
   // Add incomplete ratings insight (always show in demo for testing)
-  if (stats.incompleteRatingsCount > 0) {
+  if (stats.incompleteTagsCount > 0) {
     insights.push({
       type: 'incomplete_ratings',
-      title: `${stats.incompleteRatingsCount} Shows Need Moments`,
+      title: `${stats.incompleteTagsCount} Shows Need Moments`,
       message: `Add moments to unlock full insights.`,
       actionable: true,
       action: 'incomplete-ratings',
@@ -354,7 +354,7 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
             if (action === 'rank-tab') {
               onNavigateToRank?.();
             } else if (action === 'incomplete-ratings') {
-              setIncompleteRatingsOpen(true);
+              setIncompleteTagsOpen(true);
             } else if (action === 'missing-photos') {
               setMissingPhotosOpen(true);
             }
@@ -705,10 +705,10 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
         rankings={rankings} 
       />
       
-      {/* Demo Incomplete Ratings Sheet */}
+      {/* Demo Incomplete Tags Sheet */}
       <DemoIncompleteTagsSheet
-        open={incompleteRatingsOpen}
-        onOpenChange={setIncompleteRatingsOpen}
+        open={incompleteTagsOpen}
+        onOpenChange={setIncompleteTagsOpen}
         shows={shows}
       />
       

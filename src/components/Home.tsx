@@ -100,8 +100,8 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   const [quickPhotoShow, setQuickPhotoShow] = useState<Show | null>(null);
   const [quickPhotoOpen, setQuickPhotoOpen] = useState(false);
   
-  // Incomplete ratings sheet state
-  const [incompleteRatingsOpen, setIncompleteRatingsOpen] = useState(false);
+  // Incomplete tags sheet state
+  const [incompleteTagsOpen, setIncompleteTagsOpen] = useState(false);
   
   // Missing photos sheet state
   const [missingPhotosOpen, setMissingPhotosOpen] = useState(false);
@@ -382,7 +382,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
             if (action === 'rank-tab') {
               setFocusedRankingOpen(true);
             } else if (action === 'incomplete-ratings') {
-              setIncompleteRatingsOpen(true);
+              setIncompleteTagsOpen(true);
             } else if (action === 'missing-photos') {
               setMissingPhotosOpen(true);
             }
@@ -715,10 +715,10 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
       )}
 
       
-      {/* Incomplete Ratings Sheet */}
+      {/* Incomplete Tags Sheet */}
       <IncompleteTagsSheet
-        open={incompleteRatingsOpen}
-        onOpenChange={setIncompleteRatingsOpen}
+        open={incompleteTagsOpen}
+        onOpenChange={setIncompleteTagsOpen}
         onComplete={() => {
           refetchStats();
           fetchShows();

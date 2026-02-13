@@ -21,7 +21,7 @@ interface StatsData {
   globalConfirmationPercentage: number;
   uniqueCities: number;
   uniqueCountries: number;
-  incompleteRatingsCount: number;
+  incompleteTagsCount: number;
   missingPhotosCount: number;
 }
 
@@ -50,7 +50,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     globalConfirmationPercentage: 0,
     uniqueCities: 0,
     uniqueCountries: 0,
-    incompleteRatingsCount: 0,
+    incompleteTagsCount: 0,
     missingPhotosCount: 0,
   });
   const [insights, setInsights] = useState<InsightData[]>([]);
@@ -82,14 +82,14 @@ export const useHomeStats = (): UseHomeStatsReturn => {
 
       // Count shows with no tags
       const showIds = shows?.map(s => s.id) || [];
-      let incompleteRatingsCount = 0;
+      let incompleteTagsCount = 0;
       if (showIds.length > 0) {
         const { data: taggedShows } = await supabase
           .from('show_tags')
           .select('show_id')
           .in('show_id', showIds);
         const taggedShowIds = new Set((taggedShows || []).map(t => t.show_id));
-        incompleteRatingsCount = showIds.filter(id => !taggedShowIds.has(id)).length;
+        incompleteTagsCount = showIds.filter(id => !taggedShowIds.has(id)).length;
       }
 
       // Count shows without photos (excluding those explicitly declined)
@@ -242,11 +242,11 @@ export const useHomeStats = (): UseHomeStatsReturn => {
           });
         }
         
-        // Incomplete ratings notification
-        if (incompleteRatingsCount >= 1) {
+        // Incomplete tags notification
+        if (incompleteTagsCount >= 1) {
           generatedInsights.push({
             type: 'incomplete_ratings',
-            title: `${incompleteRatingsCount} ${incompleteRatingsCount === 1 ? 'Show Needs' : 'Shows Need'} Tags`,
+            title: `${incompleteTagsCount} ${incompleteTagsCount === 1 ? 'Show Needs' : 'Shows Need'} Tags`,
             message: 'Tap to add moments to your shows.',
             actionable: true,
             action: 'incomplete-ratings' as InsightAction,
@@ -307,7 +307,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         globalConfirmationPercentage,
         uniqueCities: cities.size,
         uniqueCountries: countries.size,
-        incompleteRatingsCount,
+        incompleteTagsCount,
         missingPhotosCount,
       });
       setInsights(generatedInsights);
