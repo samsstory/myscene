@@ -135,8 +135,8 @@ const WelcomeCarousel = ({ onComplete, onTakeTour }: WelcomeCarouselProps) => {
           <HeroMockup />
         </div>
 
-        {/* Text content */}
-        <div className="mt-8 text-center">
+      {/* Text content + CTAs together */}
+        <div className="mt-6 text-center">
           <h2
             className="text-2xl font-bold mb-3"
             style={{ textShadow: "0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1)" }}
@@ -146,26 +146,25 @@ const WelcomeCarousel = ({ onComplete, onTakeTour }: WelcomeCarouselProps) => {
           <p className="text-muted-foreground text-base leading-relaxed max-w-xs mx-auto">
             Log shows, rank them against each other, and compare with friends.
           </p>
+
+          <div className="mt-6 w-full max-w-xs mx-auto">
+            <Button
+              onClick={onComplete}
+              className="w-full h-14 text-lg font-semibold rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Log Your First Show
+            </Button>
+
+            {onTakeTour && (
+              <button
+                onClick={onTakeTour}
+                className="w-full mt-4 text-muted-foreground text-sm hover:text-foreground transition-colors"
+              >
+                Take a quick tour first
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Bottom CTA */}
-      <div className="relative z-10 p-6 pb-12">
-        <Button
-          onClick={onComplete}
-          className="w-full h-14 text-lg font-semibold rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          Log Your First Show
-        </Button>
-
-        {onTakeTour && (
-          <button
-            onClick={onTakeTour}
-            className="w-full mt-4 text-muted-foreground text-sm hover:text-foreground transition-colors"
-          >
-            Take a quick tour first
-          </button>
-        )}
       </div>
     </div>
   );
