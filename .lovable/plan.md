@@ -1,106 +1,116 @@
 
 
-# Smart Show Recognition: "Was this at...?" Confirmation UX
+# Admin Dashboard for Scene
 
 ## Overview
 
-When a user uploads a **single photo** with GPS metadata, instead of dropping them straight into the manual review form, we insert a beautiful confirmation step that shows the photo prominently and asks: **"Was this at [Venue]?"** with the detected date and city. One tap to confirm, or escape to manual search.
-
-This leverages the existing venue-matching infrastructure (EXIF GPS to `match-venue-from-location` edge function) but wraps it in a much more delightful, high-confidence UX that feels like magic.
-
-## User Flow
-
-```text
-Photo Selected
-      |
-      v
-  Has GPS? ──No──> Existing review flow (unchanged)
-      |
-     Yes
-      |
-      v
-  Match venue from coordinates
-      |
-      v
-  Found venue? ──No──> Existing review flow
-      |
-     Yes
-      |
-      v
-  ┌─────────────────────────────┐
-  │  [Photo displayed large]    │
-  │                             │
-  │  "Was this at              │
-  │   Factory Town             │
-  │   during Art Basel?"       │
-  │                             │
-  │  Dec 6, 2024 · Miami, FL   │
-  │                             │
-  │  [Yes, that's right]       │
-  │   No, let me search...     │
-  └─────────────────────────────┘
-      |              |
-    Yes              No
-      |              |
-      v              v
-  Pre-fill venue   Standard review
-  + date, go to    (blank venue)
-  artist entry
-```
-
-Multi-photo uploads skip this step entirely and use the existing bulk review flow.
+Build a protected `/admin` route that gives you a clean interface to manage waitlist requests, create approved user accounts, and eventually handle notifications. Only users with the `admin` role can access it.
 
 ## What Gets Built
 
-### 1. New Component: `src/components/bulk-upload/SmartMatchStep.tsx`
+### Phase 1: Foundation (this plan)
 
-A full-screen-feel confirmation card that renders:
-- The uploaded photo displayed large with rounded corners
-- A glassmorphism suggestion card below with:
-  - Location pin icon + "Was this at" label
-  - **Venue name** in bold (e.g., "Factory Town")
-  - Optional event context line (if we can detect a festival from the venue name or nearby shows)
-  - Date from EXIF + city from venue address in muted text
-  - Gradient "Yes, that's right" confirmation button (matching the FAB gradient style)
-  - "No, let me search..." text link below
-- Loading state while venue matching is in progress (skeleton card with subtle pulse)
+**1. Role-based access control**
+- Create a `user_roles` table with an `app_role` enum (`admin`, `user`)
+- Create a `has_role()` security definer function to check roles without RLS recursion
+- Assign your account the `admin` role manually
 
-### 2. Modified: `src/components/BulkUploadFlow.tsx`
+**2. Admin page (`/admin`)**
+- New route protected by role check -- redirects non-admins to `/dashboard`
+- Clean dark-themed table UI matching the Scene aesthetic
+- Tabs: **Waitlist** | **Users** (expandable later for Notifications, Analytics)
 
-- Add a new step `'smart-match'` between `'select'` and `'review'`
-- When a single photo with GPS is selected, route to `'smart-match'` instead of `'review'`
-- On confirm: pre-populate the photo's venue data and proceed to `'review'` with venue already filled
-- On reject: proceed to `'review'` with venue cleared so user can search manually
-- Multi-photo uploads bypass this step entirely
+**3. Waitlist management tab**
+- Table showing all waitlist entries: phone number, country, source, discovery source, shows/year, status, submitted date
+- "Approve" button per row that:
+  1. Opens a small modal to enter email + temporary password for the new user
+  2. Calls a new `approve-waitlist` edge function that:
+     - Creates the user via Supabase Admin Auth API (`supabase.auth.admin.createUser`)
+     - Updates the waitlist entry status to `approved`
+     - Assigns the `user` role
+  3. Shows success confirmation
+- Status filter chips: All, Pending, Approved
+- Row count / basic stats at the top
 
-### 3. Modified: `src/components/bulk-upload/BulkReviewStep.tsx`
+**4. Users tab**
+- Lists all profiles with username, email, created date, show count
+- Read-only for now (management features can come later)
 
-- No structural changes needed -- the existing venue pre-fill via `photo.suggestedVenue` handles the confirmed data naturally
+### Phase 2: Future additions (not in this plan)
+- Send SMS/email notifications to approved users
+- Bulk approve/reject
+- Analytics (signups over time, waitlist conversion rate)
+- Invite link generation
 
 ## Technical Details
 
-### Smart Match Step Logic
+### Database Changes
 
-1. On mount, call `matchVenuesForPhotos([photo])` (existing hook) to get venue suggestion
-2. Extract date from `photo.exifData.date` (already available)
-3. Extract city from the venue's address (split on comma, take second-to-last part)
-4. Display the confirmation UI
-5. On "Yes": update the photo object with `suggestedVenue` and `venueMatchStatus: 'found'`, then advance
-6. On "No": clear venue data and advance to standard review
+```sql
+-- Role enum and table
+CREATE TYPE public.app_role AS ENUM ('admin', 'user');
 
-### Event/Festival Detection (Stretch)
+CREATE TABLE public.user_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role app_role NOT NULL,
+  UNIQUE (user_id, role)
+);
 
-Query existing shows in the database at the same venue within +/- 2 days to see if other users logged the same event. If matches exist, surface the artist names in the suggestion (e.g., "during Art Basel" or "to see Circoloco"). This is additive and can be a follow-up.
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
-### No New Backend Changes
+-- Security definer function (avoids RLS recursion)
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
 
-The existing `match-venue-from-location` edge function and `useVenueFromLocation` hook provide everything needed. No new database tables, no new edge functions.
+-- RLS: admins can read all roles, users can read their own
+CREATE POLICY "Admins can read all roles"
+  ON public.user_roles FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
 
-### Styling
+CREATE POLICY "Users can read own role"
+  ON public.user_roles FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+```
 
-- Photo: full-width with `rounded-2xl overflow-hidden` and subtle shadow
-- Suggestion card: `bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl`
-- Confirm button: same gradient as the FAB (`from-primary via-primary to-[hsl(250,80%,60%)]`) with glow shadow
-- "No" link: `text-sm text-white/40 hover:text-white/60`
-- Loading skeleton: pulsing placeholder blocks matching the card layout
+### New Edge Function: `approve-waitlist`
+
+- Accepts: `{ waitlistId, email, password }`
+- Validates caller is admin (checks `user_roles` via service role)
+- Creates user with `supabase.auth.admin.createUser({ email, password, email_confirm: true })`
+- Inserts `user` role into `user_roles`
+- Updates waitlist row status to `'approved'`
+- Returns success with the new user ID
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `src/pages/Admin.tsx` | Admin dashboard page with tabs |
+| `src/components/admin/WaitlistTab.tsx` | Waitlist table + approve flow |
+| `src/components/admin/UsersTab.tsx` | User list (read-only) |
+| `src/components/admin/ApproveModal.tsx` | Modal to enter email/password for approval |
+| `src/hooks/useAdminCheck.ts` | Hook to verify admin role, redirect if not |
+| `supabase/functions/approve-waitlist/index.ts` | Edge function for secure user creation |
+
+### Route Addition
+
+```text
+/admin → Admin.tsx (role-gated)
+```
+
+### Security Model
+
+- The `approve-waitlist` edge function uses the service role key, so it can create users and update waitlist entries
+- The edge function verifies the calling user has the `admin` role before proceeding
+- The waitlist table's SELECT policy (`false`) means only the edge function (via service role) can read entries -- the admin page will call an edge function to fetch waitlist data too
+- No client-side role checks for security -- the edge function is the gatekeeper
 
