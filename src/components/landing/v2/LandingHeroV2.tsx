@@ -116,7 +116,7 @@ const LandingHeroV2 = () => {
       background: "hsl(var(--secondary))"
     }} />
 
-      <div className="container mx-auto px-4 py-12 md:py-16">
+      <div className="container mx-auto px-4 pt-16 pb-12 md:py-16">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-8 items-center">
           {/* Left: Copy */}
           <div className="space-y-6 text-center lg:text-left order-1 relative z-10">
