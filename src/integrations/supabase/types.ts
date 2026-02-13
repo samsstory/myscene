@@ -479,9 +479,10 @@ export type Database = {
           country_code: string
           created_at: string
           discovery_source: string | null
+          email: string | null
           id: string
           notified_at: string | null
-          phone_number: string
+          phone_number: string | null
           shows_per_year: string | null
           source: string
           status: string
@@ -490,9 +491,10 @@ export type Database = {
           country_code?: string
           created_at?: string
           discovery_source?: string | null
+          email?: string | null
           id?: string
           notified_at?: string | null
-          phone_number: string
+          phone_number?: string | null
           shows_per_year?: string | null
           source?: string
           status?: string
@@ -501,9 +503,10 @@ export type Database = {
           country_code?: string
           created_at?: string
           discovery_source?: string | null
+          email?: string | null
           id?: string
           notified_at?: string | null
-          phone_number?: string
+          phone_number?: string | null
           shows_per_year?: string | null
           source?: string
           status?: string

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ interface ResendDialogProps {
   onOpenChange: (open: boolean) => void;
   waitlistEntry: {
     id: string;
+    email?: string | null;
     phone_number: string;
     country_code: string;
   } | null;
@@ -42,6 +43,10 @@ export function ResendDialog({ open, onOpenChange, waitlistEntry, onSent }: Rese
   const [emailBody, setEmailBody] = useState(DEFAULT_BODY);
   const [loading, setLoading] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+
+  useEffect(() => {
+    if (waitlistEntry?.email) setEmail(waitlistEntry.email);
+  }, [waitlistEntry]);
 
   const handleSend = async () => {
     if (!waitlistEntry || !email) return;
@@ -88,7 +93,7 @@ export function ResendDialog({ open, onOpenChange, waitlistEntry, onSent }: Rese
         <DialogHeader>
           <DialogTitle>Send Welcome Email</DialogTitle>
           <DialogDescription>
-            Send notification to {waitlistEntry?.phone_number} ({waitlistEntry?.country_code})
+            Send notification to {waitlistEntry?.email || waitlistEntry?.phone_number}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">

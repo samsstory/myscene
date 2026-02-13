@@ -6,22 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-function wrapInHtmlEmail(plainText: string): string {
-  const escaped = plainText
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br>");
-  return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #333; line-height: 1.6;">
-      ${escaped}
-    </div>
-  `;
+function generatePassword(length = 16): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => chars[b % chars.length]).join("");
 }
 
-const DEFAULT_SUBJECT = "You're in! Your Scene beta access is ready";
-
-function defaultApproveHtml(email: string, password: string): string {
+function buildWelcomeHtml(email: string, password: string): string {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
       <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
@@ -36,28 +28,11 @@ function defaultApproveHtml(email: string, password: string): string {
   `;
 }
 
-async function sendWelcomeEmail(
-  email: string,
-  password: string,
-  customSubject?: string,
-  customBody?: string
-): Promise<boolean> {
+async function sendWelcomeEmail(email: string, password: string): Promise<boolean> {
   const resendKey = Deno.env.get("RESEND_API_KEY");
   if (!resendKey) {
     console.error("RESEND_API_KEY not configured");
     return false;
-  }
-
-  const subject = customSubject || DEFAULT_SUBJECT;
-  let html: string;
-
-  if (customBody) {
-    const replaced = customBody
-      .replace(/\{\{email\}\}/g, email)
-      .replace(/\{\{password\}\}/g, password);
-    html = wrapInHtmlEmail(replaced);
-  } else {
-    html = defaultApproveHtml(email, password);
   }
 
   try {
@@ -70,8 +45,8 @@ async function sendWelcomeEmail(
       body: JSON.stringify({
         from: "Scene <onboarding@resend.dev>",
         to: [email],
-        subject,
-        html,
+        subject: "You're in! Your Scene beta access is ready",
+        html: buildWelcomeHtml(email, password),
       }),
     });
 
@@ -98,6 +73,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -130,15 +106,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { waitlistId, email, password, emailSubject, emailBody } = await req.json();
+    const { waitlistId, email } = await req.json();
 
-    if (!waitlistId || !email || !password) {
+    if (!waitlistId || !email) {
       return new Response(
-        JSON.stringify({ error: "waitlistId, email, and password are required" }),
+        JSON.stringify({ error: "waitlistId and email are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Auto-generate a secure password
+    const password = generatePassword();
+
+    // Create user account
     const { data: { user: newUser }, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -152,28 +132,27 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Assign role
     const { error: roleError } = await supabase
       .from("user_roles")
       .insert({ user_id: newUser.id, role: "user" });
-
     if (roleError) console.error("Failed to assign role:", roleError);
 
+    // Update waitlist status
     const { error: updateError } = await supabase
       .from("waitlist")
       .update({ status: "approved" })
       .eq("id", waitlistId);
-
     if (updateError) console.error("Failed to update waitlist:", updateError);
 
-    const notified = await sendWelcomeEmail(email, password, emailSubject, emailBody);
+    // Send welcome email with auto-generated credentials
+    const notified = await sendWelcomeEmail(email, password);
 
     if (notified) {
-      const { error: notifyError } = await supabase
+      await supabase
         .from("waitlist")
         .update({ notified_at: new Date().toISOString() })
         .eq("id", waitlistId);
-
-      if (notifyError) console.error("Failed to update notified_at:", notifyError);
     }
 
     return new Response(

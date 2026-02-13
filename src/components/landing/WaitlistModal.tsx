@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import WaitlistPhoneInput from "./WaitlistPhoneInput";
+import WaitlistEmailInput from "./WaitlistEmailInput";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -21,7 +21,7 @@ const WaitlistModal = ({ open, onOpenChange, source = "modal" }: WaitlistModalPr
         </DialogHeader>
         
         <div className="py-4">
-          <WaitlistPhoneInput 
+          <WaitlistEmailInput 
             source={source} 
             onSuccess={() => onOpenChange(false)} 
           />

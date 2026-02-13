@@ -18,6 +18,7 @@ import { CheckCircle, Clock, Users, Mail, Send } from "lucide-react";
 
 interface WaitlistEntry {
   id: string;
+  email: string | null;
   phone_number: string;
   country_code: string;
   source: string;
@@ -122,8 +123,7 @@ export function WaitlistTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Phone</TableHead>
-                <TableHead>Country</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Discovery</TableHead>
                 <TableHead>Shows/Year</TableHead>
@@ -136,8 +136,9 @@ export function WaitlistTab() {
             <TableBody>
               {filtered.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="font-mono text-sm">{entry.phone_number}</TableCell>
-                  <TableCell>{entry.country_code}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {entry.email || <span className="text-muted-foreground italic">{entry.phone_number}</span>}
+                  </TableCell>
                   <TableCell>{entry.source}</TableCell>
                   <TableCell>{entry.discovery_source || "—"}</TableCell>
                   <TableCell>{entry.shows_per_year || "—"}</TableCell>
@@ -166,7 +167,7 @@ export function WaitlistTab() {
                   </TableCell>
                   <TableCell>
                     {entry.status === "pending" ? (
-                      <Button size="sm" onClick={() => setApproveEntry(entry)}>
+                      <Button size="sm" onClick={() => setApproveEntry(entry)} disabled={!entry.email}>
                         Approve
                       </Button>
                     ) : entry.status === "approved" ? (
@@ -174,6 +175,7 @@ export function WaitlistTab() {
                         size="sm"
                         variant="outline"
                         onClick={() => setResendEntry(entry)}
+                        disabled={!entry.email}
                       >
                         <Send className="h-3.5 w-3.5 mr-1.5" />
                         {entry.notified_at ? "Resend" : "Send Email"}
@@ -184,7 +186,7 @@ export function WaitlistTab() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     No entries found
                   </TableCell>
                 </TableRow>
