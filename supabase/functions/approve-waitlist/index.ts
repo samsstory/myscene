@@ -6,6 +6,51 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+async function sendWelcomeEmail(email: string, password: string): Promise<boolean> {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) {
+    console.error("RESEND_API_KEY not configured");
+    return false;
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${resendKey}`,
+      },
+      body: JSON.stringify({
+        from: "Scene <onboarding@resend.dev>",
+        to: [email],
+        subject: "You're in! Your Scene beta access is ready",
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
+            <p style="color: #555; line-height: 1.6;">You've been approved for beta access! Here are your login details:</p>
+            <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 24px 0;">
+              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${email}</p>
+              <p style="margin: 0;"><strong>Temporary Password:</strong> ${password}</p>
+            </div>
+            <p style="color: #555; line-height: 1.6;">Log in at <a href="https://myscene.lovable.app" style="color: #6366f1;">myscene.lovable.app</a> and start logging your shows.</p>
+            <p style="color: #999; font-size: 13px; margin-top: 32px;">We recommend changing your password after your first login.</p>
+          </div>
+        `,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Resend API error:", err);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Failed to send email:", err);
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -105,8 +150,22 @@ Deno.serve(async (req) => {
       console.error("Failed to update waitlist:", updateError);
     }
 
+    // Send welcome email (non-blocking)
+    const notified = await sendWelcomeEmail(email, password);
+
+    if (notified) {
+      const { error: notifyError } = await supabase
+        .from("waitlist")
+        .update({ notified_at: new Date().toISOString() })
+        .eq("id", waitlistId);
+
+      if (notifyError) {
+        console.error("Failed to update notified_at:", notifyError);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, userId: newUser.id }),
+      JSON.stringify({ success: true, userId: newUser.id, notified }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
