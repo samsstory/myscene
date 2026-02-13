@@ -39,11 +39,7 @@ interface Show {
   date: string;
   rating: number;
   datePrecision?: string;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
   notes?: string | null;
   venueId?: string | null;
   latitude?: number;
@@ -131,8 +127,8 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
     })),
     venue_name: show.venue?.name || "",
     show_date: show.date || "",
-    artist_performance: show.artistPerformance,
-    venue_vibe: show.venueVibe,
+    artist_performance: null,
+    venue_vibe: null,
   });
 
   const handleShowTap = (show: Show) => {

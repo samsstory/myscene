@@ -35,11 +35,7 @@ interface Show {
   date: string;
   rating: number;
   datePrecision?: string;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
   notes?: string | null;
   venueId?: string | null;
   photo_url?: string | null;
@@ -86,16 +82,7 @@ export const ShowReviewSheet = ({
 
   if (!show) return null;
 
-  const score = calculateShowScore(
-    show.rating,
-    show.artistPerformance,
-    show.sound,
-    show.lighting,
-    show.crowd,
-    show.venueVibe
-  );
-
-  const hasDetailedRatings = show.artistPerformance || show.sound || show.lighting || show.crowd || show.venueVibe;
+  const hasTags = show.tags && show.tags.length > 0;
 
   // Calculate rank data
   const calculateRankData = () => {
@@ -364,7 +351,7 @@ export const ShowReviewSheet = ({
       // Draw score
       ctx.font = 'bold 120px system-ui, -apple-system, sans-serif';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(score.toFixed(1), canvas.width / 2, canvas.height / 2 + 300);
+      ctx.fillText('★', canvas.width / 2, canvas.height / 2 + 300);
 
       // Download
       canvas.toBlob((blob) => {
@@ -392,7 +379,7 @@ export const ShowReviewSheet = ({
             <HeroPhotoSection
               photoUrl={photoUrl}
               uploading={uploading}
-              score={score}
+              score={0}
               artists={show.artists}
               venue={show.venue}
               date={show.date}
@@ -405,44 +392,24 @@ export const ShowReviewSheet = ({
               onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
             />
 
-            {/* HOW IT FELT Section - Full width bars without container */}
-            {hasDetailedRatings && (
+            {/* HOW IT FELT Section - Tags */}
+            {hasTags && (
               <div className="space-y-4">
-                {/* Section Header */}
                 <h3 
                   className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40"
                   style={{ textShadow: "0 0 8px rgba(255,255,255,0.1)" }}
                 >
                   How It Felt
                 </h3>
-                
-                {/* Rating Bars - No container, full breathing room */}
-                <div className="space-y-3">
-                  <CompactRatingBar 
-                    icon={<Mic2 className="h-4 w-4" />} 
-                    label="Show" 
-                    value={show.artistPerformance} 
-                  />
-                  <CompactRatingBar 
-                    icon={<Volume2 className="h-4 w-4" />} 
-                    label="Sound" 
-                    value={show.sound} 
-                  />
-                  <CompactRatingBar 
-                    icon={<Lightbulb className="h-4 w-4" />} 
-                    label="Lighting" 
-                    value={show.lighting} 
-                  />
-                  <CompactRatingBar 
-                    icon={<Users className="h-4 w-4" />} 
-                    label="Crowd" 
-                    value={show.crowd} 
-                  />
-                  <CompactRatingBar 
-                    icon={<Sparkles className="h-4 w-4" />} 
-                    label="Vibe" 
-                    value={show.venueVibe} 
-                  />
+                <div className="flex flex-wrap gap-2">
+                  {show.tags!.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1.5 rounded-full text-sm font-medium bg-primary/15 border border-primary/30 text-white/80 backdrop-blur-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}

@@ -238,6 +238,38 @@ export type Database = {
           },
         ]
       }
+      show_tags: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          show_id: string
+          tag: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          show_id: string
+          tag: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          show_id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_tags_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shows: {
         Row: {
           artist_performance: number | null

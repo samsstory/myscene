@@ -32,11 +32,7 @@ interface ShowData {
   artists: Array<{ name: string; isHeadliner: boolean }>;
   rating: number | null;
   locationFilter: string;
-  artistPerformance: number | null;
-  sound: number | null;
-  lighting: number | null;
-  crowd: number | null;
-  venueVibe: number | null;
+  tags: string[];
   notes: string;
 }
 
@@ -60,11 +56,7 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
     artists: [],
     rating: null,
     locationFilter: "",
-    artistPerformance: null,
-    sound: null,
-    lighting: null,
-    crowd: null,
-    venueVibe: null,
+    tags: [],
     notes: "",
   });
 
@@ -83,11 +75,7 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
       artists: [],
       rating: null,
       locationFilter: "",
-      artistPerformance: null,
-      sound: null,
-      lighting: null,
-      crowd: null,
-      venueVibe: null,
+      tags: [],
       notes: "",
     });
   };
@@ -105,7 +93,7 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
         ...prev,
         artists: [{ name: result.name, isHeadliner: true }],
       }));
-      setStep(2); // Go to venue step
+      setStep(2);
     } else {
       setEntryPoint('venue');
       setShowData(prev => ({
@@ -114,7 +102,7 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
         venueLocation: result.location || "",
         venueId: result.id || null,
       }));
-      setStep(3); // Go to date step
+      setStep(3);
     }
   };
 
@@ -128,19 +116,17 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
       venueLatitude: latitude,
       venueLongitude: longitude,
     }));
-    setStep(3); // Go to date
+    setStep(3);
   };
 
   // Save show to demo context
   const saveShow = () => {
-    // Check demo limit
     const currentCount = getDemoShowCount();
     if (currentCount >= 5) {
       toast.error("Demo limit reached! Sign up to add unlimited shows.");
       return;
     }
 
-    // Construct date
     let showDate: string;
     if (showData.datePrecision === "exact" && showData.date) {
       showDate = showData.date.toISOString().split('T')[0];
@@ -154,7 +140,6 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
       showDate = new Date().toISOString().split('T')[0];
     }
 
-    // Create demo show
     const demoShow: DemoLocalShow = {
       id: `demo-${crypto.randomUUID()}`,
       artists: showData.artists,
@@ -165,11 +150,7 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
       date: showDate,
       rating: showData.rating ?? 3,
       datePrecision: showData.datePrecision,
-      artistPerformance: showData.artistPerformance,
-      sound: showData.sound,
-      lighting: showData.lighting,
-      crowd: showData.crowd,
-      venueVibe: showData.venueVibe,
+      tags: showData.tags,
       notes: showData.notes,
       venueId: showData.venueId,
       photo_url: null,
@@ -178,8 +159,6 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
 
     addDemoShow(demoShow);
     toast.success("Show added to your demo collection!");
-    
-    // Show success step
     setStep(6);
   };
 
@@ -203,24 +182,16 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
 
   const getTitle = () => {
     switch (step) {
-      case 1:
-        return "Add a Show";
-      case 2:
-        return showData.artists[0]?.name ? `Where'd you see ${showData.artists[0].name}?` : "Select Venue";
-      case 3:
-        return "When was the show?";
-      case 4:
-        return "Who'd you see?";
-      case 5:
-        return "Rate the show";
-      case 6:
-        return "Success!";
-      default:
-        return "Add a Show";
+      case 1: return "Add a Show";
+      case 2: return showData.artists[0]?.name ? `Where'd you see ${showData.artists[0].name}?` : "Select Venue";
+      case 3: return "When was the show?";
+      case 4: return "Who'd you see?";
+      case 5: return "What stood out?";
+      case 6: return "Success!";
+      default: return "Add a Show";
     }
   };
 
-  // SVG noise texture
   const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   const renderSuccessStep = () => (
@@ -250,20 +221,13 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
           <UserPlus className="h-4 w-4 mr-2" />
           Sign Up to Save Your Shows
         </Button>
-
         <p className="text-xs text-muted-foreground">
           Shows in demo mode won't be saved after you leave
         </p>
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Button 
-          onClick={() => {
-            resetFlow();
-          }} 
-          variant="outline" 
-          className="flex-1"
-        >
+        <Button onClick={() => resetFlow()} variant="outline" className="flex-1">
           Add Another
         </Button>
         <Button onClick={handleClose} variant="ghost" className="flex-1">
@@ -282,30 +246,16 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
         <div className="relative">
           {/* Mesh gradient background */}
           <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
-            <div 
-              className="absolute inset-0 animate-pulse-glow"
-              style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} 
-            />
-            <div 
-              className="absolute inset-0"
-              style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} 
-            />
-            <div 
-              className="absolute inset-0 opacity-[0.03]"
-              style={{ backgroundImage: noiseTexture }} 
-            />
+            <div className="absolute inset-0 animate-pulse-glow" style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} />
+            <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} />
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: noiseTexture }} />
           </div>
 
           <div className="relative z-10">
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
               {step > 1 && step < 6 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleBack}
-                  className="h-8 w-8"
-                >
+                <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               )}
@@ -314,11 +264,7 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
             </div>
 
             {/* Step content */}
-            {step === 1 && (
-              <UnifiedSearchStep
-                onSelect={handleSearchResultSelected}
-              />
-            )}
+            {step === 1 && <UnifiedSearchStep onSelect={handleSearchResultSelected} />}
 
             {step === 2 && (
               <VenueStep
@@ -345,9 +291,9 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
                 onYearChange={(year) => setShowData(prev => ({ ...prev, selectedYear: year }))}
                 onContinue={() => {
                   if (entryPoint === 'venue') {
-                    setStep(4); // Go to artists step for venue-first flow
+                    setStep(4);
                   } else {
-                    setStep(5); // Go to rating step for artist-first flow
+                    setStep(5);
                   }
                 }}
               />
@@ -363,15 +309,10 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
 
             {step === 5 && (
               <RatingStep
-                rating={showData.rating}
-                onRatingChange={(rating) => setShowData(prev => ({ ...prev, rating }))}
-                artistPerformance={showData.artistPerformance}
-                sound={showData.sound}
-                lighting={showData.lighting}
-                crowd={showData.crowd}
-                venueVibe={showData.venueVibe}
+                tags={showData.tags}
+                onTagsChange={(tags) => setShowData(prev => ({ ...prev, tags }))}
                 notes={showData.notes}
-                onDetailChange={(field, value) => setShowData(prev => ({ ...prev, [field]: value }))}
+                onNotesChange={(notes) => setShowData(prev => ({ ...prev, notes }))}
                 onSubmit={saveShow}
               />
             )}

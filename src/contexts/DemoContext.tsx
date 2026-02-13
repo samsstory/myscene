@@ -15,15 +15,11 @@ export interface DemoLocalShow {
   date: string;
   rating: number;
   datePrecision?: string;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
   notes?: string | null;
   venueId?: string | null;
   photo_url?: string | null;
-  isLocalDemo?: boolean; // Flag to identify demo-created shows
+  isLocalDemo?: boolean;
 }
 
 interface DemoContextValue {

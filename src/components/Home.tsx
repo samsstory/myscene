@@ -43,11 +43,7 @@ interface Show {
   date: string;
   rating: number;
   datePrecision?: string;
-  artistPerformance?: number | null;
-  sound?: number | null;
-  lighting?: number | null;
-  crowd?: number | null;
-  venueVibe?: number | null;
+  tags?: string[];
   notes?: string | null;
   venueId?: string | null;
   latitude?: number;
@@ -125,8 +121,8 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
     })),
     venue_name: show.venue?.name || "",
     show_date: show.date || "",
-    artist_performance: show.artistPerformance,
-    venue_vibe: show.venueVibe,
+    artist_performance: null,
+    venue_vibe: null,
   });
   
   // Smart share handler - direct to editor if photo exists, otherwise quick photo add
@@ -244,6 +240,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
 
       const showsWithArtists = await Promise.all((showsData || []).map(async show => {
         const { data: artistsData } = await supabase.from('show_artists').select('*').eq('show_id', show.id);
+        const { data: tagsData } = await supabase.from('show_tags').select('tag').eq('show_id', show.id);
         return {
           id: show.id,
           artists: (artistsData || []).map(a => ({ name: a.artist_name, isHeadliner: a.is_headliner })),
@@ -251,11 +248,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           date: show.show_date,
           rating: show.rating,
           datePrecision: show.date_precision,
-          artistPerformance: show.artist_performance,
-          sound: show.sound,
-          lighting: show.lighting,
-          crowd: show.crowd,
-          venueVibe: show.venue_vibe,
+          tags: (tagsData || []).map(t => t.tag),
           notes: show.notes,
           venueId: show.venue_id,
           latitude: show.venues?.latitude,
@@ -810,11 +803,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           datePrecision: editShow.datePrecision || 'exact',
           artists: editShow.artists,
           rating: editShow.rating,
-          artistPerformance: editShow.artistPerformance,
-          sound: editShow.sound,
-          lighting: editShow.lighting,
-          crowd: editShow.crowd,
-          venueVibe: editShow.venueVibe,
+          tags: editShow.tags,
           notes: editShow.notes,
           venueId: editShow.venueId,
           photo_url: editShow.photo_url
