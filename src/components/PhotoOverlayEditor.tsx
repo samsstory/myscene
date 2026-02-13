@@ -855,7 +855,7 @@ export const PhotoOverlayEditor = ({
                 e.stopPropagation();
                 toggleConfig("showVenue");
               }}>
-                  <MapPin className="flex-shrink-0 inline-block align-middle" style={{ width: 12, height: 12, minWidth: 12, minHeight: 12, verticalAlign: 'middle', position: 'relative', top: '-0.5px' }} />
+                  <MapPin className="flex-shrink-0 inline-block" style={{ width: 12, height: 12, minWidth: 12, minHeight: 12, position: 'relative', top: '1px' }} />
                   <span className="truncate align-middle" style={{ verticalAlign: 'middle' }}>{show.venue_name}</span>
                 </p>}
               
