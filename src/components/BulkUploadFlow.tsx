@@ -179,25 +179,23 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto pb-8 top-1/4 translate-y-0 relative overflow-hidden">
-        {/* Mesh gradient background - Scene aesthetic - fixed to fill entire dialog */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <div 
-            className="absolute inset-0 animate-pulse-glow"
-            style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} 
-          />
-          <div 
-            className="absolute inset-0"
-            style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} 
-          />
-          {/* Noise texture overlay */}
-          <div 
-            className="absolute inset-0 opacity-[0.03]"
-            style={{ backgroundImage: noiseTexture }} 
-          />
-        </div>
-
-        {/* Content with relative positioning above gradients */}
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto pb-8 top-1/4 translate-y-0" aria-describedby={undefined}>
+        <div className="relative min-h-[100px]">
+          {/* Mesh gradient background - Scene aesthetic */}
+          <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
+            <div 
+              className="absolute inset-0 animate-pulse-glow"
+              style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} 
+            />
+            <div 
+              className="absolute inset-0"
+              style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} 
+            />
+            <div 
+              className="absolute inset-0 opacity-[0.03]"
+              style={{ backgroundImage: noiseTexture }} 
+            />
+          </div>
         <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center gap-3 mb-4">
@@ -265,6 +263,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
               }}
             />
           )}
+        </div>
         </div>
       </DialogContent>
     </Dialog>
