@@ -24,7 +24,7 @@ interface VenueStepProps {
   onSave?: () => void;
   onSkip?: () => void;
   selectedArtistName?: string;
-  onSelectAsEvent?: (eventName: string) => void;
+  onSelectAsEvent?: (eventName: string, eventDescription: string) => void;
 }
 
 interface VenueSuggestion {
@@ -65,6 +65,8 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
   const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
   const [recentVenues, setRecentVenues] = useState<VenueSuggestion[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [showEventDescriptionInput, setShowEventDescriptionInput] = useState(false);
+  const [eventDescription, setEventDescription] = useState("");
 
   // Fetch user's recent venues on mount
   useEffect(() => {
@@ -241,8 +243,13 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   const handleSelectAsEvent = () => {
     if (searchTerm.trim() && onSelectAsEvent) {
-      onSelectAsEvent(searchTerm.trim());
+      onSelectAsEvent(searchTerm.trim(), eventDescription.trim());
     }
+  };
+
+  const handleNewEventClick = () => {
+    setShowEventDescriptionInput(true);
+    setEventDescription("");
   };
 
   const handleAddressSelect = (suggestion: AddressSuggestion) => {
@@ -501,20 +508,39 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
               <div className="font-semibold text-primary">"{searchTerm.trim()}"</div>
             </div>
             {showType === 'show' && onSelectAsEvent ? (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={handleManualEntry}
-                  className="text-center py-2 px-3 rounded-md bg-white/[0.05] border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 text-sm font-medium text-foreground"
-                >
-                  New venue
-                </button>
-                <button
-                  onClick={handleSelectAsEvent}
-                  className="text-center py-2 px-3 rounded-md bg-white/[0.05] border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 text-sm font-medium text-foreground"
-                >
-                  New event
-                </button>
-              </div>
+              showEventDescriptionInput ? (
+                <div className="space-y-2">
+                  <Input
+                    placeholder='e.g. "Traveling immersive parties" (optional)'
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSelectAsEvent()}
+                    className="h-9 text-sm"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSelectAsEvent}
+                    className="w-full text-center py-2 px-3 rounded-md bg-primary/20 border border-primary/40 hover:bg-primary/30 transition-all duration-200 text-sm font-medium text-primary"
+                  >
+                    Add as event →
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={handleManualEntry}
+                    className="text-center py-2 px-3 rounded-md bg-white/[0.05] border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 text-sm font-medium text-foreground"
+                  >
+                    New venue
+                  </button>
+                  <button
+                    onClick={handleNewEventClick}
+                    className="text-center py-2 px-3 rounded-md bg-white/[0.05] border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 text-sm font-medium text-foreground"
+                  >
+                    New event
+                  </button>
+                </div>
+              )
             ) : (
               <button
                 onClick={handleManualEntry}

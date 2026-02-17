@@ -52,6 +52,8 @@ interface Show {
   latitude?: number;
   longitude?: number;
   photo_url?: string | null;
+  eventName?: string | null;
+  eventDescription?: string | null;
 }
 
 interface ShowRanking {
@@ -258,7 +260,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           venueId: show.venue_id,
           latitude: show.venues?.latitude,
           longitude: show.venues?.longitude,
-          photo_url: show.photo_url
+          photo_url: show.photo_url,
+          eventName: show.event_name,
+          eventDescription: (show as any).event_description,
         };
       }));
 

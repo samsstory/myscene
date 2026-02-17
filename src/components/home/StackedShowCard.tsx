@@ -24,6 +24,8 @@ interface Show {
   photo_url?: string | null;
   tags?: string[];
   isLocalDemo?: boolean;
+  eventName?: string | null;
+  eventDescription?: string | null;
 }
 
 interface RankInfo {
@@ -194,6 +196,11 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
               >
                 {show.venue.name} · {formattedDate}
               </div>
+              {show.eventDescription && (
+                <div className="text-white/50 text-xs mt-0.5 italic">
+                  {show.eventDescription}
+                </div>
+              )}
             </div>
             
             {/* Scene Logo */}
