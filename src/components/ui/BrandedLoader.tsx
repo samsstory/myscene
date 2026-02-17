@@ -1,6 +1,8 @@
 import SceneLogo from "./SceneLogo";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BrandedLoaderProps {
   className?: string;
@@ -9,7 +11,39 @@ interface BrandedLoaderProps {
   showReassurance?: boolean;
 }
 
+const FALLBACK_QUOTE = {
+  text: "Very often a change of self is needed more than a change of scene.",
+  author: "Arthur Christopher Benson",
+};
+
 const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showReassurance = false }: BrandedLoaderProps) => {
+  const [quote, setQuote] = useState(FALLBACK_QUOTE);
+
+  useEffect(() => {
+    if (!showQuote) return;
+
+    let cancelled = false;
+
+    const fetchRandomQuote = async () => {
+      try {
+        const { data } = await supabase
+          .from("loading_quotes")
+          .select("text, author")
+          .eq("is_active", true);
+
+        if (!cancelled && data && data.length > 0) {
+          const randomQuote = data[Math.floor(Math.random() * data.length)];
+          setQuote({ text: randomQuote.text, author: randomQuote.author });
+        }
+      } catch {
+        // Keep fallback
+      }
+    };
+
+    fetchRandomQuote();
+    return () => { cancelled = true; };
+  }, [showQuote]);
+
   const content = (
     <div className={cn("text-center", className)}>
       <div className="animate-pulse mb-6">
@@ -17,8 +51,8 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showRe
       </div>
       {showQuote && (
         <p className="text-muted-foreground text-sm italic max-w-xs mx-auto leading-relaxed">
-          "Very often a change of self is needed more than a change of scene."
-          <span className="block mt-1 text-xs not-italic opacity-70">— Arthur Christopher Benson</span>
+          "{quote.text}"
+          <span className="block mt-1 text-xs not-italic opacity-70">— {quote.author}</span>
         </p>
       )}
       <AnimatePresence>

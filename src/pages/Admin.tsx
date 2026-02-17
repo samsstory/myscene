@@ -5,6 +5,7 @@ import { WaitlistTab } from "@/components/admin/WaitlistTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { BugReportsTab } from "@/components/admin/BugReportsTab";
 import { AnnouncementsPanel } from "@/components/admin/AnnouncementsPanel";
+import { QuotesTab } from "@/components/admin/QuotesTab";
 import { Shield } from "lucide-react";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,7 @@ export default function Admin() {
               )}
             </TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
+            <TabsTrigger value="quotes">Quotes</TabsTrigger>
           </TabsList>
           <TabsContent value="waitlist">
             <WaitlistTab />
@@ -72,6 +74,9 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="announcements">
             <AnnouncementsPanel />
+          </TabsContent>
+          <TabsContent value="quotes">
+            <QuotesTab />
           </TabsContent>
         </Tabs>
       </div>
