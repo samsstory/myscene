@@ -210,6 +210,9 @@ serve(async (req) => {
 
     // 1. Search user's own shows
     const searchWords = searchTerm.trim().toLowerCase().split(/\s+/);
+    const stopWords = new Set(['the', 'a', 'an', 'at', 'in', 'of', 'and', 'or', 'to']);
+    const meaningfulSearchWords = searchWords.filter(w => !stopWords.has(w));
+    const wordsForFilter = meaningfulSearchWords.length > 0 ? meaningfulSearchWords : searchWords;
     let userShows: any[] = [];
 
     try {
@@ -224,7 +227,7 @@ serve(async (req) => {
       } else if (data) {
         userShows = data.filter((show: any) => {
           const venueName = show.venue_name.toLowerCase();
-          return searchWords.some((word: string) => venueName.includes(word));
+          return wordsForFilter.some((word: string) => venueName.includes(word));
         });
       }
     } catch (err) {
@@ -377,31 +380,66 @@ serve(async (req) => {
 
     // 8. Sort and return — prioritize name relevance
     const searchLower = searchTerm.trim().toLowerCase();
-    const searchWords = searchLower.split(/\s+/);
+    const sortWords = searchLower.split(/\s+/);
 
-    function relevanceScore(name: string): number {
-      const lower = name.toLowerCase();
-      if (lower === searchLower) return 100;
-      if (lower.startsWith(searchLower)) return 80;
-      // Check how many search words appear in the name
-      const matchCount = searchWords.filter(w => lower.includes(w)).length;
-      return (matchCount / searchWords.length) * 60;
+    const abbrevMap: Record<string, string[]> = {
+      'nyc': ['new york', 'ny'], 'la': ['los angeles'], 'sf': ['san francisco'],
+      'dc': ['washington'], 'philly': ['philadelphia'], 'atl': ['atlanta'],
+    };
+
+    function relevanceScore(v: VenueSuggestion): number {
+      const nameLower = v.name.toLowerCase();
+      const locLower = (v.location || '').toLowerCase();
+      const combined = `${nameLower} ${locLower}`;
+      if (nameLower === searchLower) return 100;
+      if (nameLower.startsWith(searchLower)) return 90;
+      let matchCount = 0;
+      for (const word of sortWords) {
+        if (combined.includes(word)) { matchCount++; }
+        else {
+          const expansions = abbrevMap[word];
+          if (expansions && expansions.some(exp => combined.includes(exp))) matchCount++;
+        }
+      }
+      if (matchCount === sortWords.length) return 80;
+      return (matchCount / sortWords.length) * 60;
     }
 
-    const suggestions = Array.from(venueMap.values()).sort((a, b) => {
-      // User's own shows always first
-      if (a.user_show_count !== b.user_show_count) return b.user_show_count - a.user_show_count;
+    const irrelevantCategories = new Set([
+      'hair salon', 'hair removal service', 'real estate agency',
+      'pizzeria', 'apartment or condo', 'coworking space',
+      'health and beauty service', 'dentist', 'doctor',
+      'laundromat', 'dry cleaner', 'gas station',
+    ]);
 
-      // Then by name relevance
-      const aScore = relevanceScore(a.name);
-      const bScore = relevanceScore(b.name);
-      if (aScore !== bScore) return bScore - aScore;
+    // Common filler words to ignore when checking name relevance
+    const fillerWords = new Set(['the', 'a', 'an', 'at', 'in', 'of', 'and', 'or', 'to']);
+    const meaningfulWords = sortWords.filter(w => !fillerWords.has(w));
+    // If all words are filler (e.g. "the"), fall back to requiring any match
+    const requiredWords = meaningfulWords.length > 0 ? meaningfulWords : sortWords;
 
-      // Then scene users
-      if (a.scene_users_count !== b.scene_users_count) return b.scene_users_count - a.scene_users_count;
-
-      return a.name.localeCompare(b.name);
-    }).slice(0, 15);
+    const suggestions = Array.from(venueMap.values())
+      .filter(v => {
+        if (v.user_show_count > 0 || v.scene_users_count > 0) return true;
+        if (v.category && irrelevantCategories.has(v.category.toLowerCase())) return false;
+        const nameLower = v.name.toLowerCase();
+        const locLower = (v.location || '').toLowerCase();
+        const combined = `${nameLower} ${locLower}`;
+        // Must match at least one meaningful search word in name or location
+        return requiredWords.some(w => {
+          if (combined.includes(w)) return true;
+          const expansions = abbrevMap[w];
+          return expansions ? expansions.some(exp => combined.includes(exp)) : false;
+        });
+      })
+      .sort((a, b) => {
+        if (a.user_show_count !== b.user_show_count) return b.user_show_count - a.user_show_count;
+        const aScore = relevanceScore(a);
+        const bScore = relevanceScore(b);
+        if (aScore !== bScore) return bScore - aScore;
+        if (a.scene_users_count !== b.scene_users_count) return b.scene_users_count - a.scene_users_count;
+        return a.name.localeCompare(b.name);
+      }).slice(0, 15);
 
     console.log(`Returning ${suggestions.length} suggestions`);
 
