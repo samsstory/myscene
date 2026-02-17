@@ -3,6 +3,7 @@ import SceneLogo from "@/components/ui/SceneLogo";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { captureBugScreenshot } from "@/lib/bug-screenshot";
 
 interface Props {
   children: ReactNode;
@@ -14,10 +15,11 @@ interface State {
   errorInfo: ErrorInfo | null;
   submitting: boolean;
   submitted: boolean;
+  screenshotUrl: string | null;
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null, errorInfo: null, submitting: false, submitted: false };
+  state: State = { hasError: false, error: null, errorInfo: null, submitting: false, submitted: false, screenshotUrl: null };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
@@ -26,6 +28,10 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
     console.error("ErrorBoundary caught:", error, errorInfo);
+    // Capture screenshot of the broken state
+    captureBugScreenshot().then((url) => {
+      if (url) this.setState({ screenshotUrl: url });
+    });
   }
 
   handleReport = async () => {
@@ -33,16 +39,18 @@ class ErrorBoundary extends Component<Props, State> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        // Can't report without auth — just reload
         window.location.reload();
         return;
       }
 
-      const errorContext = {
+      const errorContext: Record<string, unknown> = {
         stack: this.state.error?.stack?.slice(0, 2000),
         componentStack: this.state.errorInfo?.componentStack?.slice(0, 2000),
         message: this.state.error?.message,
       };
+      if (this.state.screenshotUrl) {
+        errorContext.screenshot_url = this.state.screenshotUrl;
+      }
 
       await supabase.from("bug_reports" as any).insert({
         user_id: session.user.id,
@@ -76,7 +84,7 @@ class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2 className="text-xl font-semibold text-foreground mb-2">Something broke</h2>
           <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-            Help us fix it by sharing what happened. We'll include the error details automatically.
+            Help us fix it by sharing what happened. We'll include the error details and a screenshot automatically.
           </p>
           {this.state.submitted ? (
             <p className="text-sm text-primary">Thanks! Reloading…</p>

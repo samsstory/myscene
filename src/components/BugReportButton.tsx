@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Bug, Send } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Bug, Send, Camera } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import type { BugReportType } from "@/hooks/useBugReportPrompt";
+import { captureBugScreenshot } from "@/lib/bug-screenshot";
 
 const bugSchema = z.object({
   description: z
@@ -26,7 +27,6 @@ const bugSchema = z.object({
 });
 
 interface BugReportButtonProps {
-  /** Control open state externally (e.g. from BugPromptBanner) */
   externalOpen?: boolean;
   onExternalClose?: () => void;
   prefillDescription?: string;
@@ -44,12 +44,40 @@ export default function BugReportButton({
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
+  const screenshotTakenRef = useRef(false);
+
+  // Capture screenshot when drawer opens (before it renders over content)
+  const captureScreenshot = async () => {
+    if (screenshotTakenRef.current) return;
+    screenshotTakenRef.current = true;
+    setCapturingScreenshot(true);
+    const url = await captureBugScreenshot();
+    setScreenshotUrl(url);
+    setCapturingScreenshot(false);
+  };
+
+  // Trigger screenshot capture BEFORE opening the drawer
+  const openWithScreenshot = async () => {
+    screenshotTakenRef.current = false;
+    setScreenshotUrl(null);
+    setDescription("");
+    await captureScreenshot();
+    setOpen(true);
+  };
 
   // Sync external open
   useEffect(() => {
     if (externalOpen) {
+      screenshotTakenRef.current = false;
+      setScreenshotUrl(null);
       setDescription(prefillDescription || "");
-      setOpen(true);
+      // Capture before opening
+      (async () => {
+        await captureScreenshot();
+        setOpen(true);
+      })();
     }
   }, [externalOpen, prefillDescription]);
 
@@ -57,6 +85,7 @@ export default function BugReportButton({
     setOpen(val);
     if (!val) {
       onExternalClose?.();
+      screenshotTakenRef.current = false;
     }
   };
 
@@ -77,17 +106,21 @@ export default function BugReportButton({
     };
     const pageUrl = window.location.pathname;
     const userAgent = navigator.userAgent;
+    const capturedScreenshotUrl = screenshotUrl;
 
-    // Optimistic: close immediately, show toast, persist in background
     setDescription("");
     handleOpenChange(false);
     toast.success("Thanks! We're on it.");
 
-    // Fire-and-forget background persist
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
+
+        const context = {
+          ...(errorContext || {}),
+          ...(capturedScreenshotUrl ? { screenshot_url: capturedScreenshotUrl } : {}),
+        };
 
         await supabase.from("bug_reports" as any).insert({
           user_id: session.user.id,
@@ -96,7 +129,7 @@ export default function BugReportButton({
           user_agent: userAgent,
           device_info: deviceInfo,
           type: reportType || "manual",
-          error_context: errorContext || null,
+          error_context: Object.keys(context).length > 0 ? context : null,
         } as any);
       } catch {
         // Best-effort
@@ -106,12 +139,8 @@ export default function BugReportButton({
 
   return (
     <>
-      {/* Bug button — rendered inline, parent controls positioning */}
       <button
-        onClick={() => {
-          setDescription("");
-          setOpen(true);
-        }}
+        onClick={openWithScreenshot}
         aria-label="Report a bug"
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-full",
@@ -127,11 +156,32 @@ export default function BugReportButton({
           <DrawerHeader>
             <DrawerTitle className="text-lg">Spotted a bug?</DrawerTitle>
             <DrawerDescription>
-              Tell us what went wrong — we'll include your device and page info automatically.
+              Tell us what went wrong — we'll include your device info and a screenshot automatically.
             </DrawerDescription>
           </DrawerHeader>
 
           <div className="px-4 pb-2">
+            {/* Screenshot preview */}
+            {(capturingScreenshot || screenshotUrl) && (
+              <div className="mb-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Camera className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[11px] text-muted-foreground font-medium">Screenshot captured</span>
+                </div>
+                {capturingScreenshot ? (
+                  <div className="h-20 rounded-lg bg-muted/30 border border-border animate-pulse flex items-center justify-center">
+                    <span className="text-[11px] text-muted-foreground">Capturing…</span>
+                  </div>
+                ) : screenshotUrl ? (
+                  <img
+                    src={screenshotUrl}
+                    alt="Bug screenshot"
+                    className="h-20 w-auto rounded-lg border border-border object-cover object-top"
+                  />
+                ) : null}
+              </div>
+            )}
+
             <Textarea
               placeholder="What went wrong?"
               value={description}
