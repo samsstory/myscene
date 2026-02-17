@@ -1,6 +1,12 @@
-import { CheckCircle2, Plus, Image, MessageCircle, Scale, Share } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, Plus, Image, MessageCircle, Scale, Share, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 interface BulkSuccessStepProps {
   addedCount: number;
@@ -35,6 +41,43 @@ const ShowCard = ({ show, onTap }: { show: AddedShowData; onTap: (show: AddedSho
 const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateReviewPhoto, onRank }: BulkSuccessStepProps) => {
   const firstShow = addedShows[0];
   const hasMultiple = addedShows.length > 1;
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallCTA, setShowInstallCTA] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(false);
+
+  // Set first-show flag and capture install prompt
+  useEffect(() => {
+    const isFirstShow = !localStorage.getItem("scene-first-show-logged");
+    localStorage.setItem("scene-first-show-logged", "true");
+
+    if (!isFirstShow) return;
+
+    // Check if we're on mobile and not already installed
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isStandalone || !isMobile) return;
+
+    setShowInstallCTA(true);
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") setShowInstallCTA(false);
+      setDeferredPrompt(null);
+    } else {
+      // iOS — just dismiss, the InstallBanner will handle iOS instructions
+      setInstallDismissed(true);
+    }
+  };
 
   const handleSendToFriends = () => {
     if (!firstShow) return;
@@ -114,6 +157,29 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
           <p className="text-xs text-muted-foreground">
             Tap to share your review on Instagram
           </p>
+        </div>
+      )}
+
+      {/* Inline Install CTA — first show only */}
+      {showInstallCTA && !installDismissed && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Download className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-sm font-semibold">Get SCENE on your home screen</p>
+              <p className="text-xs text-muted-foreground">Full app experience, one tap away</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleInstall} size="sm" className="flex-1">
+              Install
+            </Button>
+            <Button onClick={() => setInstallDismissed(true)} size="sm" variant="ghost" className="text-muted-foreground">
+              Later
+            </Button>
+          </div>
         </div>
       )}
 
