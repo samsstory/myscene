@@ -1,48 +1,64 @@
 
 
-# Remove Waitlist, Enable Direct Signup
+## Optimize First Sign-Up Flow for Show Creation
 
-## Overview
-Replace all waitlist flows with direct email/password signup across the landing pages and auth page. Enable auto-confirm so users can sign in immediately.
+### Current Flow (5 steps before first show)
+1. User signs up on `/auth`
+2. Redirected to `/dashboard`
+3. Sees WelcomeCarousel onboarding screen
+4. Taps "Log Your First Show" -- opens BulkUploadFlow (photo picker)
+5. User selects photo, fills details, submits
+6. Sees BulkSuccessStep with share/rank options
+7. Install banner may appear at any time (even on auth page)
 
-## Changes
+### Problems
+- The WelcomeCarousel is a full-screen blocker between signup and logging the first show -- it adds friction
+- The install banner shows globally (even on the auth page), competing with signup
+- After success, there's no install prompt at the optimal "aha moment"
 
-### 1. Enable Auto-Confirm for Email Signups
-Use the configure-auth tool to enable auto-confirm so new users can sign in without email verification (since Resend/email delivery isn't ready yet).
+### Proposed Optimized Flow
 
-### 2. Auth Page (`src/pages/Auth.tsx`)
-- Remove the `WaitlistSignup` import and component
-- Replace the "Sign Up" tab content with a proper email + password form (matching the existing Sign In form style)
-- On successful signup, navigate directly to `/dashboard`
+```text
+Sign Up --> Dashboard --> Add Show Flow (auto-opens) --> Success --> Install Prompt
+```
 
-### 3. Landing Hero V2 (`src/components/landing/v2/LandingHeroV2.tsx`)
-- Remove `WaitlistModal` import and state
-- Change "Start Your Collection" button to navigate directly to `/auth` (sign-up tab)
-- Update social proof text from waitlist language to something like "For people who live for live music" (already done)
+**Step-by-step:**
 
-### 4. Landing Hero V1 (`src/components/landing/LandingHero.tsx`)
-- Remove `WaitlistModal` import and state
-- Change "Request Beta Access" button to navigate to `/auth`
+1. **Remove the WelcomeCarousel screen entirely for new users** -- instead of showing a full-screen onboarding, skip straight to the dashboard with the Add Show flow auto-opening. The user just signed up; they're motivated. Get them to their first show immediately.
 
-### 5. Landing CTA sections (`LandingCTA.tsx` and `v2/LandingCTAV2.tsx`)
-- Replace `WaitlistSignup` component with a simple "Get Started" button that links to `/auth`
+2. **Suppress the install banner on `/auth` and during onboarding** -- update `InstallBanner.tsx` to check the current route and hide on `/auth`, `/`, and other non-dashboard routes. Also suppress it until the user has at least 1 show logged.
 
-### 6. Landing CTA V2 Footer copy
-- Keep footer as-is (Privacy, Terms, Contact links)
+3. **Trigger the install prompt on the success screen** -- after the user logs their first show, show the PWA install prompt directly on the `BulkSuccessStep` (or `SuccessStep` for manual add). This is the "aha moment" where they've just experienced value.
 
-## Files Modified
-- `src/pages/Auth.tsx` -- sign-up tab becomes email/password form
-- `src/components/landing/v2/LandingHeroV2.tsx` -- button navigates to /auth
-- `src/components/landing/LandingHero.tsx` -- button navigates to /auth
-- `src/components/landing/LandingCTA.tsx` -- replace waitlist with CTA button
-- `src/components/landing/v2/LandingCTAV2.tsx` -- replace waitlist with CTA button
+4. **Streamline the Dashboard onboarding check** -- instead of showing `WelcomeCarousel`, new users (with `onboarding_step !== 'completed'`) will immediately get the add-show flow opened, and `onboarding_step` will be set to `completed` right away.
 
-## Files NOT deleted (kept for potential future use)
-- Waitlist-related components (`WaitlistSignup`, `WaitlistEmailInput`, `WaitlistModal`, `WaitlistSuccess`, `WaitlistPhoneInput`, `WaitlistFollowUp`) -- left in codebase but no longer imported
-- Admin waitlist tab and edge functions -- kept for managing existing waitlist entries
+### Technical Changes
 
-## Technical Notes
-- Auth auto-confirm will be configured via the configure-auth tool
-- The existing `handle_new_user` trigger already creates a profile row on signup, so no database changes needed
-- Referral code capture logic in Auth.tsx will be preserved
+**`src/pages/Dashboard.tsx`**
+- Remove the WelcomeCarousel render block
+- Remove the `showOnboarding` state and related logic
+- When a new user is detected (onboarding_step not completed), directly set `pendingAddFlowRef.current = true` and mark onboarding as completed in the DB
+- Remove `handleTakeTour` and `handleOnboardingComplete` (simplify to just auto-open the add flow)
+
+**`src/components/pwa/InstallBanner.tsx`**
+- Add route check: only show on `/dashboard`
+- Add a check for whether the user has logged at least 1 show (using a localStorage flag like `scene-first-show-logged`)
+- Only display the banner when both conditions are met
+
+**`src/components/bulk-upload/BulkSuccessStep.tsx`**
+- After showing the success state, check if this is the user's first show (e.g., via a prop `isFirstShow`)
+- If first show, display a compact inline install CTA within the success screen (before the share/rank actions) -- "Get SCENE on your home screen" with an Install button
+- Set the `scene-first-show-logged` localStorage flag so the floating InstallBanner can also appear later if they dismiss
+
+**`src/components/add-show-steps/SuccessStep.tsx`**
+- Same first-show install CTA treatment for the manual add flow
+
+**`src/components/onboarding/WelcomeCarousel.tsx`**
+- File remains but is no longer imported/used from Dashboard (kept for potential re-use or tour reference)
+
+### Result
+- New users go from signup to logging their first show in 2 taps (sign up -> select photo)
+- Install prompt appears at peak engagement (just logged a show)
+- No competing CTAs on the auth screen
+- Returning users are unaffected
 
