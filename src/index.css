@@ -87,6 +87,11 @@ All colors MUST be HSL.
     padding-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
   }
 
+  /* When dev overlay is active, push dialogs using top safe-area below the island */
+  .dev-island-active [style*="safe-area-inset-top"] {
+    top: 59px !important;
+  }
+
   .pl-safe {
     padding-left: env(safe-area-inset-left, 0px);
   }
