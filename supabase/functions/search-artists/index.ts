@@ -2,11 +2,36 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+let spotifyToken: string | null = null;
+let tokenExpiry = 0;
+
+async function getSpotifyToken(): Promise<string> {
+  if (spotifyToken && Date.now() < tokenExpiry) return spotifyToken;
+
+  const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
+  const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
+  if (!clientId || !clientSecret) throw new Error('Spotify credentials not configured');
+
+  const resp = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+  });
+
+  if (!resp.ok) throw new Error(`Spotify auth failed: ${resp.status}`);
+  const data = await resp.json();
+  spotifyToken = data.access_token;
+  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return spotifyToken!;
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -20,36 +45,29 @@ serve(async (req) => {
       });
     }
 
-    console.log('Searching for artist:', searchTerm);
+    console.log('Searching Spotify for artist:', searchTerm);
 
-    // Query MusicBrainz API
+    const token = await getSpotifyToken();
     const response = await fetch(
-      `https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(searchTerm)}&fmt=json&limit=10`,
-      {
-        headers: {
-          'User-Agent': 'ConcertLogger/1.0 (https://lovable.dev)',
-          'Accept': 'application/json',
-        },
-      }
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=10`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
     );
 
     if (!response.ok) {
-      console.error('MusicBrainz API error:', response.status, await response.text());
+      console.error('Spotify API error:', response.status, await response.text());
       return new Response(JSON.stringify({ artists: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const data = await response.json();
-    console.log('MusicBrainz response:', JSON.stringify(data, null, 2));
-
-    // Parse and simplify the response
-    const artists = (data.artists || []).map((artist: any) => ({
+    const artists = (data.artists?.items || []).map((artist: any) => ({
       id: artist.id,
       name: artist.name,
-      disambiguation: artist.disambiguation || '',
-      country: artist.country || '',
-      type: artist.type || '',
+      imageUrl: artist.images?.[0]?.url || null,
+      imageSmall: artist.images?.[artist.images.length - 1]?.url || null,
+      genres: artist.genres?.slice(0, 3) || [],
+      popularity: artist.popularity || 0,
     }));
 
     return new Response(JSON.stringify({ artists }), {
@@ -59,10 +77,7 @@ serve(async (req) => {
     console.error('Error in search-artists function:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error', artists: [] }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

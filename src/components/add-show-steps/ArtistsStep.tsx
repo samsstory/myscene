@@ -17,9 +17,9 @@ interface ArtistsStepProps {
 interface ArtistSuggestion {
   id: string;
   name: string;
-  disambiguation: string;
-  country: string;
-  type: string;
+  imageUrl?: string;
+  genres?: string[];
+  popularity?: number;
 }
 
 const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }: ArtistsStepProps) => {
@@ -27,7 +27,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
   const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Debounced artist search
   useEffect(() => {
     const searchArtists = async () => {
       if (currentArtist.trim().length < 2) {
@@ -43,7 +42,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         });
 
         if (error) throw error;
-
         setArtistSuggestions(data?.artists || []);
       } catch (error) {
         console.error('Error searching artists:', error);
@@ -132,34 +130,47 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         )}
       </div>
 
-      {/* Artist suggestions */}
+      {/* Artist suggestions with images */}
       {artistSuggestions.length > 0 && (
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
           {artistSuggestions.map((suggestion) => (
             <div
               key={suggestion.id}
               className={cn(
-                "p-4 rounded-lg transition-all duration-200",
+                "p-3 rounded-lg transition-all duration-200 cursor-pointer",
                 "bg-white/[0.03] backdrop-blur-sm border border-white/[0.08]",
                 "hover:border-primary/50 hover:bg-primary/5",
                 "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
               )}
+              onClick={() => addArtist(suggestion.name, true)}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-3">
+                {/* Artist image */}
+                {suggestion.imageUrl ? (
+                  <img
+                    src={suggestion.imageUrl}
+                    alt={suggestion.name}
+                    className="w-10 h-10 rounded-full object-cover border border-white/10 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
+                    <Music className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate">{suggestion.name}</div>
-                  {suggestion.disambiguation && (
-                    <div className="text-sm text-muted-foreground truncate">
-                      {suggestion.disambiguation}
+                  {suggestion.genres && suggestion.genres.length > 0 && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {suggestion.genres.join(', ')}
                     </div>
-                  )}
-                  {suggestion.country && (
-                    <div className="text-xs text-muted-foreground">{suggestion.country}</div>
                   )}
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => addArtist(suggestion.name, true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addArtist(suggestion.name, true);
+                  }}
                   className={cn(
                     "text-xs h-7 px-3",
                     "bg-primary/20 text-primary border border-primary/40",
