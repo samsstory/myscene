@@ -142,7 +142,7 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
                 <stat.icon className="h-4 w-4 text-white/50 shrink-0" />
               )}
               <span className="text-xs font-semibold text-white/70 tracking-wide">
-                {stat.value} {stat.label}
+                {stat.label}
               </span>
             </div>
           </button>
