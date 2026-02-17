@@ -27,6 +27,9 @@ export default function Rank() {
   const [comparedPairs, setComparedPairs] = useState<Set<string>>(new Set());
   const [totalComparisons, setTotalComparisons] = useState(0);
   
+  // Debug: preview empty states
+  const [debugState, setDebugState] = useState<'none' | 'no-shows' | 'one-show' | 'all-ranked'>('none');
+  
   // Animation states
   const [pairKey, setPairKey] = useState(0);
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
@@ -391,56 +394,78 @@ export default function Rank() {
     return <BrandedLoader />;
   }
 
-  if (!shows || shows.length < 2) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 px-6">
-        <SceneLogo size="md" />
-        <div className="text-center space-y-2">
-          <h2 
-            className="text-lg font-bold"
-            style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}
-          >
-            {shows.length === 0 ? "No shows yet" : "One more to go!"}
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-[260px] mx-auto">
-            {shows.length === 0 
-              ? "Log your first shows to start ranking them head-to-head."
-              : "Add one more show to start ranking them head-to-head."
-            }
-          </p>
-        </div>
+  // Debug override for testing empty states
+  const effectiveShowCount = debugState === 'no-shows' ? 0 : debugState === 'one-show' ? 1 : shows.length;
+  const effectivePair = debugState === 'all-ranked' ? null : showPair;
+
+  // Debug toggle bar
+  const debugBar = (
+    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 px-2 py-1 rounded-full bg-black/80 backdrop-blur-sm border border-white/10 text-[10px]">
+      <span className="text-white/40 mr-1">Debug:</span>
+      {(['none', 'no-shows', 'one-show', 'all-ranked'] as const).map(state => (
         <button
-          onClick={() => window.location.href = '/dashboard?addShow=true'}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
+          key={state}
+          onClick={() => setDebugState(state)}
+          className={cn(
+            "px-2 py-0.5 rounded-full transition-all",
+            debugState === state ? "bg-primary text-primary-foreground" : "text-white/50 hover:text-white/80"
+          )}
         >
-          + Add a show
+          {state === 'none' ? 'Normal' : state === 'no-shows' ? '0 shows' : state === 'one-show' ? '1 show' : 'All ranked'}
         </button>
-      </div>
+      ))}
+    </div>
+  );
+
+  if (!shows || effectiveShowCount < 2) {
+    return (
+      <>
+        {debugBar}
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 px-6">
+          <SceneLogo size="md" />
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-bold" style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}>
+              {effectiveShowCount === 0 ? "No shows yet" : "One more to go!"}
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-[260px] mx-auto">
+              {effectiveShowCount === 0 
+                ? "Log your first shows to start ranking them head-to-head."
+                : "Add one more show to start ranking them head-to-head."}
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.href = '/dashboard?addShow=true'}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
+          >
+            + Add a show
+          </button>
+        </div>
+      </>
     );
   }
 
-  if (!showPair) {
+  if (!effectivePair) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 px-6">
-        <SceneLogo size="md" />
-        <div className="text-center space-y-2">
-          <h2 
-            className="text-lg font-bold"
-            style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}
+      <>
+        {debugBar}
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 px-6">
+          <SceneLogo size="md" />
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-bold" style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}>
+              All ranked!
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
+              You've compared all your shows. Add more to keep ranking head-to-head.
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.href = '/dashboard?addShow=true'}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
           >
-            All ranked!
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
-            You've compared all your shows. Add more to keep ranking head-to-head.
-          </p>
+            + Add more shows
+          </button>
         </div>
-        <button
-          onClick={() => window.location.href = '/dashboard?addShow=true'}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
-        >
-          + Add more shows
-        </button>
-      </div>
+      </>
     );
   }
 
@@ -455,6 +480,8 @@ export default function Rank() {
   const globalConfirmation = calculateGlobalConfirmation();
 
   return (
+    <>
+    {debugBar}
     <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
       {/* Header with brand glow and confirmation ring */}
       <div className="text-center space-y-3">
@@ -579,5 +606,6 @@ export default function Rank() {
         </button>
       </div>
     </div>
+    </>
   );
 }
