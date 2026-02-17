@@ -19,9 +19,10 @@ import {
 
 interface RankProps {
   onAddShow?: () => void;
+  onViewAllShows?: () => void;
 }
 
-export default function Rank({ onAddShow }: RankProps) {
+export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
   const [shows, setShows] = useState<Show[]>([]);
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [comparisons, setComparisons] = useState<Comparison[]>([]);
@@ -571,10 +572,7 @@ export default function Rank({ onAddShow }: RankProps) {
       {/* See Current Rankings - Liquid Glass Button - positioned in gap below content */}
       <div className="flex-1 flex items-start justify-center pt-4">
         <button
-          onClick={() => {
-            // Navigate to Feed with Top Shows tab
-            window.location.href = '/dashboard?tab=feed&view=top';
-          }}
+          onClick={() => onViewAllShows?.()}
           className="px-4 py-2 rounded-full text-xs font-medium text-foreground/90 backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           style={{
             background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
