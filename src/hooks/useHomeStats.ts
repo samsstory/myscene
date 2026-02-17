@@ -336,7 +336,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     // Total Shows -> Rankings
     {
       id: 'total-shows',
-      label: 'Shows',
+      label: 'All Shows',
       value: stats.allTimeShows,
       icon: Music,
       highlight: true,
