@@ -30,7 +30,8 @@ const Dashboard = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showUnifiedAdd, setShowUnifiedAdd] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [quoteHoldActive, setQuoteHoldActive] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
@@ -41,7 +42,11 @@ const Dashboard = () => {
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
   const pendingAddFlowRef = useRef(false);
 
-  const { showReassurance, showPrompt, elapsedMs, dismiss: dismissSlowLoad } = useSlowLoadDetector(loading);
+  // Loading = data not ready, or quote is being held for readability
+  const loading = !dataReady || quoteHoldActive;
+  const showLoader = !dataReady;
+
+  const { showReassurance, showPrompt, elapsedMs, dismiss: dismissSlowLoad } = useSlowLoadDetector(showLoader);
   const { prompt, dismissPrompt, openReport, reportOpen, setReportOpen } = useBugReportPrompt();
   const { stats } = useHomeStats();
 
@@ -90,7 +95,7 @@ const Dashboard = () => {
 
     // Safety valve: force loading off after 10s
     const timeout = setTimeout(() => {
-      if (isMounted) setLoading(false);
+      if (isMounted) { setDataReady(true); }
     }, 10000);
 
     // INITIAL load (controls loading)
@@ -105,7 +110,7 @@ const Dashboard = () => {
           await checkOnboarding(session.user.id);
         }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) setDataReady(true);
       }
     };
 
@@ -140,10 +145,10 @@ const Dashboard = () => {
 
 
 
-  if (loading) {
+  if (!dataReady || quoteHoldActive) {
     return (
       <>
-        <BrandedLoader fullScreen showReassurance={showReassurance} />
+        <BrandedLoader fullScreen showReassurance={showReassurance} onQuoteVisible={() => setQuoteHoldActive(true)} onReadyToDismiss={() => setQuoteHoldActive(false)} />
         <BugReportButton />
         <BugPromptBanner
           visible={showPrompt}
