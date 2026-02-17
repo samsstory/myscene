@@ -1,13 +1,15 @@
 import SceneLogo from "./SceneLogo";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface BrandedLoaderProps {
   className?: string;
   showQuote?: boolean;
   fullScreen?: boolean;
+  showReassurance?: boolean;
 }
 
-const BrandedLoader = ({ className, showQuote = true, fullScreen = false }: BrandedLoaderProps) => {
+const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showReassurance = false }: BrandedLoaderProps) => {
   const content = (
     <div className={cn("text-center", className)}>
       <div className="animate-pulse mb-6">
@@ -19,6 +21,19 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false }: Bran
           <span className="block mt-1 text-xs not-italic opacity-70">— Arthur Christopher Benson</span>
         </p>
       )}
+      <AnimatePresence>
+        {showReassurance && (
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mt-4 text-xs text-muted-foreground/70"
+          >
+            Still loading…
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 

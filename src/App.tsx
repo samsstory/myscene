@@ -12,6 +12,8 @@ import Install from "./pages/Install";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import InstallBanner from "./components/pwa/InstallBanner";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { BugReportPromptProvider } from "./hooks/useBugReportPrompt";
 
 const queryClient = new QueryClient();
 
@@ -20,20 +22,24 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <InstallBanner />
-        <Routes>
-          <Route path="/" element={<IndexV2 />} />
-          <Route path="/landing-v1" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/demo" element={<Demo />} />
-          <Route path="/install" element={<Install />} />
-          <Route path="/admin" element={<Admin />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <BugReportPromptProvider>
+        <BrowserRouter>
+          <InstallBanner />
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<IndexV2 />} />
+              <Route path="/landing-v1" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/demo" element={<Demo />} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/admin" element={<Admin />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
+        </BrowserRouter>
+      </BugReportPromptProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

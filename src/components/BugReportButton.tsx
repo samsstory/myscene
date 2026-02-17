@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bug, Send } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import type { BugReportType } from "@/hooks/useBugReportPrompt";
 
 const bugSchema = z.object({
   description: z
@@ -24,10 +25,40 @@ const bugSchema = z.object({
     .max(2000, "Description must be under 2000 characters"),
 });
 
-export default function BugReportButton() {
+interface BugReportButtonProps {
+  /** Control open state externally (e.g. from BugPromptBanner) */
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
+  prefillDescription?: string;
+  errorContext?: Record<string, unknown> | null;
+  reportType?: BugReportType;
+}
+
+export default function BugReportButton({
+  externalOpen,
+  onExternalClose,
+  prefillDescription,
+  errorContext,
+  reportType,
+}: BugReportButtonProps = {}) {
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Sync external open
+  useEffect(() => {
+    if (externalOpen) {
+      setDescription(prefillDescription || "");
+      setOpen(true);
+    }
+  }, [externalOpen, prefillDescription]);
+
+  const handleOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val) {
+      onExternalClose?.();
+    }
+  };
 
   const handleSubmit = () => {
     const result = bugSchema.safeParse({ description });
@@ -49,14 +80,14 @@ export default function BugReportButton() {
 
     // Optimistic: close immediately, show toast, persist in background
     setDescription("");
-    setOpen(false);
+    handleOpenChange(false);
     toast.success("Thanks! We're on it.");
 
     // Fire-and-forget background persist
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return; // silently skip if not authed
+        if (!session) return;
 
         await supabase.from("bug_reports" as any).insert({
           user_id: session.user.id,
@@ -64,9 +95,11 @@ export default function BugReportButton() {
           page_url: pageUrl,
           user_agent: userAgent,
           device_info: deviceInfo,
+          type: reportType || "manual",
+          error_context: errorContext || null,
         } as any);
       } catch {
-        // Best-effort — user already saw confirmation
+        // Best-effort
       }
     })();
   };
@@ -75,7 +108,10 @@ export default function BugReportButton() {
     <>
       {/* Bug button — rendered inline, parent controls positioning */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setDescription("");
+          setOpen(true);
+        }}
         aria-label="Report a bug"
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-full",
@@ -86,7 +122,7 @@ export default function BugReportButton() {
         <Bug className="h-4 w-4" />
       </button>
 
-      <Drawer open={open} onOpenChange={setOpen}>
+      <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerContent className="bg-card border-border">
           <DrawerHeader>
             <DrawerTitle className="text-lg">Spotted a bug?</DrawerTitle>

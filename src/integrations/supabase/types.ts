@@ -46,9 +46,11 @@ export type Database = {
           created_at: string
           description: string
           device_info: Json | null
+          error_context: Json | null
           id: string
           page_url: string | null
           status: string
+          type: string
           user_agent: string | null
           user_id: string
         }
@@ -56,9 +58,11 @@ export type Database = {
           created_at?: string
           description: string
           device_info?: Json | null
+          error_context?: Json | null
           id?: string
           page_url?: string | null
           status?: string
+          type?: string
           user_agent?: string | null
           user_id: string
         }
@@ -66,9 +70,11 @@ export type Database = {
           created_at?: string
           description?: string
           device_info?: Json | null
+          error_context?: Json | null
           id?: string
           page_url?: string | null
           status?: string
+          type?: string
           user_agent?: string | null
           user_id?: string
         }
