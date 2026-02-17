@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { ApproveModal } from "./ApproveModal";
 import { ResendDialog } from "./ResendDialog";
-import { EmailTemplateEditor } from "./EmailTemplateEditor";
+
 import { AddWaitlistDialog } from "./AddWaitlistDialog";
 import { format } from "date-fns";
 import { CheckCircle, Clock, Users, Mail, Send, Pencil, Check, X } from "lucide-react";
@@ -111,8 +111,6 @@ export function WaitlistTab() {
 
   return (
     <div className="space-y-6">
-      {/* Email Template Editor */}
-      <EmailTemplateEditor />
 
       {/* Stats + Add */}
       <div className="flex items-center justify-between">
