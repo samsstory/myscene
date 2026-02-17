@@ -711,11 +711,21 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
                                 {rankDisplay}
                               </div>
                             </div>
-                          ) : (
-                            <div className="w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold bg-primary text-primary-foreground shadow-lg">
-                              {rankDisplay}
-                            </div>
-                          )}
+                          ) : (() => {
+                            const artistImage = show.artists.find(a => a.isHeadliner)?.imageUrl || show.artists[0]?.imageUrl;
+                            return artistImage ? (
+                              <div className="relative w-8 h-8">
+                                <img src={artistImage} alt="Artist" className="w-8 h-8 rounded object-cover shadow-lg" />
+                                <div className="absolute inset-0 rounded bg-black/30 flex items-center justify-center text-[10px] font-bold text-white" style={{ textShadow: '0 0 4px rgba(0,0,0,0.8)' }}>
+                                  {rankDisplay}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold bg-primary text-primary-foreground shadow-lg">
+                                {rankDisplay}
+                              </div>
+                            );
+                          })()}
                         </button>
                       );
                     })}
