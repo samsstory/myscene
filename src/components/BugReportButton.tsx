@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bug, Send, Loader2 } from "lucide-react";
+import { Bug, Send } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,52 +27,48 @@ const bugSchema = z.object({
 export default function BugReportButton() {
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     const result = bugSchema.safeParse({ description });
     if (!result.success) {
       setError(result.error.errors[0].message);
       return;
     }
     setError(null);
-    setSubmitting(true);
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      toast.error("You need to be logged in to report a bug.");
-      setSubmitting(false);
-      return;
-    }
-
+    const reportDescription = result.data.description;
     const deviceInfo = {
       screenWidth: window.screen.width,
       screenHeight: window.screen.height,
       platform: navigator.platform,
       standalone: (navigator as any).standalone ?? window.matchMedia("(display-mode: standalone)").matches,
     };
+    const pageUrl = window.location.pathname;
+    const userAgent = navigator.userAgent;
 
-    const { error: dbError } = await supabase.from("bug_reports" as any).insert({
-      user_id: session.user.id,
-      description: result.data.description,
-      page_url: window.location.pathname,
-      user_agent: navigator.userAgent,
-      device_info: deviceInfo,
-    } as any);
-
-    setSubmitting(false);
-
-    if (dbError) {
-      toast.error("Failed to send report. Please try again.");
-      return;
-    }
-
-    toast.success("Thanks! We're on it.");
+    // Optimistic: close immediately, show toast, persist in background
     setDescription("");
     setOpen(false);
+    toast.success("Thanks! We're on it.");
+
+    // Fire-and-forget background persist
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return; // silently skip if not authed
+
+        await supabase.from("bug_reports" as any).insert({
+          user_id: session.user.id,
+          description: reportDescription,
+          page_url: pageUrl,
+          user_agent: userAgent,
+          device_info: deviceInfo,
+        } as any);
+      } catch {
+        // Best-effort — user already saw confirmation
+      }
+    })();
   };
 
   return (
@@ -118,8 +114,8 @@ export default function BugReportButton() {
           </div>
 
           <DrawerFooter>
-            <Button onClick={handleSubmit} disabled={submitting} className="gap-2">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <Button onClick={handleSubmit} className="gap-2">
+              <Send className="h-4 w-4" />
               Send Report
             </Button>
             <DrawerClose asChild>
