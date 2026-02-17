@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X, UserCircle } from "lucide-react";
+import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X, UserCircle, Tag, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 
@@ -905,9 +905,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] hover:bg-white/[0.08] transition-all active:scale-[0.98]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Music2 className="h-4 w-4 text-primary" />
-                  </div>
+                  <ArrowUpDown className="h-4 w-4 text-primary" />
                   <span className="text-sm text-foreground">{stats.unrankedCount} {stats.unrankedCount === 1 ? 'show' : 'shows'} to rank</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-white/30" />
@@ -919,9 +917,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] hover:bg-white/[0.08] transition-all active:scale-[0.98]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Music2 className="h-4 w-4 text-primary" />
-                  </div>
+                  <Tag className="h-4 w-4 text-primary" />
                   <span className="text-sm text-foreground">{stats.incompleteTagsCount} {stats.incompleteTagsCount === 1 ? 'show needs' : 'shows need'} tags</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-white/30" />
@@ -933,9 +929,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] hover:bg-white/[0.08] transition-all active:scale-[0.98]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Music2 className="h-4 w-4 text-primary" />
-                  </div>
+                  <Camera className="h-4 w-4 text-primary" />
                   <span className="text-sm text-foreground">{stats.missingPhotosCount} {stats.missingPhotosCount === 1 ? 'show needs' : 'shows need'} a photo</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-white/30" />
