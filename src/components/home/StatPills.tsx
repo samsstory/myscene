@@ -110,7 +110,7 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
                   <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-primary/50 animate-ping" />
                 </div>
                 <span className="text-xs font-semibold text-primary/90 tracking-wide">
-                  {stat.value} {stat.label}
+                  {stat.label}
                 </span>
                 <ChevronRight className="w-3 h-3 text-primary/50 shrink-0" />
               </div>
