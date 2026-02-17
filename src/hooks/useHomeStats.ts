@@ -23,6 +23,7 @@ interface StatsData {
   uniqueCountries: number;
   incompleteTagsCount: number;
   missingPhotosCount: number;
+  profileIncomplete: boolean;
 }
 
 interface UseHomeStatsReturn {
@@ -52,6 +53,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     uniqueCountries: 0,
     incompleteTagsCount: 0,
     missingPhotosCount: 0,
+    profileIncomplete: false,
   });
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -296,6 +298,14 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         ? (totalCappedBackToBacks / (totalShows * MAX_BACK_TO_BACKS)) * 100 
         : 0;
 
+      // Check profile completeness (username, full_name, home_city)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, full_name, home_city')
+        .eq('id', userId)
+        .single();
+      const profileIncomplete = !profile?.username || !profile?.full_name || !profile?.home_city;
+
       setStats({
         allTimeShows: totalShows,
         showsThisYear,
@@ -309,6 +319,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         uniqueCountries: countries.size,
         incompleteTagsCount,
         missingPhotosCount,
+        profileIncomplete,
       });
       setInsights(generatedInsights);
     } catch (error) {
@@ -353,11 +364,12 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     // To-Do pill -> aggregates pending actions
     ...(() => {
       const todoItems: string[] = [];
+      if (stats.profileIncomplete) todoItems.push('complete your profile');
       if (stats.unrankedCount > 0) todoItems.push(`${stats.unrankedCount} to rank`);
       if (stats.incompleteTagsCount > 0) todoItems.push(`${stats.incompleteTagsCount} need tags`);
       if (stats.missingPhotosCount > 0) todoItems.push(`${stats.missingPhotosCount} need photos`);
       const totalTodos = todoItems.length > 0 
-        ? stats.unrankedCount + stats.incompleteTagsCount + stats.missingPhotosCount 
+        ? (stats.profileIncomplete ? 1 : 0) + stats.unrankedCount + stats.incompleteTagsCount + stats.missingPhotosCount 
         : 0;
       if (totalTodos > 0) {
         return [{

@@ -192,6 +192,7 @@ const Dashboard = () => {
         return (
           <Home 
             onNavigateToRank={() => setActiveTab("rank")} 
+            onNavigateToProfile={() => setActiveTab("profile")}
             onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
@@ -205,6 +206,7 @@ const Dashboard = () => {
           <Home 
             initialView="globe"
             onNavigateToRank={() => setActiveTab("rank")} 
+            onNavigateToProfile={() => setActiveTab("profile")}
             onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
           />
@@ -223,6 +225,7 @@ const Dashboard = () => {
         return (
           <Home 
             onNavigateToRank={() => setActiveTab("rank")} 
+            onNavigateToProfile={() => setActiveTab("profile")}
             onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
