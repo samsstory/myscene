@@ -1,92 +1,33 @@
 
-
-# iOS Safe Area Compliance with Visual Dynamic Island Overlay
+# Add Spotify Artist Image + ID to Database
 
 ## Overview
-Two-part approach: (1) a toggleable Dynamic Island overlay visible in the browser preview so you can always see exactly what's behind the notch, and (2) CSS safe-area padding fixes across all screens.
+Add `artist_image_url` and `spotify_artist_id` columns to the `show_artists` table, then update the add-show flows to capture and persist this data from Spotify search results.
 
----
+## Steps
 
-## Part 1: Dynamic Island Dev Overlay
+### 1. Database Migration
+Add two nullable text columns to `show_artists`:
+- `artist_image_url` (text, nullable) -- Spotify profile image URL
+- `spotify_artist_id` (text, nullable) -- Spotify artist ID for future linking
 
-Create a new component (`src/components/ui/DynamicIslandOverlay.tsx`) that renders a fixed, semi-transparent Dynamic Island shape at the top-center of the viewport. This overlay is purely visual — it doesn't block clicks (using `pointer-events: none`) — so you can interact with the app normally while seeing exactly what would be hidden on a real iPhone.
+### 2. Expand the Artist Type Throughout the Flow
+Update the artist object type from `{ name: string; isHeadliner: boolean }` to also include optional `imageUrl?: string` and `spotifyId?: string` fields. This affects:
+- **AddShowFlow.tsx** -- `ShowData.artists` type and the insert logic (lines ~477-486) to include `artist_image_url` and `spotify_artist_id` when inserting
+- **ArtistsStep.tsx** -- When a suggestion is selected via `addArtist`, pass through the `imageUrl` and `spotifyId` from the suggestion
+- **Home.tsx** -- When reading back artists, map `artist_image_url` to the local type (for future fallback use)
 
-- Fixed position at the very top of the screen, centered horizontally
-- Shaped and sized to match the iPhone 15/16 Dynamic Island (126 x 37 pts, pill shape)
-- Includes a subtle status bar area (time, signal, battery) for realism
-- Semi-transparent black so you can see content underneath
-- Uses `pointer-events: none` so it never interferes with the app
-- Only rendered in development mode (`import.meta.env.DEV`) — automatically excluded from production builds
-- Can be toggled on/off via a small button in the corner (persisted to localStorage)
+### 3. Update Bulk Upload Flow
+- **useBulkShowUpload.ts** -- Include `artist_image_url` and `spotify_artist_id` in the `show_artists` insert payload when available
+- **BulkReviewStep / PhotoReviewCard** -- Pass through artist image data from the artist search step
 
-This component will be added to `Dashboard.tsx`, `Auth.tsx`, `Demo.tsx`, and `Install.tsx` so it appears on all app screens during development.
+### 4. Files Changed
+| File | Change |
+|------|--------|
+| `show_artists` table (migration) | Add `artist_image_url` and `spotify_artist_id` columns |
+| `src/components/add-show-steps/ArtistsStep.tsx` | Capture imageUrl + spotifyId from Spotify suggestions |
+| `src/components/AddShowFlow.tsx` | Include new fields in DB insert |
+| `src/hooks/useBulkShowUpload.ts` | Include new fields in bulk insert |
+| `src/components/Home.tsx` | Map new columns when reading artists |
 
----
-
-## Part 2: Safe Area CSS and Layout Fixes
-
-### New CSS utilities (`src/index.css`)
-- `pb-safe` — padding-bottom using `env(safe-area-inset-bottom)`
-- `pl-safe` / `pr-safe` — left/right safe area padding
-
-### Screen-by-screen fixes
-
-**Dashboard.tsx (header)**
-- Add `pt-safe` to the sticky header so the logo and avatar clear the Dynamic Island
-
-**Dashboard.tsx (bottom nav)**
-- Add `pb-safe` to the floating navigation container so it clears the home indicator
-
-**Auth.tsx**
-- Add `pt-safe` to the page container
-
-**Demo.tsx**
-- Add `pt-safe` to the sticky header
-
-**Install.tsx**
-- Add `pt-safe` to the sticky header
-
-**AddShowFlow.tsx**
-- Change dialog top positioning to `top-[max(1rem,env(safe-area-inset-top))]`
-
-**Toast viewport (`src/components/ui/toast.tsx`)**
-- Add top safe-area padding so toasts don't render behind the notch
-
-**LandingHero.tsx (v1)**
-- Verify `pt-safe` is applied (v2 already has it)
-
----
-
-## Technical Details
-
-### DynamicIslandOverlay component
-
-```text
-+--------------------------------------------------+
-|  [Dynamic Island pill - 126x37, fixed top-center] |  <-- pointer-events: none
-|  [Status bar: 9:41, signal, wifi, battery icons]  |
-+--------------------------------------------------+
-|                                                    |
-|            Normal app content below                |
-|                                                    |
-+--------------------------------------------------+
-```
-
-- File: `src/components/ui/DynamicIslandOverlay.tsx`
-- Rendered conditionally: `{import.meta.env.DEV && <DynamicIslandOverlay />}`
-- Toggle button: small phone icon in bottom-left corner, only in dev mode
-- State stored in `localStorage` key `scene-dev-island-overlay`
-
-### Files to create
-- `src/components/ui/DynamicIslandOverlay.tsx`
-
-### Files to modify
-- `src/index.css` — add `pb-safe`, `pl-safe`, `pr-safe` utilities
-- `src/pages/Dashboard.tsx` — add overlay + `pt-safe` on header + `pb-safe` on nav
-- `src/pages/Auth.tsx` — add overlay + `pt-safe`
-- `src/pages/Demo.tsx` — add overlay + `pt-safe`
-- `src/pages/Install.tsx` — add overlay + `pt-safe`
-- `src/components/AddShowFlow.tsx` — safe-area-aware top positioning
-- `src/components/ui/toast.tsx` — top safe-area padding
-- `src/components/landing/LandingHero.tsx` — verify/add `pt-safe`
-
+No changes to edge functions, RLS policies, or storage -- just two new nullable columns and plumbing the data through existing insert paths.
