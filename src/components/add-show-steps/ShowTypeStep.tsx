@@ -18,7 +18,7 @@ const types = [
     value: 'showcase' as ShowType,
     icon: Layers,
     label: 'Showcase',
-    description: 'Multiple artists, one day.',
+    description: 'Multiple artists, one event.',
   },
   {
     value: 'festival' as ShowType,
