@@ -174,7 +174,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
           </div>
           <div className="text-left flex-1">
             <div className="font-medium text-sm">
-              {photoAdded ? "Photo Added!" : "Add a Photo"}
+                              {photoAdded ? "Photo Added!" : "Add my Own Photo"}
             </div>
             <div className="text-xs text-muted-foreground">
               {photoAdded ? "Looking good 📸" : "Capture the memory"}
