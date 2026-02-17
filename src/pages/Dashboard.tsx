@@ -19,6 +19,9 @@ import { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
 import BugReportButton from "@/components/BugReportButton";
+import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
+import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
+import BugPromptBanner from "@/components/BugPromptBanner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -35,6 +38,9 @@ const Dashboard = () => {
   const globeButtonRef = useRef<HTMLButtonElement | null>(null);
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
   const pendingAddFlowRef = useRef(false);
+
+  const { showReassurance, showPrompt, elapsedMs, dismiss: dismissSlowLoad } = useSlowLoadDetector(loading);
+  const { prompt, dismissPrompt, openReport, reportOpen, setReportOpen } = useBugReportPrompt();
 
   // Only elevate z-index for FAB during tour steps 0 and 4 (first and last)
   const shouldElevateNavZ = showSpotlightTour && (tourStepIndex === 0 || tourStepIndex === 4);
@@ -118,11 +124,42 @@ const Dashboard = () => {
     }
   }, [loading]);
 
+  // Listen for API error events from data hooks
+  const { promptBugReport } = useBugReportPrompt();
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      promptBugReport("api_error", detail, `Something went wrong loading your data (${detail.endpoint})`);
+    };
+    window.addEventListener("bug-report-api-error", handler);
+    return () => window.removeEventListener("bug-report-api-error", handler);
+  }, [promptBugReport]);
+
+
+
   if (loading) {
     return (
       <>
-        <BrandedLoader fullScreen />
+        <BrandedLoader fullScreen showReassurance={showReassurance} />
         <BugReportButton />
+        <BugPromptBanner
+          visible={showPrompt}
+          message={`Things are taking longer than usual (${(elapsedMs / 1000).toFixed(1)}s). Want to let us know?`}
+          onReport={() => {
+            dismissSlowLoad();
+            setReportOpen(true);
+          }}
+          onDismiss={dismissSlowLoad}
+        />
+        {reportOpen && (
+          <BugReportButton
+            externalOpen={reportOpen}
+            onExternalClose={() => setReportOpen(false)}
+            prefillDescription={`Page took ${(elapsedMs / 1000).toFixed(1)}s to load on ${window.location.pathname}`}
+            errorContext={{ duration_ms: elapsedMs, page: window.location.pathname }}
+            reportType="slow_load"
+          />
+        )}
       </>
     );
   }
@@ -330,7 +367,13 @@ const Dashboard = () => {
 
         {/* FAB stack — bug report + add button */}
         <div className={cn("flex flex-col items-center gap-3", showSpotlightTour && "z-[10001]")}>
-          <BugReportButton />
+          <BugReportButton
+            externalOpen={reportOpen}
+            onExternalClose={() => setReportOpen(false)}
+            prefillDescription={prompt.prefillDescription}
+            errorContext={prompt.errorContext}
+            reportType={prompt.type}
+          />
           {/* FAB Button */}
           <button
             onClick={() => {
@@ -369,6 +412,17 @@ const Dashboard = () => {
         onNavigateToFeed={() => setActiveTab("home")}
         onNavigateToRank={() => setActiveTab("rank")}
         onAddManually={() => setShowAddDialog(true)}
+      />
+
+      {/* API error / prompt banner */}
+      <BugPromptBanner
+        visible={prompt.open}
+        message={prompt.prefillDescription || "Something went wrong. Want to report this?"}
+        onReport={() => {
+          dismissPrompt();
+          setReportOpen(true);
+        }}
+        onDismiss={dismissPrompt}
       />
 
 

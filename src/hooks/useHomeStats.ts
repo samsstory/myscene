@@ -313,6 +313,16 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       setInsights(generatedInsights);
     } catch (error) {
       console.error('Error fetching home stats:', error);
+      // Trigger proactive bug report prompt for API errors
+      try {
+        const evt = new CustomEvent('bug-report-api-error', {
+          detail: {
+            endpoint: 'useHomeStats',
+            message: error instanceof Error ? error.message : 'Unknown error',
+          },
+        });
+        window.dispatchEvent(evt);
+      } catch {}
     } finally {
       setIsLoading(false);
     }
