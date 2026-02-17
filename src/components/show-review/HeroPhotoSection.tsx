@@ -33,7 +33,7 @@ interface HeroPhotoSectionProps {
 // Calculate per-show confirmation percentage
 const calculateShowConfirmation = (comparisons: number): number => {
   const MAX_BACK_TO_BACKS = 10;
-  return (Math.min(comparisons, MAX_BACK_TO_BACKS) / MAX_BACK_TO_BACKS) * 100;
+  return Math.min(comparisons, MAX_BACK_TO_BACKS) / MAX_BACK_TO_BACKS * 100;
 };
 
 export const HeroPhotoSection = ({
@@ -50,32 +50,32 @@ export const HeroPhotoSection = ({
   onEditShow,
   onRankThisShow
 }: HeroPhotoSectionProps) => {
-  const headliner = artists.find(a => a.isHeadliner) || artists[0];
-  const supportingArtists = artists.filter(a => !a.isHeadliner && a.name !== headliner?.name);
+  const headliner = artists.find((a) => a.isHeadliner) || artists[0];
+  const supportingArtists = artists.filter((a) => !a.isHeadliner && a.name !== headliner?.name);
   const formattedDate = format(parseISO(date), "MMMM yyyy");
   const showConfirmation = calculateShowConfirmation(comparisonsCount);
   const needsMoreRanking = comparisonsCount < 3 && rankTotal > 1;
-  
+
   const openInMaps = () => {
     const query = encodeURIComponent(`${venue.name}, ${venue.location}`);
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
   };
 
   // Shared metadata bar content
-  const MetadataBar = () => (
-    <div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
+  const MetadataBar = () =>
+  <div className="bg-white/[0.05] backdrop-blur-md rounded-xl border border-white/[0.1] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <h2 className="font-black text-xl text-white tracking-wide truncate" style={{
-            textShadow: "0 0 12px rgba(255,255,255,0.4)"
-          }}>
+          textShadow: "0 0 12px rgba(255,255,255,0.4)"
+        }}>
             {headliner?.name}
           </h2>
-          {supportingArtists.length > 0 && (
-            <p className="text-white/50 text-xs mt-0.5 truncate">
-              + {supportingArtists.map(a => a.name).join(', ')}
+          {supportingArtists.length > 0 &&
+        <p className="text-white/50 text-xs mt-0.5 truncate">
+              + {supportingArtists.map((a) => a.name).join(', ')}
             </p>
-          )}
+        }
           <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
             <button onClick={openInMaps} className="flex items-center gap-1 hover:text-white/80 transition-colors truncate">
               <MapPin className="h-3 w-3 flex-shrink-0" />
@@ -88,39 +88,39 @@ export const HeroPhotoSection = ({
         <div className="gap-2 flex-shrink-0 flex-col flex items-end justify-center py-[12px]">
           {/* Rank Badge - Prominent with glow */}
           <span className="text-sm font-bold text-primary tracking-wide" style={{
-            textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
-          }}>
+          textShadow: "0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)"
+        }}>
             {rankPosition > 0 ? `#${rankPosition} All Time` : "Unranked"}
           </span>
           {/* Per-show confirmation ring OR rank button */}
           {rankTotal > 1 && (
-            needsMoreRanking && onRankThisShow ? (
-              <button 
-                onClick={onRankThisShow} 
-                className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
+        needsMoreRanking && onRankThisShow ?
+        <button
+          onClick={onRankThisShow}
+          className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 
                            text-amber-400/80 text-[10px] font-medium hover:bg-amber-500/20 transition-colors
-                           flex items-center gap-0.5"
-              >
+                           flex items-center gap-0.5">
+
                 <Scale className="h-2.5 w-2.5" />
                 Rank
-              </button>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <ConfirmationRing 
-                  percentage={showConfirmation} 
-                  size="sm" 
-                  showLabel={false}
-                />
-                <span className="text-[10px] text-white/50">
-                  {Math.round(showConfirmation)}% · {comparisonsCount} back-to-backs
-                </span>
-              </div>
-            )
-          )}
+              </button> :
+
+        <div className="flex items-center gap-1.5">
+                <ConfirmationRing
+            percentage={showConfirmation}
+            size="sm"
+            showLabel={false} />
+
+                
+
+
+              </div>)
+
+        }
         </div>
       </div>
-    </div>
-  );
+    </div>;
+
 
   if (photoUrl) {
     return (
@@ -148,8 +148,8 @@ export const HeroPhotoSection = ({
 
         {/* Hidden file input */}
         <Input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={onPhotoUpload} />
-      </div>
-    );
+      </div>);
+
   }
 
   // No Photo State - updated to match photo version
@@ -193,8 +193,8 @@ export const HeroPhotoSection = ({
 
       {/* Hidden file input */}
       <Input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={onPhotoUpload} />
-    </div>
-  );
+    </div>);
+
 };
 
 export default HeroPhotoSection;
