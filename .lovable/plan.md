@@ -1,42 +1,21 @@
 
-## Fix: "Log Your First Show" Button Should Open Add Show Flow
+
+## Remove "Friend features dropping soon" Toast Notification
 
 ### Problem
-The "Log Your First Show" button in the WelcomeCarousel only dismisses the carousel overlay. It does not open the Add Show flow, leaving the user on the dashboard with no clear next action.
+When tapping the "See who else was there" teaser card at the bottom of the dashboard, it fires a toast notification saying "Friend features dropping soon" that is redundant with the teaser card itself. The card already communicates the "coming soon" message. The user also notes spacing around the teaser card is off.
 
-This affects the WelcomeCarousel accessible from **Profile > "Welcome to Scene"** card. (The Dashboard no longer shows the carousel on first login -- it auto-opens the add flow directly.)
+### Changes
 
-### Root Cause
-In `Profile.tsx`, the WelcomeCarousel's `onComplete` callback is:
-```
-onComplete={() => setShowWelcomeCarousel(false)}
-```
-This closes the overlay but doesn't trigger the add-show dialog.
+**1. `src/components/home/FriendTeaser.tsx`**
+- Remove the `toast()` call and the `use-toast` import entirely
+- Remove the `onClick` handler (or make the component non-interactive / just a static display)
+- Review and tighten padding/spacing on the component to fix the spacing issue visible in the screenshot
 
-### Solution
-
-**1. Add a callback prop to Profile for triggering the add-show flow**
-
-`Profile.tsx` already receives `onStartTour` from Dashboard. We'll add an `onAddShow` prop the same way.
-
-- `Profile` component: Accept a new `onAddShow` prop
-- Wire it so WelcomeCarousel's `onComplete` both closes the carousel AND calls `onAddShow`
-
-**2. Pass the callback from Dashboard**
-
-In `Dashboard.tsx`, where `<Profile>` is rendered, pass:
-```
-onAddShow={() => {
-  setActiveTab("home");
-  setShowUnifiedAdd(true);
-}}
-```
-
-This navigates to the home tab and opens the unified add-show flow (the photo picker dialog).
-
-### Files Changed
-- `src/components/Profile.tsx` -- Add `onAddShow` prop, wire to WelcomeCarousel's `onComplete`
-- `src/pages/Dashboard.tsx` -- Pass `onAddShow` callback to Profile component
+**2. No other files affected**
+- `FriendTeaser` is only imported in `src/components/Home.tsx` (line 28, rendered at line 417)
+- The toast is only triggered from `FriendTeaser.tsx` — no other file fires this message
 
 ### Result
-Tapping "Log Your First Show" from the WelcomeCarousel (accessed via Profile) will close the carousel, switch to the Home tab, and immediately open the Add Show flow.
+The redundant toast notification will be gone. The "See who else was there" teaser remains as a quiet, static hint at the bottom of the dashboard with corrected spacing.
+
