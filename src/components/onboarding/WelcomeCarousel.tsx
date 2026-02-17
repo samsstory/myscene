@@ -109,7 +109,7 @@ const WelcomeCarousel = ({ onComplete, onTakeTour }: WelcomeCarouselProps) => {
               onClick={onComplete}
               className="w-full h-12 text-lg font-semibold rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              Add Your First Show
+              Add My First Show
             </Button>
 
             {onTakeTour && (
