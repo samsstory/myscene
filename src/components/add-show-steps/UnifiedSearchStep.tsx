@@ -122,12 +122,9 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
                 "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
               )}
             >
-              <div className="flex items-center gap-2">
-                <Music className="h-4 w-4 text-primary" />
-                <div>
-                  <div className="font-medium text-sm">"{searchTerm}"</div>
-                  <div className="text-xs text-muted-foreground">Add as artist</div>
-                </div>
+              <div>
+                <div className="font-medium text-sm">"{searchTerm}"</div>
+                <div className="text-xs text-muted-foreground">Add as artist</div>
               </div>
             </button>
             <button
@@ -139,12 +136,9 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
                 "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
               )}
             >
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                <div>
-                  <div className="font-medium text-sm">"{searchTerm}"</div>
-                  <div className="text-xs text-muted-foreground">Add as venue</div>
-                </div>
+              <div>
+                <div className="font-medium text-sm">"{searchTerm}"</div>
+                <div className="text-xs text-muted-foreground">Add as venue</div>
               </div>
             </button>
           </div>
