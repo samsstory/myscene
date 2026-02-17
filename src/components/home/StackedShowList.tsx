@@ -20,6 +20,8 @@ interface Show {
   photo_url?: string | null;
   tags?: string[];
   isLocalDemo?: boolean;
+  eventName?: string | null;
+  eventDescription?: string | null;
 }
 
 interface RankInfo {

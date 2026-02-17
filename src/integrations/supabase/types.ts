@@ -435,6 +435,7 @@ export type Database = {
           created_at: string
           crowd: number | null
           date_precision: string
+          event_description: string | null
           event_name: string | null
           id: string
           lighting: number | null
@@ -457,6 +458,7 @@ export type Database = {
           created_at?: string
           crowd?: number | null
           date_precision?: string
+          event_description?: string | null
           event_name?: string | null
           id?: string
           lighting?: number | null
@@ -479,6 +481,7 @@ export type Database = {
           created_at?: string
           crowd?: number | null
           date_precision?: string
+          event_description?: string | null
           event_name?: string | null
           id?: string
           lighting?: number | null

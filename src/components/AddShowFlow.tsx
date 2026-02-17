@@ -50,6 +50,7 @@ export interface ShowData {
   venueLongitude?: number;
   showType: ShowType;
   eventName: string;
+  eventDescription: string;
   date: Date | undefined;
   datePrecision: "exact" | "approximate" | "unknown";
   selectedMonth: string;
@@ -76,6 +77,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     venueId: null,
     showType: 'show',
     eventName: "",
+    eventDescription: "",
     date: undefined,
     datePrecision: "exact",
     selectedMonth: "",
@@ -112,6 +114,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venueId: editShow.venueId || null,
         showType: 'show',
         eventName: "",
+        eventDescription: "",
         date: editShow.datePrecision === 'exact' ? showDate : undefined,
         datePrecision: editShow.datePrecision as "exact" | "approximate" | "unknown",
         selectedMonth: months[showDate.getMonth()],
@@ -463,6 +466,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           notes: showData.notes || null,
           show_type: showData.showType,
           event_name: showData.eventName || null,
+          event_description: showData.eventDescription || null,
         }).
         select().
         single();
@@ -621,6 +625,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       venueId: null,
       showType: 'show',
       eventName: "",
+      eventDescription: "",
       date: undefined,
       datePrecision: "exact",
       selectedMonth: "",
@@ -786,9 +791,10 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onShowTypeChange={updateShowType}
             isLoadingDefaultCity={isLoadingProfile}
             selectedArtistName={artistName}
-            onSelectAsEvent={(eventName) => {
+            onSelectAsEvent={(eventName, eventDescription) => {
               updateShowData({
                 eventName,
+                eventDescription,
                 venue: eventName,
                 venueLocation: '',
                 venueId: null,
