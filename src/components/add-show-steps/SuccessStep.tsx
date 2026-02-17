@@ -37,10 +37,11 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     const isFirstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
 
-    if (!isFirstShow) return;
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isStandalone || !isMobile) return;
+    // TEMP: bypass checks for preview testing
+    // if (!isFirstShow) return;
+    // const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    // const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // if (isStandalone || !isMobile) return;
 
     setShowInstallCTA(true);
     const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e as BeforeInstallPromptEvent); };
