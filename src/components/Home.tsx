@@ -92,8 +92,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       setViewMode(initialView);
     }
   }, [initialView]);
-  const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
-  const [sortBy, setSortBy] = useState<"elo" | "date">("elo");
+  const [sortMode, setSortMode] = useState<"best" | "worst" | "newest" | "oldest">("best");
   const [rankingsSearch, setRankingsSearch] = useState("");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
@@ -331,7 +330,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
       const rankingMap = new Map(rankings.map(r => [r.show_id, { elo: r.elo_score, comparisons: r.comparisons_count }]));
       const sorted = [...filteredShows].sort((a, b) => {
-        if (sortBy === "date") {
+        if (sortMode === "newest" || sortMode === "oldest") {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
         }
         // ELO sort
@@ -341,14 +340,14 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
       
-      if (sortDirection === "worst-first") {
+      if (sortMode === "worst" || sortMode === "oldest") {
         sorted.reverse();
       }
       
       return sorted;
     }
     return filteredShows;
-  }, [shows, viewMode, topRatedFilter, sortDirection, sortBy, rankings, rankingsSearch]);
+  }, [shows, viewMode, topRatedFilter, sortMode, rankings, rankingsSearch]);
 
   const getShowsForDate = (date: Date) => shows.filter(show => isSameDay(parseISO(show.date), date));
 
@@ -508,19 +507,14 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSortBy(prev => prev === "elo" ? "date" : "elo")}
-            className="flex items-center gap-2 bg-white/[0.05] border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white"
-          >
-            <span>{sortBy === "elo" ? "Ranked" : "Date"}</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSortDirection(prev => prev === "best-first" ? "worst-first" : "best-first")}
+            onClick={() => {
+              const cycle: Array<"best" | "worst" | "newest" | "oldest"> = ["best", "worst", "newest", "oldest"];
+              setSortMode(prev => cycle[(cycle.indexOf(prev) + 1) % cycle.length]);
+            }}
             className="flex items-center gap-2 bg-white/[0.05] border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowUpDown className="h-4 w-4" />
-            <span>{sortBy === "date" ? (sortDirection === "best-first" ? "Newest" : "Oldest") : (sortDirection === "best-first" ? "Best" : "Worst")}</span>
+            <span>{{ best: "Best", worst: "Worst", newest: "Newest", oldest: "Oldest" }[sortMode]}</span>
           </Button>
         </div>
 
@@ -548,8 +542,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           <div className="flex flex-col gap-3">
             {sortedShows.map((show) => {
               const baseRankInfo = getShowRankInfo(show.id, filteredShowIds);
-              // When viewing worst-first, show inverted position so worst show appears as #total
-              const rankInfo = sortDirection === "worst-first" && baseRankInfo.position
+              // When viewing worst/oldest, show inverted position so worst show appears as #total
+              const rankInfo = sortMode === "worst" && baseRankInfo.position
                 ? { ...baseRankInfo, position: baseRankInfo.total - baseRankInfo.position + 1 }
                 : baseRankInfo;
               return (
