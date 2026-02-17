@@ -111,6 +111,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
   
   // Focused ranking session state
   const [focusedRankingOpen, setFocusedRankingOpen] = useState(false);
+  
+  // Todo action sheet state
+  const [todoSheetOpen, setTodoSheetOpen] = useState(false);
 
   const { stats, statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   
@@ -354,6 +357,9 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
         break;
       case 'rank-tab':
         onNavigateToRank?.();
+        break;
+      case 'todo-sheet':
+        setTodoSheetOpen(true);
         break;
       case 'show-detail':
         if (payload) {
@@ -858,6 +864,59 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
           fetchShows();
         }}
       />
+
+      {/* Todo Action Sheet */}
+      <Sheet open={todoSheetOpen} onOpenChange={setTodoSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle className="text-left text-lg font-bold">Things to do</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-2 mt-4 pb-4">
+            {stats.unrankedCount > 0 && (
+              <button
+                onClick={() => { setTodoSheetOpen(false); onNavigateToRank?.(); }}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] hover:bg-white/[0.08] transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Music2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground">{stats.unrankedCount} {stats.unrankedCount === 1 ? 'show' : 'shows'} to rank</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-white/30" />
+              </button>
+            )}
+            {stats.incompleteTagsCount > 0 && (
+              <button
+                onClick={() => { setTodoSheetOpen(false); setIncompleteTagsOpen(true); }}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] hover:bg-white/[0.08] transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Music2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground">{stats.incompleteTagsCount} {stats.incompleteTagsCount === 1 ? 'show needs' : 'shows need'} tags</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-white/30" />
+              </button>
+            )}
+            {stats.missingPhotosCount > 0 && (
+              <button
+                onClick={() => { setTodoSheetOpen(false); setMissingPhotosOpen(true); }}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] hover:bg-white/[0.08] transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Music2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground">{stats.missingPhotosCount} {stats.missingPhotosCount === 1 ? 'show needs' : 'shows need'} a photo</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-white/30" />
+              </button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <AddShowFlow
         open={editDialogOpen} 
