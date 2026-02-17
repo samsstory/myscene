@@ -20,8 +20,8 @@ const FALLBACK_QUOTE = {
   author: "Arthur Christopher Benson",
 };
 
-const QUOTE_DELAY_MS = 800;
-const MIN_QUOTE_DISPLAY_MS = 1500;
+const DEFAULT_QUOTE_DELAY_MS = 800;
+const DEFAULT_MIN_QUOTE_DISPLAY_MS = 1500;
 
 const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showReassurance = false, onQuoteVisible, onReadyToDismiss }: BrandedLoaderProps) => {
   const [quote, setQuote] = useState(FALLBACK_QUOTE);
@@ -31,43 +31,51 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showRe
   onReadyRef.current = onReadyToDismiss;
   const onVisibleRef = useRef(onQuoteVisible);
   onVisibleRef.current = onQuoteVisible;
+  const timingRef = useRef({ delay: DEFAULT_QUOTE_DELAY_MS, minDisplay: DEFAULT_MIN_QUOTE_DISPLAY_MS });
 
   useEffect(() => {
     if (!showQuote) return;
 
     let cancelled = false;
 
-    const fetchRandomQuote = async () => {
-      try {
-        const { data } = await supabase
-          .from("loading_quotes")
-          .select("text, author")
-          .eq("is_active", true)
-          .order("created_at", { ascending: true });
+    const init = async () => {
+      // Fetch timing settings and quotes in parallel
+      const [settingsRes, quotesRes] = await Promise.all([
+        supabase.from("app_settings").select("key, value").in("key", ["quote_delay_ms", "quote_min_display_ms"]),
+        supabase.from("loading_quotes").select("text, author").eq("is_active", true).order("created_at", { ascending: true }),
+      ]);
 
-        if (!cancelled && data && data.length > 0) {
-          const lastIndex = parseInt(localStorage.getItem("scene-quote-index") ?? "-1", 10);
-          const nextIndex = (lastIndex + 1) % data.length;
-          localStorage.setItem("scene-quote-index", String(nextIndex));
-          setQuote({ text: data[nextIndex].text, author: data[nextIndex].author });
+      if (cancelled) return;
+
+      // Apply settings
+      if (settingsRes.data) {
+        for (const row of settingsRes.data) {
+          if (row.key === "quote_delay_ms") timingRef.current.delay = Number(row.value);
+          if (row.key === "quote_min_display_ms") timingRef.current.minDisplay = Number(row.value);
         }
-      } catch {
-        // Keep fallback
       }
+
+      // Apply quote
+      const data = quotesRes.data;
+      if (data && data.length > 0) {
+        const lastIndex = parseInt(localStorage.getItem("scene-quote-index") ?? "-1", 10);
+        const nextIndex = (lastIndex + 1) % data.length;
+        localStorage.setItem("scene-quote-index", String(nextIndex));
+        setQuote({ text: data[nextIndex].text, author: data[nextIndex].author });
+      }
+
+      // Schedule quote reveal using DB-driven delay
+      setTimeout(() => {
+        if (!cancelled) {
+          setQuoteVisible(true);
+          quoteShownAtRef.current = Date.now();
+          onVisibleRef.current?.();
+        }
+      }, timingRef.current.delay);
     };
 
-    fetchRandomQuote();
-
-    // Only reveal the quote after a delay so short loads skip it entirely
-    const revealTimer = setTimeout(() => {
-      if (!cancelled) {
-        setQuoteVisible(true);
-        quoteShownAtRef.current = Date.now();
-        onVisibleRef.current?.();
-      }
-    }, QUOTE_DELAY_MS);
-
-    return () => { cancelled = true; clearTimeout(revealTimer); };
+    init().catch(() => {});
+    return () => { cancelled = true; };
   }, [showQuote]);
 
   // Expose a "safe to dismiss" signal once the quote has been visible long enough
@@ -75,7 +83,7 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showRe
     if (!quoteVisible || !onReadyRef.current) return;
     const timer = setTimeout(() => {
       onReadyRef.current?.();
-    }, MIN_QUOTE_DISPLAY_MS);
+    }, timingRef.current.minDisplay);
     return () => clearTimeout(timer);
   }, [quoteVisible]);
 
