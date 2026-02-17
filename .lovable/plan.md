@@ -1,249 +1,87 @@
 
-# Show Type Flow: Copy Updates, Venue/Event Storage Design, and Placeholder Updates
+# Add "New Event" Option to Venue Step for Solo Shows
 
-## Answering Question 3 First: Venue vs. Event Name — The Architecture Problem
+## The Problem
 
-This is the most important design decision in this plan, so it needs a clear answer before any code is written.
+When a user adds a **Show** (solo artist) and searches the venue field for something like "Cercle LA", they only see one manual-add option: **"New venue"**. But Cercle LA is an event brand — the physical venue (LA Convention Center) is incidental or unknown. Currently there's no way to record it as an `event_name` from this step.
 
-### The problem today
+The `event_name` column exists in the database and is populated for Showcase/Festival flows, but the Show flow's Venue step has no path to set it.
 
-The `shows` table has `venue_name` and `venue_id`. For a **Show** (solo), `venue_name` is literally the venue — e.g. "Fabric". That makes sense.
+## Solution
 
-But for a **Showcase** or **Festival**, there are now two distinct concepts:
+Add a second manual-add option in `VenueStep` — **"New event"** — alongside the existing **"New venue"** option. When the user picks "New event", the flow:
 
-```text
-SHOWCASE example:
-  Event/Brand:  "Elrow"
-  Venue:        "Factory Town"
+1. Sets `event_name` to the typed name (e.g. "Cercle LA")
+2. Skips the address/coordinates dialog entirely (event brands don't have a geocodable address)
+3. Uses `event_name` as the `venue_name` fallback (existing logic in `AddShowFlow.handleSubmit` already handles this)
 
-FESTIVAL example:
-  Festival:     "Coachella"
-  Venue:        "Empire Polo Club" (Coachella's home)
-  — or —
-  Festival:     "Glastonbury"
-  Venue:        unknown / irrelevant (it's a field)
-```
+This mirrors exactly how Showcase/Festival events work — the distinction is just that it's being triggered from within the venue search step of a solo Show.
 
-Currently, `venue_name` would store "Elrow" — but "Elrow" is not the venue, it's the event brand. The actual venue (Factory Town) gets lost entirely. On the other hand, if we force users to always enter both, it creates friction for cases like Glastonbury where the "venue" and the "event" are essentially the same thing.
+## Changes Required
 
-### The proposed solution: add `event_name` column to `shows`
+### 1. `src/components/add-show-steps/VenueStep.tsx`
 
-Add a nullable `event_name` text column to the `shows` table. The logic becomes:
+**New prop**: `onSelectAsEvent?: (eventName: string) => void`
+
+This callback fires when the user clicks "New event" on a manual entry. The parent (`AddShowFlow`) will use it to set `eventName` and advance the step.
+
+**UI change** — the manual-add entry (the `Sparkles` button at the top of results) currently renders a single button. For `showType === 'show'`, render two side-by-side buttons:
 
 ```text
-show_type = 'show'
-  → event_name: NULL
-  → venue_name: "Fabric"        ← the physical place
-
-show_type = 'showcase'
-  → event_name: "Elrow"         ← the brand / night
-  → venue_name: "Factory Town"  ← the physical place (optional, can be left blank if unknown)
-
-show_type = 'festival'
-  → event_name: "Coachella"     ← the festival name
-  → venue_name: "Empire Polo Club"  ← optional, often left blank
+┌─────────────────────────────────────────────────┐
+│  ✨ "Cercle LA"                                 │
+│  ┌──────────────────┐  ┌──────────────────────┐ │
+│  │   New venue      │  │    New event         │ │
+│  └──────────────────┘  └──────────────────────┘ │
+└─────────────────────────────────────────────────┘
 ```
 
-The display logic across the app becomes:
-- Show the `event_name` prominently if it exists
-- Show `venue_name` as secondary context if both are present
-- Fall back to `venue_name` if `event_name` is null (covers both `show` type and legacy data)
+For `showcase` / `festival` types, the existing single "New venue / event" button stays unchanged (those flows use `UnifiedSearchStep` for the event name, so this step is purely for the physical venue).
 
-This is a clean, additive, non-breaking change. All existing shows have `event_name = NULL` and continue to work exactly as before.
-
-### How this changes the flow for Showcase/Festival
-
-In the new type-first flow, for Showcase and Festival:
-
-- **Step 1 (Search)**: User searches for the event name (Elrow, Coachella) — result goes into `event_name`
-- **Step 2 (Venue)**: User optionally adds the physical venue (Factory Town) — result goes into `venue_name`. The step heading becomes "Where was it held?" with a "Skip" option if the venue is the event itself (e.g. Glastonbury)
-
-For **Show** type, the venue step heading remains "Where'd you see {Artist}?" and `venue_name` is required as today.
-
----
-
-## What Changes in This Plan
-
-### 1. Database Migration
-
-Two changes in one migration:
-
-```sql
--- Add show_type column
-ALTER TABLE public.shows
-ADD COLUMN show_type text NOT NULL DEFAULT 'show'
-CHECK (show_type IN ('show', 'showcase', 'festival'));
-
--- Add event_name column for showcases and festivals
-ALTER TABLE public.shows
-ADD COLUMN event_name text;
-
--- Backfill show_type from existing artist count
-UPDATE public.shows s
-SET show_type = CASE
-  WHEN (SELECT COUNT(*) FROM show_artists sa WHERE sa.show_id = s.id) >= 10 THEN 'festival'
-  WHEN (SELECT COUNT(*) FROM show_artists sa WHERE sa.show_id = s.id) >= 2  THEN 'showcase'
-  ELSE 'show'
-END;
+**New `handleSelectAsEvent` function** inside `VenueStep`:
+```typescript
+const handleSelectAsEvent = () => {
+  if (searchTerm.trim() && onSelectAsEvent) {
+    onSelectAsEvent(searchTerm.trim());
+  }
+};
 ```
 
-No RLS changes needed — the existing `shows` policies cover all new columns automatically.
+No address dialog is shown — the callback fires immediately and the parent advances the step.
 
-### 2. New `ShowTypeStep.tsx`
+### 2. `src/components/AddShowFlow.tsx`
 
-Updated copy per the request:
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│  What are you logging?                                   │
-│                                                          │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐   │
-│  │  🎵  Show   │  │ ✨ Showcase  │  │  🎪 Festival  │   │
-│  │  One artist │  │Multiple      │  │ Multiple      │   │
-│  │  one show   │  │artists,      │  │ artists,      │   │
-│  │             │  │one day       │  │ multiple days │   │
-│  └─────────────┘  └──────────────┘  └───────────────┘   │
-└──────────────────────────────────────────────────────────┘
-```
-
-Props: `onSelect: (type: 'show' | 'showcase' | 'festival') => void`
-
-Tapping a card immediately advances — no Continue button.
-
-### 3. `ShowData` Interface Updates (`AddShowFlow.tsx`)
+**Wire up the new prop** on `<VenueStep>`:
 
 ```typescript
-// Before
-showType: 'venue' | 'festival' | 'other';
-
-// After
-showType: 'show' | 'showcase' | 'festival';
-eventName: string;  // new — stores the event/brand name for showcase/festival
+onSelectAsEvent={(eventName) => {
+  updateShowData({
+    eventName,
+    venue: eventName,   // fallback so venue_name is non-null in DB
+    venueLocation: '',
+    venueId: null,
+  });
+  setStep(3); // advance to Date step
+}}
 ```
 
-Default values: `showType: 'show'`, `eventName: ""`
+`venue_name` falls back to `eventName` (already in `handleSubmit`: `venue_name: showData.venue || showData.eventName`), so no DB change is needed.
 
-### 4. Updated `UnifiedSearchStep.tsx`
+## What Gets Stored
 
-Add `showType: 'show' | 'showcase' | 'festival'` prop.
+For "Cercle LA at LA Convention Center" scenario:
+- User types "Cercle LA" in venue search → clicks "New event"
+- `event_name = "Cercle LA"`, `venue_name = "Cercle LA"` (fallback), `show_type = "show"`
+- Show card displays "Cercle LA" — correct
 
-**Context-aware heading and placeholder:**
+For "Cercle LA" where user also knows the physical venue:
+- User types "Cercle LA" → clicks "New event" → `event_name` set → advances
+- OR: user searches "LA Convention Center" → selects it → `venue_name` set
+- Both paths already exist; the new button just adds the missing middle path
 
-| Type | Heading | Placeholder |
-|---|---|---|
-| `show` | "Search for an artist" | "Search artists..." |
-| `showcase` | "Name this event or night" | "Elrow, Circoloco, Anjunadeep..." |
-| `festival` | "Name this festival" | "Coachella, EDC, ARC..." |
+## What Does NOT Change
 
-**Results filtering by type:**
-- `show`: artist results only; manual add = "Add as artist"
-- `showcase` / `festival`: venue and event results only; manual add = "Add as event"
-
-When a result is selected in showcase/festival mode, it goes into `eventName` not `venue`.
-
-### 5. Updated `VenueStep.tsx`
-
-Update prop types from `'venue' | 'festival' | 'other'` → `'show' | 'showcase' | 'festival'`.
-
-**Context-aware heading:**
-- `show`: "Where'd you see {Artist}?" (existing behaviour)
-- `showcase`: "Where was it held?" with optional Skip button
-- `festival`: "Where was it held?" with optional Skip button
-
-**Updated `getPlaceholder()`:**
-- `show`: "Search for venue..."
-- `showcase`: "Search for venue..."
-- `festival`: "Search for venue or grounds..."
-
-**Updated `getManualEntryLabel()`:**
-- `show` → "New venue"
-- `showcase` → "New venue"
-- `festival` → "New venue / grounds"
-
-The Venue step for showcase/festival becomes **optional** — a "Skip, venue unknown" button lets users bypass it. When skipped, `venue_name` stores the event name as a fallback (current app behaviour is preserved for display).
-
-### 6. Flow Routing in `AddShowFlow.tsx`
-
-New step 0 (ShowTypeStep) is inserted before the existing step 1 (UnifiedSearch). The rest of the step numbers stay the same.
-
-```text
-SHOW:
-  0: Type picker → "Show"
-  1: Search (artist-only)           → sets artists[0], entryPoint = 'artist'
-  2: Venue (required, headed by artist name)
-  3: Date
-  4: Rating/Tags
-  5: Success → Quick Compare
-
-SHOWCASE:
-  0: Type picker → "Showcase"
-  1: Search (event/venue)           → sets eventName
-  2: Venue (optional, "Where was it held?", skippable)
-  3: Date
-  4: Who did you see? (ArtistsStep, multi)
-  5: Rating/Tags
-  6: Success → Quick Compare
-
-FESTIVAL:
-  0: Type picker → "Festival"
-  1: Search (event/venue)           → sets eventName
-  2: Venue (optional, skippable)
-  3: Date
-  4: Who did you see? (ArtistsStep, multi)
-  5: Rating/Tags
-  6: Success → Quick Compare
-```
-
-Back-button at step 0 closes the dialog (nothing to go back to).
-
-Edit mode: Type picker step is skipped entirely; `showType` and `eventName` are loaded from the database record.
-
-### 7. `handleSubmit` in `AddShowFlow.tsx`
-
-For shows, the INSERT now includes:
-```typescript
-show_type: showData.showType,
-event_name: showData.eventName || null,
-// venue_name stays as the physical venue; for solo shows it remains unchanged
-// for showcase/festival with no venue entered, venue_name = eventName as fallback
-venue_name: showData.venue || showData.eventName,
-```
-
-### 8. `DemoAddShowFlow.tsx`
-
-Same type signature updates as `AddShowFlow.tsx`. ShowTypeStep added as step 0 in the same way.
-
-### 9. `search-venues` Edge Function
-
-Update the showType conditional to handle the new enum values:
-```typescript
-// Before: checked for 'festival'
-// After:
-if (showType === 'festival') { searchQuery = `${query} festival`; }
-else if (showType === 'showcase') { searchQuery = `${query} event night`; }
-```
-
----
-
-## Execution Order
-
-1. Run database migration (add `show_type` + `event_name` columns, backfill `show_type`)
-2. Create `ShowTypeStep.tsx` with updated copy
-3. Update `UnifiedSearchStep.tsx` with `showType` prop + context-aware UI + correct placeholders
-4. Update `VenueStep.tsx` type signatures + optional skip for showcase/festival
-5. Refactor `AddShowFlow.tsx` — new `ShowData` fields, step 0, routing logic, DB persist
-6. Update `DemoAddShowFlow.tsx` with matching changes
-7. Update `search-venues` edge function for `'showcase'` query biasing
-
----
-
-## Key Design Decisions
-
-**Why `event_name` as a separate column instead of overloading `venue_name`?**
-Overloading `venue_name` to sometimes mean "event name" would make queries and display logic ambiguous. A dedicated `event_name` column keeps data clean and lets us query "all Elrow events" or "all Coachella years" correctly later. It also means all existing shows are unaffected — `event_name` is nullable and defaults to NULL.
-
-**Why is the Venue step optional for showcase/festival?**
-Many events (Glastonbury, Burning Man, most festivals) are effectively self-describing locations. Forcing a user to enter a separate venue name in these cases creates friction for data that won't be useful. The "Skip" option gives users control while the search step already captures the most important identifier.
-
-**Why does `venue_name` fall back to `eventName` on save?**
-`venue_name` is NOT NULL in the database today. For showcase/festival shows where the user skips the venue step, we store the event name in `venue_name` as a backward-compatible fallback. Display logic will preferentially show `event_name` if present, so the UX remains correct. This avoids a schema change to make `venue_name` nullable.
+- The address dialog is unchanged — it still appears when clicking "New venue"
+- Showcase/Festival flows are unchanged
+- The database schema is unchanged (the `event_name` column already exists)
+- The `handleSubmit` fallback logic is unchanged
