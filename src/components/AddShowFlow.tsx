@@ -243,14 +243,14 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   };
 
   // Handle unified search selection
-  const handleUnifiedSelect = (result: { type: SearchResultType; id: string; name: string; location?: string; latitude?: number; longitude?: number }) => {
+  const handleUnifiedSelect = (result: { type: SearchResultType; id: string; name: string; imageUrl?: string; location?: string; latitude?: number; longitude?: number }) => {
     setHasUnsavedChanges(true);
     
     if (result.type === 'artist') {
       // Artist selected first
       setEntryPoint('artist');
       updateShowData({
-        artists: [{ name: result.name, isHeadliner: true }],
+        artists: [{ name: result.name, isHeadliner: true, imageUrl: result.imageUrl, spotifyId: result.id }],
       });
       setStep(2); // Go to venue step
     } else {
