@@ -17,7 +17,11 @@ import {
   type Comparison 
 } from "@/lib/smart-pairing";
 
-export default function Rank() {
+interface RankProps {
+  onAddShow?: () => void;
+}
+
+export default function Rank({ onAddShow }: RankProps) {
   const [shows, setShows] = useState<Show[]>([]);
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [comparisons, setComparisons] = useState<Comparison[]>([]);
@@ -434,7 +438,7 @@ export default function Rank() {
             </p>
           </div>
           <button
-            onClick={() => window.location.href = '/dashboard?addShow=true'}
+            onClick={() => onAddShow?.()}
             className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
           >
             + Add a show
@@ -459,7 +463,7 @@ export default function Rank() {
             </p>
           </div>
           <button
-            onClick={() => window.location.href = '/dashboard?addShow=true'}
+            onClick={() => onAddShow?.()}
             className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
           >
             + Add more shows

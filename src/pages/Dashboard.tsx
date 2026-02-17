@@ -202,7 +202,7 @@ const Dashboard = () => {
           />
         );
       case "rank":
-        return <Rank />;
+        return <Rank onAddShow={() => setShowUnifiedAdd(true)} />;
       case "profile":
         return <Profile onStartTour={() => {
           setActiveTab("home");
