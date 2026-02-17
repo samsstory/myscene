@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 import { StatPill, StatPillAction } from "@/components/home/StatPills";
-import { Music, Calendar, Trophy, Flame, Globe, Target } from "lucide-react";
+import { Music, Calendar, Target } from "lucide-react";
 
 interface TopShow {
   id: string;
@@ -342,25 +342,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       highlight: true,
       action: 'rankings' as StatPillAction,
     },
-    // Note: Confirmation Ring removed from pills - now shown as prominent card in Home
-    // #1 Show -> Show Detail (if exists)
-    ...(stats.topShow ? [{
-      id: 'top-show',
-      label: '#1 Show',
-      value: truncate(stats.topShow.artistName, 12),
-      icon: Trophy,
-      action: 'show-detail' as StatPillAction,
-      actionPayload: stats.topShow.id,
-    }] : []),
-    // Geographic stat -> Globe View
-    // Smart display: show cities if single country, otherwise show countries
-    ...(stats.uniqueCities > 0 ? [{
-      id: 'cities',
-      label: stats.uniqueCountries <= 1 ? 'Cities' : 'Countries',
-      value: stats.uniqueCountries <= 1 ? stats.uniqueCities : stats.uniqueCountries,
-      icon: Globe,
-      action: 'globe' as StatPillAction,
-    }] : []),
     // This Year -> Calendar
     {
       id: 'this-year',
@@ -369,14 +350,28 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       icon: Calendar,
       action: 'calendar' as StatPillAction,
     },
-    // Streak (no action, just display)
-    ...(stats.currentStreak >= 2 ? [{
-      id: 'streak',
-      label: 'Streak',
-      value: `${stats.currentStreak}mo`,
-      icon: Flame,
-      action: null as StatPillAction,
-    }] : []),
+    // To-Do pill -> aggregates pending actions
+    ...(() => {
+      const todoItems: string[] = [];
+      if (stats.unrankedCount > 0) todoItems.push(`${stats.unrankedCount} to rank`);
+      if (stats.incompleteTagsCount > 0) todoItems.push(`${stats.incompleteTagsCount} need tags`);
+      if (stats.missingPhotosCount > 0) todoItems.push(`${stats.missingPhotosCount} need photos`);
+      const totalTodos = todoItems.length > 0 
+        ? stats.unrankedCount + stats.incompleteTagsCount + stats.missingPhotosCount 
+        : 0;
+      if (totalTodos > 0) {
+        return [{
+          id: 'todo',
+          label: 'To Do',
+          value: totalTodos,
+          icon: Target,
+          action: 'todo-sheet' as StatPillAction,
+          isTodo: true,
+          todoItems,
+        }];
+      }
+      return [];
+    })(),
   ];
 
   return {

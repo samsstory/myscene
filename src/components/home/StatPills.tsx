@@ -6,7 +6,7 @@ import ConfirmationRing from "@/components/ui/ConfirmationRing";
 
 import { RefObject } from "react";
 
-export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | null;
+export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | 'todo-sheet' | null;
 
 export interface StatPill {
   id: string;
@@ -19,6 +19,9 @@ export interface StatPill {
   // For confirmation ring special rendering
   isConfirmationRing?: boolean;
   confirmationPercentage?: number;
+  // For to-do pill
+  isTodo?: boolean;
+  todoItems?: string[];
 }
 
 interface StatPillsProps {
@@ -94,8 +97,10 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
                 "bg-white/[0.03] backdrop-blur-sm",
                 isInteractive && "hover:bg-white/[0.08] active:scale-95 cursor-pointer",
                 !isInteractive && "cursor-default",
-                isShowsPill && showsTourActive && "opacity-0"
+                isShowsPill && showsTourActive && "opacity-0",
+                stat.isTodo && "border border-primary/30"
               )}
+              style={stat.isTodo ? { boxShadow: "0 0 12px hsl(var(--primary) / 0.2)" } : undefined}
             >
               <div className="flex items-center justify-center gap-1.5">
                 {stat.icon && (
