@@ -73,17 +73,17 @@ export default function BugReportButton() {
 
   return (
     <>
-      {/* Floating bug button — bottom-left */}
+      {/* Bug button — rendered inline, parent controls positioning */}
       <button
         onClick={() => setOpen(true)}
         aria-label="Report a bug"
         className={cn(
-          "fixed bottom-8 left-5 z-50 flex h-11 w-11 items-center justify-center rounded-full",
+          "flex h-10 w-10 items-center justify-center rounded-full",
           "backdrop-blur-xl bg-black/40 border border-white/15 shadow-lg",
           "text-white/60 hover:text-primary hover:border-primary/40 transition-all hover:scale-110 active:scale-95"
         )}
       >
-        <Bug className="h-4.5 w-4.5" />
+        <Bug className="h-4 w-4" />
       </button>
 
       <Drawer open={open} onOpenChange={setOpen}>
