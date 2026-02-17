@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles, Navigation, Download } from "lucide-react";
+import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles, Navigation, Download, Bell, BellOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +13,7 @@ import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 
 const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddShow?: () => void }) => {
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
+  const { state: pushState, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = usePushSubscription();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -371,6 +374,51 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
               )}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                {pushState === 'subscribed' ? (
+                  <Bell className="h-5 w-5 text-primary" />
+                ) : (
+                  <BellOff className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <p className="font-medium">Push Notifications</p>
+                <p className="text-sm text-muted-foreground">
+                  {pushState === 'unsupported'
+                    ? "Not supported on this browser"
+                    : pushState === 'denied'
+                    ? "Blocked — enable in browser settings"
+                    : pushState === 'subscribed'
+                    ? "You'll receive updates about your shows"
+                    : "Get notified about your shows"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={pushState === 'subscribed'}
+              disabled={pushState === 'unsupported' || pushState === 'denied' || pushState === 'loading'}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  pushSubscribe();
+                } else {
+                  pushUnsubscribe();
+                }
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
 
