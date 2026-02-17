@@ -244,12 +244,12 @@ export const useHomeStats = (): UseHomeStatsReturn => {
           });
         }
         
-        // Incomplete tags notification
+        // Incomplete highlights notification
         if (incompleteTagsCount >= 1) {
           generatedInsights.push({
             type: 'incomplete_ratings',
-            title: `${incompleteTagsCount} ${incompleteTagsCount === 1 ? 'Show Needs' : 'Shows Need'} Tags`,
-            message: 'Tap to add moments to your shows.',
+            title: `${incompleteTagsCount} ${incompleteTagsCount === 1 ? 'Show Needs' : 'Shows Need'} Highlights`,
+            message: 'Tap to add highlights to your shows.',
             actionable: true,
             action: 'incomplete-ratings' as InsightAction,
           });
@@ -366,7 +366,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       const todoItems: string[] = [];
       if (stats.profileIncomplete) todoItems.push('complete your profile');
       if (stats.unrankedCount > 0) todoItems.push(`${stats.unrankedCount} to rank`);
-      if (stats.incompleteTagsCount > 0) todoItems.push(`${stats.incompleteTagsCount} need tags`);
+      if (stats.incompleteTagsCount > 0) todoItems.push(`${stats.incompleteTagsCount} need highlights`);
       if (stats.missingPhotosCount > 0) todoItems.push(`${stats.missingPhotosCount} need photos`);
       const totalTodos = todoItems.length > 0 
         ? (stats.profileIncomplete ? 1 : 0) + stats.unrankedCount + stats.incompleteTagsCount + stats.missingPhotosCount 
