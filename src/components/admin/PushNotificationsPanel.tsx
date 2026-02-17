@@ -141,18 +141,28 @@ export function PushNotificationsPanel() {
             <div className="flex gap-2">
               <Button
                 size="sm"
-                variant={target === "all" ? "default" : "outline"}
+                variant="ghost"
+                className={`gap-1.5 border transition-all ${
+                  target === "all"
+                    ? "bg-white/[0.08] border-white/[0.15] text-foreground"
+                    : "bg-transparent border-white/[0.06] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                }`}
                 onClick={() => setTarget("all")}
               >
-                <Users className="mr-1.5 h-3.5 w-3.5" />
+                <Users className="h-3.5 w-3.5" />
                 All Subscribers
               </Button>
               <Button
                 size="sm"
-                variant={target === "user" ? "default" : "outline"}
+                variant="ghost"
+                className={`gap-1.5 border transition-all ${
+                  target === "user"
+                    ? "bg-white/[0.08] border-white/[0.15] text-foreground"
+                    : "bg-transparent border-white/[0.06] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                }`}
                 onClick={() => setTarget("user")}
               >
-                <User className="mr-1.5 h-3.5 w-3.5" />
+                <User className="h-3.5 w-3.5" />
                 Specific User
               </Button>
             </div>
