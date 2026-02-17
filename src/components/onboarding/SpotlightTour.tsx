@@ -109,7 +109,7 @@ const SpotlightTour = ({ run, onComplete, onStepChange }: SpotlightTourProps) =>
     },
     {
       target: '[data-tour="stat-shows"]',
-      content: "See all your shows ranked in order",
+      content: "See all your shows here",
       placement: "bottom",
       disableBeacon: true,
       data: { totalSteps: 5 },
