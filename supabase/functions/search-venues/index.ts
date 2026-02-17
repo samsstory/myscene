@@ -64,12 +64,16 @@ async function searchFoursquare(
     params.set('sort', 'RELEVANCE');
   }
 
-  const url = `https://api.foursquare.com/v3/places/search?${params.toString()}`;
+  const url = `https://places-api.foursquare.com/places/search?${params.toString()}`;
   console.log(`[Foursquare] Searching: ${query} (type: ${showType})`);
 
   try {
     const response = await fetch(url, {
-      headers: { 'Authorization': apiKey.startsWith('fsq') ? apiKey : `fsq-api-key ${apiKey}`, 'Accept': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json',
+        'X-Places-Api-Version': '2025-06-17',
+      },
     });
 
     if (!response.ok) {
