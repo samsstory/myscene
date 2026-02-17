@@ -48,21 +48,9 @@ async function searchFoursquare(
   lat?: number | null,
   lon?: number | null
 ): Promise<FoursquareVenue[]> {
-  const categoryMap: Record<string, string> = {
-    venue: '10032,10039,10024,10025,10030',
-    festival: '16032,16000,16003,16020',
-    other: '',
-  };
-
-  const categories = categoryMap[showType] || '';
-  const params = new URLSearchParams({ query, limit: '20' });
-
-  if (categories) params.set('categories', categories);
-  if (lat && lon) {
-    params.set('ll', `${lat},${lon}`);
-    params.set('radius', '50000');
-    params.set('sort', 'RELEVANCE');
-  }
+  // Don't use ll/radius — it over-biases to the user's city
+  // Foursquare's text matching handles global search well without location bias
+  const params = new URLSearchParams({ query, limit: '15' });
 
   const url = `https://places-api.foursquare.com/places/search?${params.toString()}`;
   console.log(`[Foursquare] Searching: ${query} (type: ${showType})`);
