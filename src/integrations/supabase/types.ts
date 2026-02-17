@@ -80,6 +80,30 @@ export type Database = {
         }
         Relationships: []
       }
+      loading_quotes: {
+        Row: {
+          author: string
+          created_at: string
+          id: string
+          is_active: boolean
+          text: string
+        }
+        Insert: {
+          author: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          text: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          text?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
