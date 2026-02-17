@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export type SearchResultType = 'artist' | 'venue';
+export type UnifiedShowType = 'show' | 'showcase' | 'festival';
 
 interface UnifiedSearchResult {
   type: SearchResultType;
@@ -23,13 +24,28 @@ interface UnifiedSearchResult {
 
 interface UnifiedSearchStepProps {
   onSelect: (result: UnifiedSearchResult) => void;
+  showType?: UnifiedShowType;
 }
 
-const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
+const UnifiedSearchStep = ({ onSelect, showType = 'show' }: UnifiedSearchStepProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
+
+  const isEventMode = showType === 'showcase' || showType === 'festival';
+
+  const getHeading = () => {
+    if (showType === 'showcase') return 'Name this event or night';
+    if (showType === 'festival') return 'Name this festival';
+    return 'Search for an artist';
+  };
+
+  const getPlaceholder = () => {
+    if (showType === 'showcase') return 'Elrow, Circoloco, Anjunadeep...';
+    if (showType === 'festival') return 'Coachella, EDC, ARC...';
+    return 'Search artists...';
+  };
 
   useEffect(() => {
     const search = async () => {
@@ -59,7 +75,8 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const artistResults = results.filter(r => r.type === 'artist');
+  // Filter results based on show type
+  const artistResults = isEventMode ? [] : results.filter(r => r.type === 'artist');
   const primaryVenues = results.filter(r => r.type === 'venue' && r.tier !== 'other');
   const otherVenues = results.filter(r => r.type === 'venue' && r.tier === 'other');
 
@@ -69,8 +86,9 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
     }
   };
 
-  const handleManualVenueAdd = () => {
+  const handleManualEventAdd = () => {
     if (searchTerm.trim()) {
+      // In event mode, manual add goes in as a venue type (for event_name storage upstream)
       onSelect({ type: 'venue', id: `manual-${Date.now()}`, name: searchTerm.trim() });
     }
   };
@@ -78,13 +96,13 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
   return (
     <div className="space-y-4 w-full">
       <p className="text-sm text-muted-foreground text-center">
-        Search for an artist, venue, or festival
+        {getHeading()}
       </p>
 
       <div className="relative">
         <Search className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
         <Input
-          placeholder="Search artist, venue, or festival..."
+          placeholder={getPlaceholder()}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={cn(
@@ -101,36 +119,33 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
       </div>
 
       <div className="space-y-4 max-h-[400px] overflow-y-auto">
-        {/* Manual add options */}
+        {/* Manual add option(s) */}
         {searchTerm.trim().length >= 2 && !isSearching && (
-          <div className="flex gap-2">
+          isEventMode ? (
+            <button onClick={handleManualEventAdd} className={cn(
+              "w-full p-3 rounded-lg transition-all duration-200 text-left",
+              "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
+              "hover:border-primary/50 hover:bg-primary/5",
+              "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+            )}>
+              <div className="font-medium text-sm">"{searchTerm}"</div>
+              <div className="text-xs text-muted-foreground">Add as event</div>
+            </button>
+          ) : (
             <button onClick={handleManualArtistAdd} className={cn(
-              "flex-1 p-3 rounded-lg transition-all duration-200 text-left",
+              "w-full p-3 rounded-lg transition-all duration-200 text-left",
               "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
               "hover:border-primary/50 hover:bg-primary/5",
               "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
             )}>
-              <div>
-                <div className="font-medium text-sm">"{searchTerm}"</div>
-                <div className="text-xs text-muted-foreground">Add as artist</div>
-              </div>
+              <div className="font-medium text-sm">"{searchTerm}"</div>
+              <div className="text-xs text-muted-foreground">Add as artist</div>
             </button>
-            <button onClick={handleManualVenueAdd} className={cn(
-              "flex-1 p-3 rounded-lg transition-all duration-200 text-left",
-              "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
-              "hover:border-primary/50 hover:bg-primary/5",
-              "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
-            )}>
-              <div>
-                <div className="font-medium text-sm">"{searchTerm}"</div>
-                <div className="text-xs text-muted-foreground">Add as venue</div>
-              </div>
-            </button>
-          </div>
+          )
         )}
 
-        {/* Artists section */}
-        {artistResults.length > 0 && (
+        {/* Artists section — show only for solo shows */}
+        {!isEventMode && artistResults.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-1">Artists</div>
             {artistResults.map((result) => (
@@ -139,12 +154,12 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
           </div>
         )}
 
-        {/* Primary venues */}
+        {/* Venue/event results — always shown in event mode, also in show mode */}
         {primaryVenues.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-1">
               <MapPin className="h-4 w-4" />
-              Venues & Festivals
+              {isEventMode ? 'Events & Venues' : 'Venues & Festivals'}
             </div>
             {primaryVenues.map((result) => (
               <VenueResultCard key={result.id} result={result} onSelect={onSelect} />
@@ -176,7 +191,7 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
           <div className="text-center py-8 text-muted-foreground text-sm">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No results found</p>
-            <p className="text-xs mt-1">Use the buttons above to add "{searchTerm}"</p>
+            <p className="text-xs mt-1">Use the button above to add "{searchTerm}"</p>
           </div>
         )}
       </div>

@@ -435,6 +435,7 @@ export type Database = {
           created_at: string
           crowd: number | null
           date_precision: string
+          event_name: string | null
           id: string
           lighting: number | null
           notes: string | null
@@ -442,6 +443,7 @@ export type Database = {
           photo_url: string | null
           rating: number | null
           show_date: string
+          show_type: string
           sound: number | null
           updated_at: string
           user_id: string
@@ -455,6 +457,7 @@ export type Database = {
           created_at?: string
           crowd?: number | null
           date_precision?: string
+          event_name?: string | null
           id?: string
           lighting?: number | null
           notes?: string | null
@@ -462,6 +465,7 @@ export type Database = {
           photo_url?: string | null
           rating?: number | null
           show_date: string
+          show_type?: string
           sound?: number | null
           updated_at?: string
           user_id: string
@@ -475,6 +479,7 @@ export type Database = {
           created_at?: string
           crowd?: number | null
           date_precision?: string
+          event_name?: string | null
           id?: string
           lighting?: number | null
           notes?: string | null
@@ -482,6 +487,7 @@ export type Database = {
           photo_url?: string | null
           rating?: number | null
           show_date?: string
+          show_type?: string
           sound?: number | null
           updated_at?: string
           user_id?: string
