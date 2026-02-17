@@ -153,7 +153,8 @@ serve(async (req) => {
     );
 
     // Properly verify JWT using Supabase auth (validates signature)
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError || !user) {
       return new Response(
