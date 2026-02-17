@@ -103,26 +103,16 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
               {/* Animated shimmer */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               
-              <div className="relative px-3 py-2.5 flex flex-col items-center justify-center">
-                <div className="flex items-center gap-1.5">
-                  {/* Pulsing dot */}
-                  <div className="relative">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-primary/50 animate-ping" />
-                  </div>
-                  <span
-                    className="text-2xl font-black tabular-nums text-white"
-                    style={{ textShadow: "0 0 20px rgba(255,255,255,0.3)" }}
-                  >
-                    {stat.value}
-                  </span>
+              <div className="relative px-3 py-3 flex items-center justify-center gap-2">
+                {/* Pulsing dot */}
+                <div className="relative shrink-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-primary/50 animate-ping" />
                 </div>
-                <div className="flex items-center gap-0.5 mt-0.5">
-                  <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-primary/80">
-                    {stat.label}
-                  </span>
-                  <ChevronRight className="w-2.5 h-2.5 text-primary/50" />
-                </div>
+                <span className="text-xs font-semibold text-primary/90 tracking-wide">
+                  {stat.value} {stat.label}
+                </span>
+                <ChevronRight className="w-3 h-3 text-primary/50 shrink-0" />
               </div>
             </button>
           );
@@ -147,21 +137,13 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
             {/* Subtle hover shimmer */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
             
-            <div className="relative px-3 py-2.5 flex flex-col items-center justify-center">
-              <span
-                className="text-2xl font-black tabular-nums text-white/90"
-                style={{ textShadow: "0 0 15px rgba(255,255,255,0.25)" }}
-              >
-                {stat.value}
+            <div className="relative px-3 py-3 flex items-center justify-center gap-2">
+              {stat.icon && (
+                <stat.icon className="h-4 w-4 text-white/50 shrink-0" />
+              )}
+              <span className="text-xs font-semibold text-white/70 tracking-wide">
+                {stat.value} {stat.label}
               </span>
-              <div className="flex items-center gap-1 mt-0.5">
-                {stat.icon && (
-                  <stat.icon className="h-2.5 w-2.5 text-white/30" />
-                )}
-                <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/40">
-                  {stat.label}
-                </span>
-              </div>
             </div>
           </button>
         );
