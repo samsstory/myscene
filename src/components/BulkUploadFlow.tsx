@@ -182,7 +182,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
       <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto pb-8 top-1/4 translate-y-0" aria-describedby={undefined}>
         <div className="relative min-h-[100px]">
           {/* Mesh gradient background - Scene aesthetic */}
-          <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
+          <div className="absolute -inset-6 overflow-hidden rounded-lg pointer-events-none">
             <div 
               className="absolute inset-0 animate-pulse-glow"
               style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} 
