@@ -140,10 +140,10 @@ export function WaitlistTab() {
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+            className={`rounded-full border px-3 py-1 text-sm font-medium transition-all ${
               filter === f.key
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground"
+                ? "bg-primary/[0.10] border-primary/[0.25] text-primary/80"
+                : "bg-transparent border-white/[0.06] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
             }`}
           >
             {f.label} ({f.count})
@@ -239,15 +239,22 @@ export function WaitlistTab() {
                   </TableCell>
                   <TableCell>
                     {entry.status === "pending" ? (
-                      <Button size="sm" onClick={() => setApproveEntry(entry)} disabled={!entry.email}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setApproveEntry(entry)}
+                        disabled={!entry.email}
+                        className="border border-white/[0.12] bg-white/[0.06] text-foreground hover:bg-white/[0.10] hover:border-white/[0.20] transition-all"
+                      >
                         Approve
                       </Button>
                     ) : entry.status === "approved" ? (
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => setResendEntry(entry)}
                         disabled={!entry.email}
+                        className="border border-white/[0.08] bg-transparent text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-all"
                       >
                         <Send className="h-3.5 w-3.5 mr-1.5" />
                         {entry.notified_at ? "Resend" : "Send Email"}

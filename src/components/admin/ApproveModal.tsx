@@ -87,10 +87,15 @@ export function ApproveModal({ open, onOpenChange, waitlistEntry, onApproved }: 
           </p>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" className="border border-white/[0.08] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleApprove} disabled={loading || !email}>
+          <Button
+            variant="ghost"
+            onClick={handleApprove}
+            disabled={loading || !email}
+            className="border border-white/[0.12] bg-white/[0.06] text-foreground hover:bg-white/[0.10] hover:border-white/[0.20] transition-all"
+          >
             {loading ? "Creating..." : "Approve & Send Email"}
           </Button>
         </DialogFooter>
