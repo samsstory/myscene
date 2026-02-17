@@ -12,6 +12,7 @@ import { TAG_CATEGORIES, getCategoryForTag } from "@/lib/tag-constants";
 interface IncompleteShow {
   id: string;
   artistName: string;
+  artistImageUrl: string | null;
   venueName: string;
   showDate: string;
   photoUrl: string | null;
@@ -66,7 +67,7 @@ export const IncompleteTagsSheet = ({
       const showsWithArtists = await Promise.all(untagged.map(async (show) => {
         const { data: artistData } = await supabase
           .from('show_artists')
-          .select('artist_name')
+          .select('artist_name, artist_image_url')
           .eq('show_id', show.id)
           .eq('is_headliner', true)
           .limit(1);
@@ -74,6 +75,7 @@ export const IncompleteTagsSheet = ({
         return {
           id: show.id,
           artistName: artistData?.[0]?.artist_name || 'Unknown Artist',
+          artistImageUrl: artistData?.[0]?.artist_image_url || null,
           venueName: show.venue_name,
           showDate: show.show_date,
           photoUrl: show.photo_url,
@@ -199,9 +201,9 @@ export const IncompleteTagsSheet = ({
                     onClick={() => setExpandedId(prev => prev === show.id ? null : show.id)}
                     className="w-full p-3 flex items-center gap-3 text-left"
                   >
-                    {show.photoUrl ? (
+                    {(show.photoUrl || show.artistImageUrl) ? (
                       <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={show.photoUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={show.photoUrl || show.artistImageUrl!} alt="" className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
