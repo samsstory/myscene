@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, Camera, Instagram, Eye, Loader2, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -106,9 +104,9 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
 
       {/* Inline Install CTA — first show only */}
       {showInstallCTA && !installDismissed && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
               <Download className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left flex-1">
@@ -117,77 +115,74 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleInstall} size="sm" className="flex-1">
+            <button onClick={handleInstall} className="flex-1 py-2 px-3 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/[0.10] hover:border-primary/30 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)] active:scale-[0.98]">
               Install
-            </Button>
-            <Button onClick={() => setInstallDismissed(true)} size="sm" variant="ghost" className="text-muted-foreground">
+            </button>
+            <button onClick={() => setInstallDismissed(true)} className="py-2 px-3 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
               Later
-            </Button>
+            </button>
           </div>
         </div>
       )}
 
       {/* Action cards */}
-      <div className="space-y-3 pt-2">
-        <Card 
-          className={`cursor-pointer transition-all hover:border-primary ${photoAdded ? 'border-primary bg-primary/5' : ''}`}
+      <div className="space-y-2.5 pt-2">
+        <button 
+          className={`w-full flex items-center gap-3 p-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border transition-all duration-200 active:scale-[0.98] ${photoAdded ? 'border-primary/30 shadow-[0_0_16px_hsl(var(--primary)/0.15)]' : 'border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15]'}`}
           onClick={!isUploading && !photoAdded ? handlePhotoClick : undefined}
         >
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              {isUploading ? (
-                <Loader2 className="h-5 w-5 text-primary animate-spin" />
-              ) : (
-                <Camera className="h-5 w-5 text-primary" />
-              )}
+          <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
+            {isUploading ? (
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+            ) : (
+              <Camera className="h-5 w-5 text-primary" />
+            )}
+          </div>
+          <div className="text-left flex-1">
+            <div className="font-medium text-sm">
+              {photoAdded ? "Photo Added!" : "Add a Photo"}
             </div>
-            <div className="text-left flex-1">
-              <div className="font-medium">
-                {photoAdded ? "Photo Added!" : "Add a Photo"}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {photoAdded ? "Looking good 📸" : "Capture the memory"}
-              </div>
+            <div className="text-xs text-muted-foreground">
+              {photoAdded ? "Looking good 📸" : "Capture the memory"}
             </div>
-            {photoAdded && <CheckCircle2 className="h-5 w-5 text-primary" />}
-          </CardContent>
-        </Card>
+          </div>
+          {photoAdded && <CheckCircle2 className="h-5 w-5 text-primary" />}
+        </button>
 
-        <Card 
-          className="cursor-pointer transition-all hover:border-primary"
+        <button 
+          className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
           onClick={onShare}
         >
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Instagram className="h-5 w-5 text-primary" />
-            </div>
-            <div className="text-left">
-              <div className="font-medium">Share to Instagram</div>
-              <div className="text-sm text-muted-foreground">Create a story or post</div>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
+            <Instagram className="h-5 w-5 text-primary" />
+          </div>
+          <div className="text-left">
+            <div className="font-medium text-sm">Share to Instagram</div>
+            <div className="text-xs text-muted-foreground">Create a story or post</div>
+          </div>
+        </button>
 
-        <Card 
-          className="cursor-pointer transition-all hover:border-primary"
+        <button 
+          className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
           onClick={onViewDetails}
         >
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Eye className="h-5 w-5 text-primary" />
-            </div>
-            <div className="text-left">
-              <div className="font-medium">View Details</div>
-              <div className="text-sm text-muted-foreground">See full show breakdown</div>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
+            <Eye className="h-5 w-5 text-primary" />
+          </div>
+          <div className="text-left">
+            <div className="font-medium text-sm">View Details</div>
+            <div className="text-xs text-muted-foreground">See full show breakdown</div>
+          </div>
+        </button>
       </div>
 
       {/* Done button */}
-      <Button onClick={onDone} variant="outline" className="w-full mt-4">
+      <button 
+        onClick={onDone} 
+        className="w-full py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-foreground active:scale-[0.98] mt-4"
+      >
         Done
-      </Button>
+      </button>
     </div>
   );
 };
