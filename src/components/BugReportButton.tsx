@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Bug, Send, Camera } from "lucide-react";
+import { Bug, Send, Camera, X, RefreshCw } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -48,14 +48,26 @@ export default function BugReportButton({
   const [capturingScreenshot, setCapturingScreenshot] = useState(false);
   const screenshotTakenRef = useRef(false);
 
-  // Capture screenshot when drawer opens (before it renders over content)
+  // Capture screenshot
   const captureScreenshot = async () => {
-    if (screenshotTakenRef.current) return;
-    screenshotTakenRef.current = true;
     setCapturingScreenshot(true);
     const url = await captureBugScreenshot();
     setScreenshotUrl(url);
     setCapturingScreenshot(false);
+  };
+
+  const removeScreenshot = () => {
+    setScreenshotUrl(null);
+    screenshotTakenRef.current = false;
+  };
+
+  const retakeScreenshot = async () => {
+    setScreenshotUrl(null);
+    // Close drawer briefly, capture, reopen
+    setOpen(false);
+    await new Promise((r) => setTimeout(r, 300));
+    await captureScreenshot();
+    setOpen(true);
   };
 
   // Trigger screenshot capture BEFORE opening the drawer
@@ -162,25 +174,47 @@ export default function BugReportButton({
 
           <div className="px-4 pb-2">
             {/* Screenshot preview */}
-            {(capturingScreenshot || screenshotUrl) && (
+            {capturingScreenshot ? (
               <div className="mb-3">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Camera className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[11px] text-muted-foreground font-medium">Screenshot captured</span>
+                  <span className="text-[11px] text-muted-foreground font-medium">Capturing screenshot…</span>
                 </div>
-                {capturingScreenshot ? (
-                  <div className="h-20 rounded-lg bg-muted/30 border border-border animate-pulse flex items-center justify-center">
-                    <span className="text-[11px] text-muted-foreground">Capturing…</span>
-                  </div>
-                ) : screenshotUrl ? (
-                  <img
-                    src={screenshotUrl}
-                    alt="Bug screenshot"
-                    className="h-20 w-auto rounded-lg border border-border object-cover object-top"
-                  />
-                ) : null}
+                <div className="h-20 rounded-lg bg-muted/30 border border-border animate-pulse flex items-center justify-center">
+                  <span className="text-[11px] text-muted-foreground">Capturing…</span>
+                </div>
               </div>
-            )}
+            ) : screenshotUrl ? (
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Camera className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-[11px] text-muted-foreground font-medium">Screenshot captured</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={retakeScreenshot}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted/50"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Retake
+                    </button>
+                    <button
+                      onClick={removeScreenshot}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive transition-colors px-1.5 py-0.5 rounded hover:bg-muted/50"
+                    >
+                      <X className="h-3 w-3" />
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                <img
+                  src={screenshotUrl}
+                  alt="Bug screenshot"
+                  className="h-20 w-auto rounded-lg border border-border object-cover object-top"
+                />
+              </div>
+            ) : null}
 
             <Textarea
               placeholder="What went wrong?"
