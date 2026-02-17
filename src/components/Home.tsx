@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X } from "lucide-react";
+import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X, UserCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 
@@ -64,6 +64,7 @@ type ViewMode = 'home' | 'calendar' | 'rankings' | 'globe';
 
 interface HomeProps {
   onNavigateToRank?: () => void;
+  onNavigateToProfile?: () => void;
   onAddFromPhotos?: () => void;
   onAddSingleShow?: () => void;
   initialView?: ViewMode;
@@ -74,7 +75,7 @@ interface HomeProps {
   showsRef?: React.RefObject<HTMLButtonElement>;
 }
 
-const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef }: HomeProps) => {
+const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
@@ -884,6 +885,20 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
             <SheetTitle className="text-left text-lg font-bold">Things to do</SheetTitle>
           </SheetHeader>
           <div className="space-y-2 mt-4 pb-4">
+            {stats.profileIncomplete && (
+              <button
+                onClick={() => { setTodoSheetOpen(false); onNavigateToProfile?.(); }}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] hover:bg-white/[0.08] transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <UserCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground">Complete your profile</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-white/30" />
+              </button>
+            )}
             {stats.unrankedCount > 0 && (
               <button
                 onClick={() => { setTodoSheetOpen(false); onNavigateToRank?.(); }}
