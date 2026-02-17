@@ -170,6 +170,48 @@ export type Database = {
         }
         Relationships: []
       }
+      push_notification_logs: {
+        Row: {
+          body: string
+          created_at: string
+          failed_count: number
+          id: string
+          sender_id: string
+          sent_count: number
+          target_type: string
+          target_user_id: string | null
+          title: string
+          total_devices: number
+          url: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          failed_count?: number
+          id?: string
+          sender_id: string
+          sent_count?: number
+          target_type?: string
+          target_user_id?: string | null
+          title: string
+          total_devices?: number
+          url?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          failed_count?: number
+          id?: string
+          sender_id?: string
+          sent_count?: number
+          target_type?: string
+          target_user_id?: string | null
+          title?: string
+          total_devices?: number
+          url?: string | null
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
