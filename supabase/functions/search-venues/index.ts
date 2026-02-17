@@ -37,6 +37,98 @@ interface VenueSuggestion {
   user_show_count: number;
   scene_users_count: number;
   category?: string;
+  types?: string[];
+}
+
+// ─── Category Whitelists ─────────────────────────────────────────────
+
+const relevantCategoryKeywords = [
+  'music', 'venue', 'amphitheater', 'amphitheatre', 'theater', 'theatre',
+  'arena', 'stadium', 'nightclub', 'club', 'bar', 'lounge', 'concert',
+  'festival', 'fairground', 'park', 'pavilion', 'event', 'convention',
+  'hall', 'auditorium', 'ballroom', 'brewery', 'winery', 'rooftop',
+  'garden', 'pier', 'plaza', 'pub', 'tavern', 'pool', 'beach', 'resort',
+  'casino', 'hotel', 'civic center', 'coliseum', 'colosseum', 'field',
+  'racetrack', 'raceway', 'hippodrome', 'rock club', 'performance',
+  'entertainment', 'dance', 'disco', 'opera', 'jazz', 'comedy',
+  'karaoke', 'outdoor', 'recreation', 'social', 'live',
+];
+
+const relevantGoogleTypes = new Set([
+  'night_club', 'bar', 'stadium', 'performing_arts_theater', 'park',
+  'event_venue', 'tourist_attraction', 'amusement_park', 'convention_center',
+  'casino', 'cultural_center', 'movie_theater', 'bowling_alley',
+  'community_center', 'campground', 'lodge', 'resort_hotel', 'hotel',
+  'church', 'museum', 'art_gallery', 'zoo', 'aquarium',
+]);
+
+const musicCategoryKeywords = new Set([
+  'music', 'amphitheater', 'amphitheatre', 'concert', 'nightclub',
+  'arena', 'stadium', 'rock club', 'live', 'jazz', 'opera', 'dance',
+  'disco', 'karaoke',
+]);
+
+const entertainmentCategoryKeywords = new Set([
+  'bar', 'theater', 'theatre', 'lounge', 'park', 'festival', 'event',
+  'pub', 'brewery', 'fairground', 'pavilion', 'ballroom', 'hall',
+  'auditorium', 'comedy', 'performance', 'entertainment', 'convention',
+  'winery', 'rooftop', 'garden', 'casino', 'resort', 'recreation',
+]);
+
+// ─── Category Helpers ────────────────────────────────────────────────
+
+function isRelevantFoursquareVenue(venue: FoursquareVenue, searchLower: string): boolean {
+  // Always allow strong name matches
+  const nameLower = venue.name.toLowerCase();
+  if (nameLower.startsWith(searchLower) || nameLower === searchLower) return true;
+
+  // Check if any category matches the whitelist
+  if (!venue.categories || venue.categories.length === 0) return false;
+  return venue.categories.some(cat => {
+    const catLower = cat.name.toLowerCase();
+    return relevantCategoryKeywords.some(kw => catLower.includes(kw));
+  });
+}
+
+function isRelevantGooglePlace(place: GooglePlace, searchLower: string): boolean {
+  // Always allow strong name matches
+  const nameLower = place.name.toLowerCase();
+  if (nameLower.startsWith(searchLower) || nameLower === searchLower) return true;
+
+  // Check if any type matches the whitelist
+  if (!place.types || place.types.length === 0) return false;
+  return place.types.some(t => relevantGoogleTypes.has(t));
+}
+
+function getCategoryBonus(category?: string, types?: string[], venueName?: string): number {
+  // Check venue name for music keywords (helps cached venues without category)
+  if (venueName) {
+    const nl = venueName.toLowerCase();
+    const musicNameKeywords = ['amphitheater', 'amphitheatre', 'arena', 'stadium', 'coliseum',
+      'concert hall', 'music hall', 'nightclub', 'dance hall'];
+    const entNameKeywords = ['theater', 'theatre', 'ballroom', 'auditorium', 'pavilion',
+      'fairgrounds', 'convention center', 'civic center'];
+    if (musicNameKeywords.some(kw => nl.includes(kw))) return 15;
+    if (entNameKeywords.some(kw => nl.includes(kw))) return 10;
+  }
+  // Check Foursquare category
+  if (category) {
+    const catLower = category.toLowerCase();
+    for (const kw of musicCategoryKeywords) {
+      if (catLower.includes(kw)) return 15;
+    }
+    for (const kw of entertainmentCategoryKeywords) {
+      if (catLower.includes(kw)) return 10;
+    }
+  }
+  // Check Google types
+  if (types) {
+    const musicTypes = new Set(['night_club', 'stadium', 'performing_arts_theater']);
+    const entertainmentTypes = new Set(['bar', 'event_venue', 'amusement_park', 'casino', 'cultural_center']);
+    if (types.some(t => musicTypes.has(t))) return 15;
+    if (types.some(t => entertainmentTypes.has(t))) return 10;
+  }
+  return 0;
 }
 
 // ─── Foursquare Search ───────────────────────────────────────────────
@@ -50,8 +142,6 @@ async function searchFoursquare(
 ): Promise<FoursquareVenue[]> {
   const params = new URLSearchParams({ query, limit: '15' });
 
-  // Use location bias when available — helps find nearby venues
-  // but Foursquare still searches globally for strong name matches
   if (lat && lon) {
     params.set('ll', `${lat},${lon}`);
     params.set('radius', '100000');
@@ -100,8 +190,13 @@ async function searchGooglePlaces(
   lat?: number | null,
   lon?: number | null
 ): Promise<GooglePlace[]> {
+  // Bias query toward music/entertainment context
   let searchQuery = query;
-  if (showType === 'festival') searchQuery = `${query} festival`;
+  if (showType === 'festival') {
+    searchQuery = `${query} festival`;
+  } else {
+    searchQuery = `${query} music venue`;
+  }
 
   console.log(`[Google] Searching: ${searchQuery}`);
 
@@ -134,7 +229,6 @@ async function searchGooglePlaces(
     const places = data.places || [];
     console.log(`[Google] Returned ${places.length} results`);
 
-    // Map new API format to our GooglePlace interface
     return places.map((p: any) => ({
       place_id: p.id || '',
       name: p.displayName?.text || '',
@@ -206,10 +300,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const searchLower = searchTerm.trim().toLowerCase();
     console.log(`Searching venues for: ${searchTerm}`);
 
     // 1. Search user's own shows
-    const searchWords = searchTerm.trim().toLowerCase().split(/\s+/);
+    const searchWords = searchLower.split(/\s+/);
     const stopWords = new Set(['the', 'a', 'an', 'at', 'in', 'of', 'and', 'or', 'to']);
     const meaningfulSearchWords = searchWords.filter(w => !stopWords.has(w));
     const wordsForFilter = meaningfulSearchWords.length > 0 ? meaningfulSearchWords : searchWords;
@@ -269,7 +364,7 @@ serve(async (req) => {
     const lon = profile?.home_longitude;
     const type = showType || 'venue';
 
-    // 5. Search external APIs in parallel (Foursquare primary + Google fallback)
+    // 5. Search external APIs in parallel
     const FOURSQUARE_KEY = Deno.env.get('FOURSQUARE_API_KEY');
     const GOOGLE_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
 
@@ -278,10 +373,16 @@ serve(async (req) => {
       GOOGLE_KEY ? searchGooglePlaces(searchTerm.trim(), type, GOOGLE_KEY, lat, lon) : Promise.resolve([]),
     ]);
 
-    // 6. Merge all results
+    // 6. Filter external results by category whitelist
+    const filteredFoursquare = foursquareResults.filter(v => isRelevantFoursquareVenue(v, searchLower));
+    const filteredGoogle = googleResults.filter(p => isRelevantGooglePlace(p, searchLower));
+
+    console.log(`[Filter] Foursquare: ${foursquareResults.length} → ${filteredFoursquare.length} | Google: ${googleResults.length} → ${filteredGoogle.length}`);
+
+    // 7. Merge all results
     const venueMap = new Map<string, VenueSuggestion>();
 
-    // User's own shows (highest priority)
+    // User's own shows (highest priority, no filtering)
     for (const show of userShows) {
       const key = `${show.venue_name}-${show.venue_location || ''}`.toLowerCase();
       if (!venueMap.has(key)) {
@@ -296,7 +397,7 @@ serve(async (req) => {
       }
     }
 
-    // Cached venues
+    // Cached venues (no filtering)
     if (cachedVenues) {
       for (const venue of cachedVenues) {
         const key = `${venue.name}-${venue.location || ''}`.toLowerCase();
@@ -312,8 +413,8 @@ serve(async (req) => {
       }
     }
 
-    // Foursquare results
-    for (const place of foursquareResults) {
+    // Filtered Foursquare results
+    for (const place of filteredFoursquare) {
       const location = formatFoursquareLocation(place);
       const key = `${place.name}-${location}`.toLowerCase();
       if (!venueMap.has(key)) {
@@ -325,21 +426,22 @@ serve(async (req) => {
       }
     }
 
-    // Google results (fills gaps Foursquare misses)
-    for (const place of googleResults) {
+    // Filtered Google results
+    for (const place of filteredGoogle) {
       const location = formatGoogleLocation(place);
       const key = `${place.name}-${location}`.toLowerCase();
       if (!venueMap.has(key)) {
         venueMap.set(key, {
           id: place.place_id, name: place.name, location,
           user_show_count: 0, scene_users_count: 0,
+          types: place.types,
         });
       }
     }
 
-    // 7. Cache new venues from both sources
+    // 8. Cache only whitelisted venues
     const allExternalVenues = [
-      ...foursquareResults.map(p => ({
+      ...filteredFoursquare.map(p => ({
         name: p.name,
         location: formatFoursquareLocation(p),
         city: p.location.locality || null,
@@ -347,7 +449,7 @@ serve(async (req) => {
         latitude: p.geocodes?.main?.latitude || null,
         longitude: p.geocodes?.main?.longitude || null,
       })),
-      ...googleResults.map(p => ({
+      ...filteredGoogle.map(p => ({
         name: p.name,
         location: formatGoogleLocation(p),
         city: null,
@@ -378,58 +480,69 @@ serve(async (req) => {
       if (insertErr) console.error('Cache error:', insertErr);
     }
 
-    // 8. Sort and return — prioritize name relevance
-    const searchLower = searchTerm.trim().toLowerCase();
+    // 9. Sort with category-aware scoring
     const sortWords = searchLower.split(/\s+/);
 
     const abbrevMap: Record<string, string[]> = {
       'nyc': ['new york', 'ny'], 'la': ['los angeles'], 'sf': ['san francisco'],
       'dc': ['washington'], 'philly': ['philadelphia'], 'atl': ['atlanta'],
+      'msg': ['madison square garden'], 'o2': ['o2 arena'],
+      'ubs': ['ubs arena'], 'bmo': ['bmo stadium'],
     };
 
     function relevanceScore(v: VenueSuggestion): number {
       const nameLower = v.name.toLowerCase();
       const locLower = (v.location || '').toLowerCase();
       const combined = `${nameLower} ${locLower}`;
-      if (nameLower === searchLower) return 100;
-      if (nameLower.startsWith(searchLower)) return 90;
-      let matchCount = 0;
-      for (const word of sortWords) {
-        if (combined.includes(word)) { matchCount++; }
-        else {
-          const expansions = abbrevMap[word];
-          if (expansions && expansions.some(exp => combined.includes(exp))) matchCount++;
+      let base = 0;
+      const catBonus = getCategoryBonus(v.category, v.types, v.name);
+
+      if (nameLower === searchLower) base = 100;
+      else if (nameLower.startsWith(searchLower)) base = 92;
+      else {
+        let matchCount = 0;
+        for (const word of sortWords) {
+          if (combined.includes(word)) { matchCount++; }
+          else {
+            const expansions = abbrevMap[word];
+            if (expansions && expansions.some(exp => combined.includes(exp))) matchCount++;
+          }
         }
+        if (matchCount === sortWords.length) base = 80;
+        else base = (matchCount / sortWords.length) * 60;
       }
-      if (matchCount === sortWords.length) return 80;
-      return (matchCount / sortWords.length) * 60;
+
+      // Category bonus
+      base += catBonus;
+
+      return base;
     }
 
-    const irrelevantCategories = new Set([
-      'hair salon', 'hair removal service', 'real estate agency',
-      'pizzeria', 'apartment or condo', 'coworking space',
-      'health and beauty service', 'dentist', 'doctor',
-      'laundromat', 'dry cleaner', 'gas station',
-    ]);
-
-    // Common filler words to ignore when checking name relevance
+    // Filter: for external results, name must contain at least one meaningful search word
     const fillerWords = new Set(['the', 'a', 'an', 'at', 'in', 'of', 'and', 'or', 'to']);
     const meaningfulWords = sortWords.filter(w => !fillerWords.has(w));
-    // If all words are filler (e.g. "the"), fall back to requiring any match
     const requiredWords = meaningfulWords.length > 0 ? meaningfulWords : sortWords;
 
     const suggestions = Array.from(venueMap.values())
       .filter(v => {
+        // Always keep user shows and scene venues
         if (v.user_show_count > 0 || v.scene_users_count > 0) return true;
-        if (v.category && irrelevantCategories.has(v.category.toLowerCase())) return false;
+        // For external results, ALL meaningful words must match in name+location
         const nameLower = v.name.toLowerCase();
         const locLower = (v.location || '').toLowerCase();
         const combined = `${nameLower} ${locLower}`;
-        // Must match at least one meaningful search word in name or location
-        return requiredWords.some(w => {
-          if (combined.includes(w)) return true;
+        const allMatch = requiredWords.every(w => {
           const expansions = abbrevMap[w];
-          return expansions ? expansions.some(exp => combined.includes(exp)) : false;
+          // If word has expansions (it's an abbreviation), only match on expansions
+          if (expansions) return expansions.some(exp => combined.includes(exp));
+          return combined.includes(w);
+        });
+        if (!allMatch) return false;
+        // At least one meaningful word must be in the name itself (not just location)
+        return requiredWords.some(w => {
+          const expansions = abbrevMap[w];
+          if (expansions) return expansions.some(exp => nameLower.includes(exp));
+          return nameLower.includes(w);
         });
       })
       .sort((a, b) => {
