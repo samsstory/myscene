@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 interface Artist {
   artist_name: string;
   is_headliner: boolean;
+  artist_image_url?: string | null;
 }
 
 interface RankingCardProps {
@@ -36,6 +37,8 @@ const RankingCard = ({
 }: RankingCardProps) => {
   const headliner = show.artists.find(a => a.is_headliner);
   const artistName = headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
+  const artistImageUrl = headliner?.artist_image_url || show.artists[0]?.artist_image_url || null;
+  const displayPhoto = show.photo_url || artistImageUrl;
   
   const venueShort = show.venue_name.length > 18 
     ? show.venue_name.substring(0, 16) + "..." 
@@ -79,9 +82,9 @@ const RankingCard = ({
       )}>
         {/* Photo Section */}
         <div className="relative aspect-[4/3] overflow-hidden">
-          {show.photo_url ? (
+          {displayPhoto ? (
             <img
-              src={show.photo_url}
+              src={displayPhoto}
               alt="Show photo"
               className="w-full h-full object-cover"
             />
