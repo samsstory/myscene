@@ -43,11 +43,12 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
       setShowPushInterstitial(true);
     }
 
-    // TEMP: bypass checks for preview testing
-    // if (!isFirstShow) return;
-    // const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-    // const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    // if (isStandalone || !isMobile) return;
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const alreadyDismissed = localStorage.getItem("scene-pwa-prompt-dismissed");
+
+    if (isStandalone || !isMobile || alreadyDismissed) return;
+    if (!isFirstShow) return;
 
     setShowInstallCTA(true);
     const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e as BeforeInstallPromptEvent); };
@@ -138,7 +139,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
             <button onClick={handleInstall} className="flex-1 py-2 px-3 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/[0.10] hover:border-primary/30 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)] active:scale-[0.98]">
               Install
             </button>
-            <button onClick={() => setInstallDismissed(true)} className="py-2 px-3 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+            <button onClick={() => { setInstallDismissed(true); localStorage.setItem("scene-pwa-prompt-dismissed", "true"); }} className="py-2 px-3 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
               Later
             </button>
           </div>
