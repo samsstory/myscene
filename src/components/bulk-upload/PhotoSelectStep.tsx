@@ -101,23 +101,23 @@ const PhotoSelectStep = ({
             )}
           </button>
           
-          {/* Escape hatch for manual entry */}
-          {onAddManually && (
-            <button
-              onClick={onAddManually}
-              className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors py-2"
-            >
-              I don't have a photo
-            </button>
-          )}
-          
           {/* Paste a list link */}
           {onPasteList && (
             <button
               onClick={onPasteList}
-              className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors py-1"
+              className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors py-2"
             >
               Paste a list instead
+            </button>
+          )}
+
+          {/* Escape hatch for manual entry */}
+          {onAddManually && (
+            <button
+              onClick={onAddManually}
+              className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors py-1"
+            >
+              Search manually
             </button>
           )}
         </div>
