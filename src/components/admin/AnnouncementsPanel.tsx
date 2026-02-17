@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -371,15 +372,21 @@ export function AnnouncementsPanel() {
           <Button
             key={ch.value}
             size="sm"
-            variant={channel === ch.value ? "default" : "outline"}
+            variant="ghost"
             disabled={ch.soon}
-            className={ch.soon ? "opacity-60" : ""}
+            className={cn(
+              "gap-1.5 border transition-all",
+              channel === ch.value
+                ? "bg-white/[0.08] border-white/[0.15] text-foreground"
+                : "bg-transparent border-white/[0.06] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+              ch.soon ? "opacity-50" : "",
+            )}
             onClick={() => !ch.soon && setChannel(ch.value)}
           >
             {ch.icon}
-            <span className="ml-1.5">{ch.label}</span>
+            <span>{ch.label}</span>
             {ch.soon && (
-              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[9px]">
+              <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[9px] bg-white/[0.06] text-muted-foreground border-white/[0.08]">
                 Soon
               </Badge>
             )}
