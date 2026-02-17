@@ -13,6 +13,7 @@ import { extractExifData } from "@/lib/exif-utils";
 interface ShowWithoutPhoto {
   id: string;
   artistName: string;
+  artistImageUrl?: string | null;
   venueName: string;
   showDate: string;
 }
@@ -84,7 +85,7 @@ export const MissingPhotosSheet = ({
       const showsWithArtists = await Promise.all((showsData || []).map(async (show) => {
         const { data: artistData } = await supabase
           .from('show_artists')
-          .select('artist_name')
+          .select('artist_name, artist_image_url')
           .eq('show_id', show.id)
           .eq('is_headliner', true)
           .limit(1);
@@ -92,6 +93,7 @@ export const MissingPhotosSheet = ({
         return {
           id: show.id,
           artistName: artistData?.[0]?.artist_name || 'Unknown Artist',
+          artistImageUrl: artistData?.[0]?.artist_image_url || null,
           venueName: show.venue_name,
           showDate: show.show_date,
         };
@@ -418,21 +420,25 @@ export const MissingPhotosSheet = ({
                     {shows.slice(0, 10).map(show => {
                       const isChecked = leaveNakedIds.has(show.id);
                       return (
-                        <button
+                        <div
                           key={show.id}
-                          onClick={() => toggleLeaveNaked(show.id)}
                           className={cn(
-                            "w-full p-3 rounded-lg flex items-center gap-3 transition-all text-left",
+                            "w-full p-3 rounded-lg flex items-center gap-3 transition-all",
                             isChecked 
                               ? "bg-white/[0.08] border border-white/20" 
                               : "bg-white/[0.03] border border-white/[0.08]"
                           )}
                         >
-                          <Checkbox 
-                            checked={isChecked}
-                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                          />
-                          <div className="flex-1 min-w-0">
+                          <button onClick={() => toggleLeaveNaked(show.id)} className="flex-shrink-0">
+                            <Checkbox 
+                              checked={isChecked}
+                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                          </button>
+                          <button 
+                            onClick={() => toggleLeaveNaked(show.id)}
+                            className="flex-1 min-w-0 text-left"
+                          >
                             <div className={cn(
                               "font-medium truncate transition-opacity",
                               isChecked ? "text-white/50 line-through" : "text-white/80"
@@ -442,8 +448,31 @@ export const MissingPhotosSheet = ({
                             <div className="text-sm text-white/50 truncate">
                               {show.venueName} • {format(parseISO(show.showDate), 'MMM d, yyyy')}
                             </div>
-                          </div>
-                        </button>
+                          </button>
+                          {show.artistImageUrl && !isChecked && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const { error } = await supabase
+                                    .from('shows')
+                                    .update({ photo_url: show.artistImageUrl })
+                                    .eq('id', show.id);
+                                  if (error) throw error;
+                                  toast.success(`Artist photo added for ${show.artistName}`);
+                                  setShows(prev => prev.filter(s => s.id !== show.id));
+                                } catch (err) {
+                                  console.error('Error setting artist photo:', err);
+                                  toast.error('Failed to set photo');
+                                }
+                              }}
+                              className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden ring-2 ring-primary/40 hover:ring-primary/70 transition-all"
+                              title="Use artist photo"
+                            >
+                              <img src={show.artistImageUrl} alt="" className="h-full w-full object-cover" />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                     {shows.length > 10 && (

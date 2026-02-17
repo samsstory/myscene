@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Camera, Check } from "lucide-react";
+import { Camera, Check, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 interface Artist {
   name: string;
   isHeadliner: boolean;
+  imageUrl?: string;
 }
 
 interface Show {
@@ -38,12 +39,14 @@ export const QuickPhotoAddSheet = ({
   onShareWithoutPhoto,
 }: QuickPhotoAddSheetProps) => {
   const [uploading, setUploading] = useState(false);
+  const [settingArtistPhoto, setSettingArtistPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!show) return null;
 
   const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
   const artistName = headliner?.name || "Unknown Artist";
+  const artistImageUrl = headliner?.imageUrl;
   
   const formattedDate = format(
     parseISO(show.date),
@@ -101,6 +104,27 @@ export const QuickPhotoAddSheet = ({
     fileInputRef.current?.click();
   };
 
+  const handleUseArtistPhoto = async () => {
+    if (!artistImageUrl) return;
+    setSettingArtistPhoto(true);
+    try {
+      const { error } = await supabase
+        .from('shows')
+        .update({ photo_url: artistImageUrl })
+        .eq('id', show.id);
+
+      if (error) throw error;
+
+      toast.success("Artist photo added!");
+      onPhotoAdded(artistImageUrl);
+    } catch (error) {
+      console.error('Error setting artist photo:', error);
+      toast.error("Failed to set artist photo");
+    } finally {
+      setSettingArtistPhoto(false);
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-auto max-h-[80vh] flex flex-col">
@@ -143,6 +167,28 @@ export const QuickPhotoAddSheet = ({
             onChange={handleFileSelect}
             className="hidden"
           />
+
+          {/* Use artist photo option */}
+          {artistImageUrl && (
+            <button
+              onClick={handleUseArtistPhoto}
+              disabled={settingArtistPhoto}
+              className="w-full max-w-xs flex items-center gap-3 p-3 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-all disabled:opacity-50"
+            >
+              <img 
+                src={artistImageUrl} 
+                alt={artistName}
+                className="h-10 w-10 rounded-full object-cover flex-shrink-0"
+              />
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-white/80 text-sm font-medium truncate">
+                  {settingArtistPhoto ? 'Setting...' : 'Use artist photo'}
+                </p>
+                <p className="text-white/40 text-xs truncate">{artistName}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
+            </button>
+          )}
         </div>
 
         {/* Save button - closes sheet */}
