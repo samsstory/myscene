@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,9 @@ interface HighlightReelProps {
 const HighlightReel = ({ shows, getRankInfo, onShowTap }: HighlightReelProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isSwiping = useRef(false);
 
   // Auto-rotate every 5s
   useEffect(() => {
@@ -59,8 +62,23 @@ const HighlightReel = ({ shows, getRankInfo, onShowTap }: HighlightReelProps) =>
     setTimeout(() => setIsPaused(false), 10000);
   }, [shows.length]);
 
-  if (shows.length === 0) return null;
+  const handleSwipeStart = useCallback((clientX: number, clientY: number) => {
+    touchStartX.current = clientX;
+    touchStartY.current = clientY;
+    isSwiping.current = false;
+  }, []);
 
+  const handleSwipeEnd = useCallback((clientX: number) => {
+    const deltaX = clientX - touchStartX.current;
+    const SWIPE_THRESHOLD = 50;
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+      isSwiping.current = true;
+      if (deltaX < 0) goNext();
+      else goPrev();
+    }
+  }, [goNext, goPrev]);
+
+  if (shows.length === 0) return null;
   const show = shows[activeIndex];
   const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
   const artistName = headliner?.name || "Unknown Artist";
@@ -75,11 +93,17 @@ const HighlightReel = ({ shows, getRankInfo, onShowTap }: HighlightReelProps) =>
   return (
     <div 
       className="relative -mx-4"
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setTimeout(() => setIsPaused(false), 8000)}
+      onTouchStart={(e) => {
+        setIsPaused(true);
+        handleSwipeStart(e.touches[0].clientX, e.touches[0].clientY);
+      }}
+      onTouchEnd={(e) => {
+        handleSwipeEnd(e.changedTouches[0].clientX);
+        setTimeout(() => setIsPaused(false), 8000);
+      }}
     >
       <button
-        onClick={() => onShowTap(show)}
+        onClick={() => { if (!isSwiping.current) onShowTap(show); }}
         className="w-full text-left block"
       >
         <div className="relative aspect-[3/4] max-h-[65vh] overflow-hidden">
