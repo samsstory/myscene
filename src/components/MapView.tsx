@@ -193,23 +193,38 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
   const handleFixMissingLocations = async () => {
     try {
       setIsBackfilling(true);
-      const { data, error } = await supabase.functions.invoke('backfill-venue-coordinates', {
+
+      const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 55000)
+      );
+
+      const invokePromise = supabase.functions.invoke('backfill-venue-coordinates', {
         body: {}
       });
 
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
+
       if (error) {
+        const isTimeout = error.message === 'timeout';
         toast({
-          title: "Error",
-          description: "Failed to fix missing locations. Please try again.",
+          title: isTimeout ? "Taking too long" : "Error",
+          description: isTimeout
+            ? "The fix is still running in the background. Refresh the page in a moment to see updates."
+            : "Failed to fix missing locations. Please try again.",
           variant: "destructive"
         });
         return;
       }
       
-      if (data.results.success > 0) {
+      const successCount = data?.results?.success ?? 0;
+      const isPartial = data?.partial === true;
+
+      if (successCount > 0) {
         toast({
-          title: "Success!",
-          description: `Fixed ${data.results.success} show${data.results.success > 1 ? 's' : ''}. Refreshing map...`
+          title: isPartial ? "Partially Fixed" : "Success!",
+          description: isPartial
+            ? `Fixed ${successCount} show${successCount > 1 ? 's' : ''} so far. Try again to fix the rest.`
+            : `Fixed ${successCount} show${successCount > 1 ? 's' : ''}. Refreshing map...`
         });
         setTimeout(() => {
           window.location.reload();
