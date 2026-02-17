@@ -33,7 +33,7 @@ interface AddShowFlowProps {
 
 export interface AddedShowData {
   id: string;
-  artists: Array<{ name: string; isHeadliner: boolean }>;
+  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string }>;
   venue: { name: string; location: string };
   date: string;
   rating?: number | null;
