@@ -59,6 +59,7 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
   const [isBackfilling, setIsBackfilling] = useState(false);
   const [isLocationCardMinimized, setIsLocationCardMinimized] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [mapReady, setMapReady] = useState(false);
 
   // Extract unique years from shows and sort descending
   const availableYears = useMemo(() => {
@@ -170,6 +171,10 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
 
         if (profile?.home_latitude && profile?.home_longitude) {
           setHomeCoordinates([profile.home_longitude, profile.home_latitude]);
+          // If map already exists, fly to home coordinates instead of rebuilding
+          if (map.current) {
+            map.current.flyTo({ center: [profile.home_longitude, profile.home_latitude], zoom: 4, duration: 1500 });
+          }
         }
       } catch (error) {
         console.error('Error fetching home coordinates:', error);
@@ -328,8 +333,8 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    const defaultCenter: [number, number] = homeCoordinates || [-98.5795, 39.8283];
-    const defaultZoom = homeCoordinates ? 4 : 2;
+    const defaultCenter: [number, number] = [-98.5795, 39.8283];
+    const defaultZoom = 2;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -445,6 +450,8 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
       map.current.on('mouseleave', 'clusters', () => {
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
+
+      setMapReady(true);
     });
 
     return () => {
@@ -452,12 +459,13 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
       markersRef.current = [];
       map.current?.remove();
       map.current = null;
+      setMapReady(false);
     };
-  }, [homeCoordinates]);
+  }, []);
 
   // Update map data and create individual markers
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !mapReady) return;
 
     const updateMap = () => {
       if (!map.current?.isStyleLoaded()) {
@@ -567,7 +575,7 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
     };
 
     updateMap();
-  }, [mappableShows, venueGroups, createPhotoMarker]);
+  }, [mappableShows, venueGroups, createPhotoMarker, mapReady]);
 
   // Inject CSS for custom markers
   useEffect(() => {
