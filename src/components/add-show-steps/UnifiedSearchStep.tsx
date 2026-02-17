@@ -154,7 +154,6 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
         {artistResults.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-1">
-              <Music className="h-4 w-4" />
               Artists
             </div>
             {artistResults.map((result) => (
