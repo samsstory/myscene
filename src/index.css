@@ -72,8 +72,19 @@ All colors MUST be HSL.
     padding-top: env(safe-area-inset-top, 0px);
   }
 
+  /* Dev-mode fallback: when the Dynamic Island overlay is active,
+     env(safe-area-inset-top) is 0 in browsers, so we simulate the
+     real iPhone 15/16 inset (~59px). On real devices env() wins. */
+  .dev-island-active .pt-safe {
+    padding-top: max(env(safe-area-inset-top, 0px), 59px);
+  }
+
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .dev-island-active .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
   }
 
   .pl-safe {
