@@ -46,59 +46,57 @@ const Dashboard = () => {
   const rankTourActive = showSpotlightTour && tourStepIndex === 1;
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let isMounted = true;
+
+    const checkOnboarding = async (userId: string) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_step")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!isMounted) return;
+      if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
+        pendingAddFlowRef.current = true;
+        supabase.from("profiles").update({ onboarding_step: "completed" }).eq("id", userId);
+      }
+    };
+
+    // Listener for ONGOING auth changes (does NOT control loading)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!isMounted) return;
+        setSession(session);
+        if (!session) {
+          navigate("/auth");
+        } else if (event === "SIGNED_IN") {
+          setTimeout(() => checkOnboarding(session.user.id), 0);
+        }
+      }
+    );
+
+    // INITIAL load (controls loading)
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
         setSession(session);
         if (!session) {
           navigate("/auth");
         } else {
-          // Check onboarding status
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("onboarding_step")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
-            // Skip WelcomeCarousel — auto-open Add Show flow
-            pendingAddFlowRef.current = true;
-            // Mark onboarding complete in background
-            supabase
-              .from("profiles")
-              .update({ onboarding_step: "completed" })
-              .eq("id", session.user.id);
-          }
+          await checkOnboarding(session.user.id);
         }
-        setLoading(false);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    );
+    };
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (!session) {
-        navigate("/auth");
-      } else {
-        // Check onboarding status
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("onboarding_step")
-          .eq("id", session.user.id)
-          .single();
-        
-        if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
-          pendingAddFlowRef.current = true;
-          supabase
-            .from("profiles")
-            .update({ onboarding_step: "completed" })
-            .eq("id", session.user.id);
-        }
-      }
-      setLoading(false);
-    });
+    initializeAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   // Open add flow once dashboard has rendered for new users
@@ -110,7 +108,12 @@ const Dashboard = () => {
   }, [loading]);
 
   if (loading) {
-    return <BrandedLoader fullScreen />;
+    return (
+      <>
+        <BrandedLoader fullScreen />
+        <BugReportButton />
+      </>
+    );
   }
 
   if (!session) {
