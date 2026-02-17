@@ -4,7 +4,7 @@ project_id = "swbaamxtmzjnbaxizjuw"
 verify_jwt = false
 
 [functions.search-venues]
-verify_jwt = true
+verify_jwt = false
 
 [functions.backfill-venue-coordinates]
 verify_jwt = true
@@ -13,7 +13,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.match-venue-from-location]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-demo-data]
 verify_jwt = false
