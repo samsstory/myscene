@@ -155,7 +155,7 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
         showsData.map(async (show) => {
           const { data: artistsData } = await supabase
             .from("show_artists")
-            .select("artist_name, is_headliner")
+            .select("artist_name, is_headliner, artist_image_url")
             .eq("show_id", show.id)
             .order("is_headliner", { ascending: false });
 

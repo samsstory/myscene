@@ -12,7 +12,7 @@ export interface Show {
   photo_url: string | null;
   notes: string | null;
   tags?: string[];
-  artists: Array<{ artist_name: string; is_headliner: boolean }>;
+  artists: Array<{ artist_name: string; is_headliner: boolean; artist_image_url?: string | null }>;
   // Legacy fields kept for backward compat (ignored)
   rating?: number | null;
   venue_location?: string;
