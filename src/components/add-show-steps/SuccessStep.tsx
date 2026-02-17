@@ -37,9 +37,9 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     const isFirstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
 
-    // Show push interstitial on first show, if not already seen
+    // Show push interstitial on first show, if not already seen and supported
     const pushSeen = localStorage.getItem("scene-push-prompt-seen");
-    if (isFirstShow && !pushSeen && "Notification" in window && Notification.permission !== "denied") {
+    if (isFirstShow && !pushSeen && "Notification" in window) {
       setShowPushInterstitial(true);
     }
 
