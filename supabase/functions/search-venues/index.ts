@@ -2,110 +2,31 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
-// Declare EdgeRuntime for background tasks
-declare const EdgeRuntime: {
-  waitUntil: (promise: Promise<unknown>) => void;
-};
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Background task to cache more venues in discovered cities
-async function cacheVenuesInCity(
-  city: string,
-  supabaseUrl: string,
-  supabaseServiceKey: string,
-  googleApiKey: string,
-  userLat?: number,
-  userLon?: number
-) {
-  try {
-    console.log(`[Background] Caching venues in ${city}...`);
-    
-    // Build location bias
-    let locationBias = '';
-    if (userLat && userLon) {
-      locationBias = `&location=${userLat},${userLon}&radius=50000`; // 50km radius
-    }
-    
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=music+venues+in+${encodeURIComponent(city)}&type=night_club|bar${locationBias}&key=${googleApiKey}`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      console.error(`[Background] Cache error: ${response.status}`);
-      return;
-    }
-
-    const data = await response.json();
-    
-    if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-      // Use service role key for background caching
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      const venuesToCache = [];
-
-      for (const place of data.results.slice(0, 30)) { // Limit to 30 venues
-        const venueName = place.name;
-        const venueAddress = place.formatted_address || '';
-        
-        // Extract city and state from address
-        const addressParts = venueAddress.split(', ');
-        const venueCity = addressParts.length > 1 ? addressParts[addressParts.length - 3] || '' : '';
-        const state = addressParts.length > 2 ? addressParts[addressParts.length - 2] || '' : '';
-        
-        let location = '';
-        if (venueCity && state) {
-          location = `${venueCity}, ${state}`;
-        } else if (venueAddress) {
-          location = venueAddress;
-        }
-
-        // Check if venue already exists
-        const { data: existing } = await supabase
-          .from('venues')
-          .select('id')
-          .eq('name', venueName)
-          .eq('city', venueCity)
-          .maybeSingle();
-
-        if (!existing && venueName) {
-          venuesToCache.push({
-            name: venueName,
-            location: location,
-            city: venueCity || null,
-            latitude: place.geometry?.location?.lat || null,
-            longitude: place.geometry?.location?.lng || null,
-          });
-        }
-      }
-
-      if (venuesToCache.length > 0) {
-        const { error } = await supabase.from('venues').insert(venuesToCache);
-        if (error) {
-          console.error('[Background] Insert error:', error);
-        } else {
-          console.log(`[Background] Cached ${venuesToCache.length} venues in ${city}`);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[Background] Caching error:', error);
-  }
-}
-
-interface GooglePlace {
-  place_id: string;
+interface FoursquareVenue {
+  fsq_id: string;
   name: string;
-  formatted_address: string;
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
+  location: {
+    formatted_address?: string;
+    locality?: string;
+    region?: string;
+    country?: string;
+    address?: string;
+  };
+  geocodes?: {
+    main?: {
+      latitude: number;
+      longitude: number;
     };
   };
-  types: string[];
+  categories?: Array<{
+    id: number;
+    name: string;
+  }>;
 }
 
 interface VenueSuggestion {
@@ -114,6 +35,70 @@ interface VenueSuggestion {
   location: string;
   user_show_count: number;
   scene_users_count: number;
+  category?: string;
+}
+
+async function searchFoursquare(
+  query: string,
+  showType: string,
+  apiKey: string,
+  lat?: number | null,
+  lon?: number | null
+): Promise<FoursquareVenue[]> {
+  // Foursquare category IDs for music/entertainment
+  const categoryMap: Record<string, string> = {
+    venue: '10032,10039,10024,10025,10030', // Music Venue, Nightclub, Concert Hall, Bar, Performing Arts
+    festival: '16032,16000,16003,16020',     // Festival, Event, Fair, Outdoor Event
+    other: '',                                // No category filter
+  };
+
+  const categories = categoryMap[showType] || '';
+  
+  const params = new URLSearchParams({
+    query,
+    limit: '20',
+  });
+
+  if (categories) {
+    params.set('categories', categories);
+  }
+
+  if (lat && lon) {
+    params.set('ll', `${lat},${lon}`);
+    params.set('radius', '50000'); // 50km bias
+    params.set('sort', 'RELEVANCE');
+  }
+
+  const url = `https://api.foursquare.com/v3/places/search?${params.toString()}`;
+  console.log(`[Foursquare] Searching: ${query} (type: ${showType})`);
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': apiKey,
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[Foursquare] Error ${response.status}: ${errorText}`);
+    return [];
+  }
+
+  const data = await response.json();
+  console.log(`[Foursquare] Returned ${data.results?.length || 0} results`);
+  return data.results || [];
+}
+
+function formatFoursquareLocation(venue: FoursquareVenue): string {
+  const loc = venue.location;
+  if (loc.locality && loc.region) {
+    return `${loc.locality}, ${loc.region}`;
+  }
+  if (loc.locality && loc.country) {
+    return `${loc.locality}, ${loc.country}`;
+  }
+  return loc.formatted_address || loc.locality || '';
 }
 
 serve(async (req) => {
@@ -139,20 +124,12 @@ serve(async (req) => {
       );
     }
 
-    // Create client with user's JWT token for RLS-protected queries
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Properly verify JWT using Supabase auth (validates signature)
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
@@ -164,8 +141,6 @@ serve(async (req) => {
     }
 
     const userId = user.id;
-
-    // Use service role key for caching operations (bypasses RLS)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -173,7 +148,7 @@ serve(async (req) => {
 
     console.log(`Searching venues for: ${searchTerm}`);
 
-    // 1. Search user's own shows - search across all words in the venue name
+    // 1. Search user's own shows
     const searchWords = searchTerm.trim().toLowerCase().split(/\s+/);
     let userShows: any[] = [];
     
@@ -187,7 +162,6 @@ serve(async (req) => {
       if (error) {
         console.error('Error fetching user shows:', error);
       } else if (data) {
-        // Filter in memory to match any word in the search term
         userShows = data.filter((show: any) => {
           const venueName = show.venue_name.toLowerCase();
           return searchWords.some((word: string) => venueName.includes(word));
@@ -198,7 +172,7 @@ serve(async (req) => {
       console.error('Exception fetching user shows:', err);
     }
 
-    // 2. Search cached venues
+    // 2. Search cached venues in DB
     const { data: cachedVenues, error: cachedError } = await supabaseClient
       .from('venues')
       .select('id, name, location, city, country')
@@ -234,94 +208,25 @@ serve(async (req) => {
       .select('home_latitude, home_longitude')
       .eq('id', userId)
       .single();
-    
-    // 5. Search Google Places API for venues
-    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
-    let googlePlaces: GooglePlace[] = [];
 
-    if (GOOGLE_API_KEY) {
+    // 5. Search Foursquare Places API
+    const FOURSQUARE_API_KEY = Deno.env.get('FOURSQUARE_API_KEY');
+    let foursquarePlaces: FoursquareVenue[] = [];
+
+    if (FOURSQUARE_API_KEY) {
       try {
-        // Build location bias
-        let locationBias = '';
-        if (profile?.home_latitude && profile?.home_longitude) {
-          locationBias = `&location=${profile.home_latitude},${profile.home_longitude}&radius=50000`; // 50km radius
-          console.log(`Using proximity: ${profile.home_latitude},${profile.home_longitude}`);
-        }
-        
-        // Build query based on show type
-        let query = searchTerm.trim();
-        if (showType === 'festival') {
-          query = `${searchTerm.trim()} festival`;
-        }
-        
-        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}${locationBias}&key=${GOOGLE_API_KEY}`;
-        console.log(`Calling Google Places API for ${showType}...`);
-        
-        const googleResponse = await fetch(googleUrl);
-        
-        if (!googleResponse.ok) {
-          console.error(`Google Places error: ${googleResponse.status}`);
-          const errorText = await googleResponse.text();
-          console.error(`Google Places error response: ${errorText}`);
-        } else {
-          const data = await googleResponse.json();
-          
-          if (data.status === 'OK' && data.results && Array.isArray(data.results)) {
-            console.log(`Google Places returned ${data.results.length} results`);
-            
-            // Filter based on show type
-            const excludeKeywords = [
-              'floral', 'flower', 'wholesale', 'retail', 'shop', 'store',
-              'salon', 'spa', 'hotel', 'motel', 'apartment', 'real estate',
-              'dentist', 'doctor', 'clinic', 'hospital', 'pharmacy',
-              'bank', 'atm', 'insurance', 'lawyer', 'school', 'church'
-            ];
-            
-            googlePlaces = data.results.filter((place: any) => {
-              const nameAndTypes = `${place.name} ${place.types?.join(' ')}`.toLowerCase();
-              
-              // Exclude irrelevant results
-              const hasExcludedKeyword = excludeKeywords.some(keyword => 
-                nameAndTypes.includes(keyword)
-              );
-              if (hasExcludedKeyword) return false;
-              
-              // Apply show type filtering
-              if (showType === 'festival') {
-                // For festivals, prioritize event spaces, parks, fairgrounds
-                const festivalTypes = ['tourist_attraction', 'park', 'event_venue', 'stadium', 'campground', 'point_of_interest'];
-                const festivalKeywords = ['festival', 'fest', 'fairground', 'grounds', 'park', 'amphitheater', 'outdoor'];
-                
-                const hasRelevantType = place.types?.some((type: string) => festivalTypes.includes(type));
-                const hasRelevantKeyword = festivalKeywords.some((keyword: string) => nameAndTypes.includes(keyword));
-                
-                // Must have at least one festival indicator
-                return hasRelevantType || hasRelevantKeyword;
-              } else if (showType === 'venue') {
-                // For venues, prioritize music venues, clubs, bars
-                const venueTypes = ['night_club', 'bar', 'music_venue', 'establishment'];
-                const venueKeywords = ['club', 'venue', 'lounge', 'theater', 'theatre', 'hall', 'stage'];
-                
-                const hasRelevantType = place.types?.some((type: string) => venueTypes.includes(type));
-                const hasRelevantKeyword = venueKeywords.some((keyword: string) => nameAndTypes.includes(keyword));
-                
-                return hasRelevantType || hasRelevantKeyword || true; // Allow all for venue unless excluded
-              }
-              
-              // For 'other', allow anything not excluded
-              return true;
-            }).slice(0, 20);
-            
-            console.log(`Filtered to ${googlePlaces.length} ${showType} results`);
-          } else {
-            console.log(`Google Places status: ${data.status}`);
-          }
-        }
+        foursquarePlaces = await searchFoursquare(
+          searchTerm.trim(),
+          showType || 'venue',
+          FOURSQUARE_API_KEY,
+          profile?.home_latitude,
+          profile?.home_longitude
+        );
       } catch (error) {
-        console.error('Google Places error:', error);
+        console.error('Foursquare search error:', error);
       }
     } else {
-      console.warn('GOOGLE_PLACES_API_KEY not set!');
+      console.warn('FOURSQUARE_API_KEY not set!');
     }
 
     // 6. Merge results
@@ -365,56 +270,31 @@ serve(async (req) => {
       }
     }
 
-    // Add Google Places results
-    for (const place of googlePlaces) {
-      // Extract city and state from formatted_address
-      const addressParts = place.formatted_address.split(', ');
-      let location = '';
-      
-      if (addressParts.length >= 3) {
-        // Format: "Venue Name, City, State ZIP, Country"
-        const city = addressParts[addressParts.length - 3] || '';
-        const stateZip = addressParts[addressParts.length - 2] || '';
-        const state = stateZip.split(' ')[0] || ''; // Extract state from "NY 10001"
-        
-        if (city && state) {
-          location = `${city}, ${state}`;
-        } else {
-          location = place.formatted_address;
-        }
-      } else {
-        location = place.formatted_address;
-      }
-      
+    // Add Foursquare results
+    for (const place of foursquarePlaces) {
+      const location = formatFoursquareLocation(place);
       const key = `${place.name}-${location}`;
+      const categoryName = place.categories?.[0]?.name || '';
       
       if (!venueMap.has(key)) {
         venueMap.set(key, {
-          id: place.place_id,
+          id: place.fsq_id,
           name: place.name,
-          location: location,
+          location,
           user_show_count: 0,
           scene_users_count: 0,
+          category: categoryName,
         });
       }
     }
 
-    // 7. Cache new Google Places venues
-    if (googlePlaces.length > 0) {
+    // 7. Cache new Foursquare venues in background
+    if (foursquarePlaces.length > 0) {
       const venuesToCache = [];
       
-      for (const place of googlePlaces) {
-        const addressParts = place.formatted_address.split(', ');
-        const city = addressParts.length >= 3 ? addressParts[addressParts.length - 3] : '';
-        const stateZip = addressParts.length >= 2 ? addressParts[addressParts.length - 2] : '';
-        const state = stateZip.split(' ')[0];
-        
-        let location = '';
-        if (city && state) {
-          location = `${city}, ${state}`;
-        } else {
-          location = place.formatted_address;
-        }
+      for (const place of foursquarePlaces) {
+        const location = formatFoursquareLocation(place);
+        const city = place.location.locality || null;
 
         const { data: existing } = await supabaseClient
           .from('venues')
@@ -426,10 +306,11 @@ serve(async (req) => {
         if (!existing) {
           venuesToCache.push({
             name: place.name,
-            location: location,
-            city: city || null,
-            latitude: place.geometry?.location?.lat || null,
-            longitude: place.geometry?.location?.lng || null,
+            location,
+            city,
+            country: place.location.country || null,
+            latitude: place.geocodes?.main?.latitude || null,
+            longitude: place.geocodes?.main?.longitude || null,
           });
         }
       }
@@ -441,59 +322,29 @@ serve(async (req) => {
           .select();
 
         if (insertData) {
-          console.log(`Cached ${insertData.length} new venues`);
+          console.log(`Cached ${insertData.length} new venues from Foursquare`);
         } else if (insertError) {
           console.error('Cache error:', insertError);
         }
       }
     }
 
-    // 8. Trigger background caching for discovered cities
-    const discoveredCities = new Set<string>();
-    for (const place of googlePlaces) {
-      const addressParts = place.formatted_address.split(', ');
-      const city = addressParts.length >= 3 ? addressParts[addressParts.length - 3] : '';
-      if (city) {
-        discoveredCities.add(city);
-      }
-    }
-
-    // Launch background tasks to cache more venues in these cities
-    if (GOOGLE_API_KEY && discoveredCities.size > 0) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-      const userLat = profile?.home_latitude;
-      const userLon = profile?.home_longitude;
-
-      for (const city of Array.from(discoveredCities).slice(0, 2)) { // Limit to 2 cities to avoid overload
-        EdgeRuntime.waitUntil(
-          cacheVenuesInCity(city, supabaseUrl, supabaseServiceKey, GOOGLE_API_KEY, userLat, userLon)
-        );
-      }
-    }
-
-    // 9. Sort and return - prioritize exact matches
+    // 8. Sort and return
     const searchLower = searchTerm.trim().toLowerCase();
     const suggestions = Array.from(venueMap.values()).sort((a, b) => {
-      // Exact match priority
-      const aExactMatch = a.name.toLowerCase() === searchLower || a.location.toLowerCase() === searchLower;
-      const bExactMatch = b.name.toLowerCase() === searchLower || b.location.toLowerCase() === searchLower;
-      if (aExactMatch && !bExactMatch) return -1;
-      if (!aExactMatch && bExactMatch) return 1;
+      const aExact = a.name.toLowerCase() === searchLower;
+      const bExact = b.name.toLowerCase() === searchLower;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
       
-      // Starts with match priority
-      const aStartsWith = a.name.toLowerCase().startsWith(searchLower) || a.location.toLowerCase().startsWith(searchLower);
-      const bStartsWith = b.name.toLowerCase().startsWith(searchLower) || b.location.toLowerCase().startsWith(searchLower);
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
+      const aStarts = a.name.toLowerCase().startsWith(searchLower);
+      const bStarts = b.name.toLowerCase().startsWith(searchLower);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
       
-      // User's own shows priority
       if (a.user_show_count !== b.user_show_count) return b.user_show_count - a.user_show_count;
-      
-      // Scene users priority
       if (a.scene_users_count !== b.scene_users_count) return b.scene_users_count - a.scene_users_count;
       
-      // Alphabetical
       return a.name.localeCompare(b.name);
     }).slice(0, 15);
 
