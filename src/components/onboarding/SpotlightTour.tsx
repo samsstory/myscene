@@ -123,7 +123,7 @@ const SpotlightTour = ({ run, onComplete, onStepChange }: SpotlightTourProps) =>
     },
     {
       target: '[data-tour="fab"]',
-      content: "Ready to start? Tap here to log your first show!",
+      content: "Let's go! Tap here to add more shows!",
       placement: "left",
       disableBeacon: true,
       data: { totalSteps: 5, isFinal: true },
