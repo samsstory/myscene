@@ -1,70 +1,63 @@
 
+# Announcements Tab Redesign
 
-## Fix: Dashboard Stuck on Loading Screen
+## Overview
+Redesign the Announcements tab in the Admin Dashboard to support multiple announcement channels (Email, SMS, App) with a template management system inspired by the reference screenshot. SMS and App channels will be placeholder-only for now.
 
-### Root Cause
+## Layout Structure
 
-There is a race condition between two auth mechanisms running simultaneously:
+### 1. Header Section
+- "Announcements" title with subtitle "Manage announcements for the community."
 
-1. `onAuthStateChange` fires an `INITIAL_SESSION` event synchronously (often with a `null` session before the token refreshes)
-2. This triggers `navigate("/auth")`, unmounting the component
-3. The `isMounted` flag becomes `false`, so `setLoading(false)` in the `finally` block never executes
-4. If the user navigates back to `/dashboard`, the cycle repeats
+### 2. Channel Selector (toggle buttons)
+- Three pill/chip buttons: **Email** (active), **SMS** (disabled/coming soon), **App** (disabled/coming soon)
+- SMS and App buttons show a "Coming Soon" tooltip or badge and are visually muted
 
-### Fix (single file: `src/pages/Dashboard.tsx`)
+### 3. Email Channel Content (two sections)
 
-**Change 1: Ignore INITIAL_SESSION in the auth listener**
+**A. Saved Templates List**
+- Card listing existing templates (Approval Email, Resend Email) with name, subject preview, and edit/delete actions
+- Each template is expandable or opens inline for editing
+- "Create New Template" button to add a custom template
 
-The `onAuthStateChange` callback should NOT handle navigation for the `INITIAL_SESSION` event -- that's the job of `initializeAuth`. Only react to subsequent events like `SIGNED_IN`, `SIGNED_OUT`, and `TOKEN_REFRESHED`.
+**B. Template Editor (shown when creating or editing)**
+- Title/Name input field
+- Subject input field
+- Body textarea (plain text with placeholder support like `{{email}}`, `{{password}}`)
+- Placeholder reference hint below the body
+- Save / Cancel / Reset Defaults buttons
 
-```text
-Before:
-  onAuthStateChange((event, session) => {
-    setSession(session);
-    if (!session) navigate("/auth");        // <-- fires on INITIAL_SESSION too
-    ...
-  })
+### 4. SMS and App Placeholder Panels
+- When SMS or App is selected, show a centered placeholder state with an icon, "Coming Soon" message, and a brief description
 
-After:
-  onAuthStateChange((event, session) => {
-    if (event === "INITIAL_SESSION") return; // <-- skip; initializeAuth handles it
-    setSession(session);
-    if (event === "SIGNED_OUT") navigate("/auth");
-    if (event === "SIGNED_IN") checkOnboarding(session.user.id);
-  })
-```
+## Technical Details
 
-This prevents the premature navigation that unmounts the component before `initializeAuth` can finish.
+### Files to modify
+- **`src/components/admin/EmailTemplateEditor.tsx`** -- Replace entirely with new `AnnouncementsPanel` component (or rename and rewrite)
 
-**Change 2: Add a safety-valve timeout**
+### New component: `src/components/admin/AnnouncementsPanel.tsx`
+- Manages channel selection state (`email` | `sms` | `app`)
+- Renders channel toggle buttons at the top
+- For `email`: renders the saved templates list and template editor
+- For `sms`/`app`: renders a "Coming Soon" placeholder
 
-As a defensive measure, add a 10-second timeout that forces `setLoading(false)` if `initializeAuth` hasn't resolved (e.g., due to network issues). This ensures the user is never permanently stuck.
+### Template storage changes
+- Extend localStorage schema to support multiple named templates (array of `{ id, name, subject, body, type }`)
+- Migrate existing approve/resend templates into this new format on first load
+- Keep the exported `getStoredTemplate()` function working for backward compatibility with the approve/resend edge functions
 
-```text
-useEffect(() => {
-  const timeout = setTimeout(() => {
-    if (isMounted) setLoading(false);   // safety valve
-  }, 10000);
+### Updated `src/pages/Admin.tsx`
+- Replace `<EmailTemplateEditor />` import with `<AnnouncementsPanel />`
+- No other tab changes needed
 
-  // ... existing initializeAuth logic ...
+### Component breakdown inside AnnouncementsPanel
+1. **ChannelToggle** -- row of styled buttons for Email / SMS / App
+2. **TemplateList** -- lists saved templates with edit and delete actions
+3. **TemplateEditor** -- form for creating/editing a single template (title, subject, body, save/cancel)
+4. **ComingSoonPlaceholder** -- centered icon + text for SMS and App channels
 
-  return () => {
-    clearTimeout(timeout);
-    isMounted = false;
-    subscription.unsubscribe();
-  };
-}, [navigate]);
-```
-
-**Change 3: Remove the `navigate` dependency from useEffect**
-
-`navigate` from React Router can create a new reference on re-renders, potentially re-running the entire effect. Use `useRef` to hold the navigate function instead, or simply remove it from the dependency array (it's stable in practice but the lint warning can be suppressed).
-
-### Summary of Changes
-
-| File | What changes |
-|---|---|
-| `src/pages/Dashboard.tsx` | Skip `INITIAL_SESSION` in auth listener; add 10s loading timeout; stabilize `navigate` dependency |
-
-No database, migration, or new file changes needed.
-
+### Design notes
+- Use existing shadcn components: `Button` (toggle style via variant), `Input`, `Textarea`, `Label`, `Card`
+- Channel toggles use `outline` variant for inactive, `default` for active
+- SMS/App buttons get `opacity-60` styling with a small "Soon" badge
+- Maintain the Scene dark theme aesthetic throughout
