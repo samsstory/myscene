@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WaitlistTab } from "@/components/admin/WaitlistTab";
@@ -5,9 +6,22 @@ import { UsersTab } from "@/components/admin/UsersTab";
 import { BugReportsTab } from "@/components/admin/BugReportsTab";
 import { Shield } from "lucide-react";
 import BrandedLoader from "@/components/ui/BrandedLoader";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Admin() {
   const { isAdmin, loading } = useAdminCheck();
+  const [newBugCount, setNewBugCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      const { count } = await (supabase
+        .from("bug_reports" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("status", "new") as any);
+      setNewBugCount(count ?? 0);
+    })();
+  }, [isAdmin]);
 
   if (loading || !isAdmin) {
     return (
@@ -36,7 +50,14 @@ export default function Admin() {
           <TabsList className="bg-muted">
             <TabsTrigger value="waitlist">Waitlist</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="bugs">Bug Reports</TabsTrigger>
+            <TabsTrigger value="bugs" className="relative">
+              Bug Reports
+              {newBugCount > 0 && (
+                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {newBugCount}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="waitlist">
             <WaitlistTab />
@@ -45,7 +66,7 @@ export default function Admin() {
             <UsersTab />
           </TabsContent>
           <TabsContent value="bugs">
-            <BugReportsTab />
+            <BugReportsTab onCountChange={setNewBugCount} />
           </TabsContent>
         </Tabs>
       </div>
