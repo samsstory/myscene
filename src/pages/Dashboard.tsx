@@ -45,6 +45,9 @@ const Dashboard = () => {
   // Step 2 (index 1) targets the Rank icon
   const rankTourActive = showSpotlightTour && tourStepIndex === 1;
 
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+
   useEffect(() => {
     let isMounted = true;
 
@@ -62,18 +65,24 @@ const Dashboard = () => {
       }
     };
 
-    // Listener for ONGOING auth changes (does NOT control loading)
+    // Listener for ONGOING auth changes — skip INITIAL_SESSION (handled by initializeAuth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
+        if (event === "INITIAL_SESSION") return;
         setSession(session);
-        if (!session) {
-          navigate("/auth");
-        } else if (event === "SIGNED_IN") {
+        if (event === "SIGNED_OUT") {
+          navigateRef.current("/auth");
+        } else if (event === "SIGNED_IN" && session) {
           setTimeout(() => checkOnboarding(session.user.id), 0);
         }
       }
     );
+
+    // Safety valve: force loading off after 10s
+    const timeout = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 10000);
 
     // INITIAL load (controls loading)
     const initializeAuth = async () => {
@@ -82,7 +91,7 @@ const Dashboard = () => {
         if (!isMounted) return;
         setSession(session);
         if (!session) {
-          navigate("/auth");
+          navigateRef.current("/auth");
         } else {
           await checkOnboarding(session.user.id);
         }
@@ -95,9 +104,11 @@ const Dashboard = () => {
 
     return () => {
       isMounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Open add flow once dashboard has rendered for new users
   useEffect(() => {
