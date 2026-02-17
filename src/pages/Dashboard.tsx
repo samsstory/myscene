@@ -328,8 +328,9 @@ const Dashboard = () => {
           </div>
         </FloatingTourTarget>
 
-        {/* Floating FAB - Single tap to add */}
-        <div className={cn("relative", showSpotlightTour && "z-[10001]")}>
+        {/* FAB stack — bug report + add button */}
+        <div className={cn("flex flex-col items-center gap-3", showSpotlightTour && "z-[10001]")}>
+          <BugReportButton />
           {/* FAB Button */}
           <button
             onClick={() => {
@@ -370,7 +371,6 @@ const Dashboard = () => {
         onAddManually={() => setShowAddDialog(true)}
       />
 
-      <BugReportButton />
 
       {/* Spotlight Tour - simplified, no longer needs FAB menu callbacks */}
       <SpotlightTour
