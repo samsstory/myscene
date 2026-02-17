@@ -115,18 +115,18 @@ export function WaitlistTab() {
       {/* Stats + Add */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
-        <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2">
-          <Users className="h-4 w-4 text-primary" />
+        <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-4 py-2">
+          <Users className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="font-semibold">{entries.length}</span>
         </div>
-        <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2">
-          <Clock className="h-4 w-4 text-secondary" />
+        <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-4 py-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">Pending</span>
           <span className="font-semibold">{pendingCount}</span>
         </div>
-        <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2">
-          <CheckCircle className="h-4 w-4 text-green-400" />
+        <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-4 py-2">
+          <CheckCircle className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">Approved</span>
           <span className="font-semibold">{approvedCount}</span>
         </div>
@@ -217,14 +217,14 @@ export function WaitlistTab() {
                   <TableCell>
                     <Badge
                       variant={entry.status === "approved" ? "default" : "secondary"}
-                      className={entry.status === "approved" ? "bg-green-600/20 text-green-400 border-green-600/30" : ""}
+                      className={entry.status === "approved" ? "bg-white/[0.08] text-foreground border-white/[0.12]" : "bg-white/[0.04] text-muted-foreground border-white/[0.06]"}
                     >
                       {entry.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     {entry.notified_at ? (
-                      <div className="flex items-center gap-1.5 text-green-400">
+                      <div className="flex items-center gap-1.5 text-foreground/60">
                         <Mail className="h-3.5 w-3.5" />
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(entry.notified_at), "MMM d")}

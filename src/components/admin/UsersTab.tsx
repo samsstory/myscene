@@ -87,7 +87,7 @@ export function UsersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2 w-fit">
+      <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-4 py-2 w-fit">
         <span className="text-sm text-muted-foreground">Total Users</span>
         <span className="font-semibold">{users.length}</span>
       </div>
