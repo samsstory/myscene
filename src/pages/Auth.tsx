@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { useReferralCapture, getStoredReferralCode, clearStoredReferralCode } from "@/hooks/useReferralCapture";
 import { ArrowLeft } from "lucide-react";
-import WaitlistSignup from "@/components/landing/WaitlistSignup";
+
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -219,12 +219,38 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup" className="mt-0">
-              <div className="space-y-4">
-                <p className="text-center text-muted-foreground text-sm mb-4">
-                  Join the waitlist to get early access
-                </p>
-                <WaitlistSignup source="hero" />
-              </div>
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email" className="text-white/70">Email</Label>
+                  <Input
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    required
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password" className="text-white/70">Password</Label>
+                  <Input
+                    id="signup-password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    minLength={6}
+                    required
+                    className={inputClassName}
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating account..." : "Create Account"}
+                </Button>
+              </form>
             </TabsContent>
           </Tabs>
         </div>
