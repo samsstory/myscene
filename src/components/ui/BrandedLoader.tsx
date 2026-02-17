@@ -29,11 +29,15 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showRe
         const { data } = await supabase
           .from("loading_quotes")
           .select("text, author")
-          .eq("is_active", true);
+          .eq("is_active", true)
+          .order("created_at", { ascending: true });
 
         if (!cancelled && data && data.length > 0) {
-          const randomQuote = data[Math.floor(Math.random() * data.length)];
-          setQuote({ text: randomQuote.text, author: randomQuote.author });
+          // Round-robin: track last index to rotate evenly
+          const lastIndex = parseInt(localStorage.getItem("scene-quote-index") ?? "-1", 10);
+          const nextIndex = (lastIndex + 1) % data.length;
+          localStorage.setItem("scene-quote-index", String(nextIndex));
+          setQuote({ text: data[nextIndex].text, author: data[nextIndex].author });
         }
       } catch {
         // Keep fallback
