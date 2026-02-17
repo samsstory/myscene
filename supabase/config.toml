@@ -36,5 +36,5 @@ verify_jwt = false
 [functions.parse-show-notes]
 verify_jwt = false
 
-[functions.generate-vapid-keys]
+[functions.send-push-notification]
 verify_jwt = false
