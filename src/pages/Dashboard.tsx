@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home as HomeIcon, Globe, Scale, Plus, Music } from "lucide-react";
+import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/components/Home";
@@ -42,6 +43,7 @@ const Dashboard = () => {
 
   const { showReassurance, showPrompt, elapsedMs, dismiss: dismissSlowLoad } = useSlowLoadDetector(loading);
   const { prompt, dismissPrompt, openReport, reportOpen, setReportOpen } = useBugReportPrompt();
+  const { stats } = useHomeStats();
 
   // Only elevate z-index for FAB during tour steps 0 and 4 (first and last)
   const shouldElevateNavZ = showSpotlightTour && (tourStepIndex === 0 || tourStepIndex === 4);
@@ -254,7 +256,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4">
         {renderContent()}
       </main>
 
@@ -304,7 +306,7 @@ const Dashboard = () => {
               ref={rankButtonRef}
               data-tour={rankTourActive ? undefined : "nav-rank"}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                "relative flex flex-col items-center gap-0.5 transition-all py-1.5",
                 rankTourActive && "opacity-0",
                 activeTab === "rank" 
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
@@ -312,6 +314,10 @@ const Dashboard = () => {
               )}
             >
               <Scale className="h-6 w-6" />
+              {/* Nudge dot for unranked shows or incomplete tags */}
+              {activeTab !== "rank" && (stats.unrankedCount > 0 || stats.incompleteTagsCount > 0) && (
+                <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.8)]" />
+              )}
             </button>
           </div>
         </nav>

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import StatPills, { StatPillAction } from "./home/StatPills";
 import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
 import StackedShowList from "./home/StackedShowList";
+import HighlightReel from "./home/HighlightReel";
 import IncompleteTagsSheet from "./home/IncompleteTagsSheet";
 import MissingPhotosSheet from "./home/MissingPhotosSheet";
 import FocusedRankingSession from "./home/FocusedRankingSession";
@@ -370,37 +371,55 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
     setViewMode('home');
   };
 
+  // Build highlight reel: mix top-ranked + most recent, prefer ones with photos
+  const getHighlightShows = useCallback(() => {
+    const rankingMap = new Map(rankings.map(r => [r.show_id, r]));
+    
+    // Get top-ranked shows (with comparisons)
+    const rankedShows = shows
+      .filter(s => {
+        const r = rankingMap.get(s.id);
+        return r && r.comparisons_count > 0;
+      })
+      .sort((a, b) => {
+        const eloA = rankingMap.get(a.id)?.elo_score || 1200;
+        const eloB = rankingMap.get(b.id)?.elo_score || 1200;
+        return eloB - eloA;
+      });
+
+    // Prioritize shows with photos, take top 5
+    const withPhotos = rankedShows.filter(s => s.photo_url);
+    const withoutPhotos = rankedShows.filter(s => !s.photo_url);
+    const combined = [...withPhotos, ...withoutPhotos].slice(0, 5);
+
+    // If not enough ranked shows, pad with recent
+    if (combined.length < 3) {
+      const usedIds = new Set(combined.map(s => s.id));
+      const recent = shows.filter(s => !usedIds.has(s.id)).slice(0, 5 - combined.length);
+      combined.push(...recent);
+    }
+
+    return combined.slice(0, 5);
+  }, [shows, rankings]);
+
   // Render functions for sub-views
   const renderHomeView = () => {
     const recentShows = shows.slice(0, 5);
+    const highlightShows = getHighlightShows();
     
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Stat Pills */}
         <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} showsTourActive={showsTourActive} showsRef={showsRef} />
 
-        {/* Ranking Progress Card - Always visible when user has 2+ shows */}
-        {shows.length >= 2 && (
-          <RankingProgressCard
-            percentage={stats.globalConfirmationPercentage}
-            totalShows={shows.length}
-            onTap={() => onNavigateToRank?.()}
+        {/* Personal Highlight Reel */}
+        {highlightShows.length > 0 && (
+          <HighlightReel
+            shows={highlightShows}
+            getRankInfo={getShowRankInfo}
+            onShowTap={handleShowTap}
           />
         )}
-
-        {/* Dynamic Insights - stacked cards */}
-        <DynamicInsight 
-          insights={insights} 
-          onAction={(action: InsightAction) => {
-            if (action === 'rank-tab') {
-              setFocusedRankingOpen(true);
-            } else if (action === 'incomplete-ratings') {
-              setIncompleteTagsOpen(true);
-            } else if (action === 'missing-photos') {
-              setMissingPhotosOpen(true);
-            }
-          }} 
-        />
 
         {/* Recent Shows */}
         <div className="space-y-3">
@@ -425,7 +444,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
             />
           )}
           
-          {/* Friend teaser - show when user has logged shows */}
+          {/* Friend teaser */}
           {recentShows.length > 0 && <FriendTeaser />}
         </div>
       </div>
