@@ -24,7 +24,7 @@ interface BugReport {
   created_at: string;
 }
 
-export function BugReportsTab() {
+export function BugReportsTab({ onCountChange }: { onCountChange?: (count: number) => void }) {
   const [reports, setReports] = useState<BugReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -33,6 +33,8 @@ export function BugReportsTab() {
     setLoading(true);
     const { data } = await (supabase.from("bug_reports" as any).select("*").order("created_at", { ascending: false }) as any);
     setReports((data as BugReport[] | null) ?? []);
+    const newCount = ((data as BugReport[] | null) ?? []).filter(r => r.status === "new").length;
+    onCountChange?.(newCount);
     setLoading(false);
   };
 
@@ -43,7 +45,11 @@ export function BugReportsTab() {
   const markResolved = async (id: string) => {
     setUpdatingId(id);
     await (supabase.from("bug_reports" as any).update({ status: "resolved" } as any).eq("id", id) as any);
-    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: "resolved" } : r)));
+    setReports((prev) => {
+      const updated = prev.map((r) => (r.id === id ? { ...r, status: "resolved" } : r));
+      onCountChange?.(updated.filter(r => r.status === "new").length);
+      return updated;
+    });
     setUpdatingId(null);
   };
 
