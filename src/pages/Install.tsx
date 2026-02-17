@@ -1,6 +1,7 @@
 import { ArrowLeft, Share, Plus, MoreVertical, Download, Check, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isAndroid = () => /Android/.test(navigator.userAgent);
@@ -11,8 +12,11 @@ export default function Install() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Dev overlay */}
+      {import.meta.env.DEV && <DynamicIslandOverlay />}
+
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-white/5">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-white/5 pt-safe">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5" />

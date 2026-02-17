@@ -22,6 +22,7 @@ import BugReportButton from "@/components/BugReportButton";
 import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
 import BugPromptBanner from "@/components/BugPromptBanner";
+import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -228,8 +229,11 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-accent pb-24">
+      {/* Dev overlay */}
+      {import.meta.env.DEV && <DynamicIslandOverlay />}
+
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 pt-safe">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <SceneLogo size="lg" className="text-white" />
           <button
@@ -256,7 +260,7 @@ const Dashboard = () => {
 
       {/* Floating Navigation */}
       <div className={cn(
-        "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4",
+        "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4 pb-safe",
         shouldElevateNavZ ? "z-[10001]" : "z-50"
       )}>
         {/* Left spacer to balance FAB for centering pill */}
