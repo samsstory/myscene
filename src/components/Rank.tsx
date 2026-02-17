@@ -493,33 +493,15 @@ export default function Rank({ onAddShow }: RankProps) {
     <>
     {debugBar}
     <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
-      {/* Header with brand glow and confirmation ring */}
-      <div className="text-center space-y-3">
-        <h1 
-          className="text-lg font-black tracking-[0.15em] uppercase"
-          style={{
-            textShadow: '0 0 8px rgba(255,255,255,0.4), 0 0 20px rgba(255,255,255,0.15)'
-          }}
-        >
-          Show Ranker
-        </h1>
-        
-        {/* Confirmation Ring - centered below title */}
-        <div className="flex justify-center">
-          <ConfirmationRing 
-            percentage={globalConfirmation} 
-            size="md" 
-            showLabel={true}
-            labelPosition="right"
-          />
-        </div>
+      {/* Confirmation Ring */}
+      <div className="flex justify-center">
+        <ConfirmationRing 
+          percentage={globalConfirmation} 
+          size="md" 
+          showLabel={true}
+          labelPosition="right"
+        />
       </div>
-
-      {/* Progress Bar */}
-      <RankingProgressBar 
-        comparisons={totalComparisons} 
-        totalShows={shows.length} 
-      />
 
       {/* VS Battle Cards */}
       <div className="relative flex gap-3 items-start pt-4">
@@ -535,18 +517,10 @@ export default function Rank({ onAddShow }: RankProps) {
           isExpanded={showDetails}
         />
 
-        {/* VS Badge - positioned relative to photo aspect ratio (4:3), not full card */}
-        <div 
-          className="absolute left-1/2 -translate-x-1/2 z-20"
-          style={{ top: 'calc((100vw - 2rem - 0.75rem) / 2 * 0.75 / 2 + 1rem)' }}
-        >
-          <div 
-            className="bg-primary text-primary-foreground font-bold text-sm px-4 py-2 rounded-full"
-            style={{ 
-              boxShadow: '0 0 20px hsl(var(--primary) / 0.5), 0 4px 12px rgba(0,0,0,0.3)' 
-            }}
-          >
-            VS
+        {/* VS Badge */}
+        <div className="absolute left-1/2 -translate-x-1/2 z-20 top-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="w-7 h-7 rounded-full bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] flex items-center justify-center">
+            <span className="text-[10px] font-medium text-white/50">VS</span>
           </div>
         </div>
 
@@ -576,10 +550,6 @@ export default function Rank({ onAddShow }: RankProps) {
             showDetails && "rotate-180"
           )} />
         </button>
-        
-        <p className="text-sm text-muted-foreground">
-          Tap to choose the winner
-        </p>
         
         {/* Can't Compare */}
         <button
