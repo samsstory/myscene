@@ -17,6 +17,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { PushNotificationsPanel } from "./PushNotificationsPanel";
 import { toast } from "@/hooks/use-toast";
 import {
   DEFAULT_APPROVE_SUBJECT,
@@ -125,8 +126,8 @@ type Channel = "email" | "sms" | "app";
 
 const CHANNELS: { value: Channel; label: string; icon: React.ReactNode; soon?: boolean }[] = [
   { value: "email", label: "Email", icon: <Mail className="h-4 w-4" /> },
+  { value: "app", label: "Push", icon: <Bell className="h-4 w-4" /> },
   { value: "sms", label: "SMS", icon: <MessageSquare className="h-4 w-4" />, soon: true },
-  { value: "app", label: "App", icon: <Bell className="h-4 w-4" />, soon: true },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -430,6 +431,8 @@ export function AnnouncementsPanel() {
             </Button>
           )}
         </div>
+      ) : channel === "app" ? (
+        <PushNotificationsPanel />
       ) : (
         <ComingSoonPlaceholder channel={channel} />
       )}
