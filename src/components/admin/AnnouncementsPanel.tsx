@@ -377,7 +377,7 @@ export function AnnouncementsPanel() {
             className={cn(
               "gap-1.5 border transition-all",
               channel === ch.value
-                ? "bg-white/[0.08] border-white/[0.15] text-foreground"
+                ? "bg-primary/[0.10] border-primary/[0.25] text-primary/80"
                 : "bg-transparent border-white/[0.06] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
               ch.soon ? "opacity-50" : "",
             )}
