@@ -48,9 +48,14 @@ async function searchFoursquare(
   lat?: number | null,
   lon?: number | null
 ): Promise<FoursquareVenue[]> {
-  // Don't use ll/radius — it over-biases to the user's city
-  // Foursquare's text matching handles global search well without location bias
   const params = new URLSearchParams({ query, limit: '15' });
+
+  // Use location bias when available — helps find nearby venues
+  // but Foursquare still searches globally for strong name matches
+  if (lat && lon) {
+    params.set('ll', `${lat},${lon}`);
+    params.set('radius', '100000');
+  }
 
   const url = `https://places-api.foursquare.com/places/search?${params.toString()}`;
   console.log(`[Foursquare] Searching: ${query} (type: ${showType})`);
@@ -98,14 +103,27 @@ async function searchGooglePlaces(
   let searchQuery = query;
   if (showType === 'festival') searchQuery = `${query} festival`;
 
-  let locationBias = '';
-  if (lat && lon) locationBias = `&location=${lat},${lon}&radius=50000`;
-
-  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}${locationBias}&key=${apiKey}`;
   console.log(`[Google] Searching: ${searchQuery}`);
 
   try {
-    const response = await fetch(url);
+    const body: any = { textQuery: searchQuery, maxResultCount: 15 };
+
+    if (lat && lon) {
+      body.locationBias = {
+        circle: { center: { latitude: lat, longitude: lon }, radius: 50000 }
+      };
+    }
+
+    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types',
+      },
+      body: JSON.stringify(body),
+    });
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[Google] Error ${response.status}: ${errorText}`);
@@ -113,26 +131,17 @@ async function searchGooglePlaces(
     }
 
     const data = await response.json();
-    if (data.status !== 'OK' || !data.results) {
-      console.log(`[Google] Status: ${data.status}`);
-      return [];
-    }
+    const places = data.places || [];
+    console.log(`[Google] Returned ${places.length} results`);
 
-    // Filter out irrelevant results
-    const excludeKeywords = [
-      'floral', 'flower', 'wholesale', 'retail', 'shop', 'store',
-      'salon', 'spa', 'hotel', 'motel', 'apartment', 'real estate',
-      'dentist', 'doctor', 'clinic', 'hospital', 'pharmacy',
-      'bank', 'atm', 'insurance', 'lawyer', 'school', 'church'
-    ];
-
-    const filtered = data.results.filter((place: any) => {
-      const combined = `${place.name} ${place.types?.join(' ')}`.toLowerCase();
-      return !excludeKeywords.some(kw => combined.includes(kw));
-    });
-
-    console.log(`[Google] Filtered to ${filtered.length} results`);
-    return filtered.slice(0, 15);
+    // Map new API format to our GooglePlace interface
+    return places.map((p: any) => ({
+      place_id: p.id || '',
+      name: p.displayName?.text || '',
+      formatted_address: p.formattedAddress || '',
+      geometry: { location: { lat: p.location?.latitude || 0, lng: p.location?.longitude || 0 } },
+      types: p.types || [],
+    }));
   } catch (error) {
     console.error('[Google] Exception:', error);
     return [];
@@ -366,20 +375,29 @@ serve(async (req) => {
       if (insertErr) console.error('Cache error:', insertErr);
     }
 
-    // 8. Sort and return
+    // 8. Sort and return — prioritize name relevance
     const searchLower = searchTerm.trim().toLowerCase();
+    const searchWords = searchLower.split(/\s+/);
+
+    function relevanceScore(name: string): number {
+      const lower = name.toLowerCase();
+      if (lower === searchLower) return 100;
+      if (lower.startsWith(searchLower)) return 80;
+      // Check how many search words appear in the name
+      const matchCount = searchWords.filter(w => lower.includes(w)).length;
+      return (matchCount / searchWords.length) * 60;
+    }
+
     const suggestions = Array.from(venueMap.values()).sort((a, b) => {
-      const aExact = a.name.toLowerCase() === searchLower;
-      const bExact = b.name.toLowerCase() === searchLower;
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-
-      const aStarts = a.name.toLowerCase().startsWith(searchLower);
-      const bStarts = b.name.toLowerCase().startsWith(searchLower);
-      if (aStarts && !bStarts) return -1;
-      if (!aStarts && bStarts) return 1;
-
+      // User's own shows always first
       if (a.user_show_count !== b.user_show_count) return b.user_show_count - a.user_show_count;
+
+      // Then by name relevance
+      const aScore = relevanceScore(a.name);
+      const bScore = relevanceScore(b.name);
+      if (aScore !== bScore) return bScore - aScore;
+
+      // Then scene users
       if (a.scene_users_count !== b.scene_users_count) return b.scene_users_count - a.scene_users_count;
 
       return a.name.localeCompare(b.name);
