@@ -152,6 +152,19 @@ Deno.serve(async (req) => {
     const sent = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.filter((r) => r.status === "rejected").length;
 
+    // Log the notification
+    await supabaseAdmin.from("push_notification_logs").insert({
+      sender_id: callerId,
+      target_type: "user",
+      target_user_id: user_id,
+      title,
+      body,
+      url: url || "/",
+      sent_count: sent,
+      failed_count: failed,
+      total_devices: subscriptions.length,
+    });
+
     return new Response(
       JSON.stringify({ sent, failed, total: subscriptions.length }),
       {

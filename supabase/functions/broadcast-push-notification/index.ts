@@ -143,6 +143,19 @@ Deno.serve(async (req) => {
         .map((r) => r.value.user_id)
     );
 
+    // Log the broadcast
+    await supabaseAdmin.from("push_notification_logs").insert({
+      sender_id: callerId,
+      target_type: "broadcast",
+      target_user_id: null,
+      title,
+      body,
+      url: url || "/",
+      sent_count: sent,
+      failed_count: failed,
+      total_devices: subscriptions.length,
+    });
+
     return new Response(
       JSON.stringify({
         sent,
