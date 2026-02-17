@@ -918,7 +918,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               >
                 <div className="flex items-center gap-3">
                   <Tag className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-foreground">{stats.incompleteTagsCount} {stats.incompleteTagsCount === 1 ? 'show needs' : 'shows need'} tags</span>
+                  <span className="text-sm text-foreground">{stats.incompleteTagsCount} {stats.incompleteTagsCount === 1 ? 'show needs' : 'shows need'} highlights</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-white/30" />
               </button>

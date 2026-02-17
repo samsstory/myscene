@@ -83,7 +83,7 @@ export const DemoIncompleteTagsSheet = ({
             <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-9 w-9">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <SheetTitle className="text-lg font-bold">Add Moments</SheetTitle>
+            <SheetTitle className="text-lg font-bold">Add Highlights</SheetTitle>
           </div>
           
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/10">
@@ -106,7 +106,7 @@ export const DemoIncompleteTagsSheet = ({
           {incompleteShows.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-center">
               <Check className="h-10 w-10 text-primary mb-2" />
-              <p className="text-white/60">All shows have moments tagged!</p>
+              <p className="text-white/60">All shows have highlights!</p>
             </div>
           ) : (
             incompleteShows.map(show => {
@@ -146,7 +146,7 @@ export const DemoIncompleteTagsSheet = ({
                       {complete ? (
                         <Check className="h-4 w-4 text-primary" />
                       ) : (
-                        <span className="text-xs text-white/40">No tags</span>
+                        <span className="text-xs text-white/40">No highlights</span>
                       )}
                       <ChevronDown className={cn("h-4 w-4 text-white/40 transition-transform", isExpanded && "rotate-180")} />
                     </div>
