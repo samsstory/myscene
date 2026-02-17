@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, Camera, Instagram, Eye, Loader2, Download } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -30,10 +31,17 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallCTA, setShowInstallCTA] = useState(false);
   const [installDismissed, setInstallDismissed] = useState(false);
+  const [showPushInterstitial, setShowPushInterstitial] = useState(false);
 
   useEffect(() => {
     const isFirstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
+
+    // Show push interstitial on first show, if not already seen
+    const pushSeen = localStorage.getItem("scene-push-prompt-seen");
+    if (isFirstShow && !pushSeen && "Notification" in window && Notification.permission !== "denied") {
+      setShowPushInterstitial(true);
+    }
 
     // TEMP: bypass checks for preview testing
     // if (!isFirstShow) return;
@@ -83,6 +91,18 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     };
     input.click();
   };
+
+  // If we need to show the push interstitial, render it as the full content
+  if (showPushInterstitial) {
+    return (
+      <PushNotificationInterstitial
+        onComplete={() => {
+          setShowPushInterstitial(false);
+          // After push flow, just show the rest of the success screen (don't auto-close)
+        }}
+      />
+    );
+  }
 
   return (
     <div className="text-center space-y-6 py-4">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, Plus, Image, MessageCircle, Scale, Share, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
+import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -44,11 +45,18 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallCTA, setShowInstallCTA] = useState(false);
   const [installDismissed, setInstallDismissed] = useState(false);
+  const [showPushInterstitial, setShowPushInterstitial] = useState(false);
 
   // Set first-show flag and capture install prompt
   useEffect(() => {
     const isFirstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
+
+    // Show push interstitial on first show, if not already seen
+    const pushSeen = localStorage.getItem("scene-push-prompt-seen");
+    if (isFirstShow && !pushSeen && "Notification" in window && Notification.permission !== "denied") {
+      setShowPushInterstitial(true);
+    }
 
     // TEMP: bypass checks for preview testing
     // if (!isFirstShow) return;
@@ -92,6 +100,15 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
     const shareText = `Just added ${showCount} shows to my Scene! 🎵`;
     window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
   };
+
+  // If we need to show the push interstitial, render it as the full content
+  if (showPushInterstitial) {
+    return (
+      <PushNotificationInterstitial
+        onComplete={() => setShowPushInterstitial(false)}
+      />
+    );
+  }
 
   return (
     <div className="text-center space-y-6 py-4">
