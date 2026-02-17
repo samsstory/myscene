@@ -129,7 +129,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setEditInitialized(true);
     } else if (open && !editShow) {
       setShowStepSelector(false);
-      setStep(1);
+      setStep(0);
       setEntryPoint(null);
       setEditPhotoUrl(null);
       setEditInitialized(false);
