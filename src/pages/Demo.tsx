@@ -10,6 +10,7 @@ import DemoAddShowFlow from "@/components/DemoAddShowFlow";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { DemoProvider } from "@/contexts/DemoContext";
 import { cn } from "@/lib/utils";
+import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ViewMode = 'home' | 'globe' | 'rankings';
@@ -35,8 +36,11 @@ const Demo = () => {
     <DemoProvider enabled>
       <TooltipProvider>
         <div className="min-h-screen bg-gradient-accent pb-32">
+          {/* Dev overlay */}
+          {import.meta.env.DEV && <DynamicIslandOverlay />}
+
           {/* Header */}
-          <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+          <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 pt-safe">
             <div className="container mx-auto px-4 py-4 flex items-center justify-between">
               <SceneLogo size="lg" className="text-white" />
               <button

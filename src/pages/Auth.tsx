@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { useReferralCapture, getStoredReferralCode, clearStoredReferralCode } from "@/hooks/useReferralCapture";
 import { ArrowLeft } from "lucide-react";
+import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 
 const Auth = () => {
@@ -117,7 +118,9 @@ const Auth = () => {
   const inputClassName = "bg-white/[0.04] border-white/[0.08] placeholder:text-white/30 focus:border-primary/50 focus:ring-primary/20 text-base transition-all duration-200 focus:shadow-[0_0_12px_hsl(var(--primary)/0.15)]";
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen relative overflow-hidden bg-background flex items-center justify-center p-4 pt-safe">
+      {/* Dev overlay */}
+      {import.meta.env.DEV && <DynamicIslandOverlay />}
       {/* Mesh gradient backgrounds */}
       <div 
         className="absolute top-0 left-0 w-[60%] h-[60%] opacity-[0.15] blur-3xl animate-pulse"
