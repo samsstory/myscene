@@ -19,7 +19,7 @@ import MapStatsCard from "./map/MapStatsCard";
 
 interface Show {
   id: string;
-  artists: Array<{ name: string; isHeadliner: boolean }>;
+  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string }>;
   venue: { name: string; location: string };
   date: string;
   rating?: number | null;
@@ -283,14 +283,27 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
         </div>
       `;
     } else {
-      // Fallback dot marker with artist initial
-      const initial = show.artists[0]?.name?.charAt(0) || '♪';
-      el.innerHTML = `
-        <div class="dot-marker-container">
-          <span class="dot-marker-initial">${initial}</span>
-          <div class="dot-marker-glow"></div>
-        </div>
-      `;
+      // Try headliner artist image as fallback
+      const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
+      const artistImage = headliner?.imageUrl;
+      
+      if (artistImage) {
+        el.innerHTML = `
+          <div class="photo-marker-container">
+            <img src="${artistImage}" alt="" class="photo-marker-img" />
+            <div class="photo-marker-glow"></div>
+          </div>
+        `;
+      } else {
+        // Fallback dot marker with artist initial
+        const initial = show.artists[0]?.name?.charAt(0) || '♪';
+        el.innerHTML = `
+          <div class="dot-marker-container">
+            <span class="dot-marker-initial">${initial}</span>
+            <div class="dot-marker-glow"></div>
+          </div>
+        `;
+      }
     }
     
     return el;
