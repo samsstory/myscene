@@ -999,7 +999,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             variant="ghost"
             size="icon"
             onClick={handleBack}
-            className="h-8 w-8 absolute left-4 top-4 z-10"
+            className="h-8 w-8 absolute left-4 top-4 z-20"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
