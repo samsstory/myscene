@@ -1,44 +1,92 @@
 
-# Fix: "Fixing Locations..." Button Freeze on Show Globe
 
-## Problem
-When a user clicks "Fix All Missing Locations", the button shows a spinner with "Fixing Locations..." and the app freezes in that state indefinitely.
+# iOS Safe Area Compliance with Visual Dynamic Island Overlay
 
-**Root cause**: The `backfill-venue-coordinates` edge function processes shows one-by-one with a 200ms delay between each, plus a geocoding API call per show. For even a handful of shows this can exceed the edge function timeout (~60s), causing the invoke call to hang and the loading spinner to never clear.
-
-**Secondary issue**: The response handler assumes `data.results.success` exists without null checks, which can crash if the edge function returns an unexpected shape.
+## Overview
+Two-part approach: (1) a toggleable Dynamic Island overlay visible in the browser preview so you can always see exactly what's behind the notch, and (2) CSS safe-area padding fixes across all screens.
 
 ---
 
-## Fix Summary
+## Part 1: Dynamic Island Dev Overlay
 
-1. **Add a timeout wrapper** around the `supabase.functions.invoke` call in `handleFixMissingLocations` so the UI always recovers, even if the edge function hangs.
+Create a new component (`src/components/ui/DynamicIslandOverlay.tsx`) that renders a fixed, semi-transparent Dynamic Island shape at the top-center of the viewport. This overlay is purely visual — it doesn't block clicks (using `pointer-events: none`) — so you can interact with the app normally while seeing exactly what would be hidden on a real iPhone.
 
-2. **Add null-safe access** to the response data (`data?.results?.success`) to prevent crashes on malformed responses.
+- Fixed position at the very top of the screen, centered horizontally
+- Shaped and sized to match the iPhone 15/16 Dynamic Island (126 x 37 pts, pill shape)
+- Includes a subtle status bar area (time, signal, battery) for realism
+- Semi-transparent black so you can see content underneath
+- Uses `pointer-events: none` so it never interferes with the app
+- Only rendered in development mode (`import.meta.env.DEV`) — automatically excluded from production builds
+- Can be toggled on/off via a small button in the corner (persisted to localStorage)
 
-3. **Optimize the edge function** to process shows in parallel (batch of 3-5 concurrently) instead of sequentially, reducing total execution time significantly.
+This component will be added to `Dashboard.tsx`, `Auth.tsx`, `Demo.tsx`, and `Install.tsx` so it appears on all app screens during development.
 
-4. **Add a global timeout** inside the edge function itself to return partial results before hitting the platform timeout.
+---
+
+## Part 2: Safe Area CSS and Layout Fixes
+
+### New CSS utilities (`src/index.css`)
+- `pb-safe` — padding-bottom using `env(safe-area-inset-bottom)`
+- `pl-safe` / `pr-safe` — left/right safe area padding
+
+### Screen-by-screen fixes
+
+**Dashboard.tsx (header)**
+- Add `pt-safe` to the sticky header so the logo and avatar clear the Dynamic Island
+
+**Dashboard.tsx (bottom nav)**
+- Add `pb-safe` to the floating navigation container so it clears the home indicator
+
+**Auth.tsx**
+- Add `pt-safe` to the page container
+
+**Demo.tsx**
+- Add `pt-safe` to the sticky header
+
+**Install.tsx**
+- Add `pt-safe` to the sticky header
+
+**AddShowFlow.tsx**
+- Change dialog top positioning to `top-[max(1rem,env(safe-area-inset-top))]`
+
+**Toast viewport (`src/components/ui/toast.tsx`)**
+- Add top safe-area padding so toasts don't render behind the notch
+
+**LandingHero.tsx (v1)**
+- Verify `pt-safe` is applied (v2 already has it)
 
 ---
 
 ## Technical Details
 
-### File: `src/components/MapView.tsx`
+### DynamicIslandOverlay component
 
-- Wrap the `supabase.functions.invoke` call in a `Promise.race` with a 55-second timeout, so the UI always exits the loading state.
-- Add safe access: `data?.results?.success > 0` instead of `data.results.success > 0`.
-- Show a user-friendly toast if the timeout fires, suggesting they try again or fix manually.
+```text
++--------------------------------------------------+
+|  [Dynamic Island pill - 126x37, fixed top-center] |  <-- pointer-events: none
+|  [Status bar: 9:41, signal, wifi, battery icons]  |
++--------------------------------------------------+
+|                                                    |
+|            Normal app content below                |
+|                                                    |
++--------------------------------------------------+
+```
 
-### File: `supabase/functions/backfill-venue-coordinates/index.ts`
+- File: `src/components/ui/DynamicIslandOverlay.tsx`
+- Rendered conditionally: `{import.meta.env.DEV && <DynamicIslandOverlay />}`
+- Toggle button: small phone icon in bottom-left corner, only in dev mode
+- State stored in `localStorage` key `scene-dev-island-overlay`
 
-- Replace the sequential `for` loop with batched parallel processing (3 shows at a time using `Promise.all` on slices).
-- Remove the 200ms per-show delay (the batching naturally rate-limits).
-- Add a time guard: if elapsed time exceeds 50 seconds, stop processing and return partial results with a flag indicating incomplete work.
-- Return a `partial: true` field when not all shows were processed so the frontend can inform the user.
+### Files to create
+- `src/components/ui/DynamicIslandOverlay.tsx`
 
-### Result
+### Files to modify
+- `src/index.css` — add `pb-safe`, `pl-safe`, `pr-safe` utilities
+- `src/pages/Dashboard.tsx` — add overlay + `pt-safe` on header + `pb-safe` on nav
+- `src/pages/Auth.tsx` — add overlay + `pt-safe`
+- `src/pages/Demo.tsx` — add overlay + `pt-safe`
+- `src/pages/Install.tsx` — add overlay + `pt-safe`
+- `src/components/AddShowFlow.tsx` — safe-area-aware top positioning
+- `src/components/ui/toast.tsx` — top safe-area padding
+- `src/components/landing/LandingHero.tsx` — verify/add `pt-safe`
 
-- The "Fixing Locations..." button will never freeze indefinitely.
-- Backfilling will be 3-5x faster due to parallel processing.
-- Partial results are reported gracefully if the function runs out of time.
