@@ -11,6 +11,7 @@ interface UnifiedSearchResult {
   id: string;
   name: string;
   subtitle?: string;
+  imageUrl?: string;
   location?: string;
   latitude?: number;
   longitude?: number;
@@ -168,9 +169,17 @@ const UnifiedSearchStep = ({ onSelect }: UnifiedSearchStepProps) => {
                 )}
               >
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Music className="h-5 w-5 text-primary" />
-                  </div>
+                  {result.imageUrl ? (
+                    <img
+                      src={result.imageUrl}
+                      alt={result.name}
+                      className="h-10 w-10 rounded-full object-cover border border-white/10 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Music className="h-5 w-5 text-primary" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold">{result.name}</div>
                     {result.subtitle && (
