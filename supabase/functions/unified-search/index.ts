@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 interface UnifiedSearchResult {
@@ -11,11 +11,38 @@ interface UnifiedSearchResult {
   id: string;
   name: string;
   subtitle?: string;
+  imageUrl?: string;
   location?: string;
   latitude?: number;
   longitude?: number;
   userShowCount?: number;
   sceneUsersCount?: number;
+}
+
+let spotifyToken: string | null = null;
+let tokenExpiry = 0;
+
+async function getSpotifyToken(): Promise<string> {
+  if (spotifyToken && Date.now() < tokenExpiry) return spotifyToken;
+
+  const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
+  const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
+  if (!clientId || !clientSecret) throw new Error('Spotify credentials not configured');
+
+  const resp = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+  });
+
+  if (!resp.ok) throw new Error(`Spotify auth failed: ${resp.status}`);
+  const data = await resp.json();
+  spotifyToken = data.access_token;
+  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return spotifyToken!;
 }
 
 serve(async (req) => {
@@ -37,30 +64,20 @@ serve(async (req) => {
     let userId: string | null = null;
     let supabaseClient: any = null;
 
-    // Try to get user ID if authenticated - use proper JWT verification
     if (authHeader?.startsWith('Bearer ')) {
       try {
         supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-          {
-            global: {
-              headers: { Authorization: authHeader },
-            },
-          }
+          { global: { headers: { Authorization: authHeader } } }
         );
-
-        // Properly verify JWT using Supabase auth (validates signature)
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-        
         if (!authError && user) {
           userId = user.id;
         } else {
-          console.log('Invalid auth token, proceeding without user context');
           supabaseClient = null;
         }
       } catch (e) {
-        console.log('Could not verify auth token, proceeding without user context');
         supabaseClient = null;
       }
     }
@@ -70,33 +87,31 @@ serve(async (req) => {
     const results: UnifiedSearchResult[] = [];
     const searchLower = searchTerm.trim().toLowerCase();
 
-    // Run artist and venue searches in parallel
     const [artistResults, venueResults, userShowsResults] = await Promise.all([
-      // 1. Search MusicBrainz for artists
-      searchMusicBrainz(searchTerm),
-      
-      // 2. Search Google Places for venues
+      searchSpotify(searchTerm),
       searchGooglePlaces(searchTerm, userId, supabaseClient),
-      
-      // 3. Search user's own show history (if authenticated)
       userId && supabaseClient ? searchUserHistory(searchTerm, userId, supabaseClient) : Promise.resolve({ artists: [], venues: [] }),
     ]);
 
     // Add user's own artists first (highest priority)
     if (userShowsResults.artists.length > 0) {
       for (const artist of userShowsResults.artists.slice(0, 3)) {
+        // Try to find matching Spotify result for the image
+        const spotifyMatch = artistResults.find(
+          (s: any) => s.name.toLowerCase() === artist.name.toLowerCase()
+        );
         results.push({
           type: 'artist',
           id: `user-artist-${artist.name}`,
           name: artist.name,
           subtitle: `You've seen ${artist.count} time${artist.count !== 1 ? 's' : ''}`,
+          imageUrl: spotifyMatch?.imageUrl || undefined,
         });
       }
     }
 
-    // Add MusicBrainz artists
+    // Add Spotify artists
     for (const artist of artistResults.slice(0, 5)) {
-      // Skip if already added from user history
       if (results.some(r => r.type === 'artist' && r.name.toLowerCase() === artist.name.toLowerCase())) {
         continue;
       }
@@ -104,7 +119,8 @@ serve(async (req) => {
         type: 'artist',
         id: artist.id,
         name: artist.name,
-        subtitle: artist.disambiguation || artist.country || undefined,
+        subtitle: artist.genres?.join(', ') || undefined,
+        imageUrl: artist.imageUrl || undefined,
       });
     }
 
@@ -123,7 +139,6 @@ serve(async (req) => {
 
     // Add Google Places venues
     for (const venue of venueResults.slice(0, 10)) {
-      // Skip if already added from user history
       if (results.some(r => r.type === 'venue' && r.name.toLowerCase() === venue.name.toLowerCase())) {
         continue;
       }
@@ -137,27 +152,20 @@ serve(async (req) => {
       });
     }
 
-    // Sort results: exact matches first, then starts-with, then user history items
+    // Sort results
     results.sort((a, b) => {
       const aName = a.name.toLowerCase();
       const bName = b.name.toLowerCase();
-      
-      // Exact matches first
       if (aName === searchLower && bName !== searchLower) return -1;
       if (bName === searchLower && aName !== searchLower) return 1;
-      
-      // Starts with matches second
       const aStarts = aName.startsWith(searchLower);
       const bStarts = bName.startsWith(searchLower);
       if (aStarts && !bStarts) return -1;
       if (bStarts && !aStarts) return 1;
-      
-      // User history items get priority
       const aUserItem = a.userShowCount && a.userShowCount > 0;
       const bUserItem = b.userShowCount && b.userShowCount > 0;
       if (aUserItem && !bUserItem) return -1;
       if (bUserItem && !aUserItem) return 1;
-      
       return 0;
     });
 
@@ -177,32 +185,28 @@ serve(async (req) => {
   }
 });
 
-async function searchMusicBrainz(searchTerm: string): Promise<Array<{ id: string; name: string; disambiguation?: string; country?: string }>> {
+async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; name: string; imageUrl?: string; genres?: string[] }>> {
   try {
+    const token = await getSpotifyToken();
     const response = await fetch(
-      `https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(searchTerm)}&fmt=json&limit=8`,
-      {
-        headers: {
-          'User-Agent': 'Scene/1.0 (https://myscene.lovable.app)',
-          'Accept': 'application/json',
-        },
-      }
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=8`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
     );
 
     if (!response.ok) {
-      console.error('[unified-search] MusicBrainz error:', response.status);
+      console.error('[unified-search] Spotify error:', response.status);
       return [];
     }
 
     const data = await response.json();
-    return (data.artists || []).map((artist: any) => ({
+    return (data.artists?.items || []).map((artist: any) => ({
       id: artist.id,
       name: artist.name,
-      disambiguation: artist.disambiguation || '',
-      country: artist.country || '',
+      imageUrl: artist.images?.[artist.images.length > 1 ? 1 : 0]?.url || null,
+      genres: artist.genres?.slice(0, 2) || [],
     }));
   } catch (error) {
-    console.error('[unified-search] MusicBrainz error:', error);
+    console.error('[unified-search] Spotify error:', error);
     return [];
   }
 }
@@ -220,7 +224,6 @@ async function searchGooglePlaces(
   }
 
   try {
-    // Get user's home coordinates for proximity biasing
     let locationBias = '';
     if (userId && supabaseClient) {
       const { data: profile } = await supabaseClient
@@ -248,7 +251,6 @@ async function searchGooglePlaces(
       return [];
     }
 
-    // Filter out irrelevant results
     const excludeKeywords = [
       'floral', 'flower', 'wholesale', 'retail', 'shop', 'store',
       'salon', 'spa', 'hotel', 'motel', 'apartment', 'real estate',
@@ -263,7 +265,6 @@ async function searchGooglePlaces(
       })
       .slice(0, 15)
       .map((place: any) => {
-        // Extract city and state from formatted_address
         const addressParts = place.formatted_address.split(', ');
         let location = '';
         
@@ -305,7 +306,6 @@ async function searchUserHistory(
   const venues: Array<{ id?: string; name: string; location: string; count: number }> = [];
 
   try {
-    // Search user's show artists
     const { data: showArtists } = await supabaseClient
       .from('show_artists')
       .select('artist_name, show_id, shows!inner(user_id)')
@@ -326,7 +326,6 @@ async function searchUserHistory(
       artists.sort((a, b) => b.count - a.count);
     }
 
-    // Search user's venues
     const { data: userShows } = await supabaseClient
       .from('shows')
       .select('venue_name, venue_location, venue_id')

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Music } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ interface SearchResult {
   id: string;
   name: string;
   subtitle?: string;
+  imageUrl?: string;
 }
 
 interface ArtistTagInputProps {
@@ -37,7 +38,6 @@ const ArtistTagInput = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Search artists
   useEffect(() => {
     const search = async () => {
       if (inputValue.trim().length < 2) {
@@ -73,14 +73,12 @@ const ArtistTagInput = ({
     const trimmedName = name.trim();
     if (!trimmedName) return;
     
-    // Check if already added
     if (artists.some(a => a.name.toLowerCase() === trimmedName.toLowerCase())) {
       setInputValue("");
       setSearchResults([]);
       return;
     }
 
-    // First artist is headliner, rest are not
     const isHeadliner = artists.length === 0;
     onArtistsChange([...artists, { name: trimmedName, isHeadliner }]);
     setInputValue("");
@@ -90,7 +88,6 @@ const ArtistTagInput = ({
 
   const removeArtist = (index: number) => {
     const newArtists = artists.filter((_, i) => i !== index);
-    // If we removed the headliner, make the new first artist the headliner
     if (newArtists.length > 0 && index === 0) {
       newArtists[0] = { ...newArtists[0], isHeadliner: true };
     }
@@ -102,7 +99,6 @@ const ArtistTagInput = ({
       e.preventDefault();
       addArtist(inputValue);
     } else if (e.key === 'Backspace' && !inputValue && artists.length > 0) {
-      // Remove last artist when backspacing on empty input
       removeArtist(artists.length - 1);
     }
   };
@@ -123,7 +119,6 @@ const ArtistTagInput = ({
           className
         )}
       >
-        {/* Artist pills */}
         {artists.map((artist, index) => (
           <span
             key={index}
@@ -146,7 +141,6 @@ const ArtistTagInput = ({
           </span>
         ))}
         
-        {/* Input field */}
         <input
           ref={inputRef}
           type="text"
@@ -165,14 +159,13 @@ const ArtistTagInput = ({
         )}
       </div>
 
-      {/* Helper hint when typing */}
       {inputValue.trim().length > 0 && (
         <p className="text-xs text-muted-foreground mt-1 px-1">
           Press <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">Enter</kbd> to add "{inputValue}"
         </p>
       )}
 
-      {/* Search results dropdown */}
+      {/* Search results dropdown with artist images */}
       {showResults && searchResults.length > 0 && (
         <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover/95 backdrop-blur-sm border border-white/[0.1] rounded-md shadow-lg max-h-48 overflow-y-auto">
           {searchResults.map((result) => (
@@ -182,14 +175,27 @@ const ArtistTagInput = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => addArtist(result.name)}
               className={cn(
-                "w-full text-left px-3 py-2.5 text-sm transition-all duration-150",
+                "w-full text-left px-3 py-2.5 text-sm transition-all duration-150 flex items-center gap-2.5",
                 "hover:bg-primary/10 hover:border-l-2 hover:border-primary border-l-2 border-transparent"
               )}
             >
-              <span className="font-medium">{result.name}</span>
-              {result.subtitle && (
-                <span className="text-muted-foreground ml-2 text-xs">{result.subtitle}</span>
+              {result.imageUrl ? (
+                <img
+                  src={result.imageUrl}
+                  alt={result.name}
+                  className="w-7 h-7 rounded-full object-cover border border-white/10 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
+                  <Music className="h-3 w-3 text-muted-foreground" />
+                </div>
               )}
+              <div className="min-w-0">
+                <span className="font-medium">{result.name}</span>
+                {result.subtitle && (
+                  <span className="text-muted-foreground ml-2 text-xs">{result.subtitle}</span>
+                )}
+              </div>
             </button>
           ))}
         </div>
