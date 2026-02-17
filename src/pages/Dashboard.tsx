@@ -155,6 +155,9 @@ const Dashboard = () => {
         return <Profile onStartTour={() => {
           setActiveTab("home");
           setShowSpotlightTour(true);
+        }} onAddShow={() => {
+          setActiveTab("home");
+          setShowUnifiedAdd(true);
         }} />;
       default:
         return (
