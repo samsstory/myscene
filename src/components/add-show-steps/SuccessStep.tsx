@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { CheckCircle2, Camera, Instagram, Eye, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, Camera, Instagram, Eye, Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { toast } from "sonner";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 interface AddedShowData {
   id: string;
@@ -24,6 +29,35 @@ interface SuccessStepProps {
 const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: SuccessStepProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [photoAdded, setPhotoAdded] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallCTA, setShowInstallCTA] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(false);
+
+  useEffect(() => {
+    const isFirstShow = !localStorage.getItem("scene-first-show-logged");
+    localStorage.setItem("scene-first-show-logged", "true");
+
+    if (!isFirstShow) return;
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isStandalone || !isMobile) return;
+
+    setShowInstallCTA(true);
+    const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e as BeforeInstallPromptEvent); };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") setShowInstallCTA(false);
+      setDeferredPrompt(null);
+    } else {
+      setInstallDismissed(true);
+    }
+  };
 
   const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
   const formattedDate = format(new Date(show.date), "MMM d, yyyy");
@@ -68,6 +102,29 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
         </p>
         <p className="text-muted-foreground text-xs">{formattedDate}</p>
       </div>
+
+      {/* Inline Install CTA — first show only */}
+      {showInstallCTA && !installDismissed && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Download className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-sm font-semibold">Get SCENE on your home screen</p>
+              <p className="text-xs text-muted-foreground">Full app experience, one tap away</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleInstall} size="sm" className="flex-1">
+              Install
+            </Button>
+            <Button onClick={() => setInstallDismissed(true)} size="sm" variant="ghost" className="text-muted-foreground">
+              Later
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Action cards */}
       <div className="space-y-3 pt-2">

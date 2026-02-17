@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Download, Share, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -26,9 +26,14 @@ export default function InstallBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (isInStandaloneMode() || !isMobile()) return;
+
+    // Only show on /dashboard and after user has logged at least 1 show
+    if (location.pathname !== "/dashboard") return;
+    if (!localStorage.getItem("scene-first-show-logged")) return;
 
     const dismissed = localStorage.getItem("pwa-banner-dismissed");
     if (dismissed) {

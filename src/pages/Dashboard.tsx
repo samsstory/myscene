@@ -9,7 +9,7 @@ import Rank from "@/components/Rank";
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
-import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
+// WelcomeCarousel removed — new users go straight to Add Show flow
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
 import BrandedLoader from "@/components/ui/BrandedLoader";
@@ -27,7 +27,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
   const [openShowId, setOpenShowId] = useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
 
@@ -61,7 +60,13 @@ const Dashboard = () => {
             .single();
           
           if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
-            setShowOnboarding(true);
+            // Skip WelcomeCarousel — auto-open Add Show flow
+            pendingAddFlowRef.current = true;
+            // Mark onboarding complete in background
+            supabase
+              .from("profiles")
+              .update({ onboarding_step: "completed" })
+              .eq("id", session.user.id);
           }
         }
         setLoading(false);
@@ -82,7 +87,11 @@ const Dashboard = () => {
           .single();
         
         if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
-          setShowOnboarding(true);
+          pendingAddFlowRef.current = true;
+          supabase
+            .from("profiles")
+            .update({ onboarding_step: "completed" })
+            .eq("id", session.user.id);
         }
       }
       setLoading(false);
@@ -91,13 +100,13 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Open add flow once dashboard has rendered after onboarding
+  // Open add flow once dashboard has rendered for new users
   useEffect(() => {
-    if (!showOnboarding && !loading && pendingAddFlowRef.current) {
+    if (!loading && pendingAddFlowRef.current) {
       pendingAddFlowRef.current = false;
       setShowUnifiedAdd(true);
     }
-  }, [showOnboarding, loading]);
+  }, [loading]);
 
   if (loading) {
     return <BrandedLoader fullScreen />;
@@ -106,29 +115,6 @@ const Dashboard = () => {
   if (!session) {
     return null;
   }
-
-  const handleOnboardingComplete = () => {
-    pendingAddFlowRef.current = true;
-    setShowOnboarding(false);
-    // Persist to DB in background
-    if (session) {
-      supabase
-        .from("profiles")
-        .update({ onboarding_step: "completed" })
-        .eq("id", session.user.id);
-    }
-  };
-
-  const handleTakeTour = async () => {
-    if (session) {
-      await supabase
-        .from("profiles")
-        .update({ onboarding_step: "spotlight_tour" })
-        .eq("id", session.user.id);
-    }
-    setShowOnboarding(false);
-    setShowSpotlightTour(true);
-  };
 
   const handleSpotlightTourComplete = async () => {
     if (session) {
@@ -139,11 +125,6 @@ const Dashboard = () => {
     }
     setShowSpotlightTour(false);
   };
-
-  // Show onboarding carousel for new users
-  if (showOnboarding) {
-    return <WelcomeCarousel onComplete={handleOnboardingComplete} onTakeTour={handleTakeTour} />;
-  }
 
   const renderContent = () => {
     switch (activeTab) {
