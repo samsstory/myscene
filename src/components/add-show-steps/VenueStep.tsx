@@ -24,6 +24,7 @@ interface VenueStepProps {
   onSave?: () => void;
   onSkip?: () => void;
   selectedArtistName?: string;
+  onSelectAsEvent?: (eventName: string) => void;
 }
 
 interface VenueSuggestion {
@@ -46,7 +47,7 @@ interface AddressSuggestion {
   coordinates: [number, number];
 }
 
-const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave, onSkip, selectedArtistName }: VenueStepProps) => {
+const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave, onSkip, selectedArtistName, onSelectAsEvent }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -235,6 +236,12 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       setAddressSuggestions([]);
       setSelectedCoordinates(null);
       setShowAddressDialog(true);
+    }
+  };
+
+  const handleSelectAsEvent = () => {
+    if (searchTerm.trim() && onSelectAsEvent) {
+      onSelectAsEvent(searchTerm.trim());
     }
   };
 
@@ -488,18 +495,35 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
         {/* Option to enter exactly what they typed - shown first */}
         {searchTerm.trim() && !isSearching && (
-          <button
-            onClick={handleManualEntry}
-            className="w-full text-left p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200"
-          >
+          <div className="rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.1] p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <div>
-                <div className="font-semibold text-primary">"{searchTerm.trim()}"</div>
-                <div className="text-sm text-muted-foreground">{getManualEntryLabel()}</div>
-              </div>
+              <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+              <div className="font-semibold text-primary">"{searchTerm.trim()}"</div>
             </div>
-          </button>
+            {showType === 'show' && onSelectAsEvent ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleManualEntry}
+                  className="text-center py-2 px-3 rounded-md bg-white/[0.05] border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 text-sm font-medium text-foreground"
+                >
+                  New venue
+                </button>
+                <button
+                  onClick={handleSelectAsEvent}
+                  className="text-center py-2 px-3 rounded-md bg-white/[0.05] border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 text-sm font-medium text-foreground"
+                >
+                  New event
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleManualEntry}
+                className="w-full text-left"
+              >
+                <div className="text-sm text-muted-foreground">{getManualEntryLabel()}</div>
+              </button>
+            )}
+          </div>
         )}
 
         {/* Search results */}

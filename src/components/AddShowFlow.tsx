@@ -785,7 +785,16 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onLocationFilterChange={updateLocationFilter}
             onShowTypeChange={updateShowType}
             isLoadingDefaultCity={isLoadingProfile}
-            selectedArtistName={artistName} />);
+            selectedArtistName={artistName}
+            onSelectAsEvent={(eventName) => {
+              updateShowData({
+                eventName,
+                venue: eventName,
+                venueLocation: '',
+                venueId: null,
+              });
+              setStep(3);
+            }} />);
 
 
       }
