@@ -45,7 +45,7 @@ const GlobeMockup = () => {
           <div className="flex flex-col items-center gap-2">
             {/* Year buttons */}
             <div className="flex gap-1">
-              {YEARS.map(year => <button key={year} onClick={() => setSelectedYear(year)} className={cn("px-2.5 py-1 text-xs rounded-full transition-all font-medium", selectedYear === year ? "bg-primary text-primary-foreground" : "bg-white/[0.04] text-white/50 backdrop-blur-sm hover:bg-white/[0.08]")}>
+              {YEARS.map(year => <button key={year} onClick={() => setSelectedYear(year)} className={cn("px-2.5 py-1 text-xs rounded-full transition-all font-medium border", selectedYear === year ? "bg-primary/[0.10] border-primary/[0.25] text-primary/80" : "bg-white/[0.04] border-white/[0.06] text-white/50 backdrop-blur-sm hover:bg-white/[0.08] hover:text-white/70")}>
                   {year === "all" ? "All" : year}
                 </button>)}
             </div>

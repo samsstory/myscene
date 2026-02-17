@@ -100,9 +100,9 @@ const CompactDateSelector = ({
           type="button"
           onClick={() => handlePrecisionClick("exact")}
           className={cn(
-            "flex-1 py-1.5 px-2 transition-colors text-center",
+            "flex-1 py-1.5 px-2 transition-all text-center",
             effectivePrecision === "exact"
-              ? "bg-primary text-primary-foreground"
+              ? "bg-primary/[0.10] border-primary/[0.25] text-primary/80"
               : "bg-muted/50 text-muted-foreground hover:bg-muted"
           )}
         >
@@ -112,9 +112,9 @@ const CompactDateSelector = ({
           type="button"
           onClick={() => handlePrecisionClick("approximate")}
           className={cn(
-            "flex-1 py-1.5 px-2 transition-colors border-x border-input text-center",
+            "flex-1 py-1.5 px-2 transition-all border-x border-input text-center",
             effectivePrecision === "approximate"
-              ? "bg-primary text-primary-foreground"
+              ? "bg-primary/[0.10] border-primary/[0.25] text-primary/80"
               : "bg-muted/50 text-muted-foreground hover:bg-muted"
           )}
         >
@@ -124,9 +124,9 @@ const CompactDateSelector = ({
           type="button"
           onClick={() => handlePrecisionClick("unknown")}
           className={cn(
-            "flex-1 py-1.5 px-2 transition-colors text-center",
+            "flex-1 py-1.5 px-2 transition-all text-center",
             effectivePrecision === "unknown"
-              ? "bg-primary text-primary-foreground"
+              ? "bg-primary/[0.10] border-primary/[0.25] text-primary/80"
               : "bg-muted/50 text-muted-foreground hover:bg-muted"
           )}
         >
