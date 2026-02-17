@@ -93,6 +93,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     }
   }, [initialView]);
   const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
+  const [sortBy, setSortBy] = useState<"elo" | "date">("elo");
   const [rankingsSearch, setRankingsSearch] = useState("");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
@@ -330,6 +331,10 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
       const rankingMap = new Map(rankings.map(r => [r.show_id, { elo: r.elo_score, comparisons: r.comparisons_count }]));
       const sorted = [...filteredShows].sort((a, b) => {
+        if (sortBy === "date") {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+        // ELO sort
         const eloA = rankingMap.get(a.id)?.elo || 1200;
         const eloB = rankingMap.get(b.id)?.elo || 1200;
         if (eloB !== eloA) return eloB - eloA;
@@ -343,7 +348,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       return sorted;
     }
     return filteredShows;
-  }, [shows, viewMode, topRatedFilter, sortDirection, rankings, rankingsSearch]);
+  }, [shows, viewMode, topRatedFilter, sortDirection, sortBy, rankings, rankingsSearch]);
 
   const getShowsForDate = (date: Date) => shows.filter(show => isSameDay(parseISO(show.date), date));
 
@@ -503,11 +508,19 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setSortBy(prev => prev === "elo" ? "date" : "elo")}
+            className="flex items-center gap-2 bg-white/[0.05] border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white"
+          >
+            <span>{sortBy === "elo" ? "Ranked" : "Date"}</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setSortDirection(prev => prev === "best-first" ? "worst-first" : "best-first")}
             className="flex items-center gap-2 bg-white/[0.05] border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowUpDown className="h-4 w-4" />
-            <span>{sortDirection === "best-first" ? "Best" : "Worst"}</span>
+            <span>{sortBy === "date" ? (sortDirection === "best-first" ? "Newest" : "Oldest") : (sortDirection === "best-first" ? "Best" : "Worst")}</span>
           </Button>
         </div>
 
