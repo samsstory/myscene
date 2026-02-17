@@ -8,6 +8,7 @@ import SceneLogo from "@/components/ui/SceneLogo";
 interface Artist {
   name: string;
   isHeadliner: boolean;
+  imageUrl?: string;
 }
 
 interface Show {
@@ -114,6 +115,13 @@ const HighlightReel = ({ shows, getRankInfo, onShowTap }: HighlightReelProps) =>
               alt={artistName}
               className="w-full h-full object-cover transition-opacity duration-700"
               key={show.id}
+            />
+          ) : headliner?.imageUrl ? (
+            <img
+              src={headliner.imageUrl}
+              alt={artistName}
+              className="w-full h-full object-cover transition-opacity duration-700 scale-110"
+              key={`${show.id}-artist`}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/30 via-background to-accent/20 flex items-center justify-center">

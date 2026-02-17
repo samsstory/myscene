@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 interface Artist {
   name: string;
   isHeadliner: boolean;
+  imageUrl?: string;
 }
 
 interface Show {
@@ -45,6 +46,9 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
     const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
     const artistName = headliner?.name || "Unknown Artist";
     
+    // Determine the display image: user photo > artist Spotify image > gradient fallback
+    const displayImage = show.photo_url || headliner?.imageUrl || null;
+    
     // Use first tag as a badge if available
     const primaryTag = show.tags?.[0];
     
@@ -76,10 +80,10 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
           <div className="rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-sm border border-white/[0.05] transition-all hover:bg-white/[0.06]">
             <div className="relative">
               {/* Subtle background hint */}
-              {show.photo_url ? (
+              {displayImage ? (
                 <div 
                   className="absolute inset-0 bg-cover bg-center opacity-20"
-                  style={{ backgroundImage: `url(${show.photo_url})` }}
+                  style={{ backgroundImage: `url(${displayImage})` }}
                 />
               ) : (
                 <div className={cn("absolute inset-0 opacity-10 bg-gradient-to-r", scoreGradient)} />
@@ -117,11 +121,11 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
         <Card className="border-white/[0.08] shadow-glow overflow-hidden bg-white/[0.02]">
           {/* Photo or Gradient Background */}
           <div className="relative aspect-[4/3] overflow-hidden">
-            {show.photo_url ? (
+            {displayImage ? (
               <img
-                src={show.photo_url}
+                src={displayImage}
                 alt={`${artistName} show`}
-                className="w-full h-full object-cover"
+                className={cn("w-full h-full object-cover", !show.photo_url && "scale-110")}
               />
             ) : (
               <div className={cn("w-full h-full bg-gradient-to-br", scoreGradient, "flex items-center justify-center")}>
