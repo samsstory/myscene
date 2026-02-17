@@ -17,7 +17,32 @@ interface UnifiedSearchResult {
   longitude?: number;
   userShowCount?: number;
   sceneUsersCount?: number;
+  tier?: 'primary' | 'other';
 }
+
+// ─── Category Whitelists (ported from search-venues) ─────────────────
+
+const relevantCategoryKeywords = [
+  'music', 'venue', 'amphitheater', 'amphitheatre', 'theater', 'theatre',
+  'arena', 'stadium', 'nightclub', 'club', 'bar', 'lounge', 'concert',
+  'festival', 'fairground', 'park', 'pavilion', 'event', 'convention',
+  'hall', 'auditorium', 'ballroom', 'brewery', 'winery', 'rooftop',
+  'garden', 'pier', 'plaza', 'pub', 'tavern', 'pool', 'beach', 'resort',
+  'casino', 'hotel', 'civic center', 'coliseum', 'colosseum', 'field',
+  'racetrack', 'raceway', 'hippodrome', 'rock club', 'performance',
+  'entertainment', 'dance', 'disco', 'opera', 'jazz', 'comedy',
+  'karaoke', 'outdoor', 'recreation', 'social', 'live',
+];
+
+const relevantGoogleTypes = new Set([
+  'night_club', 'bar', 'stadium', 'performing_arts_theater', 'park',
+  'event_venue', 'tourist_attraction', 'amusement_park', 'convention_center',
+  'casino', 'cultural_center', 'movie_theater', 'bowling_alley',
+  'community_center', 'campground', 'lodge', 'resort_hotel', 'hotel',
+  'church', 'museum', 'art_gallery', 'zoo', 'aquarium',
+]);
+
+// ─── Spotify Auth ────────────────────────────────────────────────────
 
 let spotifyToken: string | null = null;
 let tokenExpiry = 0;
@@ -44,6 +69,62 @@ async function getSpotifyToken(): Promise<string> {
   tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
   return spotifyToken!;
 }
+
+// ─── Venue Filtering Helpers ─────────────────────────────────────────
+
+interface GooglePlace {
+  place_id: string;
+  name: string;
+  formatted_address: string;
+  types: string[];
+  latitude?: number;
+  longitude?: number;
+}
+
+interface FoursquareVenue {
+  fsq_id: string;
+  name: string;
+  location: { formatted_address?: string; locality?: string; region?: string; country?: string };
+  geocodes?: { main?: { latitude: number; longitude: number } };
+  categories?: Array<{ id: number; name: string }>;
+}
+
+function isRelevantGooglePlace(place: GooglePlace, searchLower: string): boolean {
+  const nameLower = place.name.toLowerCase();
+  if (nameLower.startsWith(searchLower) || nameLower === searchLower) return true;
+  if (!place.types || place.types.length === 0) return false;
+  return place.types.some(t => relevantGoogleTypes.has(t));
+}
+
+function isRelevantFoursquareVenue(venue: FoursquareVenue, searchLower: string): boolean {
+  const nameLower = venue.name.toLowerCase();
+  if (nameLower.startsWith(searchLower) || nameLower === searchLower) return true;
+  if (!venue.categories || venue.categories.length === 0) return false;
+  return venue.categories.some(cat => {
+    const catLower = cat.name.toLowerCase();
+    return relevantCategoryKeywords.some(kw => catLower.includes(kw));
+  });
+}
+
+function formatGoogleLocation(place: GooglePlace): string {
+  const parts = place.formatted_address.split(', ');
+  if (parts.length >= 3) {
+    const city = parts[parts.length - 3] || '';
+    const stateZip = parts[parts.length - 2] || '';
+    const state = stateZip.split(' ')[0] || '';
+    if (city && state) return `${city}, ${state}`;
+  }
+  return place.formatted_address;
+}
+
+function formatFoursquareLocation(venue: FoursquareVenue): string {
+  const loc = venue.location;
+  if (loc.locality && loc.region) return `${loc.locality}, ${loc.region}`;
+  if (loc.locality && loc.country) return `${loc.locality}, ${loc.country}`;
+  return loc.formatted_address || loc.locality || '';
+}
+
+// ─── Main Handler ────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -87,16 +168,30 @@ serve(async (req) => {
     const results: UnifiedSearchResult[] = [];
     const searchLower = searchTerm.trim().toLowerCase();
 
+    // Get user home coordinates for location bias
+    let lat: number | null = null;
+    let lon: number | null = null;
+    if (userId && supabaseClient) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('home_latitude, home_longitude')
+        .eq('id', userId)
+        .single();
+      if (profile?.home_latitude && profile?.home_longitude) {
+        lat = profile.home_latitude;
+        lon = profile.home_longitude;
+      }
+    }
+
     const [artistResults, venueResults, userShowsResults] = await Promise.all([
       searchSpotify(searchTerm),
-      searchGooglePlaces(searchTerm, userId, supabaseClient),
+      searchVenues(searchTerm.trim(), searchLower, lat, lon),
       userId && supabaseClient ? searchUserHistory(searchTerm, userId, supabaseClient) : Promise.resolve({ artists: [], venues: [] }),
     ]);
 
     // Add user's own artists first (highest priority)
     if (userShowsResults.artists.length > 0) {
       for (const artist of userShowsResults.artists.slice(0, 3)) {
-        // Try to find matching Spotify result for the image
         const spotifyMatch = artistResults.find(
           (s: any) => s.name.toLowerCase() === artist.name.toLowerCase()
         );
@@ -124,7 +219,7 @@ serve(async (req) => {
       });
     }
 
-    // Add user's own venues first
+    // Add user's own venues first (always primary tier)
     if (userShowsResults.venues.length > 0) {
       for (const venue of userShowsResults.venues.slice(0, 3)) {
         results.push({
@@ -133,12 +228,13 @@ serve(async (req) => {
           name: venue.name,
           location: venue.location,
           userShowCount: venue.count,
+          tier: 'primary',
         });
       }
     }
 
-    // Add Google Places venues
-    for (const venue of venueResults.slice(0, 10)) {
+    // Add primary tier venues
+    for (const venue of venueResults.primary.slice(0, 10)) {
       if (results.some(r => r.type === 'venue' && r.name.toLowerCase() === venue.name.toLowerCase())) {
         continue;
       }
@@ -149,10 +245,27 @@ serve(async (req) => {
         location: venue.location,
         latitude: venue.latitude,
         longitude: venue.longitude,
+        tier: 'primary',
       });
     }
 
-    // Sort results
+    // Add other tier venues
+    for (const venue of venueResults.other.slice(0, 8)) {
+      if (results.some(r => r.type === 'venue' && r.name.toLowerCase() === venue.name.toLowerCase())) {
+        continue;
+      }
+      results.push({
+        type: 'venue',
+        id: venue.id,
+        name: venue.name,
+        location: venue.location,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        tier: 'other',
+      });
+    }
+
+    // Sort results: exact matches first, then user items, keeping tier grouping
     results.sort((a, b) => {
       const aName = a.name.toLowerCase();
       const bName = b.name.toLowerCase();
@@ -169,7 +282,7 @@ serve(async (req) => {
       return 0;
     });
 
-    console.log(`[unified-search] Returning ${results.length} results`);
+    console.log(`[unified-search] Returning ${results.length} results (primary venues: ${venueResults.primary.length}, other: ${venueResults.other.length})`);
 
     return new Response(
       JSON.stringify({ results }),
@@ -184,6 +297,8 @@ serve(async (req) => {
     );
   }
 });
+
+// ─── Spotify Search ──────────────────────────────────────────────────
 
 async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; name: string; imageUrl?: string; genres?: string[] }>> {
   try {
@@ -211,90 +326,174 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
   }
 }
 
-async function searchGooglePlaces(
+// ─── Venue Search (Google + Foursquare, tiered) ──────────────────────
+
+interface TieredVenue {
+  id: string;
+  name: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+async function searchVenues(
   searchTerm: string,
-  userId: string | null,
-  supabaseClient: any
-): Promise<Array<{ id: string; name: string; location: string; latitude?: number; longitude?: number }>> {
-  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
-  
-  if (!GOOGLE_API_KEY) {
-    console.warn('[unified-search] GOOGLE_PLACES_API_KEY not set');
-    return [];
+  searchLower: string,
+  lat: number | null,
+  lon: number | null
+): Promise<{ primary: TieredVenue[]; other: TieredVenue[] }> {
+  const GOOGLE_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
+  const FOURSQUARE_KEY = Deno.env.get('FOURSQUARE_API_KEY');
+
+  const [googlePlaces, foursquareVenues] = await Promise.all([
+    GOOGLE_KEY ? searchGooglePlacesModern(searchTerm, GOOGLE_KEY, lat, lon) : Promise.resolve([]),
+    FOURSQUARE_KEY ? searchFoursquare(searchTerm, FOURSQUARE_KEY, lat, lon) : Promise.resolve([]),
+  ]);
+
+  const primary: TieredVenue[] = [];
+  const other: TieredVenue[] = [];
+  const seen = new Set<string>();
+
+  // Process Google results
+  for (const place of googlePlaces) {
+    const key = place.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const venue: TieredVenue = {
+      id: place.place_id,
+      name: place.name,
+      location: formatGoogleLocation(place),
+      latitude: place.latitude,
+      longitude: place.longitude,
+    };
+
+    if (isRelevantGooglePlace(place, searchLower)) {
+      primary.push(venue);
+    } else {
+      other.push(venue);
+    }
   }
 
-  try {
-    let locationBias = '';
-    if (userId && supabaseClient) {
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('home_latitude, home_longitude')
-        .eq('id', userId)
-        .single();
+  // Process Foursquare results
+  for (const fsq of foursquareVenues) {
+    const key = fsq.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
 
-      if (profile?.home_latitude && profile?.home_longitude) {
-        locationBias = `&location=${profile.home_latitude},${profile.home_longitude}&radius=50000`;
-      }
+    const venue: TieredVenue = {
+      id: fsq.fsq_id,
+      name: fsq.name,
+      location: formatFoursquareLocation(fsq),
+      latitude: fsq.geocodes?.main?.latitude,
+      longitude: fsq.geocodes?.main?.longitude,
+    };
+
+    if (isRelevantFoursquareVenue(fsq, searchLower)) {
+      primary.push(venue);
+    } else {
+      other.push(venue);
+    }
+  }
+
+  console.log(`[unified-search] Venue tiers — primary: ${primary.length}, other: ${other.length}`);
+  return { primary, other };
+}
+
+// ─── Modern Google Places API ────────────────────────────────────────
+
+async function searchGooglePlacesModern(
+  searchTerm: string,
+  apiKey: string,
+  lat: number | null,
+  lon: number | null
+): Promise<GooglePlace[]> {
+  try {
+    const searchQuery = `${searchTerm} music venue OR festival`;
+    const body: any = { textQuery: searchQuery, maxResultCount: 15 };
+
+    if (lat && lon) {
+      body.locationBias = {
+        circle: { center: { latitude: lat, longitude: lon }, radius: 50000 }
+      };
     }
 
-    const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchTerm)}${locationBias}&key=${GOOGLE_API_KEY}`;
-    const response = await fetch(googleUrl);
+    console.log(`[unified-search] Google searching: ${searchQuery}`);
+
+    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types',
+      },
+      body: JSON.stringify(body),
+    });
 
     if (!response.ok) {
-      console.error('[unified-search] Google Places error:', response.status);
+      console.error(`[unified-search] Google error: ${response.status}`);
       return [];
     }
 
     const data = await response.json();
+    const places = data.places || [];
+    console.log(`[unified-search] Google returned ${places.length} results`);
 
-    if (data.status !== 'OK' || !data.results) {
-      return [];
-    }
-
-    const excludeKeywords = [
-      'floral', 'flower', 'wholesale', 'retail', 'shop', 'store',
-      'salon', 'spa', 'hotel', 'motel', 'apartment', 'real estate',
-      'dentist', 'doctor', 'clinic', 'hospital', 'pharmacy',
-      'bank', 'atm', 'insurance', 'lawyer', 'school', 'church'
-    ];
-
-    return data.results
-      .filter((place: any) => {
-        const nameAndTypes = `${place.name} ${place.types?.join(' ')}`.toLowerCase();
-        return !excludeKeywords.some(keyword => nameAndTypes.includes(keyword));
-      })
-      .slice(0, 15)
-      .map((place: any) => {
-        const addressParts = place.formatted_address.split(', ');
-        let location = '';
-        
-        if (addressParts.length >= 3) {
-          const city = addressParts[addressParts.length - 3] || '';
-          const stateZip = addressParts[addressParts.length - 2] || '';
-          const state = stateZip.split(' ')[0] || '';
-          
-          if (city && state) {
-            location = `${city}, ${state}`;
-          } else {
-            location = place.formatted_address;
-          }
-        } else {
-          location = place.formatted_address;
-        }
-
-        return {
-          id: place.place_id,
-          name: place.name,
-          location,
-          latitude: place.geometry?.location?.lat,
-          longitude: place.geometry?.location?.lng,
-        };
-      });
+    return places.map((p: any) => ({
+      place_id: p.id || '',
+      name: p.displayName?.text || '',
+      formatted_address: p.formattedAddress || '',
+      types: p.types || [],
+      latitude: p.location?.latitude,
+      longitude: p.location?.longitude,
+    }));
   } catch (error) {
-    console.error('[unified-search] Google Places error:', error);
+    console.error('[unified-search] Google error:', error);
     return [];
   }
 }
+
+// ─── Foursquare Search ───────────────────────────────────────────────
+
+async function searchFoursquare(
+  searchTerm: string,
+  apiKey: string,
+  lat: number | null,
+  lon: number | null
+): Promise<FoursquareVenue[]> {
+  try {
+    const params = new URLSearchParams({ query: searchTerm, limit: '15' });
+    if (lat && lon) {
+      params.set('ll', `${lat},${lon}`);
+      params.set('radius', '100000');
+    }
+
+    const url = `https://places-api.foursquare.com/places/search?${params.toString()}`;
+    console.log(`[unified-search] Foursquare searching: ${searchTerm}`);
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json',
+        'X-Places-Api-Version': '2025-06-17',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`[unified-search] Foursquare error: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log(`[unified-search] Foursquare returned ${data.results?.length || 0} results`);
+    return data.results || [];
+  } catch (error) {
+    console.error('[unified-search] Foursquare error:', error);
+    return [];
+  }
+}
+
+// ─── User History Search ─────────────────────────────────────────────
 
 async function searchUserHistory(
   searchTerm: string,
@@ -319,7 +518,6 @@ async function searchUserHistory(
           artistCounts.set(name, (artistCounts.get(name) || 0) + 1);
         }
       }
-      
       for (const [name, count] of artistCounts.entries()) {
         artists.push({ name, count });
       }
@@ -337,18 +535,12 @@ async function searchUserHistory(
         if (searchWords.some(word => show.venue_name.toLowerCase().includes(word))) {
           const key = `${show.venue_name}-${show.venue_location || ''}`;
           if (!venueCounts.has(key)) {
-            venueCounts.set(key, {
-              id: show.venue_id,
-              name: show.venue_name,
-              location: show.venue_location || '',
-              count: 1,
-            });
+            venueCounts.set(key, { id: show.venue_id, name: show.venue_name, location: show.venue_location || '', count: 1 });
           } else {
             venueCounts.get(key)!.count++;
           }
         }
       }
-      
       for (const venue of venueCounts.values()) {
         venues.push(venue);
       }
