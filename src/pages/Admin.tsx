@@ -38,8 +38,8 @@ export default function Admin() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <Shield className="h-5 w-5 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] border border-white/[0.08]">
+            <Shield className="h-5 w-5 text-muted-foreground" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
@@ -49,13 +49,13 @@ export default function Admin() {
 
         {/* Tabs */}
         <Tabs defaultValue="waitlist">
-          <TabsList className="bg-muted">
+          <TabsList className="bg-white/[0.04] border border-white/[0.08]">
             <TabsTrigger value="waitlist">Waitlist</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="bugs" className="relative">
               Bug Reports
               {newBugCount > 0 && (
-                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive/80 px-1 text-[10px] font-bold text-destructive-foreground">
                   {newBugCount}
                 </span>
               )}

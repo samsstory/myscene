@@ -237,11 +237,11 @@ export function PushNotificationsPanel() {
                     <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{log.body}</p>
                     <div className="mt-1.5 flex items-center gap-3 text-[11px] text-muted-foreground">
                       <span>{format(new Date(log.created_at), "MMM d, yyyy · h:mm a")}</span>
-                      <span className="text-green-500 dark:text-green-400">
+                      <span className="text-foreground/50">
                         {log.sent_count} sent
                       </span>
                       {log.failed_count > 0 && (
-                        <span className="flex items-center gap-0.5 text-destructive">
+                        <span className="flex items-center gap-0.5 text-destructive/70">
                           <AlertCircle className="h-3 w-3" />
                           {log.failed_count} failed
                         </span>
