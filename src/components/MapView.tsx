@@ -195,7 +195,7 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
       setIsBackfilling(true);
 
       const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
-        setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 55000)
+        setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 25000)
       );
 
       const invokePromise = supabase.functions.invoke('backfill-venue-coordinates', {
