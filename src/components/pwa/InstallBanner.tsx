@@ -82,7 +82,8 @@ export default function InstallBanner() {
     navigate("/install");
   };
 
-  if (!showBanner) return null;
+  // Only render on /dashboard — never on landing, auth, etc.
+  if (!showBanner || location.pathname !== "/dashboard") return null;
 
   return (
     <AnimatePresence>
