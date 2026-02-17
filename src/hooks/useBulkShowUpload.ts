@@ -174,6 +174,8 @@ export function useBulkShowUpload() {
               show_id: newShow.id,
               artist_name: artist.name,
               is_headliner: artist.isHeadliner,
+              artist_image_url: (artist as any).imageUrl || null,
+              spotify_artist_id: (artist as any).spotifyId || null,
             }));
 
             const { error: artistError } = await supabase
