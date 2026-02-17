@@ -51,7 +51,7 @@ export interface ShowData {
   datePrecision: "exact" | "approximate" | "unknown";
   selectedMonth: string;
   selectedYear: string;
-  artists: Array<{ name: string; isHeadliner: boolean }>;
+  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string; spotifyId?: string }>;
   rating?: number | null;
   locationFilter: string;
   tags: string[];
@@ -477,7 +477,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       const artistsToInsert = showData.artists.map((artist, index) => ({
         show_id: show.id,
         artist_name: artist.name,
-        is_headliner: index === 0, // First artist is headliner
+        is_headliner: index === 0,
+        artist_image_url: artist.imageUrl || null,
+        spotify_artist_id: artist.spotifyId || null,
       }));
 
       const { error: artistsError } = await supabase

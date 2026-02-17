@@ -160,25 +160,31 @@ export type Database = {
       }
       show_artists: {
         Row: {
+          artist_image_url: string | null
           artist_name: string
           created_at: string
           id: string
           is_headliner: boolean
           show_id: string
+          spotify_artist_id: string | null
         }
         Insert: {
+          artist_image_url?: string | null
           artist_name: string
           created_at?: string
           id?: string
           is_headliner?: boolean
           show_id: string
+          spotify_artist_id?: string | null
         }
         Update: {
+          artist_image_url?: string | null
           artist_name?: string
           created_at?: string
           id?: string
           is_headliner?: boolean
           show_id?: string
+          spotify_artist_id?: string | null
         }
         Relationships: [
           {

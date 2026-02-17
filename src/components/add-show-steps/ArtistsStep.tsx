@@ -7,8 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ArtistsStepProps {
-  artists: Array<{ name: string; isHeadliner: boolean }>;
-  onArtistsChange: (artists: Array<{ name: string; isHeadliner: boolean }>) => void;
+  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string; spotifyId?: string }>;
+  onArtistsChange: (artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string; spotifyId?: string }>) => void;
   onContinue: () => void;
   isEditing?: boolean;
   onSave?: () => void;
@@ -55,9 +55,9 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
     return () => clearTimeout(timer);
   }, [currentArtist]);
 
-  const addArtist = (name: string, isHeadliner: boolean) => {
+  const addArtist = (name: string, isHeadliner: boolean, imageUrl?: string, spotifyId?: string) => {
     if (name.trim()) {
-      onArtistsChange([...artists, { name: name.trim(), isHeadliner }]);
+      onArtistsChange([...artists, { name: name.trim(), isHeadliner, imageUrl, spotifyId }]);
       setCurrentArtist("");
       setArtistSuggestions([]);
     }
@@ -142,7 +142,7 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
                 "hover:border-primary/50 hover:bg-primary/5",
                 "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
               )}
-              onClick={() => addArtist(suggestion.name, true)}
+              onClick={() => addArtist(suggestion.name, true, suggestion.imageUrl, suggestion.id)}
             >
               <div className="flex items-center gap-3">
                 {/* Artist image */}
@@ -169,7 +169,7 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    addArtist(suggestion.name, true);
+                    addArtist(suggestion.name, true, suggestion.imageUrl, suggestion.id);
                   }}
                   className={cn(
                     "text-xs h-7 px-3",

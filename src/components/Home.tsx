@@ -33,6 +33,8 @@ import { Skeleton } from "./ui/skeleton";
 interface Artist {
   name: string;
   isHeadliner: boolean;
+  imageUrl?: string;
+  spotifyId?: string;
 }
 
 interface Show {
@@ -246,7 +248,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
         const { data: tagsData } = await supabase.from('show_tags').select('tag').eq('show_id', show.id);
         return {
           id: show.id,
-          artists: (artistsData || []).map(a => ({ name: a.artist_name, isHeadliner: a.is_headliner })),
+          artists: (artistsData || []).map(a => ({ name: a.artist_name, isHeadliner: a.is_headliner, imageUrl: (a as any).artist_image_url || undefined, spotifyId: (a as any).spotify_artist_id || undefined })),
           venue: { name: show.venue_name, location: show.venue_location || '' },
           date: show.show_date,
           datePrecision: show.date_precision,
