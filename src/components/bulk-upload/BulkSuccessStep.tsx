@@ -161,9 +161,9 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
 
       {/* Inline Install CTA — first show only */}
       {showInstallCTA && !installDismissed && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
               <Download className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left flex-1">
@@ -172,12 +172,12 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleInstall} size="sm" className="flex-1">
+            <button onClick={handleInstall} className="flex-1 py-2 px-3 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/[0.10] hover:border-primary/30 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)] active:scale-[0.98]">
               Install
-            </Button>
-            <Button onClick={() => setInstallDismissed(true)} size="sm" variant="ghost" className="text-muted-foreground">
+            </button>
+            <button onClick={() => setInstallDismissed(true)} className="py-2 px-3 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
               Later
-            </Button>
+            </button>
           </div>
         </div>
       )}
