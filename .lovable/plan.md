@@ -1,31 +1,57 @@
 
 
-# Add "Use Artist Photo" Option to Quick Photo Add Sheet
+# Smarter Venue Filtering in Unified Search
 
-## Overview
-Add a one-tap option to the QuickPhotoAddSheet that lets users set the artist's Spotify image as the show's photo, instead of uploading from camera roll. This gives shows without photos an instant visual without requiring the user to find and upload an image.
+## Problem
+Two issues at play:
+1. The `unified-search` function uses an outdated Google Places API with a weak blacklist, letting irrelevant results (dentists, flower shops) through when searching "Ultra Music Festival"
+2. A strict whitelist (like in `search-venues`) would block unconventional concert locations like "Under the K Bridge" in NYC, a warehouse, a rooftop, or a random park
 
-## What Changes
+## Recommended Approach: Whitelist + Fallback Tier
 
-### `src/components/QuickPhotoAddSheet.tsx`
-- Add the artist's Spotify image URL to the `Show` interface (already available as `imageUrl` on artists from the Home component)
-- Below the "Add a photo" upload zone, render an "Use artist photo" button that:
-  - Shows a small circular preview of the Spotify image
-  - On tap, updates the show's `photo_url` in the database to the Spotify image URL (no storage upload needed -- it's already a public URL)
-  - Calls `onPhotoAdded(spotifyImageUrl)` and closes the sheet
-  - Only appears when the headliner has a Spotify image available
-- The upload zone and the artist photo option sit side-by-side or stacked, giving the user two clear paths
+Port the proven whitelist logic from `search-venues` into `unified-search`, but add a **secondary tier** for results that don't match the whitelist. This gives users the best of both worlds:
 
-### `src/components/Home.tsx` (minor)
-- Ensure the `artist_image_url` field is passed through to the show objects that feed into `QuickPhotoAddSheet`, so the Spotify URL is available at render time. The data is already fetched (line 251) -- just needs to be threaded into the sheet's `show` prop.
+- **Primary results**: Whitelisted venue types (clubs, arenas, theaters, parks, etc.) shown prominently
+- **Secondary results**: Non-whitelisted places shown in a collapsed "Other locations" section, so users can still pick unconventional spots
 
-### `src/components/home/MissingPhotosSheet.tsx` (minor)
-- In the show list on the select-photos step, for shows whose headliner has a Spotify image, add a small "Use artist photo" quick-action button on each row. Tapping it immediately sets that show's `photo_url` to the Spotify image and removes it from the missing-photos list.
+This avoids Gemini/AI overhead entirely while solving both the noise problem and the edge-case venue problem.
+
+## Changes
+
+### 1. `supabase/functions/unified-search/index.ts`
+
+**Replace the `searchGooglePlaces` function:**
+- Switch from legacy `textsearch/json` endpoint to modern `v1/places:searchText` (same as `search-venues`)
+- Append `"music venue OR festival"` to bias the query
+- Use `X-Goog-FieldMask` headers to get `types` data
+
+**Add whitelist filtering from `search-venues`:**
+- Import the `relevantGoogleTypes` set and `relevantCategoryKeywords` list
+- Filter results into two tiers: `matched` (whitelist hit or exact name match) and `other` (everything else)
+- Remove the old `excludeKeywords` blacklist entirely
+
+**Add Foursquare as a parallel source:**
+- Query Foursquare alongside Google (same pattern as `search-venues`)
+- Apply the `relevantCategoryKeywords` whitelist with the same two-tier approach
+
+**Update the results structure:**
+- Add an optional `tier` field to `UnifiedSearchResult` (`'primary' | 'other'`)
+- Primary tier: whitelisted venues, user history, exact name matches
+- Other tier: non-whitelisted but not explicitly excluded
+
+### 2. `src/components/add-show-steps/UnifiedSearchStep.tsx`
+
+**Add "Other locations" collapsible section:**
+- Split venue results into primary and secondary tiers
+- Primary venues display as they do now
+- Secondary venues appear in a collapsed "More locations" section that expands on tap
+- This keeps the main list clean while preserving access to unusual spots
 
 ## Technical Details
 
-- No new edge functions or database changes needed -- `photo_url` already accepts any URL string
-- The Spotify image is a public CDN URL (`i.scdn.co`) so it works directly as a `photo_url` value
-- The `artist_image_url` is already stored in `show_artists` and fetched in the Home component query
-- The artist image data flows: `show_artists.artist_image_url` -> Home query -> show object -> QuickPhotoAddSheet prop
+- The `relevantGoogleTypes` set already includes `night_club`, `bar`, `park`, `event_venue`, `tourist_attraction` -- nightclubs and parks are covered
+- Name-match bypass ensures that if someone searches "Under the K Bridge" and Google returns it, it passes through regardless of type
+- The "Other locations" section acts as a safety net -- even a random Google result can be selected, it's just not front and center
+- No new API keys or secrets needed; uses existing `GOOGLE_PLACES_API_KEY` and `FOURSQUARE_API_KEY`
+- No added latency -- Foursquare and Google run in parallel (same as `search-venues`)
 
