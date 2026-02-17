@@ -48,9 +48,7 @@ const ShowTypeStep = ({ onSelect }: ShowTypeStepProps) => {
               "active:scale-[0.97]"
             )}
           >
-            <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Icon className="h-5 w-5 text-primary" />
-            </div>
+            <Icon className="h-7 w-7 text-primary" />
             <div>
               <div className="font-semibold text-sm leading-tight">{label}</div>
               <div className="text-xs text-muted-foreground mt-1 leading-snug">{description}</div>
