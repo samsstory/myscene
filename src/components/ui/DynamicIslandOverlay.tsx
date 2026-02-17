@@ -17,6 +17,15 @@ const DynamicIslandOverlay = () => {
     try {
       localStorage.setItem(STORAGE_KEY, String(visible));
     } catch {}
+    // Toggle class on <html> so CSS fallbacks for safe-area kick in
+    if (visible) {
+      document.documentElement.classList.add("dev-island-active");
+    } else {
+      document.documentElement.classList.remove("dev-island-active");
+    }
+    return () => {
+      document.documentElement.classList.remove("dev-island-active");
+    };
   }, [visible]);
 
   return (
