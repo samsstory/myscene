@@ -521,26 +521,27 @@ export default function Rank({ onAddShow }: RankProps) {
         totalShows={shows.length} 
       />
 
-      {/* VS Battle Cards — vertical stack */}
-      <div className="relative flex flex-col items-center gap-5 pt-4">
-        {/* Top Card */}
-        <div className="w-full max-w-sm">
-          <RankingCard
-            show={showPair[0]}
-            onClick={() => handleChoice(showPair[0].id)}
-            disabled={comparing}
-            position="left"
-            isWinner={selectedWinner === showPair[0].id}
-            isLoser={selectedWinner !== null && selectedWinner !== showPair[0].id}
-            animationKey={pairKey}
-            isExpanded={showDetails}
-          />
-        </div>
+      {/* VS Battle Cards */}
+      <div className="relative flex gap-3 items-start pt-4">
+        {/* Left Card */}
+        <RankingCard
+          show={showPair[0]}
+          onClick={() => handleChoice(showPair[0].id)}
+          disabled={comparing}
+          position="left"
+          isWinner={selectedWinner === showPair[0].id}
+          isLoser={selectedWinner !== null && selectedWinner !== showPair[0].id}
+          animationKey={pairKey}
+          isExpanded={showDetails}
+        />
 
-        {/* VS Badge */}
-        <div className="z-20 -my-2">
+        {/* VS Badge - positioned relative to photo aspect ratio (4:3), not full card */}
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 z-20"
+          style={{ top: 'calc((100vw - 2rem - 0.75rem) / 2 * 0.75 / 2 + 1rem)' }}
+        >
           <div 
-            className="bg-primary text-primary-foreground font-bold text-sm px-5 py-2 rounded-full"
+            className="bg-primary text-primary-foreground font-bold text-sm px-4 py-2 rounded-full"
             style={{ 
               boxShadow: '0 0 20px hsl(var(--primary) / 0.5), 0 4px 12px rgba(0,0,0,0.3)' 
             }}
@@ -549,19 +550,17 @@ export default function Rank({ onAddShow }: RankProps) {
           </div>
         </div>
 
-        {/* Bottom Card */}
-        <div className="w-full max-w-sm">
-          <RankingCard
-            show={showPair[1]}
-            onClick={() => handleChoice(showPair[1].id)}
-            disabled={comparing}
-            position="right"
-            isWinner={selectedWinner === showPair[1].id}
-            isLoser={selectedWinner !== null && selectedWinner !== showPair[1].id}
-            animationKey={pairKey}
-            isExpanded={showDetails}
-          />
-        </div>
+        {/* Right Card */}
+        <RankingCard
+          show={showPair[1]}
+          onClick={() => handleChoice(showPair[1].id)}
+          disabled={comparing}
+          position="right"
+          isWinner={selectedWinner === showPair[1].id}
+          isLoser={selectedWinner !== null && selectedWinner !== showPair[1].id}
+          animationKey={pairKey}
+          isExpanded={showDetails}
+        />
       </div>
 
       {/* Instruction Text */}
