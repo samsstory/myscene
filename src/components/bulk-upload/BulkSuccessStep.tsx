@@ -183,64 +183,64 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
       )}
 
       {/* Action buttons */}
-      <div className="space-y-3 pt-2">
+      <div className="space-y-2.5 pt-2">
         {/* Single show actions */}
         {!hasMultiple && firstShow && (
           <>
-            <Button 
+            <button 
               onClick={() => onCreateReviewPhoto(firstShow)}
-              className="w-full"
-              size="lg"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/[0.10] hover:border-primary/30 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)] active:scale-[0.98]"
             >
-              <Image className="h-4 w-4 mr-2" />
+              <Image className="h-4 w-4 text-primary" />
               Create Review Photo
-            </Button>
+            </button>
             
-            <Button 
+            <button 
               onClick={handleSendToFriends}
-              variant="secondary"
-              className="w-full"
-              size="lg"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
             >
-              <MessageCircle className="h-4 w-4 mr-2" />
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
               Send to Friends
-            </Button>
+            </button>
           </>
         )}
 
-        {/* Rank button - always shown, primary for multi-show */}
-        <Button 
+        {/* Rank button */}
+        <button 
           onClick={onRank}
-          variant={hasMultiple ? "default" : "outline"}
-          size={hasMultiple ? "lg" : "default"}
-          className="w-full"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
         >
-          <Scale className="h-4 w-4 mr-2" />
+          <Scale className="h-4 w-4 text-muted-foreground" />
           Rank {hasMultiple ? 'These Shows' : 'This Show'}
-        </Button>
+        </button>
 
-        {/* Multi-show actions */}
+        {/* Multi-show share */}
         {hasMultiple && (
-          <Button 
+          <button 
             onClick={handleShareAll}
-            variant="outline"
-            className="w-full"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
           >
-            <Share className="h-4 w-4 mr-2" />
+            <Share className="h-4 w-4 text-muted-foreground" />
             Share Summary
-          </Button>
+          </button>
         )}
       </div>
 
       {/* Footer actions */}
-      <div className="flex gap-3 pt-2">
-        <Button onClick={onAddMore} variant="ghost" className="flex-1">
-          <Plus className="h-4 w-4 mr-2" />
+      <div className="flex gap-2 pt-3">
+        <button 
+          onClick={onAddMore} 
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]"
+        >
+          <Plus className="h-3.5 w-3.5" />
           Add More
-        </Button>
-        <Button onClick={onDone} variant="ghost" className="flex-1">
+        </button>
+        <button 
+          onClick={onDone} 
+          className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]"
+        >
           Done
-        </Button>
+        </button>
       </div>
     </div>
   );
