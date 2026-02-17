@@ -24,7 +24,8 @@ interface ShowData {
   venueId: string | null;
   venueLatitude?: number;
   venueLongitude?: number;
-  showType: 'venue' | 'festival' | 'other';
+  showType: 'show' | 'showcase' | 'festival';
+  eventName: string;
   date: Date | undefined;
   datePrecision: "exact" | "approximate" | "unknown";
   selectedMonth: string;
@@ -48,7 +49,8 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
     venue: "",
     venueLocation: "",
     venueId: null,
-    showType: 'venue',
+    showType: 'show',
+    eventName: "",
     date: undefined,
     datePrecision: "exact",
     selectedMonth: "",
@@ -67,7 +69,8 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
       venue: "",
       venueLocation: "",
       venueId: null,
-      showType: 'venue',
+      showType: 'show',
+      eventName: "",
       date: undefined,
       datePrecision: "exact",
       selectedMonth: "",

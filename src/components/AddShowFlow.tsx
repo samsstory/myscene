@@ -3,6 +3,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, MapPin, Calendar, Music, Star, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
+import ShowTypeStep from "./add-show-steps/ShowTypeStep";
+import type { ShowType } from "./add-show-steps/ShowTypeStep";
 import VenueStep from "./add-show-steps/VenueStep";
 import DateStep from "./add-show-steps/DateStep";
 import ArtistsStep from "./add-show-steps/ArtistsStep";
@@ -46,7 +48,8 @@ export interface ShowData {
   venueId: string | null;
   venueLatitude?: number;
   venueLongitude?: number;
-  showType: 'venue' | 'festival' | 'other';
+  showType: ShowType;
+  eventName: string;
   date: Date | undefined;
   datePrecision: "exact" | "approximate" | "unknown";
   selectedMonth: string;
@@ -62,7 +65,7 @@ export interface ShowData {
 type EntryPoint = 'artist' | 'venue' | null;
 
 const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editShow }: AddShowFlowProps) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [entryPoint, setEntryPoint] = useState<EntryPoint>(null);
   const [showStepSelector, setShowStepSelector] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -71,7 +74,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     venue: "",
     venueLocation: "",
     venueId: null,
-    showType: 'venue',
+    showType: 'show',
+    eventName: "",
     date: undefined,
     datePrecision: "exact",
     selectedMonth: "",
@@ -106,7 +110,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venue: editShow.venue.name,
         venueLocation: editShow.venue.location,
         venueId: editShow.venueId || null,
-        showType: 'venue',
+        showType: 'show',
+        eventName: "",
         date: editShow.datePrecision === 'exact' ? showDate : undefined,
         datePrecision: editShow.datePrecision as "exact" | "approximate" | "unknown",
         selectedMonth: months[showDate.getMonth()],
@@ -171,7 +176,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     setShowData((prev) => ({ ...prev, ...updates }));
   };
 
-  const updateShowType = (type: 'venue' | 'festival' | 'other') => {
+  const updateShowType = (type: ShowType) => {
     updateShowData({ showType: type });
   };
 
@@ -218,52 +223,56 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   };
 
   const handleBack = () => {
-    if (step === 1) {
-      // At unified search, just close
+    if (step === 0) {
+      // At type picker, close dialog
+      onOpenChange(false);
       return;
     }
-
+    if (step === 1 && !showStepSelector) {
+      // Back from search → go to type picker
+      setStep(0);
+      return;
+    }
     if (showStepSelector && step > 0) {
       setStep(0);
       return;
     }
-
     // Navigate back based on entry point
     if (entryPoint === 'artist') {
-      // Artist flow: 1 (search) -> 2 (venue) -> 3 (date) -> 4 (rating)
-      if (step === 2) setStep(1);else
-      if (step === 3) setStep(2);else
-      if (step === 4) setStep(3);
+      if (step === 2) setStep(1);
+      else if (step === 3) setStep(2);
+      else if (step === 4) setStep(3);
     } else {
-      // Venue flow: 1 (search) -> 2 (date) -> 3 (artists) -> 4 (rating)
-      if (step === 2) setStep(1);else
-      if (step === 3) setStep(2);else
-      if (step === 4) setStep(3);
+      if (step === 2) setStep(1);
+      else if (step === 3) setStep(2);
+      else if (step === 4) setStep(3);
     }
   };
 
-  // Handle unified search selection
+  // Handle unified search selection — behavior depends on showType
   const handleUnifiedSelect = (result: {type: SearchResultType;id: string;name: string;imageUrl?: string;location?: string;latitude?: number;longitude?: number;}) => {
     setHasUnsavedChanges(true);
+    const isEventMode = showData.showType === 'showcase' || showData.showType === 'festival';
 
-    if (result.type === 'artist') {
-      // Artist selected first
+    if (!isEventMode && result.type === 'artist') {
+      // Solo Show: artist selected → go to venue step
       setEntryPoint('artist');
       updateShowData({
         artists: [{ name: result.name, isHeadliner: true, imageUrl: result.imageUrl, spotifyId: result.id }]
       });
       setStep(2); // Go to venue step
     } else {
-      // Venue selected first
+      // Showcase/Festival: event/venue selected → stores eventName, go to venue step (optional)
       setEntryPoint('venue');
       updateShowData({
-        venue: result.name,
+        eventName: result.name,
+        venue: result.location ? result.name : showData.venue, // pre-fill venue if it has location
         venueLocation: result.location || '',
         venueId: result.id.startsWith('manual-') ? null : result.id,
         venueLatitude: result.latitude,
         venueLongitude: result.longitude
       });
-      setStep(2); // Go to date step
+      setStep(2); // Go to venue step (optional for showcase/festival)
     }
   };
 
@@ -445,13 +454,15 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         from("shows").
         insert({
           user_id: user.id,
-          venue_name: showData.venue,
+          venue_name: showData.venue || showData.eventName,
           venue_location: showData.venueLocation || null,
           venue_id: venueIdToUse || null,
           show_date: showDate,
           date_precision: showData.datePrecision,
           rating: showData.rating,
-          notes: showData.notes || null
+          notes: showData.notes || null,
+          show_type: showData.showType,
+          event_name: showData.eventName || null,
         }).
         select().
         single();
@@ -608,7 +619,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       venue: "",
       venueLocation: "",
       venueId: null,
-      showType: 'venue',
+      showType: 'show',
+      eventName: "",
       date: undefined,
       datePrecision: "exact",
       selectedMonth: "",
@@ -619,7 +631,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       tags: [],
       notes: ""
     });
-    setStep(1);
+    setStep(0);
     setEntryPoint(null);
     setShowStepSelector(false);
     setHasUnsavedChanges(false);
@@ -676,130 +688,68 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onClick={() => editPhotoInputRef.current?.click()}
             disabled={editPhotoUploading}
             className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left disabled:opacity-50">
-
             <div className="flex items-center gap-3">
               {editPhotoUrl ?
               <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
-                  <img
-                  src={editPhotoUrl}
-                  alt="Show photo"
-                  className="w-full h-full object-cover" />
-
+                  <img src={editPhotoUrl} alt="Show photo" className="w-full h-full object-cover" />
                 </div> :
-
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Camera className="h-5 w-5 text-primary" />
                 </div>
               }
               <div>
-                <div className="font-semibold">
-                  {editPhotoUploading ? "Uploading..." : "Photo"}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {editPhotoUrl ? "Tap to change" : "Add a photo"}
-                </div>
+                <div className="font-semibold">{editPhotoUploading ? "Uploading..." : "Photo"}</div>
+                <div className="text-sm text-muted-foreground">{editPhotoUrl ? "Tap to change" : "Add a photo"}</div>
               </div>
             </div>
           </button>
-
-          {/* Hidden file input */}
-          <input
-            ref={editPhotoInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp"
-            className="hidden"
-            onChange={handleEditPhotoUpload} />
-
-
-          <button
-            onClick={() => setStep(1)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
-
+          <input ref={editPhotoInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleEditPhotoUpload} />
+          <button onClick={() => setStep(1)} className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <div className="font-semibold">Venue</div>
-                <div className="text-sm text-muted-foreground">{showData.venue}</div>
-              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><MapPin className="h-5 w-5 text-primary" /></div>
+              <div><div className="font-semibold">Venue</div><div className="text-sm text-muted-foreground">{showData.venue}</div></div>
             </div>
           </button>
-
-          <button
-            onClick={() => setStep(2)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
-
+          <button onClick={() => setStep(2)} className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <div className="font-semibold">Date</div>
-                <div className="text-sm text-muted-foreground">
-                  {new Date(editShow?.date || "").toLocaleDateString()}
-                </div>
-              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Calendar className="h-5 w-5 text-primary" /></div>
+              <div><div className="font-semibold">Date</div><div className="text-sm text-muted-foreground">{new Date(editShow?.date || "").toLocaleDateString()}</div></div>
             </div>
           </button>
-
-          <button
-            onClick={() => setStep(3)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
-
+          <button onClick={() => setStep(3)} className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Music className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <div className="font-semibold">Artists</div>
-                <div className="text-sm text-muted-foreground">
-                  {showData.artists.map((a) => a.name).join(", ")}
-                </div>
-              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Music className="h-5 w-5 text-primary" /></div>
+              <div><div className="font-semibold">Artists</div><div className="text-sm text-muted-foreground">{showData.artists.map((a) => a.name).join(", ")}</div></div>
             </div>
           </button>
-
-          <button
-            onClick={() => setStep(4)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
-
+          <button onClick={() => setStep(4)} className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Star className="h-5 w-5 text-primary" />
-              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Star className="h-5 w-5 text-primary" /></div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold">Tags & My Take</div>
-                <div className="text-sm text-muted-foreground truncate">
-                  {showData.notes ?
-                  showData.notes.length > 40 ?
-                  `${showData.notes.substring(0, 40)}...` :
-                  showData.notes :
-                  "Optional details"}
-                </div>
+                <div className="text-sm text-muted-foreground truncate">{showData.notes ? showData.notes.length > 40 ? `${showData.notes.substring(0, 40)}...` : showData.notes : "Optional details"}</div>
               </div>
             </div>
           </button>
-
-          {hasUnsavedChanges &&
-          <div className="pt-4">
-              <Button
-              onClick={handleSubmit}
-              className="w-full py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-[hsl(189,94%,55%)] via-primary to-[hsl(17,88%,60%)] shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] transition-all duration-200"
-              size="lg">
-
-                Save Changes
-              </Button>
-            </div>
-          }
+          {hasUnsavedChanges && <div className="pt-4"><Button onClick={handleSubmit} className="w-full py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-[hsl(189,94%,55%)] via-primary to-[hsl(17,88%,60%)] shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] transition-all duration-200" size="lg">Save Changes</Button></div>}
         </div>);
+    }
 
+    // Step 0 (new show only): Type picker
+    if (step === 0 && !showStepSelector) {
+      return (
+        <ShowTypeStep
+          onSelect={(type) => {
+            updateShowData({ showType: type, eventName: "", venue: "", artists: [] });
+            setStep(1);
+          }}
+        />
+      );
     }
 
     // Step 1: Unified search (new flow) or VenueStep (edit mode)
     if (step === 1) {
       if (showStepSelector) {
-        // Edit mode - show venue step directly
         return (
           <VenueStep
             value={showData.venue}
@@ -812,11 +762,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             isLoadingDefaultCity={isLoadingProfile}
             isEditing={true}
             onSave={handleSubmit} />);
-
-
       }
-      // New show - unified search
-      return <UnifiedSearchStep onSelect={handleUnifiedSelect} />;
+      // New show - unified search, context-aware
+      return <UnifiedSearchStep onSelect={handleUnifiedSelect} showType={showData.showType} />;
     }
 
     // After step 1, flow depends on entry point

@@ -190,10 +190,11 @@ async function searchGooglePlaces(
   lat?: number | null,
   lon?: number | null
 ): Promise<GooglePlace[]> {
-  // Bias query toward music/entertainment context
   let searchQuery = query;
   if (showType === 'festival') {
     searchQuery = `${query} festival`;
+  } else if (showType === 'showcase') {
+    searchQuery = `${query} event night`;
   } else {
     searchQuery = `${query} music venue`;
   }

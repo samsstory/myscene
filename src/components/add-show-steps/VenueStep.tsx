@@ -15,13 +15,14 @@ interface VenueStepProps {
   value: string;
   location: string;
   locationFilter: string;
-  showType: 'venue' | 'festival' | 'other';
+  showType: 'show' | 'showcase' | 'festival';
   onSelect: (venue: string, location: string, venueId: string | null, latitude?: number, longitude?: number) => void;
   onLocationFilterChange: (filter: string) => void;
-  onShowTypeChange: (type: 'venue' | 'festival' | 'other') => void;
+  onShowTypeChange: (type: 'show' | 'showcase' | 'festival') => void;
   isLoadingDefaultCity?: boolean;
   isEditing?: boolean;
   onSave?: () => void;
+  onSkip?: () => void;
   selectedArtistName?: string;
 }
 
@@ -45,7 +46,7 @@ interface AddressSuggestion {
   coordinates: [number, number];
 }
 
-const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave, selectedArtistName }: VenueStepProps) => {
+const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave, onSkip, selectedArtistName }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -371,25 +372,25 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   const getPlaceholder = () => {
     switch (showType) {
-      case 'venue':
+      case 'show':
+        return 'Search for venue...';
+      case 'showcase':
         return 'Search for venue...';
       case 'festival':
-        return 'Search for festival...';
-      case 'other':
-        return 'Search for show...';
+        return 'Search for venue or grounds...';
       default:
-        return 'Search for venue or festival...';
+        return 'Search for venue...';
     }
   };
 
   const getManualEntryLabel = () => {
     switch (showType) {
-      case 'venue':
+      case 'show':
+        return 'New venue';
+      case 'showcase':
         return 'New venue';
       case 'festival':
-        return 'New festival';
-      case 'other':
-        return 'New show';
+        return 'New venue / grounds';
       default:
         return 'New venue';
     }
