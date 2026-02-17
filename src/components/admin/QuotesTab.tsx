@@ -24,6 +24,9 @@ export function QuotesTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editAuthor, setEditAuthor] = useState("");
+  const [quoteDelay, setQuoteDelay] = useState(800);
+  const [minDisplay, setMinDisplay] = useState(1500);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const fetchQuotes = async () => {
     const { data, error } = await supabase
@@ -39,7 +42,21 @@ export function QuotesTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchQuotes(); }, []);
+  const fetchSettings = async () => {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["quote_delay_ms", "quote_min_display_ms"]);
+
+    if (data) {
+      for (const row of data) {
+        if (row.key === "quote_delay_ms") setQuoteDelay(Number(row.value));
+        if (row.key === "quote_min_display_ms") setMinDisplay(Number(row.value));
+      }
+    }
+  };
+
+  useEffect(() => { fetchQuotes(); fetchSettings(); }, []);
 
   const handleAdd = async () => {
     if (!newText.trim() || !newAuthor.trim()) {
@@ -129,6 +146,56 @@ export function QuotesTab() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Timing settings */}
+        <div className="rounded-lg border border-border p-4 space-y-4">
+          <p className="text-sm font-medium text-muted-foreground">Display Timing</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Delay before showing quote (ms)</label>
+              <Input
+                type="number"
+                min={0}
+                max={5000}
+                step={100}
+                value={quoteDelay}
+                onChange={e => setQuoteDelay(Number(e.target.value))}
+              />
+              <p className="text-[10px] text-muted-foreground/70">If load finishes before this, no quote appears</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Min display time once visible (ms)</label>
+              <Input
+                type="number"
+                min={0}
+                max={10000}
+                step={100}
+                value={minDisplay}
+                onChange={e => setMinDisplay(Number(e.target.value))}
+              />
+              <p className="text-[10px] text-muted-foreground/70">Holds the loader so the quote is readable</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={savingSettings}
+            onClick={async () => {
+              setSavingSettings(true);
+              const updates = [
+                supabase.from("app_settings").update({ value: quoteDelay, updated_at: new Date().toISOString() }).eq("key", "quote_delay_ms"),
+                supabase.from("app_settings").update({ value: minDisplay, updated_at: new Date().toISOString() }).eq("key", "quote_min_display_ms"),
+              ];
+              const results = await Promise.all(updates);
+              const hasError = results.some(r => r.error);
+              if (hasError) toast.error("Failed to save settings");
+              else toast.success("Timing settings saved");
+              setSavingSettings(false);
+            }}
+          >
+            {savingSettings ? "Saving…" : "Save timing settings"}
+          </Button>
+        </div>
+
         {/* Add new quote */}
         <div className="space-y-3 rounded-lg border border-dashed border-border p-4">
           <p className="text-sm font-medium text-muted-foreground">Add new quote</p>
