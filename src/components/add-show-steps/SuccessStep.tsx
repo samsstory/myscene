@@ -11,7 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 interface AddedShowData {
   id: string;
-  artists: Array<{ name: string; isHeadliner: boolean }>;
+  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string }>;
   venue: { name: string; location: string };
   date: string;
   rating?: number | null;
@@ -68,6 +68,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   };
 
   const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
+  const headlinerImage = show.artists.find(a => a.isHeadliner)?.imageUrl || show.artists[0]?.imageUrl;
   const formattedDate = format(new Date(show.date), "MMM d, yyyy");
 
   const handlePhotoClick = () => {
@@ -107,20 +108,32 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
 
   return (
     <div className="text-center space-y-6 py-4">
-      {/* Success icon */}
-      <div className="relative inline-block">
-        <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-          <CheckCircle2 className="h-10 w-10 text-primary" />
-        </div>
-      </div>
+      {/* Hero header with artist image backdrop */}
+      <div className="relative rounded-2xl overflow-hidden mx-0">
+        {headlinerImage ? (
+          <div
+            className="absolute inset-0 bg-cover bg-center scale-105"
+            style={{ backgroundImage: `url(${headlinerImage})` }}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-primary/10" />
+        )}
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
 
-      {/* Message */}
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Show Added!</h2>
-        <p className="text-muted-foreground text-sm">
-          {headliner} @ {show.venue.name}
-        </p>
-        <p className="text-muted-foreground text-xs">{formattedDate}</p>
+        {/* Content */}
+        <div className="relative z-10 py-8 px-4 flex flex-col items-center gap-3">
+          <div className="h-14 w-14 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+            <CheckCircle2 className="h-7 w-7 text-white" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold text-white">Show Added!</h2>
+            <p className="text-white/80 text-sm font-medium">
+              {headliner} @ {show.venue.name}
+            </p>
+            <p className="text-white/60 text-xs">{formattedDate}</p>
+          </div>
+        </div>
       </div>
 
       {/* Inline Install CTA — first show only */}
