@@ -6,10 +6,13 @@ import PhotoSelectStep from "./bulk-upload/PhotoSelectStep";
 import BulkReviewStep from "./bulk-upload/BulkReviewStep";
 import BulkSuccessStep from "./bulk-upload/BulkSuccessStep";
 import SmartMatchStep from "./bulk-upload/SmartMatchStep";
+import TextImportStep, { ParsedShow } from "./bulk-upload/TextImportStep";
+import TextReviewStep, { ReviewedTextShow } from "./bulk-upload/TextReviewStep";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import { PhotoWithExif, VenueSuggestion, cleanupPhotoUrls } from "@/lib/exif-utils";
 import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
+import { useTextImportUpload } from "@/hooks/useTextImportUpload";
 
 interface BulkUploadFlowProps {
   open: boolean;
@@ -20,7 +23,7 @@ interface BulkUploadFlowProps {
   onAddManually?: () => void;
 }
 
-type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor';
+type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review';
 
 const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
@@ -28,7 +31,9 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   const [addedCount, setAddedCount] = useState(0);
   const [addedShows, setAddedShows] = useState<AddedShowData[]>([]);
   const [editorShow, setEditorShow] = useState<AddedShowData | null>(null);
+  const [parsedShows, setParsedShows] = useState<ParsedShow[]>([]);
   const { uploadShows, isUploading } = useBulkShowUpload();
+  const { uploadShows: uploadTextShows, isUploading: isTextUploading } = useTextImportUpload();
 
   const handleClose = () => {
     // Cleanup photo URLs
@@ -39,6 +44,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     setAddedCount(0);
     setAddedShows([]);
     setEditorShow(null);
+    setParsedShows([]);
     onOpenChange(false);
   };
 
@@ -94,11 +100,11 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   };
 
   const handleAddMore = () => {
-    // Cleanup current photos
     cleanupPhotoUrls(photos);
     setPhotos([]);
     setAddedShows([]);
     setEditorShow(null);
+    setParsedShows([]);
     setStep('select');
   };
 
@@ -131,6 +137,28 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     } else if (step === 'editor') {
       setEditorShow(null);
       setStep('success');
+    } else if (step === 'text-import') {
+      setStep('select');
+    } else if (step === 'text-review') {
+      setStep('text-import');
+    }
+  };
+
+  const handlePasteList = () => {
+    setStep('text-import');
+  };
+
+  const handleShowsParsed = (shows: ParsedShow[]) => {
+    setParsedShows(shows);
+    setStep('text-review');
+  };
+
+  const handleTextReviewComplete = async (shows: ReviewedTextShow[]) => {
+    const result = await uploadTextShows(shows);
+    if (result.success) {
+      setAddedCount(result.addedCount);
+      setAddedShows(result.addedShows);
+      setStep('success');
     }
   };
 
@@ -151,6 +179,10 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         return 'Success!';
       case 'editor':
         return 'Create Share Image';
+      case 'text-import':
+        return 'Import from Notes';
+      case 'text-review':
+        return 'Review Shows';
       default:
         return 'Add Shows';
     }
@@ -199,7 +231,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center gap-3 mb-4">
-            {(step === 'smart-match' || step === 'review' || step === 'editor') && (
+            {(step === 'smart-match' || step === 'review' || step === 'editor' || step === 'text-import' || step === 'text-review') && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -218,6 +250,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             onPhotosSelected={handlePhotosSelected}
             isProcessing={false}
             onAddManually={onAddManually ? handleAddManually : undefined}
+            onPasteList={handlePasteList}
           />
         )}
 
@@ -237,6 +270,21 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             onPhotoDelete={handlePhotoDelete}
             onPhotosUpdate={setPhotos}
             isSubmitting={isUploading}
+          />
+        )}
+
+        {step === 'text-import' && (
+          <TextImportStep
+            onShowsParsed={handleShowsParsed}
+            onBack={() => setStep('select')}
+          />
+        )}
+
+        {step === 'text-review' && parsedShows.length > 0 && (
+          <TextReviewStep
+            parsedShows={parsedShows}
+            onComplete={handleTextReviewComplete}
+            isSubmitting={isTextUploading}
           />
         )}
 

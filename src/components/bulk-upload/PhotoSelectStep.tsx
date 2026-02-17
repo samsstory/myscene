@@ -6,11 +6,13 @@ interface PhotoSelectStepProps {
   onPhotosSelected: (photos: PhotoWithExif[]) => void;
   isProcessing: boolean;
   onAddManually?: () => void;
+  onPasteList?: () => void;
 }
 const PhotoSelectStep = ({
   onPhotosSelected,
   isProcessing,
-  onAddManually
+  onAddManually,
+  onPasteList
 }: PhotoSelectStepProps) => {
   const [selectedPhotos, setSelectedPhotos] = useState<PhotoWithExif[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -106,6 +108,16 @@ const PhotoSelectStep = ({
               className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors py-2"
             >
               I don't have a photo
+            </button>
+          )}
+          
+          {/* Paste a list link */}
+          {onPasteList && (
+            <button
+              onClick={onPasteList}
+              className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors py-1"
+            >
+              Paste a list instead
             </button>
           )}
         </div>

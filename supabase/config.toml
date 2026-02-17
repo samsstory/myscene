@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.resend-notification]
 verify_jwt = false
+
+[functions.parse-show-notes]
+verify_jwt = false
