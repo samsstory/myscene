@@ -19,10 +19,10 @@ interface AddShowFlowProps {
   onViewShowDetails?: (showId: string) => void;
   editShow?: {
     id: string;
-    venue: { name: string; location: string };
+    venue: {name: string;location: string;};
     date: string;
     datePrecision: string;
-    artists: Array<{ name: string; isHeadliner: boolean }>;
+    artists: Array<{name: string;isHeadliner: boolean;}>;
     rating?: number | null;
     tags?: string[];
     notes?: string | null;
@@ -33,8 +33,8 @@ interface AddShowFlowProps {
 
 export interface AddedShowData {
   id: string;
-  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string }>;
-  venue: { name: string; location: string };
+  artists: Array<{name: string;isHeadliner: boolean;}>;
+  venue: {name: string;location: string;};
   date: string;
   rating?: number | null;
   tags?: string[];
@@ -51,7 +51,7 @@ export interface ShowData {
   datePrecision: "exact" | "approximate" | "unknown";
   selectedMonth: string;
   selectedYear: string;
-  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string; spotifyId?: string }>;
+  artists: Array<{name: string;isHeadliner: boolean;imageUrl?: string;spotifyId?: string;}>;
   rating?: number | null;
   locationFilter: string;
   tags: string[];
@@ -80,14 +80,14 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     rating: null,
     locationFilter: "",
     tags: [],
-    notes: "",
+    notes: ""
   });
   const [userHomeCity, setUserHomeCity] = useState<string>("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  
+
   // Track if we've already initialized edit data for this dialog open
   const [editInitialized, setEditInitialized] = useState(false);
-  
+
   // Photo editing state for edit mode
   const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null);
   const [editPhotoUploading, setEditPhotoUploading] = useState(false);
@@ -98,9 +98,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     if (editShow && open && !editInitialized) {
       const showDate = new Date(editShow.date);
       const months = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-      ];
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+
 
       setShowData({
         venue: editShow.venue.name,
@@ -115,7 +115,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         rating: editShow.rating,
         locationFilter: "",
         tags: editShow.tags || [],
-        notes: editShow.notes || "",
+        notes: editShow.notes || ""
       });
       setEditPhotoUrl(editShow.photo_url || null);
       setShowStepSelector(true);
@@ -130,7 +130,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setEditInitialized(false);
     }
   }, [editShow, open, editInitialized]);
-  
+
   // Reset editInitialized when dialog closes
   useEffect(() => {
     if (!open) {
@@ -145,15 +145,15 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('home_city')
-          .eq('id', user.id)
-          .single();
+        const { data: profile } = await supabase.
+        from('profiles').
+        select('home_city').
+        eq('id', user.id).
+        single();
 
         if (profile?.home_city) {
           setUserHomeCity(profile.home_city);
-          setShowData(prev => ({ ...prev, locationFilter: profile.home_city }));
+          setShowData((prev) => ({ ...prev, locationFilter: profile.home_city }));
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -168,7 +168,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   }, [open]);
 
   const updateShowData = (updates: Partial<ShowData>) => {
-    setShowData(prev => ({ ...prev, ...updates }));
+    setShowData((prev) => ({ ...prev, ...updates }));
   };
 
   const updateShowType = (type: 'venue' | 'festival' | 'other') => {
@@ -177,18 +177,18 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
   const updateLocationFilter = async (newLocation: string) => {
     updateShowData({ locationFilter: newLocation });
-    
+
     if (newLocation !== userHomeCity && newLocation.trim()) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        await supabase
-          .from('profiles')
-          .upsert({
-            id: user.id,
-            home_city: newLocation,
-          });
+        await supabase.
+        from('profiles').
+        upsert({
+          id: user.id,
+          home_city: newLocation
+        });
 
         setUserHomeCity(newLocation);
         toast.success(`Home city updated to ${newLocation}`);
@@ -222,7 +222,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       // At unified search, just close
       return;
     }
-    
+
     if (showStepSelector && step > 0) {
       setStep(0);
       return;
@@ -231,26 +231,26 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     // Navigate back based on entry point
     if (entryPoint === 'artist') {
       // Artist flow: 1 (search) -> 2 (venue) -> 3 (date) -> 4 (rating)
-      if (step === 2) setStep(1);
-      else if (step === 3) setStep(2);
-      else if (step === 4) setStep(3);
+      if (step === 2) setStep(1);else
+      if (step === 3) setStep(2);else
+      if (step === 4) setStep(3);
     } else {
       // Venue flow: 1 (search) -> 2 (date) -> 3 (artists) -> 4 (rating)
-      if (step === 2) setStep(1);
-      else if (step === 3) setStep(2);
-      else if (step === 4) setStep(3);
+      if (step === 2) setStep(1);else
+      if (step === 3) setStep(2);else
+      if (step === 4) setStep(3);
     }
   };
 
   // Handle unified search selection
-  const handleUnifiedSelect = (result: { type: SearchResultType; id: string; name: string; imageUrl?: string; location?: string; latitude?: number; longitude?: number }) => {
+  const handleUnifiedSelect = (result: {type: SearchResultType;id: string;name: string;imageUrl?: string;location?: string;latitude?: number;longitude?: number;}) => {
     setHasUnsavedChanges(true);
-    
+
     if (result.type === 'artist') {
       // Artist selected first
       setEntryPoint('artist');
       updateShowData({
-        artists: [{ name: result.name, isHeadliner: true, imageUrl: result.imageUrl, spotifyId: result.id }],
+        artists: [{ name: result.name, isHeadliner: true, imageUrl: result.imageUrl, spotifyId: result.id }]
       });
       setStep(2); // Go to venue step
     } else {
@@ -261,22 +261,22 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venueLocation: result.location || '',
         venueId: result.id.startsWith('manual-') ? null : result.id,
         venueLatitude: result.latitude,
-        venueLongitude: result.longitude,
+        venueLongitude: result.longitude
       });
       setStep(2); // Go to date step
     }
   };
 
   const handleVenueSelect = (venue: string, location: string, venueId: string | null, latitude?: number, longitude?: number) => {
-    updateShowData({ 
-      venue, 
-      venueLocation: location, 
+    updateShowData({
+      venue,
+      venueLocation: location,
       venueId,
       venueLatitude: latitude,
       venueLongitude: longitude
     });
     setHasUnsavedChanges(true);
-    
+
     if (showStepSelector) {
       setStep(0);
     } else if (entryPoint === 'artist') {
@@ -320,9 +320,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       const isEditing = !!editShow;
 
       const months = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-      ];
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+
 
       let showDate: string;
       if (showData.datePrecision === "exact" && showData.date) {
@@ -340,40 +340,40 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
       // Handle venue
       let venueIdToUse = null;
-      
+
       const isGooglePlaceId = showData.venueId && !showData.venueId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-      
+
       if (isGooglePlaceId) {
-        const { data: existingVenue } = await supabase
-          .from('venues')
-          .select('id')
-          .eq('metadata->>google_place_id', showData.venueId)
-          .maybeSingle();
+        const { data: existingVenue } = await supabase.
+        from('venues').
+        select('id').
+        eq('metadata->>google_place_id', showData.venueId).
+        maybeSingle();
 
         if (existingVenue) {
           venueIdToUse = existingVenue.id;
-          
-          await supabase
-            .from('venues')
-            .update({
-              location: showData.venueLocation || null,
-              latitude: showData.venueLatitude || null,
-              longitude: showData.venueLongitude || null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingVenue.id);
+
+          await supabase.
+          from('venues').
+          update({
+            location: showData.venueLocation || null,
+            latitude: showData.venueLatitude || null,
+            longitude: showData.venueLongitude || null,
+            updated_at: new Date().toISOString()
+          }).
+          eq('id', existingVenue.id);
         } else {
-          const { data: newVenue, error: venueError } = await supabase
-            .from('venues')
-            .insert({
-              name: showData.venue,
-              location: showData.venueLocation || null,
-              latitude: showData.venueLatitude || null,
-              longitude: showData.venueLongitude || null,
-              metadata: { google_place_id: showData.venueId },
-            })
-            .select('id')
-            .single();
+          const { data: newVenue, error: venueError } = await supabase.
+          from('venues').
+          insert({
+            name: showData.venue,
+            location: showData.venueLocation || null,
+            latitude: showData.venueLatitude || null,
+            longitude: showData.venueLongitude || null,
+            metadata: { google_place_id: showData.venueId }
+          }).
+          select('id').
+          single();
 
           if (venueError) {
             console.error('Error creating venue:', venueError);
@@ -383,31 +383,31 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         }
       } else if (showData.venueId) {
         venueIdToUse = showData.venueId;
-        
-        const { error: venueError } = await supabase
-          .from('venues')
-          .update({
-            location: showData.venueLocation || null,
-            latitude: showData.venueLatitude || null,
-            longitude: showData.venueLongitude || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', showData.venueId);
+
+        const { error: venueError } = await supabase.
+        from('venues').
+        update({
+          location: showData.venueLocation || null,
+          latitude: showData.venueLatitude || null,
+          longitude: showData.venueLongitude || null,
+          updated_at: new Date().toISOString()
+        }).
+        eq('id', showData.venueId);
 
         if (venueError) {
           console.error('Error updating venue cache:', venueError);
         }
       } else if (showData.venue) {
-        const { data: newVenue, error: venueError } = await supabase
-          .from('venues')
-          .insert({
-            name: showData.venue,
-            location: showData.venueLocation || null,
-            latitude: showData.venueLatitude || null,
-            longitude: showData.venueLongitude || null,
-          })
-          .select('id')
-          .single();
+        const { data: newVenue, error: venueError } = await supabase.
+        from('venues').
+        insert({
+          name: showData.venue,
+          location: showData.venueLocation || null,
+          latitude: showData.venueLatitude || null,
+          longitude: showData.venueLongitude || null
+        }).
+        select('id').
+        single();
 
         if (venueError) {
           console.error('Error creating venue cache:', venueError);
@@ -418,60 +418,60 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
       let show;
       if (isEditing) {
-        const { data: updatedShow, error: showError } = await supabase
-          .from("shows")
-          .update({
-            venue_name: showData.venue,
-            venue_location: showData.venueLocation || null,
-            venue_id: venueIdToUse || null,
-            show_date: showDate,
-            date_precision: showData.datePrecision,
-            rating: showData.rating,
-            notes: showData.notes || null,
-          })
-          .eq('id', editShow.id)
-          .select()
-          .single();
+        const { data: updatedShow, error: showError } = await supabase.
+        from("shows").
+        update({
+          venue_name: showData.venue,
+          venue_location: showData.venueLocation || null,
+          venue_id: venueIdToUse || null,
+          show_date: showDate,
+          date_precision: showData.datePrecision,
+          rating: showData.rating,
+          notes: showData.notes || null
+        }).
+        eq('id', editShow.id).
+        select().
+        single();
 
         if (showError) throw showError;
         show = updatedShow;
 
-        await supabase
-          .from("show_artists")
-          .delete()
-          .eq('show_id', editShow.id);
+        await supabase.
+        from("show_artists").
+        delete().
+        eq('show_id', editShow.id);
       } else {
-        const { data: newShow, error: showError } = await supabase
-          .from("shows")
-          .insert({
-            user_id: user.id,
-            venue_name: showData.venue,
-            venue_location: showData.venueLocation || null,
-            venue_id: venueIdToUse || null,
-            show_date: showDate,
-            date_precision: showData.datePrecision,
-            rating: showData.rating,
-            notes: showData.notes || null,
-          })
-          .select()
-          .single();
+        const { data: newShow, error: showError } = await supabase.
+        from("shows").
+        insert({
+          user_id: user.id,
+          venue_name: showData.venue,
+          venue_location: showData.venueLocation || null,
+          venue_id: venueIdToUse || null,
+          show_date: showDate,
+          date_precision: showData.datePrecision,
+          rating: showData.rating,
+          notes: showData.notes || null
+        }).
+        select().
+        single();
 
         if (showError) throw showError;
         show = newShow;
       }
 
       if (venueIdToUse) {
-        await supabase
-          .from('user_venues')
-          .upsert({
-            user_id: user.id,
-            venue_id: venueIdToUse,
-            show_count: 1,
-            last_show_date: showDate,
-          }, {
-            onConflict: 'user_id,venue_id',
-            ignoreDuplicates: false,
-          });
+        await supabase.
+        from('user_venues').
+        upsert({
+          user_id: user.id,
+          venue_id: venueIdToUse,
+          show_count: 1,
+          last_show_date: showDate
+        }, {
+          onConflict: 'user_id,venue_id',
+          ignoreDuplicates: false
+        });
       }
 
       const artistsToInsert = showData.artists.map((artist, index) => ({
@@ -479,12 +479,12 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         artist_name: artist.name,
         is_headliner: index === 0,
         artist_image_url: artist.imageUrl || null,
-        spotify_artist_id: artist.spotifyId || null,
+        spotify_artist_id: artist.spotifyId || null
       }));
 
-      const { error: artistsError } = await supabase
-        .from("show_artists")
-        .insert(artistsToInsert);
+      const { error: artistsError } = await supabase.
+      from("show_artists").
+      insert(artistsToInsert);
 
       if (artistsError) throw artistsError;
 
@@ -493,19 +493,19 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         // Delete existing tags for this show
         await supabase.from("show_tags").delete().eq('show_id', show.id);
       }
-      
+
       if (showData.tags.length > 0) {
         const { getCategoryForTag } = await import("@/lib/tag-constants");
-        const tagsToInsert = showData.tags.map(tag => ({
+        const tagsToInsert = showData.tags.map((tag) => ({
           show_id: show.id,
           tag,
-          category: getCategoryForTag(tag) || "the_show",
+          category: getCategoryForTag(tag) || "the_show"
         }));
-        
-        const { error: tagsError } = await supabase
-          .from("show_tags")
-          .insert(tagsToInsert);
-        
+
+        const { error: tagsError } = await supabase.
+        from("show_tags").
+        insert(tagsToInsert);
+
         if (tagsError) throw tagsError;
       }
 
@@ -520,7 +520,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           venue: { name: showData.venue, location: showData.venueLocation },
           date: showDate,
           rating: null, // No rating in new system
-          tags: showData.tags,
+          tags: showData.tags
         };
         setAddedShow(newShowData);
         setStep(5); // Success step
@@ -534,33 +534,33 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   // Handle photo upload for the success step
   const handlePhotoUpload = async (file: File) => {
     if (!addedShow) return;
-    
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) throw new Error("Not authenticated");
-    
+
     // Compress and upload
     const ext = file.type.split('/')[1] || 'jpg';
     const fileName = `${session.user.id}/${addedShow.id}-${Date.now()}.${ext}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('show-photos')
-      .upload(fileName, file, {
-        contentType: file.type,
-        upsert: false,
-      });
-    
+
+    const { error: uploadError } = await supabase.storage.
+    from('show-photos').
+    upload(fileName, file, {
+      contentType: file.type,
+      upsert: false
+    });
+
     if (uploadError) throw uploadError;
-    
+
     // Get public URL and update show record
-    const { data: { publicUrl } } = supabase.storage
-      .from('show-photos')
-      .getPublicUrl(fileName);
-    
-    const { error: updateError } = await supabase
-      .from('shows')
-      .update({ photo_url: publicUrl })
-      .eq('id', addedShow.id);
-    
+    const { data: { publicUrl } } = supabase.storage.
+    from('show-photos').
+    getPublicUrl(fileName);
+
+    const { error: updateError } = await supabase.
+    from('shows').
+    update({ photo_url: publicUrl }).
+    eq('id', addedShow.id);
+
     if (updateError) throw updateError;
   };
 
@@ -578,19 +578,19 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       const fileName = `${editShow.id}-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('show-photos')
-        .upload(filePath, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.
+      from('show-photos').
+      upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('show-photos')
-        .getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage.
+      from('show-photos').
+      getPublicUrl(filePath);
 
-      await supabase.from('shows')
-        .update({ photo_url: publicUrl })
-        .eq('id', editShow.id);
+      await supabase.from('shows').
+      update({ photo_url: publicUrl }).
+      eq('id', editShow.id);
 
       setEditPhotoUrl(publicUrl);
       setHasUnsavedChanges(true);
@@ -617,7 +617,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       rating: null,
       locationFilter: "",
       tags: [],
-      notes: "",
+      notes: ""
     });
     setStep(1);
     setEntryPoint(null);
@@ -658,9 +658,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onShowAdded(addedShow);
           }
           resetAndClose();
-        }}
-      />
-    );
+        }} />);
+
+
   };
 
   // Render step content based on entry point and current step
@@ -675,22 +675,22 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           <button
             onClick={() => editPhotoInputRef.current?.click()}
             disabled={editPhotoUploading}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left disabled:opacity-50"
-          >
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left disabled:opacity-50">
+
             <div className="flex items-center gap-3">
-              {editPhotoUrl ? (
-                <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
-                  <img 
-                    src={editPhotoUrl} 
-                    alt="Show photo" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              {editPhotoUrl ?
+              <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
+                  <img
+                  src={editPhotoUrl}
+                  alt="Show photo"
+                  className="w-full h-full object-cover" />
+
+                </div> :
+
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Camera className="h-5 w-5 text-primary" />
                 </div>
-              )}
+              }
               <div>
                 <div className="font-semibold">
                   {editPhotoUploading ? "Uploading..." : "Photo"}
@@ -708,13 +708,13 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             type="file"
             accept=".jpg,.jpeg,.png,.webp"
             className="hidden"
-            onChange={handleEditPhotoUpload}
-          />
+            onChange={handleEditPhotoUpload} />
+
 
           <button
             onClick={() => setStep(1)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
-          >
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
+
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <MapPin className="h-5 w-5 text-primary" />
@@ -728,8 +728,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           <button
             onClick={() => setStep(2)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
-          >
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
+
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <Calendar className="h-5 w-5 text-primary" />
@@ -745,8 +745,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           <button
             onClick={() => setStep(3)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
-          >
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
+
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <Music className="h-5 w-5 text-primary" />
@@ -754,7 +754,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               <div>
                 <div className="font-semibold">Artists</div>
                 <div className="text-sm text-muted-foreground">
-                  {showData.artists.map(a => a.name).join(", ")}
+                  {showData.artists.map((a) => a.name).join(", ")}
                 </div>
               </div>
             </div>
@@ -762,38 +762,38 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
           <button
             onClick={() => setStep(4)}
-            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left"
-          >
+            className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
+
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <Star className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold">Rating & My Take</div>
+                <div className="font-semibold">Tags & My Take</div>
                 <div className="text-sm text-muted-foreground truncate">
-                  {showData.notes 
-                    ? showData.notes.length > 40 
-                      ? `${showData.notes.substring(0, 40)}...` 
-                      : showData.notes
-                    : "Optional details"}
+                  {showData.notes ?
+                  showData.notes.length > 40 ?
+                  `${showData.notes.substring(0, 40)}...` :
+                  showData.notes :
+                  "Optional details"}
                 </div>
               </div>
             </div>
           </button>
 
-          {hasUnsavedChanges && (
-            <div className="pt-4">
-              <Button 
-                onClick={handleSubmit} 
-                className="w-full py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-[hsl(189,94%,55%)] via-primary to-[hsl(17,88%,60%)] shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] transition-all duration-200" 
-                size="lg"
-              >
+          {hasUnsavedChanges &&
+          <div className="pt-4">
+              <Button
+              onClick={handleSubmit}
+              className="w-full py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-[hsl(189,94%,55%)] via-primary to-[hsl(17,88%,60%)] shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] transition-all duration-200"
+              size="lg">
+
                 Save Changes
               </Button>
             </div>
-          )}
-        </div>
-      );
+          }
+        </div>);
+
     }
 
     // Step 1: Unified search (new flow) or VenueStep (edit mode)
@@ -811,9 +811,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onShowTypeChange={updateShowType}
             isLoadingDefaultCity={isLoadingProfile}
             isEditing={true}
-            onSave={handleSubmit}
-          />
-        );
+            onSave={handleSubmit} />);
+
+
       }
       // New show - unified search
       return <UnifiedSearchStep onSelect={handleUnifiedSelect} />;
@@ -824,9 +824,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       // Artist-first flow: Search -> Venue -> Date -> Rating
       if (step === 2) {
         // Get headliner name for dynamic header
-        const headliner = showData.artists.find(a => a.isHeadliner);
+        const headliner = showData.artists.find((a) => a.isHeadliner);
         const artistName = headliner?.name || showData.artists[0]?.name;
-        
+
         return (
           <VenueStep
             value={showData.venue}
@@ -837,9 +837,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onLocationFilterChange={updateLocationFilter}
             onShowTypeChange={updateShowType}
             isLoadingDefaultCity={isLoadingProfile}
-            selectedArtistName={artistName}
-          />
-        );
+            selectedArtistName={artistName} />);
+
+
       }
       if (step === 3) {
         return (
@@ -852,9 +852,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onPrecisionChange={(precision) => updateShowData({ datePrecision: precision as "exact" | "approximate" | "unknown" })}
             onMonthChange={(month) => updateShowData({ selectedMonth: month })}
             onYearChange={(year) => updateShowData({ selectedYear: year })}
-            onContinue={handleDateSelect}
-          />
-        );
+            onContinue={handleDateSelect} />);
+
+
       }
       if (step === 4) {
         // Show RatingStep for both new shows and edit mode
@@ -866,9 +866,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onNotesChange={(notes) => updateShowData({ notes })}
             onSubmit={handleSubmit}
             onSkip={handleSubmit}
-            isEditMode={showStepSelector}
-          />
-        );
+            isEditMode={showStepSelector} />);
+
+
       }
     } else {
       // Venue-first flow: Search -> Date -> Artists -> Rating
@@ -886,9 +886,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               onYearChange={(year) => updateShowData({ selectedYear: year })}
               onContinue={handleDateSelect}
               isEditing={true}
-              onSave={handleSubmit}
-            />
-          );
+              onSave={handleSubmit} />);
+
+
         }
         return (
           <DateStep
@@ -900,9 +900,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onPrecisionChange={(precision) => updateShowData({ datePrecision: precision as "exact" | "approximate" | "unknown" })}
             onMonthChange={(month) => updateShowData({ selectedMonth: month })}
             onYearChange={(year) => updateShowData({ selectedYear: year })}
-            onContinue={handleDateSelect}
-          />
-        );
+            onContinue={handleDateSelect} />);
+
+
       }
       if (step === 3) {
         if (showStepSelector) {
@@ -912,17 +912,17 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               onArtistsChange={(artists) => updateShowData({ artists })}
               onContinue={handleArtistsComplete}
               isEditing={true}
-              onSave={handleSubmit}
-            />
-          );
+              onSave={handleSubmit} />);
+
+
         }
         return (
           <ArtistsStep
             artists={showData.artists}
             onArtistsChange={(artists) => updateShowData({ artists })}
-            onContinue={handleArtistsComplete}
-          />
-        );
+            onContinue={handleArtistsComplete} />);
+
+
       }
       if (step === 4) {
         // Show RatingStep for both new shows and edit mode
@@ -934,9 +934,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onNotesChange={(notes) => updateShowData({ notes })}
             onSubmit={handleSubmit}
             onSkip={handleSubmit}
-            isEditMode={showStepSelector}
-          />
-        );
+            isEditMode={showStepSelector} />);
+
+
       }
     }
 
@@ -959,9 +959,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               onShowAdded(addedShow);
             }
             resetAndClose();
-          }}
-        />
-      );
+          }} />);
+
+
     }
 
     // Quick compare step (step 6 for new shows)
@@ -980,41 +980,41 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[65vh] sm:max-h-[85vh] flex flex-col fixed top-[max(4.5rem,env(safe-area-inset-top,4.5rem))] sm:top-[50%] left-[50%] translate-x-[-50%] sm:translate-y-[-50%] translate-y-0 overflow-hidden">
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
-          <div 
+          <div
             className="absolute inset-0 animate-pulse-glow"
-            style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} 
-          />
-          <div 
+            style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} />
+
+          <div
             className="absolute inset-0"
-            style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} 
-          />
+            style={{ background: "radial-gradient(ellipse at 80% 90%, hsl(17 88% 60% / 0.06) 0%, transparent 50%)" }} />
+
           {/* Noise texture overlay */}
-          <div 
+          <div
             className="absolute inset-0 opacity-[0.03]"
-            style={{ backgroundImage: noiseTexture }} 
-          />
+            style={{ backgroundImage: noiseTexture }} />
+
         </div>
 
         {/* Back button - absolute positioned (hide on success/quick compare steps) */}
-        {step > 1 && step < 5 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBack}
-            className="h-8 w-8 absolute left-4 top-4 z-20"
-          >
+        {step > 1 && step < 5 &&
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleBack}
+          className="h-8 w-8 absolute left-4 top-4 z-20">
+
             <ArrowLeft className="h-5 w-5" />
           </Button>
-        )}
+        }
 
         {/* Step content - scrollable */}
         <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4 min-h-0 relative z-10">
           <div className="flex flex-col items-center">
-            {step !== 5 && (
-              <h2 className="text-xl font-bold text-center mb-4">
+            {step !== 5 &&
+            <h2 className="text-xl font-bold text-center mb-4">
                 {editShow ? "Edit Show" : "Add a Show"}
               </h2>
-            )}
+            }
             <div className="w-full">
               {renderStepContent()}
             </div>
@@ -1022,23 +1022,23 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         </div>
 
         {/* Progress indicator - hide for step selector and success/quick compare steps */}
-        {step > 0 && step < 5 && !showStepSelector && (
-          <div className="flex gap-1.5 px-6 pb-4 pt-2 border-t border-white/[0.06] bg-transparent relative z-10">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                  i <= step 
-                    ? "bg-primary shadow-[0_0_8px_hsl(189_94%_55%/0.6)]" 
-                    : "bg-white/20"
-                }`}
-              />
-            ))}
+        {step > 0 && step < 5 && !showStepSelector &&
+        <div className="flex gap-1.5 px-6 pb-4 pt-2 border-t border-white/[0.06] bg-transparent relative z-10">
+            {[1, 2, 3, 4].map((i) =>
+          <div
+            key={i}
+            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+            i <= step ?
+            "bg-primary shadow-[0_0_8px_hsl(189_94%_55%/0.6)]" :
+            "bg-white/20"}`
+            } />
+
+          )}
           </div>
-        )}
+        }
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>);
+
 };
 
 export default AddShowFlow;
