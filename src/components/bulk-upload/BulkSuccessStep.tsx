@@ -50,12 +50,11 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
     const isFirstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
 
-    if (!isFirstShow) return;
-
-    // Check if we're on mobile and not already installed
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isStandalone || !isMobile) return;
+    // TEMP: bypass checks for preview testing
+    // if (!isFirstShow) return;
+    // const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    // const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // if (isStandalone || !isMobile) return;
 
     setShowInstallCTA(true);
 
