@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WaitlistTab } from "@/components/admin/WaitlistTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { BugReportsTab } from "@/components/admin/BugReportsTab";
-import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
+import { AnnouncementsPanel } from "@/components/admin/AnnouncementsPanel";
 import { Shield } from "lucide-react";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,9 +71,7 @@ export default function Admin() {
             <BugReportsTab onCountChange={setNewBugCount} />
           </TabsContent>
           <TabsContent value="announcements">
-            <div className="space-y-6 pt-4">
-              <EmailTemplateEditor />
-            </div>
+            <AnnouncementsPanel />
           </TabsContent>
         </Tabs>
       </div>
