@@ -1,7 +1,9 @@
 import SceneLogo from "@/components/ui/SceneLogo";
-import WaitlistSignup from "./WaitlistSignup";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const LandingCTA = () => {
+  const navigate = useNavigate();
 
   return (
     <section className="py-24 md:py-32 relative overflow-hidden">
@@ -23,7 +25,9 @@ const LandingCTA = () => {
           </h2>
 
           <div className="pt-4 flex justify-center">
-            <WaitlistSignup source="cta" />
+            <Button size="lg" onClick={() => navigate("/auth")} className="text-base px-8 py-5 shadow-glow hover:scale-105 transition-transform">
+              Get Started
+            </Button>
           </div>
         </div>
       </div>

@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import SceneLogo from "@/components/ui/SceneLogo";
 import PhoneMockup from "../PhoneMockup";
-import WaitlistModal from "../WaitlistModal";
+
 import { cn } from "@/lib/utils";
 // Icons removed - no navigation in ceremonial reveal
 
@@ -106,7 +105,6 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
   </div>;
 const LandingHeroV2 = () => {
   const navigate = useNavigate();
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
   return <section className="min-h-screen flex items-center justify-center relative overflow-hidden pt-safe">
       {/* Background glow effects */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20" style={{
@@ -138,13 +136,11 @@ const LandingHeroV2 = () => {
             {/* END V2 COPY */}
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2 relative z-20">
-              <Button size="lg" onClick={() => setWaitlistOpen(true)} className="text-base px-8 py-5 shadow-glow hover:scale-105 transition-transform">
+              <Button size="lg" onClick={() => navigate("/auth")} className="text-base px-8 py-5 shadow-glow hover:scale-105 transition-transform">
                 Start Your Collection
               </Button>
               
             </div>
-
-            <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} source="hero-v2" />
 
             {/* Social proof */}
             <div className="items-center gap-3 justify-center lg:justify-start pt-2 flex flex-col">
