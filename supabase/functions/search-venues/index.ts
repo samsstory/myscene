@@ -69,7 +69,7 @@ async function searchFoursquare(
 
   try {
     const response = await fetch(url, {
-      headers: { 'Authorization': apiKey, 'Accept': 'application/json' },
+      headers: { 'Authorization': apiKey.startsWith('fsq') ? apiKey : `fsq-api-key ${apiKey}`, 'Accept': 'application/json' },
     });
 
     if (!response.ok) {
