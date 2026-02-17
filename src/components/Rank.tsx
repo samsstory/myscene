@@ -393,28 +393,53 @@ export default function Rank() {
 
   if (!shows || shows.length < 2) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 px-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 px-6">
         <SceneLogo size="md" />
-        <p className="text-muted-foreground text-center">
-          You need at least 2 shows to start ranking them against each other.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Add more shows to unlock this feature!
-        </p>
+        <div className="text-center space-y-2">
+          <h2 
+            className="text-lg font-bold"
+            style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}
+          >
+            {shows.length === 0 ? "No shows yet" : "One more to go!"}
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-[260px] mx-auto">
+            {shows.length === 0 
+              ? "Log your first shows to start ranking them head-to-head."
+              : "Add one more show to start ranking them head-to-head."
+            }
+          </p>
+        </div>
+        <button
+          onClick={() => window.location.href = '/dashboard?addShow=true'}
+          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
+        >
+          + Add a show
+        </button>
       </div>
     );
   }
 
   if (!showPair) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 px-6">
         <SceneLogo size="md" />
         <div className="text-center space-y-2">
-          <p className="text-foreground font-semibold">That's all for now!</p>
-          <p className="text-muted-foreground text-sm">
-            Your rankings are up to date
+          <h2 
+            className="text-lg font-bold"
+            style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}
+          >
+            All ranked!
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
+            You've compared all your shows. Add more to keep ranking head-to-head.
           </p>
         </div>
+        <button
+          onClick={() => window.location.href = '/dashboard?addShow=true'}
+          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
+        >
+          + Add more shows
+        </button>
       </div>
     );
   }
