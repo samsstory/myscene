@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus } from "lucide-react";
+import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 
@@ -89,6 +89,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
     }
   }, [initialView]);
   const [sortDirection, setSortDirection] = useState<"best-first" | "worst-first">("best-first");
+  const [rankingsSearch, setRankingsSearch] = useState("");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -309,6 +310,17 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
         });
       }
 
+      // Apply search filter
+      if (rankingsSearch.trim()) {
+        const q = rankingsSearch.trim().toLowerCase();
+        filteredShows = filteredShows.filter(show => {
+          const artistMatch = show.artists.some(a => a.name.toLowerCase().includes(q));
+          const venueMatch = show.venue.name.toLowerCase().includes(q);
+          const locationMatch = show.venue.location?.toLowerCase().includes(q);
+          return artistMatch || venueMatch || locationMatch;
+        });
+      }
+
       const rankingMap = new Map(rankings.map(r => [r.show_id, { elo: r.elo_score, comparisons: r.comparisons_count }]));
       const sorted = [...filteredShows].sort((a, b) => {
         const eloA = rankingMap.get(a.id)?.elo || 1200;
@@ -324,7 +336,7 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
       return sorted;
     }
     return filteredShows;
-  }, [shows, viewMode, topRatedFilter, sortDirection, rankings]);
+  }, [shows, viewMode, topRatedFilter, sortDirection, rankings, rankingsSearch]);
 
   const getShowsForDate = (date: Date) => shows.filter(show => isSameDay(parseISO(show.date), date));
 
@@ -426,6 +438,26 @@ const Home = ({ onNavigateToRank, onAddFromPhotos, onAddSingleShow, initialView,
     
     return (
       <div className="space-y-4">
+        {/* Search bar - glassmorphism styled */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+          <input
+            type="text"
+            placeholder="Search artist, venue, or city..."
+            value={rankingsSearch}
+            onChange={(e) => setRankingsSearch(e.target.value)}
+            className="w-full h-10 pl-9 pr-9 rounded-lg text-sm bg-white/[0.05] border border-white/[0.08] text-foreground placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
+          />
+          {rankingsSearch && (
+            <button
+              onClick={() => setRankingsSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
         {/* Filter bar - glassmorphism styled */}
         <div className="flex items-center justify-between gap-4">
           <Select value={topRatedFilter} onValueChange={(v) => setTopRatedFilter(v as typeof topRatedFilter)}>
