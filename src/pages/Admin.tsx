@@ -2,6 +2,7 @@ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WaitlistTab } from "@/components/admin/WaitlistTab";
 import { UsersTab } from "@/components/admin/UsersTab";
+import { BugReportsTab } from "@/components/admin/BugReportsTab";
 import { Shield } from "lucide-react";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 
@@ -35,12 +36,16 @@ export default function Admin() {
           <TabsList className="bg-muted">
             <TabsTrigger value="waitlist">Waitlist</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="bugs">Bug Reports</TabsTrigger>
           </TabsList>
           <TabsContent value="waitlist">
             <WaitlistTab />
           </TabsContent>
           <TabsContent value="users">
             <UsersTab />
+          </TabsContent>
+          <TabsContent value="bugs">
+            <BugReportsTab />
           </TabsContent>
         </Tabs>
       </div>

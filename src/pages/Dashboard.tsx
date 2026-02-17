@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
+import BugReportButton from "@/components/BugReportButton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -354,6 +355,8 @@ const Dashboard = () => {
         onNavigateToRank={() => setActiveTab("rank")}
         onAddManually={() => setShowAddDialog(true)}
       />
+
+      <BugReportButton />
 
       {/* Spotlight Tour - simplified, no longer needs FAB menu callbacks */}
       <SpotlightTour
