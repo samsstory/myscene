@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 
-const Profile = ({ onStartTour }: { onStartTour?: () => void }) => {
+const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddShow?: () => void }) => {
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -178,7 +178,7 @@ const Profile = ({ onStartTour }: { onStartTour?: () => void }) => {
   return (
     <>
       {showWelcomeCarousel && (
-        <WelcomeCarousel onComplete={() => setShowWelcomeCarousel(false)} />
+        <WelcomeCarousel onComplete={() => { setShowWelcomeCarousel(false); onAddShow?.(); }} />
       )}
       
       <div className="space-y-6 max-w-2xl mx-auto">
