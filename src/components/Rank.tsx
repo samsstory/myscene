@@ -402,8 +402,14 @@ export default function Rank({ onAddShow }: RankProps) {
   const effectiveShowCount = debugState === 'no-shows' ? 0 : debugState === 'one-show' ? 1 : shows.length;
   const effectivePair = debugState === 'all-ranked' ? null : showPair;
 
-  // Debug toggle bar
-  const debugBar = (
+  // Debug toggle bar — only visible in preview/dev, hidden on published site
+  const isDevMode = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname.includes('-preview--') ||
+    window.location.hostname.includes('preview.lovable.app')
+  );
+
+  const debugBar = isDevMode ? (
     <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 px-2 py-1 rounded-full bg-black/80 backdrop-blur-sm border border-white/10 text-[10px]">
       <span className="text-white/40 mr-1">Debug:</span>
       {(['none', 'no-shows', 'one-show', 'all-ranked'] as const).map(state => (
@@ -419,7 +425,7 @@ export default function Rank({ onAddShow }: RankProps) {
         </button>
       ))}
     </div>
-  );
+  ) : null;
 
   if (!shows || effectiveShowCount < 2) {
     return (
