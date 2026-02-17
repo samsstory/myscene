@@ -345,7 +345,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     // This Year -> Calendar
     {
       id: 'this-year',
-      label: new Date().getFullYear().toString(),
+      label: 'Calendar',
       value: stats.showsThisYear,
       icon: Calendar,
       action: 'calendar' as StatPillAction,
