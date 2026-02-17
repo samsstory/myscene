@@ -460,7 +460,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
             <button
               key={venue.id || index}
               onClick={() => handleVenueSelect(venue)}
-              className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
+              className="w-full text-left p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200"
             >
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -489,7 +489,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
         {searchTerm.trim() && !isSearching && (
           <button
             onClick={handleManualEntry}
-            className="w-full text-left p-4 rounded-lg border-2 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all"
+            className="w-full text-left p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.1] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200"
           >
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -506,7 +506,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
           <button
             key={`${suggestion.name}-${suggestion.location}-${index}`}
             onClick={() => handleVenueSelect(suggestion)}
-            className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-accent transition-all"
+            className="w-full text-left p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200"
           >
             <div className="flex flex-col gap-1">
               <div className="flex items-start gap-2">
