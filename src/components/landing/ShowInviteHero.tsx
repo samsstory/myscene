@@ -132,12 +132,13 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
     if (!email) return;
     setOtpSending(true);
     setOtpError(null);
-    // Persist invite context for post-auth pickup
-    sessionStorage.setItem("invite_show_id", showId);
-    sessionStorage.setItem("invite_show_type", showType);
-    sessionStorage.setItem("invite_highlights", JSON.stringify(selectedHighlights));
-    sessionStorage.setItem("invite_note", note);
-    if (refCode) sessionStorage.setItem("invite_ref", refCode);
+    // Persist invite context in localStorage so it survives across tabs
+    // (magic links open in a new tab where sessionStorage is empty)
+    localStorage.setItem("invite_show_id", showId);
+    localStorage.setItem("invite_show_type", showType);
+    localStorage.setItem("invite_highlights", JSON.stringify(selectedHighlights));
+    localStorage.setItem("invite_note", note);
+    if (refCode) localStorage.setItem("invite_ref", refCode);
 
     const { error } = await supabase.auth.signInWithOtp({
       email,

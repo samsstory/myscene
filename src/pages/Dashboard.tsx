@@ -77,12 +77,19 @@ const Dashboard = () => {
     const showId = searchParams.get("show");
     const showType = (searchParams.get("type") as "logged" | "upcoming") || "logged";
     if (isInvite && showId) {
-      const highlights = JSON.parse(sessionStorage.getItem("invite_highlights") || "[]");
-      const note = sessionStorage.getItem("invite_note") || "";
+      // Read from localStorage — survives magic link new-tab navigation
+      const highlights = JSON.parse(localStorage.getItem("invite_highlights") || "[]");
+      const note = localStorage.getItem("invite_note") || "";
       setInviteShowId(showId);
       setInviteShowType(showType);
       setInviteHighlights(highlights);
       setInviteNote(note);
+      // Clean up localStorage now that we've consumed the invite context
+      localStorage.removeItem("invite_show_id");
+      localStorage.removeItem("invite_show_type");
+      localStorage.removeItem("invite_highlights");
+      localStorage.removeItem("invite_note");
+      localStorage.removeItem("invite_ref");
       // Small delay so dashboard has rendered
       setTimeout(() => setShowCompareSheet(true), 600);
       // Clean up URL params

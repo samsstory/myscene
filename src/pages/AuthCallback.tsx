@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 const buildInviteUrl = () => {
-  const showId = sessionStorage.getItem("invite_show_id");
-  const showType = sessionStorage.getItem("invite_show_type");
-  const refCode = sessionStorage.getItem("invite_ref");
+  // Use localStorage so invite context survives magic link clicks (new tab)
+  const showId = localStorage.getItem("invite_show_id");
+  const showType = localStorage.getItem("invite_show_type");
+  const refCode = localStorage.getItem("invite_ref");
   if (showId && showType) {
     return `/dashboard?invite=true&show=${showId}&type=${showType}${refCode ? `&ref=${refCode}` : ""}`;
   }
