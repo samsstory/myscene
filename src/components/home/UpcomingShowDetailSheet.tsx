@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,8 +39,8 @@ const RSVP_OPTIONS: { value: RsvpStatus; label: string; icon: React.ReactNode; a
   },
   {
     value: "not_going",
-    label: "Can't go",
-    icon: <Circle className="h-4 w-4" />,
+    label: "I'm out",
+    icon: <X className="h-4 w-4" />,
     activeClass: "bg-white/10 border-white/20 text-white/60",
   },
 ];
