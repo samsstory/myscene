@@ -53,6 +53,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const [inputText, setInputText] = useState("");
   const [screenshots, setScreenshots] = useState<ScreenshotEntry[]>([]);
   const [isParsing, setIsParsing] = useState(false);
+  const [parsedEvents, setParsedEvents] = useState<ParsedUpcomingEvent[]>([]);
+  const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [confirmedEvent, setConfirmedEvent] = useState<ParsedUpcomingEvent | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +70,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
     setInputText("");
     setScreenshots([]);
     setConfirmedEvent(null);
+    setParsedEvents([]);
+    setCurrentEventIndex(0);
     clearParsedResult();
   }, [clearParsedResult]);
 
@@ -141,6 +145,9 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
         return;
       }
 
+      // Store all events; start with the first one
+      setParsedEvents(events);
+      setCurrentEventIndex(0);
       const event = events[0];
       setConfirmedEvent(event);
       setEditArtist(event.artist_name);
@@ -159,12 +166,25 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const handleTryAgain = () => {
     setStage("input");
     setConfirmedEvent(null);
+    setParsedEvents([]);
+    setCurrentEventIndex(0);
     clearParsedResult();
   };
 
   const handleManual = () => {
     setEditArtist(""); setEditVenue(""); setEditLocation(""); setEditDate(""); setEditTicketUrl("");
     setStage("manual");
+  };
+
+  const advanceToNextEvent = (nextIndex: number) => {
+    const next = parsedEvents[nextIndex];
+    setCurrentEventIndex(nextIndex);
+    setConfirmedEvent(next);
+    setEditArtist(next.artist_name);
+    setEditVenue(next.venue_name || "");
+    setEditLocation(next.venue_location || "");
+    setEditDate(next.show_date || "");
+    setEditTicketUrl(next.ticket_url || "");
   };
 
   const handleSave = async () => {
@@ -178,7 +198,15 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
       raw_input: inputText || undefined,
     };
     const ok = await saveUpcomingShow(data);
-    if (ok) handleClose();
+    if (ok) {
+      const nextIndex = currentEventIndex + 1;
+      if (nextIndex < parsedEvents.length) {
+        // More events to review — advance to next
+        advanceToNextEvent(nextIndex);
+      } else {
+        handleClose();
+      }
+    }
   };
 
   const formatDateDisplay = (iso: string) => {
@@ -342,13 +370,21 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
         {/* ─── CONFIRM STAGE ───────────────────────────────────── */}
         {stage === "confirm" && confirmedEvent && (
           <div className="px-5 pt-2 pb-6 space-y-5">
-            <button
-              onClick={handleTryAgain}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Try again
-            </button>
+            {/* Header row: back + progress indicator */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleTryAgain}
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Try again
+              </button>
+              {parsedEvents.length > 1 && (
+                <span className="text-xs text-muted-foreground bg-white/[0.06] border border-white/[0.10] px-2.5 py-1 rounded-full">
+                  {currentEventIndex + 1} of {parsedEvents.length}
+                </span>
+              )}
+            </div>
 
             {/* Artist card */}
             <div className="relative rounded-2xl overflow-hidden min-h-[110px]">
@@ -389,9 +425,27 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               </div>
             </div>
 
-            <Button onClick={handleSave} disabled={isSaving || !canSave} variant="glass" className="w-full gap-2">
-              {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : "Add to Upcoming →"}
-            </Button>
+            <div className="flex gap-3">
+              <Button onClick={handleSave} disabled={isSaving || !canSave} variant="glass" className="flex-1 gap-2">
+                {isSaving ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                ) : currentEventIndex + 1 < parsedEvents.length ? (
+                  "Add to Upcoming →"
+                ) : (
+                  "Add to Upcoming →"
+                )}
+              </Button>
+              {/* Skip button when multiple events */}
+              {parsedEvents.length > 1 && currentEventIndex + 1 < parsedEvents.length && (
+                <Button
+                  variant="outline"
+                  onClick={() => advanceToNextEvent(currentEventIndex + 1)}
+                  className="border-white/10 text-muted-foreground hover:text-foreground"
+                >
+                  Skip
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
