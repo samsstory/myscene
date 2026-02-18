@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Music2, CheckCircle2, AlertCircle, X, Users } from "lucide-react";
+import { Plus, Music2, CheckCircle2, AlertCircle, X, Users, Check, Loader2 } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomingShows";
@@ -118,7 +118,19 @@ function UpcomingChip({ show, friendsHere, onTap }: { show: UpcomingShow; friend
   );
 }
 
-function FriendChip({ show, onTap }: { show: FriendShow; onTap: (show: FriendShow) => void }) {
+function FriendChip({
+  show,
+  isAdded,
+  isToggling,
+  onTap,
+  onToggle,
+}: {
+  show: FriendShow;
+  isAdded: boolean;
+  isToggling: boolean;
+  onTap: (show: FriendShow) => void;
+  onToggle: (show: FriendShow, e: React.MouseEvent) => void;
+}) {
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
     : "Date TBD";
@@ -153,7 +165,7 @@ function FriendChip({ show, onTap }: { show: FriendShow; onTap: (show: FriendSho
       )}
 
       {/* Friend avatar + name — top-left */}
-      <div className="absolute top-2 left-2 flex items-center gap-1 max-w-[calc(100%-12px)]">
+      <div className="absolute top-2 left-2 flex items-center gap-1 max-w-[calc(100%-36px)]">
         {show.friend.avatar_url ? (
           <img
             src={show.friend.avatar_url}
@@ -174,6 +186,25 @@ function FriendChip({ show, onTap }: { show: FriendShow; onTap: (show: FriendSho
           {friendName}
         </span>
       </div>
+
+      {/* Quick add/remove toggle — top-right */}
+      <button
+        onClick={(e) => onToggle(show, e)}
+        disabled={isToggling}
+        className={`absolute top-2 right-2 w-6 h-6 rounded-full border backdrop-blur-sm flex items-center justify-center transition-all ${
+          isAdded
+            ? "bg-emerald-500/30 border-emerald-500/50"
+            : "bg-black/30 border-white/20 hover:bg-white/20"
+        }`}
+      >
+        {isToggling ? (
+          <Loader2 className="h-3 w-3 text-white/70 animate-spin" />
+        ) : isAdded ? (
+          <Check className="h-3 w-3 text-emerald-400" />
+        ) : (
+          <Plus className="h-3 w-3 text-white/60" />
+        )}
+      </button>
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
         <p
@@ -210,7 +241,21 @@ function AddShowChip({ onClick }: { onClick: () => void }) {
   );
 }
 
-function FriendShowDetailSheet({ show, open, onOpenChange }: { show: FriendShow | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+function FriendShowDetailSheet({
+  show,
+  open,
+  onOpenChange,
+  isAdded,
+  isToggling,
+  onToggle,
+}: {
+  show: FriendShow | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  isAdded: boolean;
+  isToggling: boolean;
+  onToggle: (show: FriendShow) => void;
+}) {
   if (!show) return null;
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "EEEE, MMMM d, yyyy"); } catch { return ""; } })()
@@ -233,7 +278,7 @@ function FriendShowDetailSheet({ show, open, onOpenChange }: { show: FriendShow 
           </div>
         )}
 
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3 text-sm mb-5">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="h-4 w-4 flex-shrink-0" />
             <span>
@@ -250,13 +295,38 @@ function FriendShowDetailSheet({ show, open, onOpenChange }: { show: FriendShow 
             </div>
           )}
         </div>
+
+        {/* I'm going too / Remove CTA */}
+        <button
+          onClick={() => onToggle(show)}
+          disabled={isToggling}
+          className={`w-full h-11 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
+            isAdded
+              ? "bg-white/[0.08] border border-white/10 text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
+          }`}
+        >
+          {isToggling ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isAdded ? (
+            <>
+              <Check className="h-4 w-4" />
+              Added to my calendar · tap to remove
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4" />
+              I'm going too
+            </>
+          )}
+        </button>
       </SheetContent>
     </Sheet>
   );
 }
 
 export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
-  const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
+  const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus, saveUpcomingShow } = usePlanUpcomingShow();
   const { following } = useFollowers();
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
@@ -267,6 +337,9 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFriendShow, setSelectedFriendShow] = useState<FriendShow | null>(null);
   const [friendDetailOpen, setFriendDetailOpen] = useState(false);
+  // Track which friend shows the user has added (by source show id → own show id)
+  const [addedFriendShowIds, setAddedFriendShowIds] = useState<Map<string, string>>(new Map());
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   const handlePlanShow = () => {
     if (onPlanShow) {
@@ -285,6 +358,67 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     setSelectedFriendShow(show);
     setFriendDetailOpen(true);
   };
+
+  const handleToggleFriendShow = useCallback(async (show: FriendShow, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (togglingIds.has(show.id)) return;
+
+    setTogglingIds(prev => new Set(prev).add(show.id));
+
+    const alreadyAddedId = addedFriendShowIds.get(show.id);
+    if (alreadyAddedId) {
+      // Remove from own calendar
+      await deleteUpcomingShow(alreadyAddedId);
+      setAddedFriendShowIds(prev => {
+        const next = new Map(prev);
+        next.delete(show.id);
+        return next;
+      });
+    } else {
+      // Add to own calendar
+      const success = await saveUpcomingShow({
+        artist_name: show.artist_name,
+        artist_image_url: show.artist_image_url ?? undefined,
+        venue_name: show.venue_name ?? undefined,
+        venue_location: show.venue_location ?? undefined,
+        show_date: show.show_date ?? undefined,
+      });
+      if (success) {
+        // Find the newly inserted show by matching artist + date in upcomingShows
+        // We'll use a simple marker — store show.id temporarily and resolve after refetch
+        // Since saveUpcomingShow triggers a refetch, we mark it optimistically
+        setAddedFriendShowIds(prev => {
+          const next = new Map(prev);
+          // Use a temporary sentinel; will be resolved on next upcomingShows update
+          next.set(show.id, "__pending__");
+          return next;
+        });
+      }
+    }
+
+    setTogglingIds(prev => {
+      const next = new Set(prev);
+      next.delete(show.id);
+      return next;
+    });
+  }, [togglingIds, addedFriendShowIds, deleteUpcomingShow, saveUpcomingShow]);
+
+  // Resolve pending additions by matching artist_name + show_date in the user's own shows
+  const resolvedAddedIds = useMemo(() => {
+    const resolved = new Map(addedFriendShowIds);
+    for (const [friendShowId, ownId] of resolved.entries()) {
+      if (ownId === "__pending__") {
+        const fs = friendShows.find(s => s.id === friendShowId);
+        if (fs) {
+          const match = upcomingShows.find(
+            s => s.artist_name === fs.artist_name && s.show_date === fs.show_date
+          );
+          if (match) resolved.set(friendShowId, match.id);
+        }
+      }
+    }
+    return resolved;
+  }, [addedFriendShowIds, friendShows, upcomingShows]);
 
   // Unique count of friends with upcoming shows
   const friendsWithShowsCount = useMemo(() => {
@@ -398,7 +532,10 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
               <FriendChip
                 key={show.id}
                 show={show}
+                isAdded={resolvedAddedIds.has(show.id) && resolvedAddedIds.get(show.id) !== "__pending__"}
+                isToggling={togglingIds.has(show.id)}
                 onTap={handleFriendChipTap}
+                onToggle={(s, e) => handleToggleFriendShow(s, e)}
               />
             ))}
           </div>
@@ -418,6 +555,13 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         show={selectedFriendShow}
         open={friendDetailOpen}
         onOpenChange={setFriendDetailOpen}
+        isAdded={
+          selectedFriendShow
+            ? resolvedAddedIds.has(selectedFriendShow.id) && resolvedAddedIds.get(selectedFriendShow.id) !== "__pending__"
+            : false
+        }
+        isToggling={selectedFriendShow ? togglingIds.has(selectedFriendShow.id) : false}
+        onToggle={(s) => handleToggleFriendShow(s)}
       />
 
       {!onPlanShow && (
