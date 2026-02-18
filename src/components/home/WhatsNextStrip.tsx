@@ -74,7 +74,7 @@ function UpcomingChip({ show, onTap }: { show: UpcomingShow; onTap: (show: Upcom
         const visible = friends.slice(0, 3);
         const overflow = friends.length - visible.length;
         return (
-          <div className="absolute bottom-[52px] left-2.5 flex items-center">
+          <div className="absolute top-2 left-2 flex items-center">
             {visible.map((src, i) => (
               <img
                 key={i}
