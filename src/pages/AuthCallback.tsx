@@ -8,25 +8,23 @@ const AuthCallback = () => {
 
   useEffect(() => {
     const handleCallback = async () => {
-      // Give Supabase a moment to parse the hash fragment and set the session
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session) {
-        // Read any invite context stored before the OTP was sent
         const showId = sessionStorage.getItem("invite_show_id");
         const showType = sessionStorage.getItem("invite_show_type");
         const refCode = sessionStorage.getItem("invite_ref");
 
         if (showId && showType) {
+          // invite=true signals Dashboard to open the compare flow
           navigate(
-            `/dashboard?show=${showId}&type=${showType}&action=log${refCode ? `&ref=${refCode}` : ""}`,
+            `/dashboard?invite=true&show=${showId}&type=${showType}${refCode ? `&ref=${refCode}` : ""}`,
             { replace: true }
           );
         } else {
           navigate("/dashboard", { replace: true });
         }
       } else {
-        // No session found — fall back to auth page
         navigate("/auth", { replace: true });
       }
     };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Home as HomeIcon, Globe, Scale, Plus, Music } from "lucide-react";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,10 +10,10 @@ import Rank from "@/components/Rank";
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
-// WelcomeCarousel removed — new users go straight to Add Show flow
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
 import BrandedLoader from "@/components/ui/BrandedLoader";
+import CompareShowSheet from "@/components/CompareShowSheet";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -27,6 +27,7 @@ import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showUnifiedAdd, setShowUnifiedAdd] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -36,6 +37,13 @@ const Dashboard = () => {
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
+
+  // Invite / compare flow state
+  const [showCompareSheet, setShowCompareSheet] = useState(false);
+  const [inviteShowId, setInviteShowId] = useState<string | null>(null);
+  const [inviteShowType, setInviteShowType] = useState<"logged" | "upcoming">("logged");
+  const [inviteHighlights, setInviteHighlights] = useState<string[]>([]);
+  const [inviteNote, setInviteNote] = useState("");
 
   const rankButtonRef = useRef<HTMLButtonElement | null>(null);
   const globeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -61,6 +69,26 @@ const Dashboard = () => {
 
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
+
+  // Detect invite params and open compare sheet after data is ready
+  useEffect(() => {
+    if (!dataReady) return;
+    const isInvite = searchParams.get("invite") === "true";
+    const showId = searchParams.get("show");
+    const showType = (searchParams.get("type") as "logged" | "upcoming") || "logged";
+    if (isInvite && showId) {
+      const highlights = JSON.parse(sessionStorage.getItem("invite_highlights") || "[]");
+      const note = sessionStorage.getItem("invite_note") || "";
+      setInviteShowId(showId);
+      setInviteShowType(showType);
+      setInviteHighlights(highlights);
+      setInviteNote(note);
+      // Small delay so dashboard has rendered
+      setTimeout(() => setShowCompareSheet(true), 600);
+      // Clean up URL params
+      setSearchParams({}, { replace: true });
+    }
+  }, [dataReady, searchParams, setSearchParams]);
 
   useEffect(() => {
     let isMounted = true;
@@ -416,7 +444,11 @@ const Dashboard = () => {
         open={showAddDialog} 
         onOpenChange={setShowAddDialog} 
         onShowAdded={() => {
-          // Show added successfully - just close the dialog
+          // If this add was triggered from the invite compare flow, launch spotlight tour after
+          if (inviteShowId) {
+            setInviteShowId(null);
+            setTimeout(() => setShowSpotlightTour(true), 400);
+          }
         }}
         onViewShowDetails={(showId) => {
           setActiveTab("home");
@@ -444,12 +476,28 @@ const Dashboard = () => {
       />
 
 
-      {/* Spotlight Tour - simplified, no longer needs FAB menu callbacks */}
+      {/* Spotlight Tour */}
       <SpotlightTour
         run={showSpotlightTour}
         onComplete={handleSpotlightTourComplete}
         onStepChange={setTourStepIndex}
       />
+
+      {/* Compare Show Sheet — opens after invite magic link redirect */}
+      {inviteShowId && (
+        <CompareShowSheet
+          open={showCompareSheet}
+          onOpenChange={setShowCompareSheet}
+          showId={inviteShowId}
+          showType={inviteShowType}
+          myHighlights={inviteHighlights}
+          myNote={inviteNote}
+          onContinueToAddShow={() => {
+            // Open add show flow, then after it closes trigger spotlight tour
+            setShowAddDialog(true);
+          }}
+        />
+      )}
 
     </div>
   );
