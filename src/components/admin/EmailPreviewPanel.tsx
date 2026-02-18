@@ -1,9 +1,17 @@
 import { useState } from "react";
 import { EmailTemplate } from "./EmailTemplateEditor";
 
+// Full EmailTemplate shape (used by EmailTemplateEditor)
 interface EmailPreviewPanelProps {
   template: EmailTemplate;
   mode: "approve" | "resend";
+}
+
+// Simple shape for single-template preview (used by AnnouncementsPanel)
+interface SimpleEmailPreviewProps {
+  subject: string;
+  body: string;
+  type?: "approve" | "resend" | "custom";
 }
 
 // Mirrors the buildSceneEmail logic from the edge functions exactly
@@ -108,6 +116,97 @@ function buildResendBodyHtml(customText: string): string {
   `;
 }
 
+/** Shared phone mockup shell that renders an HTML string in an iframe */
+function PhoneMockupFrame({ html }: { html: string }) {
+  return (
+    <div className="relative flex-shrink-0" style={{ width: 260 }}>
+      <div
+        className="relative rounded-[2.5rem] bg-zinc-900 p-2.5"
+        style={{
+          boxShadow:
+            "0 0 0 1px rgba(255,255,255,0.08), 0 32px 64px -12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)",
+        }}
+      >
+        {/* Side buttons */}
+        <div className="absolute left-[-3px] top-20 w-[3px] h-7 rounded-l-sm bg-zinc-700" />
+        <div className="absolute left-[-3px] top-32 w-[3px] h-10 rounded-l-sm bg-zinc-700" />
+        <div className="absolute left-[-3px] top-44 w-[3px] h-10 rounded-l-sm bg-zinc-700" />
+        <div className="absolute right-[-3px] top-28 w-[3px] h-14 rounded-r-sm bg-zinc-700" />
+
+        {/* Screen bezel */}
+        <div className="relative rounded-[2rem] overflow-hidden bg-black" style={{ height: 520 }}>
+          {/* Dynamic Island */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[72px] h-[22px] bg-black rounded-full z-20" />
+
+          {/* Status bar */}
+          <div className="absolute top-0 left-0 right-0 h-10 bg-[#0d0d12] z-10 flex items-center justify-between px-5 pt-1">
+            <span className="text-white text-[9px] font-semibold">9:41</span>
+            <div className="flex items-center gap-1">
+              <div className="flex gap-0.5 items-end">
+                {[2, 3, 4].map((h, i) => (
+                  <div key={i} className="w-0.5 bg-white rounded-sm" style={{ height: h * 2 }} />
+                ))}
+              </div>
+              <svg className="w-2.5 h-2.5 text-white fill-current" viewBox="0 0 24 24">
+                <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+              </svg>
+              <div className="flex items-center gap-0.5">
+                <div className="w-4 h-2 rounded-sm border border-white/60 p-px">
+                  <div className="w-2.5 h-full bg-white rounded-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Email client chrome */}
+          <div className="absolute top-10 left-0 right-0 bg-white/5 border-b border-white/10 z-10 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-indigo-500/40 flex items-center justify-center">
+                <span className="text-[7px] text-indigo-200 font-bold">S</span>
+              </div>
+              <div>
+                <p className="text-[8px] text-white/90 font-semibold leading-none">Scene</p>
+                <p className="text-[7px] text-white/40 leading-none mt-0.5">hello@tryscene.app</p>
+              </div>
+            </div>
+          </div>
+
+          {/* iframe showing email */}
+          <iframe
+            srcDoc={html}
+            title="Email preview"
+            className="absolute inset-0 w-full border-0"
+            style={{ top: 72, height: "calc(100% - 72px)" }}
+            sandbox="allow-same-origin"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Standalone preview for a single template (no approve/resend toggle) */
+export function SimpleEmailPreview({ subject, body, type = "custom" }: SimpleEmailPreviewProps) {
+  const isResend = type === "resend";
+  const bodyHtml = isResend ? buildResendBodyHtml(body) : buildApproveBodyHtml(body);
+  const heading = isResend ? "Welcome back 🎶" : "You're in 🎶";
+  const html = buildSceneEmail(heading, bodyHtml);
+
+  return (
+    <div className="flex flex-col items-center gap-4 w-full">
+      <div className="w-full max-w-[280px] rounded-lg bg-muted/60 px-3 py-2 text-center">
+        <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wider">Subject</p>
+        <p className="text-xs font-medium text-foreground truncate">{subject || "—"}</p>
+      </div>
+      <PhoneMockupFrame html={html} />
+      <p className="text-[10px] text-muted-foreground text-center">
+        Live preview — updates as you edit
+      </p>
+    </div>
+  );
+}
+
+/** Full preview with approve/resend toggle (used by EmailTemplateEditor) */
 export function EmailPreviewPanel({ template, mode }: EmailPreviewPanelProps) {
   const [activeMode, setActiveMode] = useState<"approve" | "resend">(mode);
 
@@ -156,71 +255,7 @@ export function EmailPreviewPanel({ template, mode }: EmailPreviewPanelProps) {
         <p className="text-xs font-medium text-foreground truncate">{subject}</p>
       </div>
 
-      {/* Phone mockup */}
-      <div className="relative flex-shrink-0" style={{ width: 260 }}>
-        {/* Phone outer shell */}
-        <div
-          className="relative rounded-[2.5rem] bg-zinc-900 p-2.5"
-          style={{
-            boxShadow:
-              "0 0 0 1px rgba(255,255,255,0.08), 0 32px 64px -12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)",
-          }}
-        >
-          {/* Side buttons */}
-          <div className="absolute left-[-3px] top-20 w-[3px] h-7 rounded-l-sm bg-zinc-700" />
-          <div className="absolute left-[-3px] top-32 w-[3px] h-10 rounded-l-sm bg-zinc-700" />
-          <div className="absolute left-[-3px] top-44 w-[3px] h-10 rounded-l-sm bg-zinc-700" />
-          <div className="absolute right-[-3px] top-28 w-[3px] h-14 rounded-r-sm bg-zinc-700" />
-
-          {/* Screen bezel */}
-          <div className="relative rounded-[2rem] overflow-hidden bg-black" style={{ height: 520 }}>
-            {/* Dynamic Island */}
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[72px] h-[22px] bg-black rounded-full z-20" />
-
-            {/* Status bar */}
-            <div className="absolute top-0 left-0 right-0 h-10 bg-[#0d0d12] z-10 flex items-center justify-between px-5 pt-1">
-              <span className="text-white text-[9px] font-semibold">9:41</span>
-              <div className="flex items-center gap-1">
-                <div className="flex gap-0.5 items-end">
-                  {[2, 3, 4].map((h, i) => (
-                    <div key={i} className="w-0.5 bg-white rounded-sm" style={{ height: h * 2 }} />
-                  ))}
-                </div>
-                <svg className="w-2.5 h-2.5 text-white fill-current" viewBox="0 0 24 24">
-                  <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
-                </svg>
-                <div className="flex items-center gap-0.5">
-                  <div className="w-4 h-2 rounded-sm border border-white/60 p-px">
-                    <div className="w-2.5 h-full bg-white rounded-sm" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Email client chrome */}
-            <div className="absolute top-10 left-0 right-0 bg-white/5 border-b border-white/10 z-10 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-indigo-500/40 flex items-center justify-center">
-                  <span className="text-[7px] text-indigo-200 font-bold">S</span>
-                </div>
-                <div>
-                  <p className="text-[8px] text-white/90 font-semibold leading-none">Scene</p>
-                  <p className="text-[7px] text-white/40 leading-none mt-0.5">hello@tryscene.app</p>
-                </div>
-              </div>
-            </div>
-
-            {/* iframe showing email */}
-            <iframe
-              srcDoc={html}
-              title="Email preview"
-              className="absolute inset-0 w-full border-0"
-              style={{ top: 72, height: "calc(100% - 72px)" }}
-              sandbox="allow-same-origin"
-            />
-          </div>
-        </div>
-      </div>
+      <PhoneMockupFrame html={html} />
 
       <p className="text-[10px] text-muted-foreground text-center">
         Live preview — updates as you edit the template

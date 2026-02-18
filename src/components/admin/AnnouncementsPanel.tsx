@@ -19,6 +19,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { PushNotificationsPanel } from "./PushNotificationsPanel";
+import { SimpleEmailPreview } from "./EmailPreviewPanel";
 import { toast } from "@/hooks/use-toast";
 import {
   DEFAULT_APPROVE_SUBJECT,
@@ -259,66 +260,81 @@ function TemplateEditorForm({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {previewing ? (
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Subject</p>
-              <p className="text-sm font-medium text-foreground">{fillPlaceholders(subject) || "—"}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Body</p>
-              <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/30 p-4 text-sm text-foreground">
-                {fillPlaceholders(body) || "—"}
+      <CardContent className="p-0">
+        <div className="flex flex-col lg:flex-row">
+          {/* Editor / text preview column */}
+          <div className="flex-1 space-y-4 p-4">
+            {previewing ? (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Subject</p>
+                  <p className="text-sm font-medium text-foreground">{fillPlaceholders(subject) || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Body</p>
+                  <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/30 p-4 text-sm text-foreground">
+                    {fillPlaceholders(body) || "—"}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  Sample data: {Object.entries(SAMPLE_DATA).map(([k, v]) => `${k} → ${v}`).join(", ")}
+                </p>
               </div>
-            </div>
-            <p className="text-xs text-muted-foreground italic">
-              Sample data: {Object.entries(SAMPLE_DATA).map(([k, v]) => `${k} → ${v}`).join(", ")}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Template Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Welcome Email" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Subject</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Email subject line" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Body</Label>
-              <Textarea
-                rows={8}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="font-mono text-xs"
-                placeholder="Write your template body here..."
-              />
-              <p className="text-xs text-muted-foreground">
-                Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> and{" "}
-                <code className="rounded bg-muted px-1">{"{{password}}"}</code> as placeholders.
-              </p>
-            </div>
-          </>
-        )}
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Template Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Welcome Email" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Subject</Label>
+                  <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Email subject line" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Body</Label>
+                  <Textarea
+                    rows={8}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    className="font-mono text-xs"
+                    placeholder="Write your template body here..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> and{" "}
+                    <code className="rounded bg-muted px-1">{"{{password}}"}</code> as placeholders.
+                  </p>
+                </div>
+              </>
+            )}
 
-        {!previewing && (
-          <div className="flex items-center gap-2 pt-1">
-            <Button size="sm" onClick={handleSave}>
-              {isNew ? "Create Template" : "Save Changes"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            {initial && initial.type !== "custom" && (
-              <Button size="sm" variant="ghost" onClick={handleReset}>
-                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                Reset Defaults
-              </Button>
+            {!previewing && (
+              <div className="flex items-center gap-2 pt-1">
+                <Button size="sm" onClick={handleSave}>
+                  {isNew ? "Create Template" : "Save Changes"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+                {initial && initial.type !== "custom" && (
+                  <Button size="sm" variant="ghost" onClick={handleReset}>
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                    Reset Defaults
+                  </Button>
+                )}
+              </div>
             )}
           </div>
-        )}
+
+          {/* Live phone mockup preview column */}
+          <div className="lg:w-[320px] border-t lg:border-t-0 lg:border-l border-border bg-muted/30 px-4 py-6 flex flex-col items-center gap-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live Preview</p>
+            <SimpleEmailPreview
+              subject={subject}
+              body={body}
+              type={initial?.type === "resend" ? "resend" : "approve"}
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
