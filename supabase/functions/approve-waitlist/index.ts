@@ -13,57 +13,131 @@ function generatePassword(length = 16): string {
   return Array.from(array, (b) => chars[b % chars.length]).join("");
 }
 
-function wrapInHtmlEmail(plainText: string): string {
-  const escaped = plainText
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/(https?:\/\/[^\s<]+)/g, (url) => {
-      const clean = url.replace(/&amp;/g, "&");
-      return `<a href="${clean}" style="display: inline-block; background: #6366f1; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 8px 0;">${clean}</a>`;
-    })
-    .replace(/\n/g, "<br>");
+function buildSceneEmail(heading: string, bodyHtml: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${heading}</title></head>
+<body style="margin:0;padding:0;background:#0d0d12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(160deg,#1a1040 0%,#0d0d12 40%,#0d0d12 100%);min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:48px 16px 40px;">
+
+        <!-- Wordmark -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+          <tr>
+            <td align="center" style="padding-bottom:24px;">
+              <span style="font-size:22px;font-weight:800;letter-spacing:0.25em;color:#ffffff;text-transform:uppercase;">SCENE ✦</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:0 0 32px;">
+            </td>
+          </tr>
+
+          <!-- Content card -->
+          <tr>
+            <td style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <!-- Card top accent bar -->
+                <tr>
+                  <td style="height:4px;background:linear-gradient(90deg,#6366f1,#06b6d4);"></td>
+                </tr>
+                <!-- Card body -->
+                <tr>
+                  <td style="padding:36px 36px 32px;">
+                    ${bodyHtml}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding-top:28px;">
+              <p style="margin:0 0 6px;color:rgba(255,255,255,0.35);font-size:13px;letter-spacing:0.08em;font-weight:600;text-transform:uppercase;">tryscene.app</p>
+              <p style="margin:0;color:rgba(255,255,255,0.2);font-size:11px;line-height:1.5;">You're receiving this because you joined the Scene waitlist.<br>Questions? Reply to this email.</p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildApproveBodyHtml(email: string, password: string, customText?: string): string {
+  const mainText = customText
+    ? customText
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br>")
+    : "You've been approved for <strong>Scene beta access</strong>! Here are your login credentials:";
+
   return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #333; line-height: 1.6;">
-      ${escaped}
-    </div>
+    <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#0d0d12;letter-spacing:-0.02em;">You're in 🎶</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.7;">${mainText}</p>
+
+    <!-- Credentials block -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      <tr>
+        <td style="background:#f6f5ff;border:1px solid #e0dfff;border-radius:10px;padding:18px 20px;">
+          <p style="margin:0 0 8px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;color:#6366f1;">
+            <span style="color:#999;font-weight:500;">Email &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ${email}
+          </p>
+          <p style="margin:0;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;color:#6366f1;">
+            <span style="color:#999;font-weight:500;">Password </span> ${password}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="https://tryscene.app" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;padding:14px 36px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;letter-spacing:0.01em;">Log in to Scene →</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#aaa;text-align:center;line-height:1.6;">We recommend changing your password after your first login.</p>
   `;
 }
 
-function buildWelcomeHtml(email: string, password: string): string {
+function buildResendBodyHtml(email: string, customText?: string): string {
+  const mainText = customText
+    ? customText
+        .replace(/\{\{email\}\}/g, email)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/(https?:\/\/[^\s<&]+)/g, (url) => `<a href="${url}" style="color:#6366f1;font-weight:600;">${url}</a>`)
+        .replace(/\n/g, "<br>")
+    : "Your <strong>Scene beta access</strong> is ready. Log in with the credentials you were given when you were first approved.";
+
   return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-      <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to Scene 🎶</h1>
-      <p style="color: #555; line-height: 1.6;">You've been approved for beta access! Here are your login details:</p>
-      <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 24px 0;">
-        <p style="margin: 0 0 8px;"><strong>Email:</strong> ${email}</p>
-        <p style="margin: 0;"><strong>Temporary Password:</strong> ${password}</p>
-      </div>
-      <div style="text-align: center; margin: 32px 0;">
-        <a href="https://tryscene.app" style="display: inline-block; background: #6366f1; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Log in to Scene →</a>
-      </div>
-      <p style="color: #999; font-size: 13px; margin-top: 32px;">We recommend changing your password after your first login.</p>
-    </div>
+    <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#0d0d12;letter-spacing:-0.02em;">Welcome back 🎶</h1>
+    <p style="margin:0 0 28px;font-size:15px;color:#555;line-height:1.7;">${mainText}</p>
+
+    <!-- CTA -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="https://tryscene.app" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;padding:14px 36px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;letter-spacing:0.01em;">Go to Scene →</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#aaa;text-align:center;line-height:1.6;">Forgotten your password? Use the reset option on the login page.</p>
   `;
 }
 
-async function sendWelcomeEmail(email: string, password: string, customSubject?: string, customBody?: string): Promise<boolean> {
+async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   const resendKey = Deno.env.get("RESEND_API_KEY");
   if (!resendKey) {
     console.error("RESEND_API_KEY not configured");
     return false;
-  }
-
-  const subject = customSubject || "You're in! Your Scene beta access is ready";
-  let html: string;
-
-  if (customBody) {
-    const replaced = customBody
-      .replace(/\{\{email\}\}/g, email)
-      .replace(/\{\{password\}\}/g, password);
-    html = wrapInHtmlEmail(replaced);
-  } else {
-    html = buildWelcomeHtml(email, password);
   }
 
   try {
@@ -75,7 +149,7 @@ async function sendWelcomeEmail(email: string, password: string, customSubject?:
       },
       body: JSON.stringify({
         from: "Scene <hello@tryscene.app>",
-        to: [email],
+        to: [to],
         subject,
         html,
       }),
@@ -104,7 +178,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -146,12 +219,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const DEFAULT_SUBJECT = "You're in! Your Scene beta access is ready";
-
-    // Auto-generate a secure password
     const password = generatePassword();
 
-    // Try to create user account; if email already exists, look up the existing user
     let newUser;
     const { data: createData, error: createError } = await supabase.auth.admin.createUser({
       email,
@@ -161,7 +230,6 @@ Deno.serve(async (req) => {
 
     if (createError) {
       if (createError.message?.includes("already been registered")) {
-        // User already exists in auth — find them
         const { data: listData, error: listError } = await supabase.auth.admin.listUsers();
         if (listError) {
           return new Response(
@@ -193,21 +261,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Assign role
     const { error: roleError } = await supabase
       .from("user_roles")
       .insert({ user_id: newUser.id, role: "user" });
     if (roleError) console.error("Failed to assign role:", roleError);
 
-    // Update waitlist status
     const { error: updateError } = await supabase
       .from("waitlist")
       .update({ status: "approved" })
       .eq("id", waitlistId);
     if (updateError) console.error("Failed to update waitlist:", updateError);
 
-    // Send welcome email with auto-generated credentials
-    const notified = await sendWelcomeEmail(email, password, emailSubject, emailBody);
+    const subject = emailSubject || "You're in! Your Scene beta access is ready";
+    const customText = emailBody
+      ? emailBody.replace(/\{\{email\}\}/g, email).replace(/\{\{password\}\}/g, password)
+      : undefined;
+
+    const bodyHtml = buildApproveBodyHtml(email, password, customText);
+    const html = buildSceneEmail("You're in 🎶", bodyHtml);
+
+    const notified = await sendEmail(email, subject, html);
 
     if (notified) {
       await supabase
