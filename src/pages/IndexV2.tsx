@@ -10,7 +10,6 @@ import { useReferralCapture } from "@/hooks/useReferralCapture";
 import ShowInviteHero from "@/components/landing/ShowInviteHero";
 
 const IndexV2 = () => {
-  // Capture referral code from URL if present
   useReferralCapture();
 
   const [searchParams] = useSearchParams();
@@ -18,11 +17,17 @@ const IndexV2 = () => {
   const showType = (searchParams.get("type") as "logged" | "upcoming") ?? "logged";
   const refCode = searchParams.get("ref") ?? undefined;
 
+  // If this is an invite link, show ONLY the invite page
+  if (showId) {
+    return (
+      <div className="min-h-screen bg-background">
+        <ShowInviteHero showId={showId} showType={showType} refCode={refCode} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {showId && (
-        <ShowInviteHero showId={showId} showType={showType} refCode={refCode} />
-      )}
       <LandingHeroV2 />
       <LogShowcaseV2 />
       <CaptureShowcaseV2 />
