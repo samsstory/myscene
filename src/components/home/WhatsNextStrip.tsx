@@ -68,30 +68,32 @@ function UpcomingChip({ show, onTap }: { show: UpcomingShow; onTap: (show: Upcom
         <BadgeIcon className={`h-3 w-3 ${badge.color}`} />
       </div>
 
-      {/* Friend avatar stack — bottom-left, above artist name */}
+      {/* Friend avatar stack — top-left */}
       {(() => {
         const friends = getMockFriends(show.id);
         const visible = friends.slice(0, 3);
         const overflow = friends.length - visible.length;
         return (
-          <div className="absolute top-2 left-2 flex items-center">
-            {visible.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt="Friend"
-                className="w-5 h-5 rounded-full border border-black/60 object-cover"
-                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i }}
-              />
-            ))}
-            {overflow > 0 && (
-              <div
-                className="w-5 h-5 rounded-full border border-black/60 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[8px] font-bold text-white"
-                style={{ marginLeft: -6, zIndex: visible.length }}
-              >
-                +{overflow}
-              </div>
-            )}
+          <div className="absolute top-2 left-2 flex items-center gap-1.5">
+            {/* Stacked avatars */}
+            <div className="flex items-center">
+              {visible.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt="Friend"
+                  className="w-5 h-5 rounded-full border border-black/60 object-cover"
+                  style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i }}
+                />
+              ))}
+            </div>
+            {/* "+N more" label */}
+            <span
+              className="text-[9px] font-semibold text-white/70 leading-none"
+              style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
+            >
+              +{friends.length} more
+            </span>
           </div>
         );
       })()}
