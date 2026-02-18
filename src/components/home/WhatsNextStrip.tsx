@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Music2, CheckCircle2, AlertCircle, X, Users, Check, Loader2 } from "lucide-react";
+import { Plus, Music2, CheckCircle2, AlertCircle, X, Users, Check, Loader2, PartyPopper } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomingShows";
@@ -8,6 +8,7 @@ import type { FollowerProfile } from "@/hooks/useFollowers";
 import PlanShowSheet from "./PlanShowSheet";
 import UpcomingShowDetailSheet from "./UpcomingShowDetailSheet";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
 
 interface WhatsNextStripProps {
   onPlanShow?: () => void;
@@ -60,7 +61,17 @@ function FriendAvatarStack({ friends }: { friends: FollowerProfile[] }) {
   );
 }
 
-function UpcomingChip({ show, friendsHere, onTap }: { show: UpcomingShow; friendsHere: FollowerProfile[]; onTap: (show: UpcomingShow) => void }) {
+function UpcomingChip({
+  show,
+  friendsHere,
+  goingWith,
+  onTap,
+}: {
+  show: UpcomingShow;
+  friendsHere: FollowerProfile[];
+  goingWith: FriendShow[];
+  onTap: (show: UpcomingShow) => void;
+}) {
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
     : "Date TBD";
@@ -73,6 +84,17 @@ function UpcomingChip({ show, friendsHere, onTap }: { show: UpcomingShow; friend
 
   const badge = RSVP_BADGE[show.rsvp_status ?? "going"];
   const BadgeIcon = badge.Icon;
+
+  // Build "Going with" label from matched friends
+  const goingWithLabel = useMemo(() => {
+    if (goingWith.length === 0) return null;
+    const names = goingWith.map(f =>
+      f.friend.username ? `@${f.friend.username}` : (f.friend.full_name?.split(" ")[0] ?? "Friend")
+    );
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} & ${names[1]}`;
+    return `${names[0]} +${names.length - 1}`;
+  }, [goingWith]);
 
   return (
     <button
@@ -100,6 +122,18 @@ function UpcomingChip({ show, friendsHere, onTap }: { show: UpcomingShow; friend
       <FriendAvatarStack friends={friendsHere} />
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
+        {/* Going-with badge */}
+        {goingWithLabel && (
+          <div className="flex items-center gap-0.5 mb-1 max-w-full">
+            <PartyPopper className="h-2.5 w-2.5 text-amber-300 flex-shrink-0" />
+            <span
+              className="text-[9px] font-semibold text-amber-300 truncate leading-none"
+              style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
+            >
+              {goingWithLabel}
+            </span>
+          </div>
+        )}
         <p
           className="text-xs font-bold text-white leading-tight line-clamp-2"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
@@ -117,6 +151,7 @@ function UpcomingChip({ show, friendsHere, onTap }: { show: UpcomingShow; friend
     </button>
   );
 }
+
 
 function FriendChip({
   show,
@@ -426,8 +461,41 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     return ids.size;
   }, [friendShows]);
 
+  /**
+   * Cross-reference Mine shows against friend shows by normalised artist name + date.
+   * Returns a map: ownShow.id → FriendShow[] (friends going to the same concert)
+   */
+  const friendOverlapByShowId = useMemo(() => {
+    const result = new Map<string, FriendShow[]>();
+    const norm = (s: string) => s.trim().toLowerCase();
+    for (const ownShow of upcomingShows) {
+      if (!ownShow.show_date) continue;
+      const matches = friendShows.filter(
+        fs => fs.show_date === ownShow.show_date && norm(fs.artist_name) === norm(ownShow.artist_name)
+      );
+      if (matches.length > 0) result.set(ownShow.id, matches);
+    }
+    return result;
+  }, [upcomingShows, friendShows]);
+
+  /** Set of friend show IDs already shown as badges on Mine cards — hide from Friends tab */
+  const overlappingFriendShowIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const matches of friendOverlapByShowId.values()) {
+      matches.forEach(fs => ids.add(fs.id));
+    }
+    return ids;
+  }, [friendOverlapByShowId]);
+
+  /** Friend shows filtered to exclude those already surfaced on Mine cards */
+  const filteredFriendShows = useMemo(
+    () => friendShows.filter(fs => !overlappingFriendShowIds.has(fs.id)),
+    [friendShows, overlappingFriendShowIds]
+  );
+
   return (
     <>
+
       <div className="space-y-2.5">
         {/* Header with segmented pill toggle */}
         <div className="flex items-center justify-between">
@@ -511,6 +579,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
                 key={show.id}
                 show={show}
                 friendsHere={friendsByDate.get(show.show_date ?? "") ?? []}
+                goingWith={friendOverlapByShowId.get(show.id) ?? []}
                 onTap={handleChipTap}
               />
             ))}
@@ -519,16 +588,20 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         )}
 
         {/* ── FRIENDS TAB ── */}
-        {activeTab === "friends" && friendShows.length === 0 && (
+        {activeTab === "friends" && filteredFriendShows.length === 0 && (
           <div className="w-full rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-3 flex items-center gap-2.5">
             <Users className="h-4 w-4 text-white/25 flex-shrink-0" />
-            <p className="text-xs text-white/35">No friends have planned shows yet</p>
+            <p className="text-xs text-white/35">
+              {friendShows.length > 0
+                ? "All your friends' shows are already on your calendar 🎉"
+                : "No friends have planned shows yet"}
+            </p>
           </div>
         )}
 
-        {activeTab === "friends" && friendShows.length > 0 && (
+        {activeTab === "friends" && filteredFriendShows.length > 0 && (
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-            {friendShows.map((show) => (
+            {filteredFriendShows.map((show) => (
               <FriendChip
                 key={show.id}
                 show={show}
@@ -540,6 +613,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
             ))}
           </div>
         )}
+
       </div>
 
       {/* Detail sheets */}
