@@ -139,7 +139,13 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
     sessionStorage.setItem("invite_note", note);
     if (refCode) sessionStorage.setItem("invite_ref", refCode);
 
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
     setOtpSending(false);
     if (error) {
       setOtpError(error.message);
@@ -166,7 +172,13 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
   // ── Resend OTP ──
   const handleResend = async () => {
     setOtpResent(false);
-    await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
     setOtpCode("");
     setOtpError(null);
     setOtpResent(true);

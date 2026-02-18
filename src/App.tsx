@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import IndexV2 from "./pages/IndexV2";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import Demo from "./pages/Demo";
 import Install from "./pages/Install";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/demo" element={<Demo />} />
               <Route path="/install" element={<Install />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
