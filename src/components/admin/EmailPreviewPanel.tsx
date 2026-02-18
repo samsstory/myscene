@@ -117,7 +117,7 @@ function buildResendBodyHtml(customText: string): string {
 }
 
 /** Shared phone mockup shell that renders an HTML string in an iframe */
-function PhoneMockupFrame({ html }: { html: string }) {
+function PhoneMockupFrame({ html, subject }: { html: string; subject?: string }) {
   return (
     <div className="relative flex-shrink-0" style={{ width: 260 }}>
       <div
@@ -158,15 +158,21 @@ function PhoneMockupFrame({ html }: { html: string }) {
             </div>
           </div>
 
-          {/* Email client chrome */}
+          {/* Email client chrome — sender + subject inside mockup */}
           <div className="absolute top-10 left-0 right-0 bg-white/5 border-b border-white/10 z-10 px-3 py-2">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-indigo-500/40 flex items-center justify-center">
+            <div className="flex items-start gap-2">
+              <div className="w-5 h-5 rounded-full bg-indigo-500/40 flex items-center justify-center shrink-0 mt-0.5">
                 <span className="text-[7px] text-indigo-200 font-bold">S</span>
               </div>
-              <div>
-                <p className="text-[8px] text-white/90 font-semibold leading-none">Scene</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[8px] text-white/90 font-semibold leading-none">Scene</p>
+                  <p className="text-[7px] text-white/30 leading-none shrink-0">now</p>
+                </div>
                 <p className="text-[7px] text-white/40 leading-none mt-0.5">hello@tryscene.app</p>
+                {subject && (
+                  <p className="text-[8px] text-white/80 font-semibold leading-tight mt-1.5 truncate">{subject}</p>
+                )}
               </div>
             </div>
           </div>
@@ -176,7 +182,7 @@ function PhoneMockupFrame({ html }: { html: string }) {
             srcDoc={html}
             title="Email preview"
             className="absolute inset-0 w-full border-0"
-            style={{ top: 72, height: "calc(100% - 72px)" }}
+            style={{ top: subject ? 90 : 72, height: `calc(100% - ${subject ? 90 : 72}px)` }}
             sandbox="allow-same-origin"
           />
         </div>
@@ -193,12 +199,8 @@ export function SimpleEmailPreview({ subject, body, type = "custom" }: SimpleEma
   const html = buildSceneEmail(heading, bodyHtml);
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full">
-      <div className="w-full max-w-[280px] rounded-lg bg-muted/60 px-3 py-2 text-center">
-        <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wider">Subject</p>
-        <p className="text-xs font-medium text-foreground truncate">{subject || "—"}</p>
-      </div>
-      <PhoneMockupFrame html={html} />
+    <div className="flex flex-col items-center gap-3 w-full">
+      <PhoneMockupFrame html={html} subject={subject} />
       <p className="text-[10px] text-muted-foreground text-center">
         Live preview — updates as you edit
       </p>
@@ -249,13 +251,7 @@ export function EmailPreviewPanel({ template, mode }: EmailPreviewPanelProps) {
         </button>
       </div>
 
-      {/* Subject line preview */}
-      <div className="w-full max-w-[280px] rounded-lg bg-muted/60 px-3 py-2 text-center">
-        <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wider">Subject</p>
-        <p className="text-xs font-medium text-foreground truncate">{subject}</p>
-      </div>
-
-      <PhoneMockupFrame html={html} />
+      <PhoneMockupFrame html={html} subject={subject} />
 
       <p className="text-[10px] text-muted-foreground text-center">
         Live preview — updates as you edit the template
