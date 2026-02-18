@@ -236,7 +236,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               <>
                 <p className="text-xs text-muted-foreground/60 text-center">Use screenshot for Instagram</p>
                 <Textarea
-                  placeholder="Paste a Ticketmaster / RA link, Instagram caption, or type artist name, venue, and date..."
+                  placeholder="Paste any ticket link, text, or type artist name, venue, and date..."
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   className={`min-h-[130px] resize-none text-sm ${inputFieldClass}`}
