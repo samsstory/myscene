@@ -509,6 +509,59 @@ export type Database = {
           },
         ]
       }
+      upcoming_shows: {
+        Row: {
+          artist_image_url: string | null
+          artist_name: string
+          created_at: string
+          created_by_user_id: string
+          id: string
+          linked_show_id: string | null
+          raw_input: string | null
+          show_date: string | null
+          source_url: string | null
+          ticket_url: string | null
+          venue_location: string | null
+          venue_name: string | null
+        }
+        Insert: {
+          artist_image_url?: string | null
+          artist_name: string
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          linked_show_id?: string | null
+          raw_input?: string | null
+          show_date?: string | null
+          source_url?: string | null
+          ticket_url?: string | null
+          venue_location?: string | null
+          venue_name?: string | null
+        }
+        Update: {
+          artist_image_url?: string | null
+          artist_name?: string
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          linked_show_id?: string | null
+          raw_input?: string | null
+          show_date?: string | null
+          source_url?: string | null
+          ticket_url?: string | null
+          venue_location?: string | null
+          venue_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upcoming_shows_linked_show_id_fkey"
+            columns: ["linked_show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
