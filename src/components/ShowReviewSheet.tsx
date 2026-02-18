@@ -2,6 +2,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Upload, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles, Send, Trash2 } from "lucide-react";
 import { parseISO, format } from "date-fns";
+import { formatShowDate } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
@@ -380,6 +381,7 @@ export const ShowReviewSheet = ({
               artists={show.artists}
               venue={show.venue}
               date={show.date}
+              datePrecision={show.datePrecision}
               rankPosition={rankData.position}
               rankTotal={rankData.total}
               comparisonsCount={rankData.comparisons}
@@ -447,7 +449,7 @@ export const ShowReviewSheet = ({
               
               {/* Added to Scene date */}
               <p className="text-center text-white/40 text-xs">
-                Added to Scene on {format(parseISO(show.date), "MMMM d, yyyy")}
+                Added to Scene on {formatShowDate(show.date, show.datePrecision)}
               </p>
             </div>
 

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { format, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatShowDate } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
 
 interface Artist {
@@ -17,6 +16,7 @@ interface Show {
     location: string;
   };
   date: string;
+  datePrecision?: string | null;
   photo_url?: string | null;
   tags?: string[];
 }
@@ -110,10 +110,7 @@ const HighlightReel = ({ shows, getRankInfo, onShowTap }: HighlightReelProps) =>
           const artistName = headliner?.name || "Unknown Artist";
           const rankInfo = getRankInfo(show.id);
           const primaryTag = show.tags?.[0];
-          const formattedDate = format(
-            parseISO(show.date),
-            parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy"
-          );
+          const formattedDate = formatShowDate(show.date, show.datePrecision);
 
           return (
             <div

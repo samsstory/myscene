@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import SceneLogo from "@/components/ui/SceneLogo";
 import ConfirmationRing from "@/components/ui/ConfirmationRing";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { formatShowDate } from "@/lib/utils";
 
 
 interface Artist {
@@ -21,6 +21,7 @@ interface HeroPhotoSectionProps {
     location: string;
   };
   date: string;
+  datePrecision?: string | null;
   rankPosition: number;
   rankTotal: number;
   comparisonsCount?: number;
@@ -42,6 +43,7 @@ export const HeroPhotoSection = ({
   artists,
   venue,
   date,
+  datePrecision,
   rankPosition,
   rankTotal,
   comparisonsCount = 0,
@@ -52,7 +54,7 @@ export const HeroPhotoSection = ({
 }: HeroPhotoSectionProps) => {
   const headliner = artists.find((a) => a.isHeadliner) || artists[0];
   const supportingArtists = artists.filter((a) => !a.isHeadliner && a.name !== headliner?.name);
-  const formattedDate = format(parseISO(date), "MMMM yyyy");
+  const formattedDate = formatShowDate(date, datePrecision);
   const showConfirmation = calculateShowConfirmation(comparisonsCount);
   const needsMoreRanking = comparisonsCount < 3 && rankTotal > 1;
 
