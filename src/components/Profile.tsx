@@ -355,7 +355,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
             variant="outline"
           >
             <UserSearch className="h-4 w-4" />
-            Find Friends by Username
+            Find Friends by Name or Username
           </Button>
 
           {following.length === 0 && (
