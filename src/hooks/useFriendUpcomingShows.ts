@@ -33,6 +33,8 @@ export function useFriendUpcomingShows(followingIds: string[]) {
     setIsLoading(true);
 
     async function load() {
+      console.log("[FriendShows] Fetching for followingIds:", followingIds);
+
       // Fetch upcoming shows for all followed users
       const { data, error } = await supabase
         .from("upcoming_shows")
@@ -50,6 +52,8 @@ export function useFriendUpcomingShows(followingIds: string[]) {
         .order("show_date", { ascending: true });
 
       if (cancelled) return;
+
+      console.log("[FriendShows] Query result:", { data, error });
 
       if (error) {
         console.error("useFriendUpcomingShows error:", error);
