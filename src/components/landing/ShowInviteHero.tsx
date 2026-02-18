@@ -456,7 +456,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                     <p className="text-sm font-semibold text-foreground leading-tight">
                       Share my take with {firstName}
                     </p>
-                    <p className="text-[11px] text-foreground/35">Enter your email — we'll send you a login link so you can see how your takes compare</p>
+                    <p className="text-[11px] text-foreground/35">Enter your email — we'll send you a verification link so you can see how your takes compare</p>
                   </div>
                 </div>
 
@@ -476,7 +476,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                     disabled={!email || otpSending}
                     className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 disabled:opacity-50 disabled:scale-100"
                   >
-                    {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send Verification <ArrowRight className="h-4 w-4 ml-1" /></>}
+                    {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send Verification Link <ArrowRight className="h-4 w-4 ml-1" /></>}
                   </Button>
                 </div>
               </div>
@@ -499,7 +499,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">Check your email</p>
                   <p className="text-[11px] text-foreground/40 leading-relaxed">
-                    We sent a login link to <span className="text-foreground/60">{email}</span> — click it to continue
+                    We sent a verification link to <span className="text-foreground/60">{email}</span> — click it to continue
                   </p>
                 </div>
 
