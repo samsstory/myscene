@@ -6,7 +6,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X, UserCircle, Tag, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isToday, isFuture } from "date-fns";
+import { usePlanUpcomingShow } from "@/hooks/usePlanUpcomingShow";
+import UpcomingShowDetailSheet from "@/components/home/UpcomingShowDetailSheet";
 
 import { ShowReviewSheet } from "./ShowReviewSheet";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
@@ -125,7 +127,12 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   // Todo action sheet state
   const [todoSheetOpen, setTodoSheetOpen] = useState(false);
 
+  // Upcoming show detail sheet state (for calendar ghost tiles)
+  const [selectedUpcomingShow, setSelectedUpcomingShow] = useState<import("@/hooks/usePlanUpcomingShow").UpcomingShow | null>(null);
+  const [upcomingDetailOpen, setUpcomingDetailOpen] = useState(false);
+
   const { stats, statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
+  const { upcomingShows, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
   
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -653,6 +660,15 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     );
   };
 
+  const getUpcomingShowsForDate = (date: Date) =>
+    upcomingShows.filter(s => s.show_date && isSameDay(parseISO(s.show_date), date));
+
+  const rsvpDotClass = (status: string) => {
+    if (status === "going") return "bg-emerald-400";
+    if (status === "maybe") return "bg-amber-400";
+    return "bg-white/20";
+  };
+
   const renderCalendarView = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
@@ -710,15 +726,35 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           
           {days.map(day => {
             const dayShows = getShowsForDate(day);
+            const dayUpcoming = getUpcomingShowsForDate(day);
+            const todayCell = isToday(day);
+            const futureDay = isFuture(day) && !todayCell;
+            const hasContent = dayShows.length > 0 || dayUpcoming.length > 0;
+
             return (
-              <div key={day.toISOString()} className={`aspect-square p-2 flex items-center justify-center ${dayShows.length > 0 ? "bg-card" : "bg-background"}`}>
-                {dayShows.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 items-center justify-center">
+              <div
+                key={day.toISOString()}
+                className={`aspect-square flex flex-col items-center justify-center relative transition-all
+                  ${hasContent ? "bg-card" : "bg-background"}
+                  ${todayCell ? "ring-2 ring-cyan-400/60 rounded-lg bg-cyan-500/10" : ""}
+                `}
+                style={todayCell ? { boxShadow: "0 0 8px 1px hsl(var(--primary) / 0.15)" } : undefined}
+              >
+                {/* Today date number */}
+                {todayCell && (
+                  <span className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-cyan-400 leading-none">
+                    {format(day, "d")}
+                  </span>
+                )}
+
+                {/* Past show tiles */}
+                {dayShows.length > 0 && (
+                  <div className="flex flex-wrap gap-0.5 items-center justify-center p-1">
                     {dayShows.map(show => {
                       const rankInfo = getShowRankInfo(show.id);
                       const rankDisplay = rankInfo.position ? `#${rankInfo.position}` : "New";
                       return (
-                        <button 
+                        <button
                           key={show.id}
                           className="relative hover:scale-110 transition-transform cursor-pointer"
                           title={`${show.artists.map(a => a.name).join(", ")} - ${show.venue.name}`}
@@ -750,8 +786,50 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                       );
                     })}
                   </div>
-                ) : (
-                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                )}
+
+                {/* Upcoming / ghost tiles */}
+                {dayUpcoming.length > 0 && (
+                  <div className="flex flex-wrap gap-0.5 items-center justify-center p-1">
+                    {dayUpcoming.map(upcoming => (
+                      <button
+                        key={upcoming.id}
+                        className="relative hover:scale-110 transition-transform cursor-pointer opacity-60"
+                        title={`${upcoming.artist_name}${upcoming.venue_name ? ` - ${upcoming.venue_name}` : ""}`}
+                        onClick={() => {
+                          setSelectedUpcomingShow(upcoming);
+                          setUpcomingDetailOpen(true);
+                        }}
+                      >
+                        {upcoming.artist_image_url ? (
+                          <div className="relative w-8 h-8">
+                            <img
+                              src={upcoming.artist_image_url}
+                              alt={upcoming.artist_name}
+                              className="w-8 h-8 rounded object-cover shadow-lg"
+                              style={{ filter: "brightness(0.75)" }}
+                            />
+                            {/* dashed border overlay */}
+                            <div className="absolute inset-0 rounded border border-dashed border-white/40" />
+                            {/* RSVP dot */}
+                            <span className={`absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border border-black/30 ${rsvpDotClass(upcoming.rsvp_status)}`} />
+                          </div>
+                        ) : (
+                          <div className="relative w-8 h-8 rounded border border-dashed border-white/30 flex items-center justify-center bg-primary/10">
+                            <span className="text-[9px] font-bold text-primary/70 leading-none text-center px-0.5 truncate">
+                              {upcoming.artist_name.split(" ")[0]}
+                            </span>
+                            <span className={`absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border border-black/30 ${rsvpDotClass(upcoming.rsvp_status)}`} />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Empty day dot */}
+                {!hasContent && (
+                  <div className={`w-1.5 h-1.5 rounded-full ${futureDay ? "bg-muted-foreground/15" : "bg-muted-foreground/30"}`} />
                 )}
               </div>
             );
@@ -889,6 +967,18 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
       {/* Plan Show Sheet */}
       <PlanShowSheet open={planShowOpen} onOpenChange={setPlanShowOpen} />
+
+      {/* Upcoming Show Detail Sheet (from calendar ghost tiles) */}
+      <UpcomingShowDetailSheet
+        show={selectedUpcomingShow}
+        open={upcomingDetailOpen}
+        onOpenChange={setUpcomingDetailOpen}
+        onDelete={(id) => {
+          deleteUpcomingShow(id);
+          setUpcomingDetailOpen(false);
+        }}
+        onRsvpChange={updateRsvpStatus}
+      />
 
       <FocusedRankingSession
         open={focusedRankingOpen}
