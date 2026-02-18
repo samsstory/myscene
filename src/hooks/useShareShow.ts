@@ -48,7 +48,7 @@ export function useShareShow() {
       const venueText = venueName ? ` at ${venueName}` : "";
       const shareTitle =
         type === "logged"
-          ? `What did you think of ${artistName}${venueText}?`
+          ? `You're invited to compare your ${artistName}${venueText} experience on Scene`
           : `${inviterName} wants you at ${artistName}${venueText}`;
       const text =
         type === "logged"
