@@ -167,13 +167,12 @@ export function usePlanUpcomingShow() {
           ? `${friendNames[0]} & ${friendNames[1]}`
           : `${friendNames[0]} & ${friendNames.length - 1} others`;
 
-      const avatarUrl: string | null = (profiles as any)[0]?.avatar_url ?? null;
-
       toast(`${nameStr} is also going! 🎉`, {
         description: `You're both going to ${artistName}`,
-        icon: avatarUrl ? avatarUrl : "👥",
+        icon: "👥",
         duration: 6000,
       });
+
     } catch {
       // silent — detection failure should never block the save flow
     }
