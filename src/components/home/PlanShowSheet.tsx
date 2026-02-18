@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Ticket, Loader2, Music2, Music, Calendar, MapPin, Sparkles, ImagePlus, X, Link2, Plus } from "lucide-react";
+import { ArrowLeft, Ticket, Loader2, Mic, Music, Calendar, MapPin, Sparkles, ImagePlus, X, Link2, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { usePlanUpcomingShow, type ParsedUpcomingEvent, type SaveUpcomingShowData } from "@/hooks/usePlanUpcomingShow";
 import { supabase } from "@/integrations/supabase/client";
@@ -545,7 +545,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                   ) : isArtistSearching ? (
                     <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
                   ) : (
-                    <Music2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Mic className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   )}
                   <Input
                     placeholder="Artist name *"
