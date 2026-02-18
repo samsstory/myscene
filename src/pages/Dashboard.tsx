@@ -90,6 +90,8 @@ const Dashboard = () => {
       localStorage.removeItem("invite_highlights");
       localStorage.removeItem("invite_note");
       localStorage.removeItem("invite_ref");
+      // Cancel any pending onboarding add-show flow so it doesn't race with compare sheet
+      pendingAddFlowRef.current = false;
       // Small delay so dashboard has rendered
       setTimeout(() => setShowCompareSheet(true), 600);
       // Clean up URL params
