@@ -20,6 +20,7 @@ export interface UpcomingShow {
   show_date: string | null;
   ticket_url: string | null;
   artist_image_url: string | null;
+  rsvp_status: "going" | "maybe" | "not_going";
   created_at: string;
 }
 
@@ -170,6 +171,20 @@ export function usePlanUpcomingShow() {
     }
   }, [fetchUpcomingShows]);
 
+  const updateRsvpStatus = useCallback(async (id: string, status: "going" | "maybe" | "not_going"): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from("upcoming_shows" as any)
+        .update({ rsvp_status: status })
+        .eq("id", id);
+
+      if (error) throw error;
+      await fetchUpcomingShows();
+    } catch (err) {
+      toast.error("Failed to update RSVP status");
+    }
+  }, [fetchUpcomingShows]);
+
   const clearParsedResult = useCallback(() => {
     setParsedResult(null);
     setError(null);
@@ -185,6 +200,7 @@ export function usePlanUpcomingShow() {
     parseInput,
     saveUpcomingShow,
     deleteUpcomingShow,
+    updateRsvpStatus,
     clearParsedResult,
     refetch: fetchUpcomingShows,
   };

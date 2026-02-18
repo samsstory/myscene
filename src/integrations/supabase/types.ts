@@ -518,6 +518,7 @@ export type Database = {
           id: string
           linked_show_id: string | null
           raw_input: string | null
+          rsvp_status: string
           show_date: string | null
           source_url: string | null
           ticket_url: string | null
@@ -532,6 +533,7 @@ export type Database = {
           id?: string
           linked_show_id?: string | null
           raw_input?: string | null
+          rsvp_status?: string
           show_date?: string | null
           source_url?: string | null
           ticket_url?: string | null
@@ -546,6 +548,7 @@ export type Database = {
           id?: string
           linked_show_id?: string | null
           raw_input?: string | null
+          rsvp_status?: string
           show_date?: string | null
           source_url?: string | null
           ticket_url?: string | null

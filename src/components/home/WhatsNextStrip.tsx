@@ -77,7 +77,7 @@ function AddShowChip({ onClick }: { onClick: () => void }) {
 }
 
 export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
-  const { upcomingShows, isLoading, deleteUpcomingShow } = usePlanUpcomingShow();
+  const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedShow, setSelectedShow] = useState<UpcomingShow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -168,6 +168,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onDelete={deleteUpcomingShow}
+        onRsvpChange={updateRsvpStatus}
       />
 
       {/* Plan show sheet (used when no external handler passed) */}
