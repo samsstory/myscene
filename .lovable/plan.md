@@ -1,87 +1,96 @@
 
-# Add "New Event" Option to Venue Step for Solo Shows
+# Redesign Highlight Reel: Horizontal Swipe Carousel
 
-## The Problem
+## What's Changing and Why
 
-When a user adds a **Show** (solo artist) and searches the venue field for something like "Cercle LA", they only see one manual-add option: **"New venue"**. But Cercle LA is an event brand — the physical venue (LA Convention Center) is incidental or unknown. Currently there's no way to record it as an `event_name` from this step.
+The current `HighlightReel` is a full-bleed, edge-to-edge hero that swaps shows in place. It has two problems:
+1. The photo fills the full width with no visual cues that more cards exist — navigation relies on hidden arrows or knowing to swipe
+2. Cards appear misaligned (tilted) due to `object-cover` on portrait photos in a landscape aspect ratio
 
-The `event_name` column exists in the database and is populated for Showcase/Festival flows, but the Show flow's Venue step has no path to set it.
+The new design transforms it into an inset horizontal scroll carousel — matching the browsing feel of the `StackedShowList` below it, creating a cohesive "memory shelf" aesthetic across the whole dashboard.
 
-## Solution
+## Visual Design
 
-Add a second manual-add option in `VenueStep` — **"New event"** — alongside the existing **"New venue"** option. When the user picks "New event", the flow:
+```text
+┌──────────────────────────────────────────────────────┐
+│  px-4 inset from screen edges                        │
+│                                                      │
+│  ┌──────────────────────┐  ┌─ peek ─┐               │
+│  │                      │  │        │               │
+│  │   Active Card        │  │  Next  │               │
+│  │   (85vw wide)        │  │  Card  │               │
+│  │                      │  │  peek  │               │
+│  │  [#1 All Time]       │  │        │               │
+│  │                      │  │        │               │
+│  │  Artist Name         │  │        │               │
+│  │  Venue · Date        │  │        │               │
+│  └──────────────────────┘  └────────┘               │
+│                                                      │
+│              ●  ○  ○  ○  ○   (dots)                 │
+└──────────────────────────────────────────────────────┘
+```
 
-1. Sets `event_name` to the typed name (e.g. "Cercle LA")
-2. Skips the address/coordinates dialog entirely (event brands don't have a geocodable address)
-3. Uses `event_name` as the `venue_name` fallback (existing logic in `AddShowFlow.handleSubmit` already handles this)
+- Cards are **85vw wide** with `12px` horizontal inset from screen edges
+- **~15vw peek** of the next card is always visible on the right
+- Aspect ratio changes from `3/4` (portrait) to `4/5` — tall but not as extreme, more natural for landscape concert photos
+- No arrow buttons — navigation is swipe-only (and auto-rotate)
+- Dots move to below the carousel track, not inside the photo
 
-This mirrors exactly how Showcase/Festival events work — the distinction is just that it's being triggered from within the venue search step of a solo Show.
+## Implementation: Rewrite `HighlightReel.tsx`
+
+### Core Approach: CSS Scroll Snap (no library needed)
+
+Use a horizontally scrollable container with `scroll-snap-type: x mandatory`, where each card snaps to center/start. This gives native-feel momentum scrolling and doesn't require Embla or any new dependency.
+
+```
+scrollContainer (overflow-x: scroll, snap-type: x mandatory, flex)
+  └── card wrapper × N  (snap-align: start, flex-shrink: 0, width: 85vw, px: 6px)
+        └── card (rounded-2xl, overflow-hidden, aspect-[4/5])
+              └── image / gradient background
+              └── gradient overlay
+              └── rank badge (top-left)
+              └── bottom text block
+```
+
+### Auto-Rotation
+
+- Uses `scrollRef.current.scrollTo({ left: targetX, behavior: 'smooth' })` on a 5-second interval
+- Pauses when the user touches the scroll container (`onTouchStart` sets `isPaused = true`)
+- Resumes after 10 seconds of inactivity (matching current behavior)
+
+### Tracking Active Index
+
+Instead of manually tracking swipe deltas, use an `IntersectionObserver` (or a `scroll` event listener with debounce) on the scroll container to detect which card is most visible — updating `activeIndex` automatically. This is the same pattern used in `StackedShowList`.
+
+### Tap vs Scroll Disambiguation
+
+The `onClick` on each card will only fire `onShowTap` if the scroll position hasn't changed significantly since `touchStart` — uses a `didScroll` ref similar to the current `isSwiping` ref.
 
 ## Changes Required
 
-### 1. `src/components/add-show-steps/VenueStep.tsx`
+### 1. `src/components/home/HighlightReel.tsx` — Full rewrite
 
-**New prop**: `onSelectAsEvent?: (eventName: string) => void`
+Key structural changes:
+- Remove: `touchStartX`, `touchStartY`, `isSwiping` refs (replaced by native scroll)
+- Remove: `ChevronLeft`, `ChevronRight` arrow buttons
+- Add: `scrollRef` pointing at the scroll container
+- Add: scroll event listener → debounced `activeIndex` update
+- Add: auto-rotate using `scrollTo` instead of `setActiveIndex` with state-swap
+- Change: outer container from `-mx-4` (full bleed) to `mx-0` (inset, with `px-4` on scroll container)
+- Change: card width from `w-full` to `w-[85vw] max-w-sm flex-shrink-0`
+- Change: aspect ratio from `aspect-[3/4]` to `aspect-[4/5]`
+- Change: dots position from `absolute bottom-2` (inside photo) to below the scroll container
+- Add: `gap-2` between cards in the flex row for subtle card separation
 
-This callback fires when the user clicks "New event" on a manual entry. The parent (`AddShowFlow`) will use it to set `eventName` and advance the step.
+### 2. `src/components/Home.tsx` — No changes needed
 
-**UI change** — the manual-add entry (the `Sparkles` button at the top of results) currently renders a single button. For `showType === 'show'`, render two side-by-side buttons:
+The `HighlightReel` component API (`shows`, `getRankInfo`, `onShowTap`) remains identical. The parent doesn't need updating.
 
-```text
-┌─────────────────────────────────────────────────┐
-│  ✨ "Cercle LA"                                 │
-│  ┌──────────────────┐  ┌──────────────────────┐ │
-│  │   New venue      │  │    New event         │ │
-│  └──────────────────┘  └──────────────────────┘ │
-└─────────────────────────────────────────────────┘
-```
+## What Stays the Same
 
-For `showcase` / `festival` types, the existing single "New venue / event" button stays unchanged (those flows use `UnifiedSearchStep` for the event name, so this step is purely for the physical venue).
-
-**New `handleSelectAsEvent` function** inside `VenueStep`:
-```typescript
-const handleSelectAsEvent = () => {
-  if (searchTerm.trim() && onSelectAsEvent) {
-    onSelectAsEvent(searchTerm.trim());
-  }
-};
-```
-
-No address dialog is shown — the callback fires immediately and the parent advances the step.
-
-### 2. `src/components/AddShowFlow.tsx`
-
-**Wire up the new prop** on `<VenueStep>`:
-
-```typescript
-onSelectAsEvent={(eventName) => {
-  updateShowData({
-    eventName,
-    venue: eventName,   // fallback so venue_name is non-null in DB
-    venueLocation: '',
-    venueId: null,
-  });
-  setStep(3); // advance to Date step
-}}
-```
-
-`venue_name` falls back to `eventName` (already in `handleSubmit`: `venue_name: showData.venue || showData.eventName`), so no DB change is needed.
-
-## What Gets Stored
-
-For "Cercle LA at LA Convention Center" scenario:
-- User types "Cercle LA" in venue search → clicks "New event"
-- `event_name = "Cercle LA"`, `venue_name = "Cercle LA"` (fallback), `show_type = "show"`
-- Show card displays "Cercle LA" — correct
-
-For "Cercle LA" where user also knows the physical venue:
-- User types "Cercle LA" → clicks "New event" → `event_name` set → advances
-- OR: user searches "LA Convention Center" → selects it → `venue_name` set
-- Both paths already exist; the new button just adds the missing middle path
-
-## What Does NOT Change
-
-- The address dialog is unchanged — it still appears when clicking "New venue"
-- Showcase/Festival flows are unchanged
-- The database schema is unchanged (the `event_name` column already exists)
-- The `handleSubmit` fallback logic is unchanged
+- The `Show` and `RankInfo` interface types — identical props
+- Auto-rotation logic (5s interval, 10s pause on interaction)
+- Rank badge, tag pill, artist name, venue/date text overlays
+- SceneLogo watermark
+- Dots indicator (repositioned but same logic)
+- `onShowTap` callback behavior
