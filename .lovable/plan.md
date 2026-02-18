@@ -1,109 +1,74 @@
 
-# Design Audit & Refactor Plan: Glassmorphism Minimal Standard
+# Fix: Prefer Show Graphic Over Spotify Artist Image
 
-## Problem Identified
+## Problem Analysis
 
-The product has two competing aesthetics colliding:
-- **What's working**: The stacked show cards, stat pills, and ranking cards already use correct glassmorphism — `bg-white/[0.03-0.06]`, `border-white/[0.06-0.12]`, subtle white glows. This feels premium.
-- **What's broken**: Several interactive elements still use `bg-primary` (a fully-saturated `hsl(189 94% 55%)` solid cyan) as button backgrounds, icon container fills, and accents. The `accent` token is a harsh yellow (`hsl(45 93% 58%)`). These are jarring against the dark, frosted-glass backdrop.
+The current image selection chain is:
 
----
+```text
+User uploads screenshot(s)
+        ↓
+Edge function ignores screenshots as image candidates
+        ↓
+Spotify search runs on the extracted artist name
+        ↓
+confirmedEvent.artist_image_url = Spotify profile photo (always)
+        ↓
+Confirmation card displays Spotify photo (always)
+        ↓
+Saved upcoming show uses Spotify photo
+```
 
-## Specific Offenders in `PlanShowSheet.tsx`
+The screenshot the user uploaded — which is often the actual show graphic or poster — is never considered as the image for the card or the saved record.
 
-| Element | Current (Harsh) | Problem |
-|---|---|---|
-| "Parse with AI" CTA button | `bg-primary` (solid cyan) | Full-saturation fill dominates the sheet |
-| "Add to Upcoming →" save button | `bg-primary` (solid cyan) | Same issue on every stage |
-| Screenshot upload icon ring | `bg-primary/15 border-primary/30 text-primary/80` | Still reads as punchy cyan glow |
-| Confirm stage fallback hero card | `bg-gradient-to-br from-primary/30 to-primary/10` | Cyan splash behind artist card |
-| "View Tickets" link | `text-primary` | Bright cyan hyperlink |
+## Desired Behavior
 
-## Specific Offenders in `WhatsNextStrip.tsx`
+```text
+User uploads screenshot(s)
+        ↓
+If exactly 1 screenshot → use it as the show image
+If 0 screenshots (text/URL input) → fall back to Spotify artist image
+If 2+ screenshots → fall back to Spotify artist image (ambiguous which is the show graphic)
+        ↓
+Confirmation card backdrop shows the correct image
+        ↓
+Saved upcoming show stores the correct image URL
+```
 
-| Element | Current | Problem |
-|---|---|---|
-| `AddShowChip` icon ring | `bg-primary/20 border-primary/40 text-primary` | Cyan glow button |
-| Empty state icon ring | `bg-primary/15 border-primary/30 text-primary/70` | Same |
+## What Needs To Change
 
-## Offenders in `FocusedRankingSession.tsx`
+### 1. Store the screenshot as a file in cloud storage before saving
 
-| Element | Current | Problem |
-|---|---|---|
-| VS badge | `bg-primary text-primary-foreground` | Full solid cyan pill |
-| Confetti colors | `#22d3ee` (cyan), `#fbbf24` (yellow) | Yellow is explicitly excluded from the palette |
+Currently, screenshots only exist as local `blob:` preview URLs (created by `URL.createObjectURL`). These are temporary — they disappear when the session ends and can't be stored in the database.
 
-## Offenders in `StatPills.tsx`
+When a single screenshot was uploaded and the user hits "Add To Calendar", the file needs to be uploaded to cloud storage (`show-photos` bucket) to get a permanent URL.
 
-| Element | Current | Problem |
-|---|---|---|
-| To-Do pill | `bg-gradient-to-br from-primary/[0.12] to-secondary/[0.08]`, `border-primary/20`, `text-primary/90`, pulsing dot `bg-primary` | Cyan gradient + pulsing dot = draws too much eye |
+### 2. Image priority logic in `PlanShowSheet.tsx`
 
----
+After parsing, set a `selectedImageUrl` in state using this priority:
 
-## The Design Framework (Codified Standard)
+- **1 screenshot uploaded** → use that screenshot's local preview URL for the confirmation card UI, and upload the actual file to storage on save
+- **0 or 2+ screenshots** → use `confirmedEvent.artist_image_url` (Spotify) as before
 
-This refactor establishes and documents a single, enforceable rule set.
+### 3. Confirmation card renders `selectedImageUrl`
 
-### Rule 1 — Primary CTA Buttons
-- **Remove**: `bg-primary` (solid cyan fill)
-- **Replace with**: `bg-white/[0.10] border border-white/[0.18] text-foreground hover:bg-white/[0.16]` — a frosted white glass pill
-- **Optional glow variant** for the single highest-priority CTA per screen: add a soft gradient border `from-primary/40 to-primary/20` at very low opacity, never a solid fill
+The artist card backdrop (line 391–398 in `PlanShowSheet.tsx`) currently reads `confirmedEvent.artist_image_url`. It will instead read from the new `selectedImageUrl` state.
 
-### Rule 2 — Icon Rings / Badge Backgrounds
-- **Remove**: `bg-primary/15-30 border-primary/30-40 text-primary`
-- **Replace with**: `bg-white/[0.08] border-white/[0.12] text-white/60` — neutral glass
+### 4. Save path uploads file if needed
 
-### Rule 3 — Accent / Highlight Colors
-- **Yellow is excluded** (already in memory). `accent: hsl(45 93% 58%)` should only be used at ≤10% opacity tints if at all.
-- **Cyan (`primary`)** is reserved for: data labels, small rank badges, small text links only — never as a full background fill.
+In `handleSave`, before calling `saveUpcomingShow`:
+- If the image source is a screenshot file (not a Spotify URL), upload it to the `show-photos` Supabase storage bucket
+- Use the returned permanent public URL as `artist_image_url` in the saved record
+- If upload fails, gracefully fall back to Spotify image
 
-### Rule 4 — Outline / Ghost Buttons
-- **Keep**: `border-white/10 text-muted-foreground` — already correct
-- **Hover**: `hover:bg-white/[0.06] hover:text-foreground/80`
+## Files To Edit
 
-### Rule 5 — VS / Spotlight Badges
-- **Remove**: `bg-primary` solid pill
-- **Replace with**: `bg-white/[0.12] backdrop-blur-sm border border-white/[0.20] text-white/90` — glass pill
+**`src/components/home/PlanShowSheet.tsx`** (only file that needs changing):
+- Add `selectedImageFile` state (`File | null`) to track the screenshot file chosen as the show graphic
+- Add `selectedImageUrl` state (`string | null`) to track what's shown in the card
+- After `handleParse` resolves events, set `selectedImageFile` to `screenshots[0].file` and `selectedImageUrl` to `screenshots[0].preview` when exactly 1 screenshot exists; otherwise set both to `null` and use `confirmedEvent.artist_image_url` for the URL
+- Update the artist card backdrop JSX to use `selectedImageUrl ?? confirmedEvent.artist_image_url`
+- In `handleSave`, if `selectedImageFile` is set, upload to `show-photos` storage bucket first, then use the resulting public URL as `artist_image_url`; otherwise use `confirmedEvent?.artist_image_url`
+- Reset `selectedImageFile` and `selectedImageUrl` in `resetInputState`
 
-### Rule 6 — Pulsing / Attention Elements
-- **Remove**: `bg-primary animate-ping/pulse` for dot indicators
-- **Replace with**: `bg-white/50 animate-pulse` — subtle white pulse
-
----
-
-## Files to Change
-
-### 1. `src/components/home/PlanShowSheet.tsx`
-- **CTA buttons** ("Parse with AI", "Add to Upcoming →"): Change `className="flex-1 gap-2"` (which inherits `bg-primary`) to use a new white-glass variant class
-- **Screenshot upload icon ring**: `bg-primary/15 border-primary/30 text-primary/80` → `bg-white/[0.08] border-white/[0.12] text-white/60`
-- **Confirm stage hero fallback background**: `from-primary/30 to-primary/10` → `from-white/[0.08] to-white/[0.03]`
-- **"View Tickets" link**: keep `text-primary` (small text link is acceptable per Rule 3)
-- **Active tab indicator**: `bg-white/[0.12]` stays — already correct
-
-### 2. `src/components/home/WhatsNextStrip.tsx`
-- **`AddShowChip` icon ring**: `bg-primary/20 border-primary/40 text-primary` → `bg-white/[0.08] border-white/[0.14] text-white/60`
-- **Empty state icon ring**: same swap
-
-### 3. `src/components/home/FocusedRankingSession.tsx`
-- **VS badge**: `bg-primary text-primary-foreground` → `bg-white/[0.12] backdrop-blur-sm border border-white/[0.22] text-white/90`
-- **Confetti colors**: Remove yellow `#fbbf24`, soften to `['#e2e8f0', '#94a3b8', '#22d3ee']` (keep one subtle cyan, add neutral silvers)
-
-### 4. `src/components/ui/button.tsx`
-- Add a new `glass` variant: `bg-white/[0.08] border border-white/[0.16] text-foreground hover:bg-white/[0.14] hover:border-white/[0.22] backdrop-blur-sm`
-- The `default` variant will remain `bg-primary` for flexibility (used across admin/landing pages where full accent may be appropriate), but all dark-UI sheets will explicitly pass `variant="glass"`
-
-### 5. `src/components/home/StatPills.tsx`
-- **To-Do pill**: Replace `from-primary/[0.12] to-secondary/[0.08]` gradient with `bg-white/[0.06]`, replace `border-primary/20` with `border-white/[0.12]`, replace `text-primary/90` with `text-white/80`, replace pulsing dot `bg-primary` with `bg-white/50`
-
----
-
-## Implementation Order
-
-1. Add `glass` variant to `src/components/ui/button.tsx`
-2. Update `PlanShowSheet.tsx` buttons, icon rings, and fallback card gradient
-3. Update `WhatsNextStrip.tsx` icon rings
-4. Update `FocusedRankingSession.tsx` VS badge and confetti
-5. Update `StatPills.tsx` To-Do pill
-
-No database or edge function changes required.
+No edge function changes or database migrations are needed.
