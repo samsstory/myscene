@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -56,12 +56,11 @@ export default function UpcomingShowDetailSheet({
   const [rsvp, setRsvp] = useState<RsvpStatus>(show?.rsvp_status ?? "going");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Sync RSVP state when the selected show changes
-  const showId = show?.id;
-  const showRsvp = show?.rsvp_status;
-  if (showId && showRsvp && showRsvp !== rsvp) {
-    setRsvp(showRsvp);
-  }
+  // Sync RSVP state only when the selected show *changes* (different show opened),
+  // not on every re-render — avoids resetting the optimistic local update.
+  useEffect(() => {
+    if (show?.rsvp_status) setRsvp(show.rsvp_status);
+  }, [show?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!show) return null;
 
