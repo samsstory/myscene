@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { Plus, Music2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
+import { useFollowers } from "@/hooks/useFollowers";
+import { useFriendUpcomingShows } from "@/hooks/useFriendUpcomingShows";
+import type { FollowerProfile } from "@/hooks/useFollowers";
 import PlanShowSheet from "./PlanShowSheet";
 import UpcomingShowDetailSheet from "./UpcomingShowDetailSheet";
 
@@ -12,24 +15,51 @@ interface WhatsNextStripProps {
 const RSVP_BADGE = {
   going:     { Icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/20 border-emerald-500/30" },
   maybe:     { Icon: AlertCircle,  color: "text-amber-400",   bg: "bg-amber-500/20 border-amber-500/30"   },
-  not_going: { Icon: X,            color: "text-white/40",    bg: "bg-white/[0.06] border-white/10"        },
+  not_going: { Icon: X,            color: "text-red-400",     bg: "bg-red-500/20 border-red-500/30"        },
 } as const;
 
-// Mock friend avatars — replace with real friend data when social layer ships
-const MOCK_FRIEND_POOLS = [
-  ["https://i.pravatar.cc/40?img=1", "https://i.pravatar.cc/40?img=5"],
-  ["https://i.pravatar.cc/40?img=9", "https://i.pravatar.cc/40?img=12", "https://i.pravatar.cc/40?img=15"],
-  ["https://i.pravatar.cc/40?img=3"],
-  ["https://i.pravatar.cc/40?img=7", "https://i.pravatar.cc/40?img=22"],
-];
-
-function getMockFriends(showId: string) {
-  // Deterministically pick a pool based on show ID so it's stable across renders
-  const idx = showId.charCodeAt(0) % MOCK_FRIEND_POOLS.length;
-  return MOCK_FRIEND_POOLS[idx];
+function FriendAvatarStack({ friends }: { friends: FollowerProfile[] }) {
+  if (friends.length === 0) return null;
+  const visible = friends.slice(0, 3);
+  const overflowCount = friends.length - visible.length;
+  return (
+    <div className="absolute top-2 left-2 flex items-center gap-1">
+      <div className="flex items-center">
+        {visible.map((friend, i) => (
+          friend.avatar_url ? (
+            <img
+              key={friend.id}
+              src={friend.avatar_url}
+              alt={friend.username ?? "Friend"}
+              className="w-5 h-5 rounded-full border border-black/60 object-cover"
+              style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i }}
+            />
+          ) : (
+            <div
+              key={friend.id}
+              className="w-5 h-5 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center"
+              style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i }}
+            >
+              <span className="text-[7px] font-bold text-primary-foreground leading-none">
+                {(friend.username ?? friend.full_name ?? "?")[0].toUpperCase()}
+              </span>
+            </div>
+          )
+        ))}
+      </div>
+      {overflowCount > 0 && (
+        <span
+          className="text-[9px] font-semibold text-white/70 leading-none"
+          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
+        >
+          +{overflowCount}
+        </span>
+      )}
+    </div>
+  );
 }
 
-function UpcomingChip({ show, onTap }: { show: UpcomingShow; onTap: (show: UpcomingShow) => void }) {
+function UpcomingChip({ show, friendsHere, onTap }: { show: UpcomingShow; friendsHere: FollowerProfile[]; onTap: (show: UpcomingShow) => void }) {
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
     : "Date TBD";
@@ -68,35 +98,8 @@ function UpcomingChip({ show, onTap }: { show: UpcomingShow; onTap: (show: Upcom
         <BadgeIcon className={`h-3 w-3 ${badge.color}`} />
       </div>
 
-      {/* Friend avatar stack — top-left */}
-      {(() => {
-        const friends = getMockFriends(show.id);
-        const visible = friends.slice(0, 3);
-        const overflow = friends.length - visible.length;
-        return (
-          <div className="absolute top-2 left-2 flex items-center gap-1.5">
-            {/* Stacked avatars */}
-            <div className="flex items-center">
-              {visible.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt="Friend"
-                  className="w-5 h-5 rounded-full border border-black/60 object-cover"
-                  style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i }}
-                />
-              ))}
-            </div>
-            {/* "+N more" label */}
-            <span
-              className="text-[9px] font-semibold text-white/70 leading-none"
-              style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
-            >
-              +{friends.length} more
-            </span>
-          </div>
-        );
-      })()}
+      {/* Friend avatar stack — top-left (real data) */}
+      <FriendAvatarStack friends={friendsHere} />
 
       {/* Content */}
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
@@ -136,6 +139,9 @@ function AddShowChip({ onClick }: { onClick: () => void }) {
 
 export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
+  const { following } = useFollowers();
+  const followingIds = useMemo(() => following.map(f => f.id), [following]);
+  const { friendsByDate } = useFriendUpcomingShows(followingIds);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedShow, setSelectedShow] = useState<UpcomingShow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -212,6 +218,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
               <UpcomingChip
                 key={show.id}
                 show={show}
+                friendsHere={friendsByDate.get(show.show_date ?? "") ?? []}
                 onTap={handleChipTap}
               />
             ))}
