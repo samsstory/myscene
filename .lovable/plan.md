@@ -1,87 +1,130 @@
 
-# Fix: OTP Flow — Code Instead of Magic Link + Correct Redirect Handling
+## The Problem
 
-## Problem Diagnosis
+The "Log this show in Scene" button in `CompareShowSheet` calls `onContinueToAddShow`, which in `Dashboard.tsx` opens the generic `BulkUploadFlow` (or `AddShowFlow`). This forces the new user to search for and re-enter show details that **already exist** in the database from the inviter's show record.
 
-There are two distinct bugs causing the broken experience:
+The correct behavior:
+1. **"Log this show in Scene" CTA** → silently save the show to the new user's profile using the inviter's show data (artists, venue, date) + the invitee's highlights and note from `localStorage`.
+2. Close the `CompareShowSheet`.
+3. Show the **WelcomeCarousel** ("Remember every show.") with a single "Add My First Show" CTA.
+4. The carousel's CTA opens the normal `BulkUploadFlow` for future shows.
 
-### Bug 1 — Wrong email type: Magic link instead of a numeric code
-`supabase.auth.signInWithOtp({ email })` sends whichever template is configured in the auth backend. The default Supabase template for this call is the **"Magic Link"** template (a clickable login button), not the **"Email OTP"** template (a 6-digit code). To force a numeric code, the call must explicitly pass `type: 'email'` is not enough — the correct approach is to use `signInWithOtp` with the right options, specifically without a redirect URL (magic links need one; OTP codes do not use one). The fix is to remove any implicit redirect and ensure the Supabase auth config is sending the OTP token template.
+---
 
-The proper Supabase call for a numeric code is:
+## Root Cause
+
+`CompareShowSheet` passes `onContinueToAddShow` up to `Dashboard.tsx`, which always opens `AddShowFlow` — an empty, generic multi-step form. There is no logic to:
+- Read the inviter's show data from the database.
+- Insert a cloned show record for the invitee.
+- Show the welcome screen before prompting the user to log more shows.
+
+---
+
+## What Needs to Change
+
+### 1. `src/components/CompareShowSheet.tsx`
+
+**New responsibility**: When the CTA is tapped, perform the "save this show" action directly inside the sheet before calling the parent callback.
+
+Changes:
+- Add a `saving` loading state.
+- On CTA tap, call a new `saveShowForInvitee()` async function that:
+  - Queries the inviter's `shows` record (via `showId`) to get `venue_name`, `venue_location`, `venue_id`, `show_date`, `date_precision`, `show_type`.
+  - Queries `show_artists` for all artists on that show.
+  - Inserts a new row in `shows` for the current authenticated user with the same venue/date/type data + `notes` from `inviteNote`.
+  - Inserts matching rows in `show_artists` for the new show.
+  - If `myHighlights` is non-empty, inserts rows in `show_tags` for the new show.
+  - On success, calls `onContinueToAddShow(newShowId)` to hand off to the parent.
+- Change the CTA button label from "Log this show in Scene →" to "Save this show →" and show a spinner while saving.
+- Update `onContinueToAddShow` prop type to pass the new `showId: string`.
+
+### 2. `src/pages/Dashboard.tsx`
+
+**New responsibility**: After the compare sheet saves the show, show the `WelcomeCarousel`, not `AddShowFlow`.
+
+Changes:
+- Add `showWelcomeCarousel` state (`boolean`).
+- Import `WelcomeCarousel`.
+- Change `onContinueToAddShow` in the `CompareShowSheet` render to set `showWelcomeCarousel(true)` instead of `setShowAddDialog(true)`.
+- Render `WelcomeCarousel` when `showWelcomeCarousel` is `true`:
+  - `onComplete` → close carousel, open `BulkUploadFlow` (to add their next show).
+  - `onTakeTour` → close carousel, start `SpotlightTour`.
+- Remove the old `AddShowFlow` `onShowAdded` logic that checked for `inviteShowId` and triggered `setShowSpotlightTour(true)` (since that chain is now replaced by the carousel).
+
+---
+
+## Revised Flow Diagram
+
+```text
+[CompareShowSheet]
+       │
+       │  User taps "Save this show →"
+       ▼
+[saveShowForInvitee()]
+  - INSERT into shows (invitee's copy, pre-filled from inviter's data)
+  - INSERT into show_artists
+  - INSERT into show_tags (invitee's highlights)
+       │
+       │  onContinueToAddShow(newShowId) callback fires
+       ▼
+[Dashboard: showWelcomeCarousel = true]
+       │
+       ▼
+[WelcomeCarousel]
+  "Remember every show."
+  [Add My First Show] ──▶ setShowUnifiedAdd(true) → BulkUploadFlow
+  [Take a quick tour]  ──▶ setShowSpotlightTour(true)
+```
+
+---
+
+## Technical Details
+
+**Data fetching in `saveShowForInvitee()`** (inside `CompareShowSheet`):
+
 ```ts
-supabase.auth.signInWithOtp({
-  email,
-  options: {
-    shouldCreateUser: true,
-    // No emailRedirectTo = forces OTP code, not magic link
-  }
-})
+// 1. Fetch inviter's full show record
+const { data: show } = await supabase
+  .from("shows")
+  .select("venue_name, venue_location, venue_id, show_date, date_precision, show_type, event_name, event_description")
+  .eq("id", showId)
+  .single();
+
+// 2. Fetch all artists for that show
+const { data: artists } = await supabase
+  .from("show_artists")
+  .select("artist_name, is_headliner, artist_image_url, spotify_artist_id")
+  .eq("show_id", showId);
+
+// 3. Insert new show for current user
+const { data: newShow } = await supabase
+  .from("shows")
+  .insert({ user_id: currentUser.id, ...clonedShowFields, notes: myNote || null })
+  .select("id")
+  .single();
+
+// 4. Insert artists
+await supabase.from("show_artists").insert(
+  artists.map(a => ({ ...a, show_id: newShow.id }))
+);
+
+// 5. Insert highlights/tags
+if (myHighlights.length > 0) {
+  await supabase.from("show_tags").insert(
+    myHighlights.map(tag => ({ show_id: newShow.id, tag, category: getCategoryForTag(tag) }))
+  );
+}
 ```
-However, the more reliable fix on the frontend side is to call `verifyOtp` with `type: "email"` (which is already done correctly), and ensure the auth backend is configured to send the token email, not the magic link email. Since we can control the `supabase/config.toml`, we need to check if `[auth.email]` is set to use OTP tokens.
 
-### Bug 2 — No redirect handler: Magic link lands on `/` with no auth pickup
-Even when it was a magic link, clicking "Log In" redirected to `/` (the landing page). The auth token hash (`#access_token=...`) was in the URL but nothing on the landing page or `IndexV2` handles it, so the user stays unauthenticated on the marketing page.
+**`WelcomeCarousel` is already built** in `src/components/onboarding/WelcomeCarousel.tsx`. It accepts `onComplete` and optional `onTakeTour` props — no changes needed to that file.
 
-## The Fix Plan
+**No database migrations required.** All writes go to existing tables: `shows`, `show_artists`, `show_tags`.
 
-### Part 1 — Force OTP token email (not magic link)
-Update the `handleSendOtp` and `handleResend` calls in `ShowInviteHero.tsx` to pass `emailRedirectTo` pointing to `/auth/callback` — this matters because **without** a redirect URL, Supabase sends the OTP token (code) email. With one, it sends the magic link. We need to be explicit and NOT pass `emailRedirectTo` at all in these calls.
-
-The current code already doesn't pass `emailRedirectTo`, which is correct. The real issue is that the Supabase project's auth email template is configured as "Magic Link" by default. The fix is to update `supabase/config.toml` to enable OTP email tokens.
-
-### Part 2 — Add auth callback route to handle any magic link redirects gracefully
-Whether a user arrives via code or link, we need an `/auth/callback` route in `App.tsx` + a simple `AuthCallback.tsx` page that:
-1. Reads the `#access_token` fragment from the URL (which Supabase appends on magic link clicks)
-2. Calls `supabase.auth.getSession()` to confirm the session
-3. Reads any `invite_*` values from `sessionStorage`
-4. Redirects to `/dashboard` (with invite params if present)
-
-This is the safety net: even if the user clicks the email link instead of entering a code, they'll land correctly on the dashboard instead of the landing page.
-
-### Part 3 — Update `supabase/config.toml` to enable OTP token emails
-Add the following to the `[auth.email]` section to tell Supabase to send a numeric OTP code instead of a magic link:
-
-```toml
-[auth.email]
-enable_signup = true
-double_confirm_changes = true
-enable_confirmations = false
-otp_length = 6
-otp_expiry = 3600
-```
+---
 
 ## Files to Change
 
-### 1. `supabase/config.toml`
-Add `otp_length = 6` and `otp_expiry = 3600` under `[auth.email]` to explicitly configure OTP token delivery.
-
-### 2. `src/pages/AuthCallback.tsx` (new file)
-A minimal page that handles the Supabase auth redirect:
-- On mount, call `supabase.auth.getSession()` — if there's a session (magic link was clicked), read `sessionStorage` for invite context and navigate to `/dashboard` with those params.
-- If no session found, navigate to `/auth` as fallback.
-
-### 3. `src/App.tsx`
-Add `<Route path="/auth/callback" element={<AuthCallback />} />` above the catch-all route.
-
-### 4. `src/components/landing/ShowInviteHero.tsx`
-Two small updates:
-- In `handleSendOtp`: Add an explicit `emailRedirectTo: \`${window.location.origin}/auth/callback\`` — this is counter-intuitive but: by providing a redirect URL that points to our new callback handler, the magic link fallback now works correctly AND Supabase's OTP template is still what gets sent when the project is configured for OTP mode. The callback page handles both cases.
-- In `handleResend`: Same change for consistency.
-- Update `handleVerifyOtp` to verify with `type: "email"` (already correct, keep it).
-
-## Why the Redirect URL Matters Both Ways
-- **OTP code mode** (after config fix): User gets 6-digit code, enters it in the app, `verifyOtp` is called directly. The `emailRedirectTo` in the send call is ignored since no link is clicked.
-- **Magic link fallback** (safety net): If for any reason the old template fires or user clicks a link, `/auth/callback` picks it up, confirms the session, and routes correctly to `/dashboard`.
-
-## Summary of Changes
-
 | File | Change |
 |---|---|
-| `supabase/config.toml` | Add `otp_length = 6`, `otp_expiry = 3600` to `[auth.email]` |
-| `src/pages/AuthCallback.tsx` | New page: reads session from hash, redirects to `/dashboard` |
-| `src/App.tsx` | Add `/auth/callback` route |
-| `src/components/landing/ShowInviteHero.tsx` | Add `emailRedirectTo` pointing to `/auth/callback` in OTP send calls |
-
-## Technical Note on Config
-The `supabase/config.toml` configuration controls the local dev behavior. For the deployed Lovable Cloud project, the auth settings may need to be aligned — however, updating `config.toml` is the correct mechanism for this project type and will take effect on the next deploy.
+| `src/components/CompareShowSheet.tsx` | Add `saveShowForInvitee()` logic inside the CTA handler; update prop type; add saving spinner |
+| `src/pages/Dashboard.tsx` | Add `showWelcomeCarousel` state; render `WelcomeCarousel`; wire `onContinueToAddShow` to show carousel instead of `AddShowFlow` |
