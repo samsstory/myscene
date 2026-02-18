@@ -42,7 +42,7 @@ const RSVP_OPTIONS: { value: RsvpStatus; label: string; icon: React.ReactNode; a
     value: "not_going",
     label: "I'm out",
     icon: <X className="h-4 w-4" />,
-    activeClass: "bg-white/10 border-white/20 text-white/60",
+    activeClass: "bg-red-500/20 border-red-500/50 text-red-400",
   },
 ];
 

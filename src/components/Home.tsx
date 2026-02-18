@@ -666,7 +666,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const rsvpDotClass = (status: string) => {
     if (status === "going") return "bg-emerald-400";
     if (status === "maybe") return "bg-amber-400";
-    return "bg-white/20";
+    return "bg-red-400";
   };
 
   const renderCalendarView = () => {
