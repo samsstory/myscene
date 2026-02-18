@@ -115,25 +115,31 @@ export default function CompareShowSheet({
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.error("No authenticated user found");
+        return;
+      }
 
       // 1. Fetch inviter's show data
-      const { data: show } = await supabase
+      const { data: show, error: showErr } = await supabase
         .from("shows")
         .select("venue_name, venue_location, venue_id, show_date, date_precision, show_type, event_name, event_description")
         .eq("id", showId)
         .maybeSingle();
 
-      if (!show) return;
+      if (showErr) { console.error("Error fetching inviter show:", showErr); return; }
+      if (!show) { console.error("Inviter show not found"); return; }
 
       // 2. Fetch all artists for that show
-      const { data: artists } = await supabase
+      const { data: artists, error: artistsErr } = await supabase
         .from("show_artists")
         .select("artist_name, is_headliner, artist_image_url, spotify_artist_id")
         .eq("show_id", showId);
 
+      if (artistsErr) console.error("Error fetching artists:", artistsErr);
+
       // 3. Insert new show for current user
-      const { data: newShow } = await supabase
+      const { data: newShow, error: insertErr } = await supabase
         .from("shows")
         .insert({
           user_id: user.id,
@@ -150,24 +156,27 @@ export default function CompareShowSheet({
         .select("id")
         .maybeSingle();
 
-      if (!newShow) return;
+      if (insertErr) { console.error("Error inserting show:", insertErr); return; }
+      if (!newShow) { console.error("Insert returned no data"); return; }
 
       // 4. Insert artists
       if (artists && artists.length > 0) {
-        await supabase.from("show_artists").insert(
+        const { error: artistInsertErr } = await supabase.from("show_artists").insert(
           artists.map((a) => ({ ...a, show_id: newShow.id, id: undefined }))
         );
+        if (artistInsertErr) console.error("Error inserting artists:", artistInsertErr);
       }
 
       // 5. Insert highlights/tags
       if (myHighlights.length > 0) {
-        await supabase.from("show_tags").insert(
+        const { error: tagsInsertErr } = await supabase.from("show_tags").insert(
           myHighlights.map((tag) => ({
             show_id: newShow.id,
             tag,
             category: getCategoryForTag(tag) || "the_show",
           }))
         );
+        if (tagsInsertErr) console.error("Error inserting tags:", tagsInsertErr);
       }
 
       onOpenChange(false);
