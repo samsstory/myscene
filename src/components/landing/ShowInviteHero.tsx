@@ -337,9 +337,6 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                   </Button>
                 </div>
 
-                <p className="text-center text-[10px] text-foreground/25">
-                  Free · No credit card required
-                </p>
               </div>
             </motion.div>
           )}
