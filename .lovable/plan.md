@@ -94,3 +94,123 @@ The `HighlightReel` component API (`shows`, `getRankInfo`, `onShowTap`) remains 
 - SceneLogo watermark
 - Dots indicator (repositioned but same logic)
 - `onShowTap` callback behavior
+
+---
+
+# Shared Concert Calendar: Social Layer V1
+
+## Vision
+
+A frictionless way to track shows you're planning to attend, share them with friends, and coordinate who's going — with a post-show comparison nudge to close the social loop.
+
+## Design: "What's Next" Strip
+
+A horizontally-scrollable strip of upcoming show chips, positioned **between the stat pills and the Highlight Reel** on the dashboard. Always above the fold.
+
+```text
+┌──────────────────────────────────────────────────────┐
+│  What's Next                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐  │
+│  │ Fred Again   │  │ Boiler Room  │  │  + Plan   │  │
+│  │ Feb 22 · MSG │  │ Mar 5 · NYC  │  │  a Show   │  │
+│  └──────────────┘  └──────────────┘  └───────────┘  │
+└──────────────────────────────────────────────────────┘
+```
+
+- Each chip shows: artist name, date, venue/city
+- Friend RSVP avatars stack on the chip when close friends are also going
+- "+" CTA at the end opens the "Plan a Show" flow
+- Empty state: 2–3 faded placeholder chips + "Add your first →" to sell the feature
+- The "Calendar" stat pill becomes "Upcoming" — deep-links to full calendar view
+
+## Social Model: Follow + Close Friends
+
+- **Follow (public)**: One-way. See their public activity feed ("Jake is going to Fred Again"). Lays groundwork for ambassador/curator calendars.
+- **Close Friends (private)**: Mutual opt-in. Shared upcoming calendar, RSVP coordination, group post-show comparison access.
+
+## Event Input: Paste → AI Parse (Gemini Flash)
+
+User pastes any text blob or URL (Ticketmaster, Resident Advisor, Instagram caption). Gemini Flash extracts:
+```json
+{ "artist": "Fred Again", "venue": "MSG", "city": "New York", "date": "2026-02-22", "ticket_url": "..." }
+```
+Presented as a confirmation card. One tap to add. Manual artist/venue search as fallback.
+
+## Phased Build Plan
+
+### Phase 1A — Upcoming Shows + AI Import *(self-contained, no social needed)*
+
+**New table: `upcoming_shows`**
+```sql
+upcoming_shows (
+  id uuid PK,
+  created_by_user_id uuid,
+  artist_name text,
+  venue_name text,
+  venue_location text,
+  show_date date,
+  ticket_url text nullable,
+  source_url text nullable,       -- original pasted URL
+  raw_input text nullable,        -- original pasted text
+  linked_show_id uuid nullable,   -- filled when logged post-show
+  created_at timestamptz
+)
+```
+
+**Features:**
+- "Plan a Show" button → paste box → Gemini parses → confirm card → saved
+- "What's Next" strip on dashboard (empty state sells feature)
+- Manual fallback using existing UnifiedSearchStep components
+
+### Phase 1B — Follow Graph *(parallel to 1A)*
+
+**New table: `follows`**
+```sql
+follows (
+  follower_id uuid,
+  following_id uuid,
+  type text CHECK (type IN ('public', 'close')),
+  created_at timestamptz,
+  PRIMARY KEY (follower_id, following_id)
+)
+```
+
+- Find friends by username search
+- Send/accept close friend requests
+- Friends tab in Profile
+
+### Phase 1C — RSVP + Social Layer *(after 1A + 1B)*
+
+**New table: `show_attendees`**
+```sql
+show_attendees (
+  upcoming_show_id uuid FK,
+  user_id uuid,
+  rsvp_status text CHECK (status IN ('going', 'maybe', 'not_going')),
+  created_at timestamptz,
+  PRIMARY KEY (upcoming_show_id, user_id)
+)
+```
+
+- Share an upcoming show to close friends → they see it in their strip
+- RSVP: Going / Maybe / Can't Make It
+- "Who's Going" avatars on each chip
+- Activity feed item: "3 friends are going to Bicep at Brixton Academy"
+
+### Phase 2 — Post-Show Nudge
+
+- 24h after `show_date`, push notification fires for all attendees
+- If 2+ close friends RSVPed `going` → "Compare your ratings with Jake + Maria →"
+- Group comparison card: score breakdown side-by-side
+
+### Phase 3 — Discovery + Ambassador Calendars
+
+- Spotify integration: suggest upcoming shows based on logged artists
+- Bandsintown API: pull event dates
+- Public curator calendars (follow model feeds into this)
+
+## Stat Pill Update
+
+- Keep: "All Shows" (→ rankings), "Finish Up" (→ todo sheet)
+- Change: "Calendar" → "Upcoming" (→ full upcoming shows calendar view)
+- The pill is a *gateway*; the What's Next strip is the at-a-glance preview
