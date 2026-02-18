@@ -465,30 +465,28 @@ export const ShowReviewSheet = ({
                   variant="ghost"
                   className="flex-1 h-11 rounded-xl font-medium text-sm bg-white/[0.04] border border-white/[0.08] text-foreground/60 hover:text-foreground hover:bg-white/[0.08] transition-all"
                   onClick={() => {
-                    const headlinerArtist = show.artists.find(a => a.isHeadliner) || show.artists[0];
-                    shareShow({
-                      showId: show.id,
-                      type: "logged",
-                      artistName: headlinerArtist?.name ?? "",
-                      venueName: show.venue.name,
-                    });
+                    onOpenChange(false);
+                    setTimeout(() => shareShow({ showId: show.id, type: "logged", artistName: show.artists?.[0]?.name ?? "", venueName: show.venue?.name ?? undefined }), 300);
                   }}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Invite to Compare
                 </Button>
+              </div>
 
-                {onDelete && (
+              {onDelete && (
+                <div className="flex justify-center">
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="h-11 w-11 rounded-xl bg-white/[0.04] border border-white/[0.08] text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    className="text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-all rounded-xl px-4 h-9 text-xs"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    Delete show
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Added to Scene timestamp */}
               <p className="text-center text-foreground/25 text-[11px]">
