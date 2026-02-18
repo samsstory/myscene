@@ -161,6 +161,25 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
           </p>
         </div>
 
+        {/* Locked review teaser — only for logged shows */}
+        {showType === "logged" && (
+          <div className="w-full max-w-sm">
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl px-5 py-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                <span className="text-base">🔒</span>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold text-foreground/70 leading-snug">
+                  {inviterDisplay}'s review is hidden
+                </p>
+                <p className="text-[10px] text-foreground/35 leading-snug">
+                  Log your own experience first to unlock their rating, notes & tags.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Glass show card */}
         <div className="bg-white/[0.06] backdrop-blur-xl border border-white/[0.10] rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl shadow-black/40">
           {backgroundImage && (
