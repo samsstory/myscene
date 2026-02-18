@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Ticket, Loader2, Music2, Calendar, MapPin, Sparkles, ImagePlus, X, Link2 } from "lucide-react";
+import { ArrowLeft, Ticket, Loader2, Music2, Calendar, MapPin, Sparkles, ImagePlus, X, Link2, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { usePlanUpcomingShow, type ParsedUpcomingEvent, type SaveUpcomingShowData } from "@/hooks/usePlanUpcomingShow";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,12 @@ interface PlanShowSheetProps {
 type Stage = "input" | "confirm" | "manual";
 type InputTab = "text" | "screenshot";
 
-// Compress image to base64, max ~800px wide to keep payload reasonable
+interface ScreenshotEntry {
+  file: File;
+  preview: string;
+}
+
+// Compress image to base64, max ~900px wide to keep payload reasonable
 async function compressImageToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -46,8 +51,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const [stage, setStage] = useState<Stage>("input");
   const [activeTab, setActiveTab] = useState<InputTab>("text");
   const [inputText, setInputText] = useState("");
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [screenshots, setScreenshots] = useState<ScreenshotEntry[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [confirmedEvent, setConfirmedEvent] = useState<ParsedUpcomingEvent | null>(null);
 
@@ -62,8 +66,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
   const resetInputState = useCallback(() => {
     setInputText("");
-    setScreenshotFile(null);
-    setScreenshotPreview(null);
+    setScreenshots([]);
     setConfirmedEvent(null);
     clearParsedResult();
   }, [clearParsedResult]);
@@ -78,26 +81,30 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   };
 
   const handleScreenshotSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setScreenshotFile(file);
-    const preview = URL.createObjectURL(file);
-    setScreenshotPreview(preview);
-    // Reset file input so same file can be re-selected
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const newEntries: ScreenshotEntry[] = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setScreenshots((prev) => [...prev, ...newEntries]);
     e.target.value = "";
   };
 
-  const handleRemoveScreenshot = () => {
-    if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
-    setScreenshotFile(null);
-    setScreenshotPreview(null);
+  const handleRemoveScreenshot = (index: number) => {
+    setScreenshots((prev) => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleParse = async () => {
     const hasText = inputText.trim().length > 0;
-    const hasImage = !!screenshotFile;
+    const hasImages = screenshots.length > 0;
 
-    if (!hasText && !hasImage) {
+    if (!hasText && !hasImages) {
       setEditArtist(""); setEditVenue(""); setEditLocation(""); setEditDate(""); setEditTicketUrl("");
       setStage("manual");
       return;
@@ -105,15 +112,17 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
     setIsParsing(true);
     try {
-      let imageBase64: string | undefined;
-      if (hasImage) {
-        imageBase64 = await compressImageToBase64(screenshotFile!);
-      }
+      // Compress all screenshots to base64
+      const imageBase64List = hasImages
+        ? await Promise.all(screenshots.map((s) => compressImageToBase64(s.file)))
+        : [];
 
       const { data, error: fnError } = await supabase.functions.invoke("parse-upcoming-show", {
         body: {
           input: hasText ? inputText : undefined,
-          image: imageBase64,
+          // Pass first image as `image` for backward compat, extras as `images`
+          image: imageBase64List[0],
+          images: imageBase64List.length > 1 ? imageBase64List : undefined,
         },
       });
 
@@ -176,7 +185,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
     try { return format(parseISO(iso), "MMM d, yyyy"); } catch { return iso; }
   };
 
-  const canParse = activeTab === "text" ? inputText.trim().length > 0 : !!screenshotFile;
+  const canParse = activeTab === "text" ? inputText.trim().length > 0 : screenshots.length > 0;
   const canSave = editArtist.trim().length > 0;
 
   const inputFieldClass = "bg-white/[0.05] border-white/10 text-foreground placeholder:text-muted-foreground";
@@ -188,11 +197,12 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
         className="rounded-t-2xl border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe-area-inset-bottom"
         style={{ maxHeight: "92vh", overflowY: "auto" }}
       >
-        {/* hidden file input */}
+        {/* hidden file input — multiple allowed */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={handleScreenshotSelect}
         />
@@ -247,8 +257,9 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
             {/* Screenshot tab */}
             {activeTab === "screenshot" && (
-              <div>
-                {!screenshotPreview ? (
+              <div className="space-y-3">
+                {screenshots.length === 0 ? (
+                  /* Empty drop zone */
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full h-36 rounded-2xl border-2 border-dashed border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition-colors flex flex-col items-center justify-center gap-2.5 group"
@@ -257,26 +268,48 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                       <ImagePlus className="h-5 w-5 text-white/60" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium text-white/60">Upload screenshot</p>
-                      <p className="text-xs text-white/35 mt-0.5">Instagram post, Ticketmaster, RA, anything</p>
+                      <p className="text-sm font-medium text-white/60">Upload screenshots</p>
+                      <p className="text-xs text-white/35 mt-0.5">Instagram, Ticketmaster, RA — add as many as you like</p>
                     </div>
                   </button>
                 ) : (
-                  <div className="relative rounded-2xl overflow-hidden bg-white/[0.04] border border-white/10">
-                    <img
-                      src={screenshotPreview}
-                      alt="Screenshot preview"
-                      className="w-full max-h-56 object-contain"
-                    />
-                    <button
-                      onClick={handleRemoveScreenshot}
-                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-black/80 transition-colors"
-                    >
-                      <X className="h-3.5 w-3.5 text-white" />
-                    </button>
-                    <div className="px-3 py-2">
-                      <p className="text-xs text-muted-foreground truncate">{screenshotFile?.name}</p>
+                  /* Thumbnail strip */
+                  <div>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+                      {screenshots.map((s, i) => (
+                        <div
+                          key={i}
+                          className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border border-white/10 bg-white/[0.04]"
+                        >
+                          <img
+                            src={s.preview}
+                            alt={`Screenshot ${i + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            onClick={() => handleRemoveScreenshot(i)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center hover:bg-black/90 transition-colors"
+                          >
+                            <X className="h-3 w-3 text-white" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Add more button */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-shrink-0 w-24 h-24 rounded-xl border border-dashed border-white/20 bg-white/[0.03] hover:bg-white/[0.07] transition-colors flex flex-col items-center justify-center gap-1.5 group"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center group-hover:bg-white/[0.14] transition-colors">
+                          <Plus className="h-3.5 w-3.5 text-white/60" />
+                        </div>
+                        <span className="text-[10px] text-white/40 font-medium">Add more</span>
+                      </button>
                     </div>
+
+                    <p className="text-xs text-white/35 mt-2">
+                      {screenshots.length} screenshot{screenshots.length > 1 ? "s" : ""} — AI will read all of them
+                    </p>
                   </div>
                 )}
               </div>

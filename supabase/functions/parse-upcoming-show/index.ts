@@ -100,9 +100,13 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { input, image } = body; // image = base64 data URL e.g. "data:image/jpeg;base64,..."
+    const { input, image, images } = body;
+    // `images` is an optional array of additional base64 data URLs
+    const allImages: string[] = [];
+    if (image) allImages.push(image);
+    if (Array.isArray(images)) allImages.push(...images);
 
-    if (!input && !image) {
+    if (!input && allImages.length === 0) {
       return new Response(JSON.stringify({ error: 'No input or image provided', events: [] }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -112,23 +116,29 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    // Build the user message content — multimodal if image provided
+    // Build the user message content — multimodal if images provided
     let userContent: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
 
-    if (image) {
-      console.log('Parsing upcoming show from screenshot image');
-      userContent = [
-        {
-          type: 'image_url',
-          image_url: { url: image },
-        },
-        {
-          type: 'text',
-          text: input
-            ? `Also consider this additional context: ${input}`
+    if (allImages.length > 0) {
+      console.log(`Parsing upcoming show from ${allImages.length} screenshot(s)`);
+      const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+
+      // Add each image
+      for (const img of allImages) {
+        contentParts.push({ type: 'image_url', image_url: { url: img } });
+      }
+
+      // Add text instruction
+      contentParts.push({
+        type: 'text',
+        text: input
+          ? `Also consider this additional context: ${input}`
+          : allImages.length > 1
+            ? 'These screenshots may contain multiple concerts or one concert split across images. Extract all upcoming concert or event details visible across all images.'
             : 'Extract all upcoming concert or event details you can see in this screenshot.',
-        },
-      ];
+      });
+
+      userContent = contentParts;
     } else {
       console.log('Parsing upcoming show from text, length:', input.length);
       userContent = input;
