@@ -12,6 +12,7 @@ import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
+import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 import CompareShowSheet from "@/components/CompareShowSheet";
 
@@ -44,6 +45,7 @@ const Dashboard = () => {
   const [inviteShowType, setInviteShowType] = useState<"logged" | "upcoming">("logged");
   const [inviteHighlights, setInviteHighlights] = useState<string[]>([]);
   const [inviteNote, setInviteNote] = useState("");
+  const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
 
   const rankButtonRef = useRef<HTMLButtonElement | null>(null);
   const globeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -452,13 +454,7 @@ const Dashboard = () => {
       <AddShowFlow 
         open={showAddDialog} 
         onOpenChange={setShowAddDialog} 
-        onShowAdded={() => {
-          // If this add was triggered from the invite compare flow, launch spotlight tour after
-          if (inviteShowId) {
-            setInviteShowId(null);
-            setTimeout(() => setShowSpotlightTour(true), 400);
-          }
-        }}
+        onShowAdded={() => {}}
         onViewShowDetails={(showId) => {
           setActiveTab("home");
           setOpenShowId(showId);
@@ -492,6 +488,20 @@ const Dashboard = () => {
         onStepChange={setTourStepIndex}
       />
 
+      {/* Welcome Carousel — shown after invite show is saved */}
+      {showWelcomeCarousel && (
+        <WelcomeCarousel
+          onComplete={() => {
+            setShowWelcomeCarousel(false);
+            setShowUnifiedAdd(true);
+          }}
+          onTakeTour={() => {
+            setShowWelcomeCarousel(false);
+            setShowSpotlightTour(true);
+          }}
+        />
+      )}
+
       {/* Compare Show Sheet — opens after invite magic link redirect */}
       {inviteShowId && (
         <CompareShowSheet
@@ -502,8 +512,7 @@ const Dashboard = () => {
           myHighlights={inviteHighlights}
           myNote={inviteNote}
           onContinueToAddShow={() => {
-            // Open add show flow, then after it closes trigger spotlight tour
-            setShowAddDialog(true);
+            setShowWelcomeCarousel(true);
           }}
         />
       )}

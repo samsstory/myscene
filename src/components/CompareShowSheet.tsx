@@ -5,7 +5,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, UserPlus, Check, ArrowRight, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { ALL_TAGS } from "@/lib/tag-constants";
+import { getCategoryForTag } from "@/lib/tag-constants";
 
 interface CompareShowSheetProps {
   open: boolean;
@@ -14,7 +14,7 @@ interface CompareShowSheetProps {
   showType: "logged" | "upcoming";
   myHighlights: string[];
   myNote: string;
-  onContinueToAddShow: () => void;
+  onContinueToAddShow: (newShowId?: string) => void;
 }
 
 interface ShowPreview {
@@ -45,6 +45,7 @@ export default function CompareShowSheet({
   const [preview, setPreview] = useState<ShowPreview | null>(null);
   const [inviterTags, setInviterTags] = useState<InviterTags | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [followed, setFollowed] = useState(false);
   const [following, setFollowing] = useState(false);
   const [inviterUserId, setInviterUserId] = useState<string | null>(null);
@@ -109,6 +110,74 @@ export default function CompareShowSheet({
   const sharedTags = myHighlights.filter((t) =>
     inviterTags?.tags.includes(t)
   );
+
+  const saveShowForInvitee = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 1. Fetch inviter's show data
+      const { data: show } = await supabase
+        .from("shows")
+        .select("venue_name, venue_location, venue_id, show_date, date_precision, show_type, event_name, event_description")
+        .eq("id", showId)
+        .maybeSingle();
+
+      if (!show) return;
+
+      // 2. Fetch all artists for that show
+      const { data: artists } = await supabase
+        .from("show_artists")
+        .select("artist_name, is_headliner, artist_image_url, spotify_artist_id")
+        .eq("show_id", showId);
+
+      // 3. Insert new show for current user
+      const { data: newShow } = await supabase
+        .from("shows")
+        .insert({
+          user_id: user.id,
+          venue_name: show.venue_name,
+          venue_location: show.venue_location,
+          venue_id: show.venue_id,
+          show_date: show.show_date,
+          date_precision: show.date_precision,
+          show_type: show.show_type,
+          event_name: show.event_name,
+          event_description: show.event_description,
+          notes: myNote || null,
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (!newShow) return;
+
+      // 4. Insert artists
+      if (artists && artists.length > 0) {
+        await supabase.from("show_artists").insert(
+          artists.map((a) => ({ ...a, show_id: newShow.id, id: undefined }))
+        );
+      }
+
+      // 5. Insert highlights/tags
+      if (myHighlights.length > 0) {
+        await supabase.from("show_tags").insert(
+          myHighlights.map((tag) => ({
+            show_id: newShow.id,
+            tag,
+            category: getCategoryForTag(tag) || "the_show",
+          }))
+        );
+      }
+
+      onOpenChange(false);
+      setTimeout(() => onContinueToAddShow(newShow.id), 300);
+    } catch (err) {
+      console.error("Failed to save show for invitee", err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleFollow = async () => {
     if (!inviterUserId || following || followed) return;
@@ -345,14 +414,18 @@ export default function CompareShowSheet({
                   building your concert history.
                 </p>
                 <Button
-                  onClick={() => {
-                    onOpenChange(false);
-                    setTimeout(onContinueToAddShow, 300);
-                  }}
-                  className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                  onClick={saveShowForInvitee}
+                  disabled={saving}
+                  className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-70 disabled:scale-100"
                 >
-                  Log this show in Scene
-                  <ArrowRight className="h-4 w-4 ml-1.5" />
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      Save this show
+                      <ArrowRight className="h-4 w-4 ml-1.5" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
