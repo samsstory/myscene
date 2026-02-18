@@ -461,7 +461,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                     <p className="text-sm font-semibold text-foreground leading-tight">
                       Share my take with {firstName}
                     </p>
-                    <p className="text-[11px] text-foreground/35">We'll send a quick code to confirm.</p>
+                    <p className="text-[11px] text-foreground/35">One quick verify — then see how your takes compare with {firstName}'s</p>
                   </div>
                 </div>
 
