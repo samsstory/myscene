@@ -1,150 +1,128 @@
 
-# Fix Show Invite Link — Two Bugs + RSVP Intent Flow
+# Redesign: Logged Show Invite Page
 
-## Problems Being Fixed
+## Problems to Fix
 
-### Bug 1 — Hardcoded Share URL (Critical for testing)
-`useShareShow.ts` line 45 always generates `https://tryscene.app/?...`. In any non-production environment (preview URL, local dev), the link opens the wrong site entirely, so the `ShowInviteHero` never renders. Fix: replace with `window.location.origin`.
-
-### Bug 2 — Missing RSVP Intent Before Signup (UX Gap)
-The current CTA on `ShowInviteHero` navigates directly to a generic email/password form. The user described wanting invitees to **select their RSVP status** (Going / Maybe / Can't make it) before or during signup — this creates intent and personalises the experience. A new bottom-sheet modal captures the selection, then surfaces the email signup inline, keeping the user on the landing page throughout.
+1. **Full address exposed** — `venue_location` returns the raw street address. Strip to city/state only using a simple parser.
+2. **Artist face cropped** — The hero image is 224px tall with `object-top`. Increasing to ~280-300px and using `object-[center_20%]` gives more control over face framing vs. `object-top` which cuts from the very top.
+3. **"Were you there?" flow lacks urgency** — Generic buttons with no emotional hook. Replace entirely with a blurred highlights teaser + "What did YOU think?" framing.
+4. **Three equal-weight options** — Reduces decisiveness. Replace with a prominent primary CTA ("Log what I thought") and a single ghost "I didn't make it" escape option.
 
 ---
 
-## What the Redesigned Flow Looks Like
+## New Design Concept: "Blurred Highlights Teaser"
+
+### Visual Hierarchy (top to bottom inside one card)
 
 ```text
-Non-user opens invite link
-        │
-        ▼
-ShowInviteHero renders above landing page
-  ├── Artist image blurred background
-  ├── Glass card: artist · venue · date · inviter name
-  └── Three RSVP intent buttons:
-        [🎉 I'm going]   [🤔 Maybe]   [😢 Can't make it]
-              │
-              ▼  (tap any button)
-    Compact bottom sheet slides up
-      ├── Selected status shown ("You're going!")
-      ├── Email input field
-      ├── "Create account & save my spot" button
-      └── Referral code + show + status all captured on submit
-              │
-              ▼
-        Navigates to /auth pre-filled with email
-        OR completes inline if we use email magic link
+┌─────────────────────────────────┐
+│  [SCENE wordmark]               │ ← top-left watermark
+│                                 │
+│   Artist full-face photo        │ ← taller hero ~290px, face centered
+│                                 │
+│  Artist Name                    │ ← bottom-left, bold
+│  Venue Name · City   •  Date    │ ← single muted line below name
+└─────────────────────────────────┘
+│                                 │
+│  [inviter avatar initial]       │
+│  Sam left their review          │ ← attribution line
+│                                 │
+│  ── THEIR HIGHLIGHTS ──         │ ← section label, muted caps
+│  [blurred pill] [blurred pill]  │ ← 3-5 fake/static blurred pills
+│  [blurred pill] [blurred pill]  │   with a frosted overlay + lock icon
+│                                 │
+│  [  Log what I thought  →  ]    │ ← primary CTA, full width gradient btn
+│  [  I wasn't there              │ ← ghost text link below, small, muted
+└─────────────────────────────────┘
 ```
 
 ---
 
-## Files Changed
+## Implementation Details
 
-| File | Change |
-|---|---|
-| `src/hooks/useShareShow.ts` | Replace hardcoded `tryscene.app` with `window.location.origin` |
-| `src/components/landing/ShowInviteHero.tsx` | Replace single CTA button with three RSVP intent buttons + inline email sheet |
-
----
-
-## Detailed Changes
-
-### 1. `useShareShow.ts` — One-line fix
+### 1. Address Stripping
+The `venue_location` field contains full street addresses like "8509 Burleson Rd, Building 1, #100, Austin, TX 78719". Parse out just the city + state abbreviation using a simple string utility:
 
 ```ts
-// Before
-const url = `https://tryscene.app/?${params.toString()}`;
-
-// After
-const url = `${window.location.origin}/?${params.toString()}`;
+// Extract "Austin, TX" from a full address string
+function extractCityState(location: string | null): string | null {
+  if (!location) return null;
+  // Addresses tend to end with "City, ST ZIPCODE" — grab last two comma-segments before zip
+  const parts = location.split(",").map(s => s.trim());
+  // Find the part that looks like a US state abbreviation pattern
+  const stateZipIdx = parts.findIndex(p => /^[A-Z]{2}\s+\d{5}/.test(p));
+  if (stateZipIdx >= 1) {
+    const city = parts[stateZipIdx - 1];
+    const stateCode = parts[stateZipIdx].split(" ")[0];
+    return `${city}, ${stateCode}`;
+  }
+  // Fallback: return venue_name only
+  return parts[0];
+}
 ```
 
-Note: In production, `window.location.origin` will be `https://tryscene.app` — so production links remain correct.
+The venue line then becomes: `Venue Name · City, ST` — a single clean line.
+
+### 2. Artist Image Framing
+- Increase hero height from `h-56` (224px) to `h-[280px]`
+- Change `object-top` → `object-[center_15%]` to show face/head rather than the very top of the image
+- Keep existing gradient overlay (`from-black/80 via-black/20 to-transparent`)
+
+### 3. Blurred Highlights Section (the hook)
+
+Use a **static set of 4-5 real highlight pill labels** from `TAG_CATEGORIES` (e.g. "Core memory", "Took me somewhere", "Chills", "Crowd went off", "Sound was dialed"). These are displayed as frosted glass pills with a heavy blur + opacity reduction, overlaid with a lock icon and the message "Unlock after you log yours". This communicates:
+- The inviter left a real review with real tags
+- You can see them — but only after you log yours
+- Creates genuine curiosity/FOMO
+
+Implementation:
+```tsx
+const TEASER_HIGHLIGHTS = ["Core memory", "Took me somewhere", "Chills", "Crowd went off", "Sound was dialed"];
+
+// Rendered as blurred pills
+<div className="flex flex-wrap gap-2 relative">
+  {TEASER_HIGHLIGHTS.map((tag) => (
+    <span key={tag} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/[0.08] border border-white/[0.10] text-white/80"
+      style={{ filter: "blur(5px)", userSelect: "none" }}>
+      {tag}
+    </span>
+  ))}
+  {/* Frosted overlay */}
+  <div className="absolute inset-0 flex items-center justify-center gap-1.5 rounded-xl">
+    <Lock className="h-3 w-3 text-foreground/40" />
+    <span className="text-[11px] text-foreground/40">Unlocks after you log yours</span>
+  </div>
+</div>
+```
+
+### 4. CTA Restructure
+Remove the "Were you there?" label entirely. Replace with:
+
+- **Primary button** (full-width, gradient): "Log what I thought →"
+- **Ghost escape** (text link below, small): "I wasn't there" — this triggers the signup with `rsvp: "no"` param, same as before
+
+This creates clear intent hierarchy: the primary action is logging, the escape valve is de-emphasized.
+
+### 5. Signup Form Copy Update
+When the user taps "Log what I thought →":
+- Heading: "Your review stays hidden until {inviterDisplay} sees it"
+- Sub: "Create a free account to log {artistName} and compare notes"
+
+When user taps "I wasn't there":
+- Heading: "No worries — join Scene anyway"  
+- Sub: "Track shows you've been to and discover what your friends think"
 
 ---
 
-### 2. `ShowInviteHero.tsx` — RSVP Intent + Inline Email Capture
+## Files to Change
 
-Replace the current single "Create your Scene account →" button with a three-option RSVP intent row:
+**`src/components/landing/ShowInviteHero.tsx`** — all changes are contained here:
+- Add `extractCityState()` utility function
+- Increase hero height + adjust image positioning
+- Add `TEASER_HIGHLIGHTS` constant (static pills, no DB change needed)
+- Replace RSVP section with blurred highlights block + two-tier CTA
+- Update signup form copy per path
+- Remove `RSVP_OPTIONS` array and `RsvpChoice` type (no longer needed for logged flow)
+- Keep the upcoming show RSVP path unchanged
 
-```
-┌──────────────────────────────────────┐
-│  [Blurred artist image background]   │
-│                                      │
-│  [J] Jake logged this show and       │
-│      wants you to discover Scene     │
-│                                      │
-│  ┌────── Glass show card ──────────┐ │
-│  │ [Artist image strip]            │ │
-│  │                                 │ │
-│  │ Fred again..                    │ │
-│  │ 📍 Alexandra Palace · London    │ │
-│  │ 📅 September 2023               │ │
-│  │                                 │ │
-│  │ ─────────────────────────────── │ │
-│  │ Track shows you've been to:     │ │
-│  │                                 │ │
-│  │ [🎉 I went]  [🤔 Maybe]  [✕]   │ │  ← for logged shows
-│  │                                 │ │
-│  │  — or for upcoming shows: —     │ │
-│  │ [🎉 I'm going] [🤔 Maybe] [✕]  │ │
-│  └────────────────────────────────┘ │
-│                                      │
-│  ↓ scroll to learn more             │
-└──────────────────────────────────────┘
-```
-
-When a button is tapped, a bottom sheet slides up from the bottom of the screen (using Vaul `Drawer` — already installed):
-
-```
-╔══════════════════════════════════════╗
-║  ────── (drag handle) ──────────     ║
-║                                      ║
-║  🎉 You're going to Fred again..!    ║  (or "You went!" for logged)
-║                                      ║
-║  Create a free account to save       ║
-║  your spot and track every show.     ║
-║                                      ║
-║  ┌──────────────────────────────┐    ║
-║  │  your@email.com              │    ║
-║  └──────────────────────────────┘    ║
-║                                      ║
-║  [Create account & save →]           ║
-║                                      ║
-║  Free · No credit card required      ║
-╚══════════════════════════════════════╝
-```
-
-On submit, navigate to `/auth?ref=CODE&show=ID&type=TYPE&rsvp=going` with the email pre-captured in sessionStorage so the auth page can pre-fill it.
-
-The RSVP status is stored in the URL param `rsvp=going|maybe|no` — after signup the dashboard can optionally use this to auto-set the RSVP on the linked upcoming show.
-
-### Button styling for the three RSVP options
-
-Consistent with the app's glass language. The selected button gets a luminous primary border; unselected are plain glass:
-
-- Going: `bg-primary/[0.12] border-primary/[0.28] text-primary/90` (selected) / `bg-white/[0.06] border-white/[0.10]` (unselected)
-- Maybe: same pattern with amber/warning tones
-- Can't make it: muted glass
-
-### Label copy by show type
-
-| Show type | Button 1 | Button 2 | Button 3 |
-|---|---|---|---|
-| `logged` | "I was there too" | "Sounds amazing" | "Missed it" |
-| `upcoming` | "I'm going!" | "Maybe..." | "Can't make it" |
-
----
-
-## RSVP State in Auth Flow
-
-The `rsvp` param is cosmetic at the auth page — no code change needed there. Post-signup, the Dashboard can read it from the URL if present and silently set the RSVP status on the invited show. This is a stretch goal and can be added later without changing any of the core invite infrastructure.
-
----
-
-## What Does NOT Change
-
-- The `ShowInviteHero` DB fetch logic (already working)
-- The `useReferralCapture` attribution (already working on both `/` and `/auth`)
-- The `Auth.tsx` page (unchanged)
-- Referral record creation on signup (unchanged)
-- All existing landing page sections below the hero
+No database migrations or new RPC functions required — the static blurred pills approach avoids needing to fetch actual inviter tags (which should stay private server-side anyway).
