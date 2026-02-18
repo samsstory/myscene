@@ -1,107 +1,203 @@
 
-# Add Upcoming Shows to the Calendar Grid
+# Social Follow Infrastructure + Friend Avatars on Calendar Ghost Tiles
 
-## What we're building
+## What We're Building
 
-The calendar view in `Home.tsx` currently only shows past logged shows as solid tiles. We'll upgrade it to a unified timeline that shows both past and future shows on the same grid, with "Today" as a clear visual anchor point.
+Three interconnected layers:
+
+1. **Database** — A `followers` table with proper RLS and a helper DB function for mutual-follow checks
+2. **Follow/Unfollow Hook** — A `useFollowers` hook exposing follow, unfollow, and follower list data
+3. **Calendar Integration** — Wire real friend avatar stacks onto ghost tiles in the calendar, replacing the mock data currently used in `WhatsNextStrip`
+
+---
 
 ## Current State
 
-The `renderCalendarView()` function in `src/components/Home.tsx` (lines 656-762):
-- Pulls past shows via `getShowsForDate(day)` — filtered from the `shows` state
-- Renders each match as a 32x32px tile with a photo/artist image and rank badge
-- Empty days get a faint dot
-- No awareness of upcoming shows or "today"
+- `WhatsNextStrip.tsx` has `getMockFriends()` with hard-coded `pravatar.cc` URLs and a comment `// Mock friend avatars — replace with real friend data when social layer ships`
+- `FriendTeaser.tsx` shows a static `"Friends coming soon"` label
+- Calendar ghost tiles (`Home.tsx` lines 792–828) render RSVP dots and artist images but have **no friend presence** at all
+- `profiles` table has `id`, `username`, `full_name`, and `avatar_url` — all we need for friend avatars
+- No `followers` table exists yet
 
-The `usePlanUpcomingShow` hook already exposes `upcomingShows` with full data including `show_date`, `artist_image_url`, `artist_name`, `venue_name`, and `rsvp_status`.
+---
 
-## Visual Design
+## Architecture Decision: Asymmetric Follow (Not Mutual-Only)
 
-```text
-PAST SHOW TILE (solid)          TODAY MARKER            UPCOMING SHOW TILE (ghost)
-┌──────────────┐                 ┌──────────────┐        ┌──────────────┐
-│ [photo/img]  │                 │  date num    │        │ [artist img] │
-│   #3 badge   │                 │  (glowing    │        │  opacity 55% │
-│              │                 │   ring)      │        │  dashed bdr  │
-└──────────────┘                 └──────────────┘        │  RSVP badge  │
-Solid, full-opacity              Cyan/white glow          └──────────────┘
-Normal rank overlay              ring around date num      Going=green dot
-                                                           Maybe=amber dot
-                                                           Not going=dim dot
+Based on the "Follow + Close Friends" hybrid model stored in memory, we start with **asymmetric following** (Twitter-style):
+
+- Anyone can follow any other user
+- A "close friends" layer (mutual follows) can be added later without schema changes — we just need to check if `follower_id` and `following_id` both exist in each direction
+
+---
+
+## Layer 1: Database
+
+### New Table: `public.followers`
+
+```sql
+CREATE TABLE public.followers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  following_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (follower_id, following_id)
+);
+
+ALTER TABLE public.followers ENABLE ROW LEVEL SECURITY;
 ```
 
-## Exact Changes Required
+### RLS Policies
 
-### 1. `src/components/Home.tsx`
+| Policy | Command | Rule |
+|--------|---------|------|
+| Users can follow others | INSERT | `auth.uid() = follower_id` |
+| Users can unfollow | DELETE | `auth.uid() = follower_id` |
+| Users can see who they follow | SELECT | `auth.uid() = follower_id` |
+| Users can see their followers | SELECT | `auth.uid() = following_id` |
 
-**Import additions (top of file):**
-- Import `usePlanUpcomingShow` from `@/hooks/usePlanUpcomingShow`
-- Import `isToday`, `isFuture`, `isPast` from `date-fns`
-- Import `CheckCircle2`, `AlertCircle` from `lucide-react`
+Two SELECT policies (permissive) cover both directions — you can see who you follow AND who follows you.
 
-**State addition (inside `Home` component):**
-- Call `usePlanUpcomingShow()` to get `upcomingShows` — this hook already handles auth and realtime, so it's a zero-cost addition
+### Helper DB Function: `get_mutual_followers(user_id uuid)`
 
-**New helper function `getUpcomingShowsForDate(date: Date)`:**
-- Filters `upcomingShows` where `show.show_date` matches the given day (using `isSameDay` + `parseISO`)
+A `SECURITY DEFINER` function that returns profile rows for users who **mutually follow** the given user. This is used later for the "Close Friends" layer and avoids RLS complexity in application code:
 
-**Updated `renderCalendarView()` logic per day cell:**
+```sql
+CREATE OR REPLACE FUNCTION public.get_mutual_followers(_user_id uuid)
+RETURNS TABLE(profile_id uuid, username text, full_name text, avatar_url text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT p.id, p.username, p.full_name, p.avatar_url
+  FROM followers f1
+  JOIN followers f2 ON f2.follower_id = f1.following_id AND f2.following_id = f1.follower_id
+  JOIN profiles p ON p.id = f1.following_id
+  WHERE f1.follower_id = _user_id
+$$;
+```
 
-Each day cell now handles three possible states:
+Also update `upcoming_shows` SELECT policy to allow followers to **read** upcoming shows of users they follow — needed so the calendar can show friend ghost tiles.
 
-- **Today**: Wrap the date number in a glowing ring (`ring-2 ring-cyan-400/70 rounded-full` with a faint glow shadow). Show shows from both `getShowsForDate` and `getUpcomingShowsForDate` if any exist.
+```sql
+-- New policy: followers can view upcoming shows of people they follow
+CREATE POLICY "Followers can view upcoming shows of followed users"
+  ON public.upcoming_shows FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.followers
+      WHERE follower_id = auth.uid()
+        AND following_id = upcoming_shows.created_by_user_id
+    )
+  );
+```
 
-- **Past day with shows**: Existing solid tile rendering — unchanged, photo/artist image + rank badge overlay.
+---
 
-- **Future day with upcoming shows**: Ghost tile — same 32x32 structure but with:
-  - `opacity-60` on the image
-  - `border border-dashed border-white/30` container
-  - Small RSVP status dot in bottom-right corner:
-    - `going` → emerald dot (`bg-emerald-400`)
-    - `maybe` → amber dot (`bg-amber-400`)
-    - `not_going` → white/10 dim dot
+## Layer 2: `useFollowers` Hook
 
-- **Empty past days**: Keep existing faint dot (`w-1.5 h-1.5 bg-muted-foreground/30`)
+**New file: `src/hooks/useFollowers.ts`**
 
-- **Empty future days**: Slightly lighter dot or no dot to visually indicate "ahead"
+Exposes:
 
-**Today marker on the date number:**
-- Currently the calendar does not render date numbers at all — we'll add a small date number label above the tile (or within the cell top) only for "today" so it stands out. This avoids cluttering every cell.
-- Alternative: simply give today's cell a subtle `bg-cyan-500/10 rounded-lg` background and a `ring-1 ring-cyan-400/40` border to make it pop without adding text.
+| Export | Type | Description |
+|--------|------|-------------|
+| `following` | `FollowerProfile[]` | People the current user follows (with avatar, username) |
+| `followers` | `FollowerProfile[]` | People who follow the current user |
+| `isFollowing(userId)` | `(id: string) => boolean` | Fast Set-based lookup |
+| `follow(userId)` | `async fn` | Insert row + optimistic update |
+| `unfollow(userId)` | `async fn` | Delete row + optimistic update |
+| `isLoading` | `boolean` | |
 
-**Click behavior for upcoming show tiles:**
-- Tap opens the existing `UpcomingShowDetailSheet` (already used in `WhatsNextStrip`)
-- Requires adding `selectedUpcomingShow` + `upcomingDetailOpen` state to `Home`, and importing `UpcomingShowDetailSheet`
+The hook also fetches each followed user's `profile` (avatar_url, username, full_name) via a join so we have avatars ready without extra round-trips.
 
-### 2. No database changes needed
-`upcoming_shows` table already exists with RLS. The `usePlanUpcomingShow` hook already fetches data correctly.
+**Query pattern:**
+```ts
+supabase
+  .from("followers")
+  .select("following_id, profiles!following_id(id, username, full_name, avatar_url)")
+  .eq("follower_id", user.id)
+```
 
-### 3. No new files needed
-All changes are contained within `Home.tsx`, reusing existing hooks and sheets.
+---
+
+## Layer 3: Friend Avatars on Calendar Ghost Tiles
+
+### New utility hook: `useFriendUpcomingShows`
+
+**New file: `src/hooks/useFriendUpcomingShows.ts`**
+
+Fetches upcoming shows from **all followed users** grouped by date. The result is a `Map<string, FollowerProfile[]>` keyed by ISO date string (e.g. `"2026-03-15"`), mapping to the list of friends attending that date.
+
+This lets the calendar do a simple `friendsOnDate.get(isoDate) ?? []` lookup — no filtering loops in render.
+
+### Calendar Ghost Tile Changes (`src/components/Home.tsx`)
+
+The existing ghost tile block (lines 792–828) gets a friend avatar micro-stack in the **top-left corner** of the 32×32 tile — same pattern as `WhatsNextStrip` chips but sized for a tiny tile:
+
+```
+┌────────────────┐
+│ 🟢 [img]       │  ← RSVP dot stays bottom-right
+│                │
+│ [av][av]       │  ← Friend avatars top-left (max 2, then +N)
+│           •    │
+└────────────────┘
+```
+
+- Each avatar: `w-3 h-3 rounded-full` with `-ml-1` overlap
+- Max 2 visible + count badge if more
+- Only shown when `friends.length > 0` — no empty space wasted
+
+### `WhatsNextStrip` Cleanup
+
+Remove `getMockFriends()` and the `MOCK_FRIEND_POOLS` array. Replace with real data from `useFriendUpcomingShows` passed as a prop or consumed directly in the chip.
+
+### `FriendTeaser` Update
+
+Replace the static "Friends coming soon" label with a live count: `"X friends following you"` once the `followers` hook is in place.
+
+---
 
 ## Implementation Order
 
-1. Add imports (`usePlanUpcomingShow`, date-fns helpers, icons, `UpcomingShowDetailSheet`)
-2. Instantiate `usePlanUpcomingShow()` inside `Home` to get `upcomingShows`
-3. Add `getUpcomingShowsForDate` helper
-4. Add `selectedUpcomingShow` + `upcomingDetailOpen` state
-5. Refactor `renderCalendarView()` day cell rendering:
-   - Today highlight ring on cell
-   - Upcoming ghost tiles with RSVP dot
-   - Click handler for upcoming tiles → detail sheet
-6. Add `<UpcomingShowDetailSheet>` to the JSX return
+```text
+Step 1 — Database migration
+  ├── Create followers table + RLS
+  ├── Create get_mutual_followers() function
+  └── Add followers can view upcoming_shows policy
 
-## What this looks like end-to-end
+Step 2 — useFollowers hook
+  ├── follow() / unfollow() actions
+  ├── following[] + followers[] state
+  └── isFollowing() set-based lookup
 
-When a user navigates to their calendar for the current month, they'll see:
-- Their logged past shows as solid tiles (unchanged)
-- Today's date highlighted with a glowing ring/background
-- Any upcoming planned shows rendered as semi-transparent ghost tiles with a small colored RSVP dot
-- Tapping a ghost tile opens the existing Upcoming Show detail sheet (same one used in What's Next strip)
-- Future empty days blend subtly into the background, past empty days keep their faint dot
+Step 3 — useFriendUpcomingShows hook
+  ├── Fetch upcoming_shows for all followed user IDs
+  └── Return Map<isoDate, FollowerProfile[]>
 
-## Technical Notes
+Step 4 — Wire into Home.tsx calendar
+  ├── Call useFriendUpcomingShows()
+  ├── Add friendsOnDate lookup to ghost tile render
+  └── Render micro-avatar stack on tiles with friends
 
-- `usePlanUpcomingShow` is already memoized with `useCallback` and subscribes to realtime changes — calling it in `Home` adds no extra network overhead
-- The `UpcomingShowDetailSheet` accepts `show`, `open`, `onOpenChange`, `onDelete`, and `onRsvpChange` props — all already wired up in `WhatsNextStrip`, so the same pattern applies here
-- The calendar currently navigates months freely (past and future), so ghost tiles will correctly appear on any future month the user browses to
+Step 5 — Clean up WhatsNextStrip + FriendTeaser
+  ├── Remove mock friend data
+  └── Replace with real data from hooks
+```
+
+---
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/[new].sql` | `followers` table, RLS, `get_mutual_followers` fn, `upcoming_shows` policy |
+| `src/hooks/useFollowers.ts` | New — follow/unfollow actions and state |
+| `src/hooks/useFriendUpcomingShows.ts` | New — friend show map keyed by date |
+| `src/components/Home.tsx` | Add micro-avatar stack to calendar ghost tiles |
+| `src/components/home/WhatsNextStrip.tsx` | Remove mocks, use real friend data |
+| `src/components/home/FriendTeaser.tsx` | Show live follower count |
+
+---
+
+## What This Does NOT Include (Yet)
+
+- A "Find Friends" / user search UI — users can't yet discover each other to follow. This would be a natural next step: a search sheet in Profile that queries `profiles` by username and exposes a Follow button.
+- Notifications when someone follows you
+- The "Close Friends" approval layer (mutual-follow gate for sensitive data) — the DB function is already built for it; just needs a UI gate later
