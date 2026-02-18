@@ -281,7 +281,7 @@ function TemplateEditorForm({
 
           {/* Live phone mockup preview — always visible */}
           <div className="lg:w-[320px] border-t lg:border-t-0 lg:border-l border-border bg-muted/30 px-4 py-6 flex flex-col items-center gap-2 shrink-0">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live Preview</p>
+            
             <SimpleEmailPreview
               subject={subject}
               body={body}
