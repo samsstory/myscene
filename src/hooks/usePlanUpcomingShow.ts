@@ -124,6 +124,61 @@ export function usePlanUpcomingShow() {
     }
   }, []);
 
+  /** After saving, checks if any followed friends are going to the same show */
+  const checkSharedShow = useCallback(async (
+    userId: string,
+    artistName: string,
+    showDate: string,
+  ): Promise<void> => {
+    try {
+      const { data: followingRows } = await supabase
+        .from("followers")
+        .select("following_id")
+        .eq("follower_id", userId);
+
+      const followingIds = (followingRows ?? []).map((r: any) => r.following_id as string);
+      if (followingIds.length === 0) return;
+
+      const { data: matches } = await supabase
+        .from("upcoming_shows" as any)
+        .select("created_by_user_id, artist_name")
+        .in("created_by_user_id", followingIds)
+        .ilike("artist_name", artistName)
+        .eq("show_date", showDate);
+
+      if (!matches || (matches as any[]).length === 0) return;
+
+      const matchedUserIds = [...new Set((matches as any[]).map((m: any) => m.created_by_user_id as string))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, full_name, avatar_url")
+        .in("id", matchedUserIds);
+
+      if (!profiles || profiles.length === 0) return;
+
+      const friendNames = profiles.map((p: any) =>
+        p.username ? `@${p.username}` : (p.full_name ?? "A friend")
+      );
+
+      const nameStr =
+        friendNames.length === 1
+          ? friendNames[0]
+          : friendNames.length === 2
+          ? `${friendNames[0]} & ${friendNames[1]}`
+          : `${friendNames[0]} & ${friendNames.length - 1} others`;
+
+      const avatarUrl: string | null = (profiles as any)[0]?.avatar_url ?? null;
+
+      toast(`${nameStr} is also going! 🎉`, {
+        description: `You're both going to ${artistName}`,
+        icon: avatarUrl ? avatarUrl : "👥",
+        duration: 6000,
+      });
+    } catch {
+      // silent — detection failure should never block the save flow
+    }
+  }, []);
+
   const saveUpcomingShow = useCallback(async (data: SaveUpcomingShowData): Promise<boolean> => {
     setIsSaving(true);
     try {
@@ -145,7 +200,36 @@ export function usePlanUpcomingShow() {
 
       if (insertError) throw insertError;
 
-      toast.success(`${data.artist_name} added to upcoming shows`);
+      // Check if any followed friends are going to the same show
+      if (data.artist_name && data.show_date) {
+        const sharedFound = await (async () => {
+          const { data: followingRows } = await supabase
+            .from("followers")
+            .select("following_id")
+            .eq("follower_id", user.id);
+          const followingIds = (followingRows ?? []).map((r: any) => r.following_id as string);
+          if (followingIds.length === 0) return false;
+
+          const { data: matches } = await supabase
+            .from("upcoming_shows" as any)
+            .select("created_by_user_id")
+            .in("created_by_user_id", followingIds)
+            .ilike("artist_name", data.artist_name)
+            .eq("show_date", data.show_date!);
+
+          return !!(matches && (matches as any[]).length > 0);
+        })().catch(() => false);
+
+        if (sharedFound) {
+          // Fire rich "friend is also going" toast (non-blocking)
+          checkSharedShow(user.id, data.artist_name, data.show_date);
+        } else {
+          toast.success(`${data.artist_name} added to your calendar`);
+        }
+      } else {
+        toast.success(`${data.artist_name} added to your calendar`);
+      }
+
       await fetchUpcomingShows();
       return true;
     } catch (err) {
@@ -155,7 +239,7 @@ export function usePlanUpcomingShow() {
     } finally {
       setIsSaving(false);
     }
-  }, [fetchUpcomingShows]);
+  }, [fetchUpcomingShows, checkSharedShow]);
 
   const deleteUpcomingShow = useCallback(async (id: string): Promise<void> => {
     try {
