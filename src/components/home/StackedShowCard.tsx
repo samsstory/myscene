@@ -1,7 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Instagram } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatShowDate } from "@/lib/utils";
 import { forwardRef } from "react";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +19,7 @@ interface Show {
     location: string;
   };
   date: string;
+  datePrecision?: string | null;
   rating?: number | null;
   photo_url?: string | null;
   tags?: string[];
@@ -56,10 +56,7 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
     
     const scoreGradient = primaryTag ? "from-primary to-primary/70" : "from-muted to-muted/70";
     
-    const formattedDate = format(
-      parseISO(show.date),
-      parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy"
-    );
+    const formattedDate = formatShowDate(show.date, show.datePrecision);
 
     // Full artist display for expanded view
     const artistDisplay = show.artists.slice(0, 2).map((a, idx) => (

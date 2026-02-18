@@ -16,6 +16,7 @@ interface Show {
     location: string;
   };
   date: string;
+  datePrecision?: string | null;
   rating?: number | null;
   photo_url?: string | null;
   tags?: string[];
