@@ -429,10 +429,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               <Button onClick={handleSave} disabled={isSaving || !canSave} variant="glass" className="flex-1 gap-2">
                 {isSaving ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
-                ) : currentEventIndex + 1 < parsedEvents.length ? (
-                  "Add to Upcoming →"
                 ) : (
-                  "Add to Upcoming →"
+                  "Add To Calendar →"
                 )}
               </Button>
               {/* Skip button when multiple events */}
@@ -482,7 +480,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               </div>
             </div>
             <Button onClick={handleSave} disabled={isSaving || !canSave} variant="glass" className="w-full gap-2">
-              {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : "Add to Upcoming →"}
+              {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : "Add To Calendar →"}
             </Button>
           </div>
         )}
