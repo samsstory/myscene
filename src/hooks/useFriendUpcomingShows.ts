@@ -33,6 +33,7 @@ export function useFriendUpcomingShows(followingIds: string[]) {
     setIsLoading(true);
 
     async function load() {
+      // Fetch upcoming shows for all followed users
       const { data, error } = await supabase
         .from("upcoming_shows")
         .select(`
@@ -42,8 +43,7 @@ export function useFriendUpcomingShows(followingIds: string[]) {
           artist_image_url,
           venue_name,
           venue_location,
-          created_by_user_id,
-          profiles!upcoming_shows_created_by_user_id_fkey(id, username, full_name, avatar_url)
+          created_by_user_id
         `)
         .in("created_by_user_id", followingIds)
         .not("show_date", "is", null)
@@ -57,12 +57,31 @@ export function useFriendUpcomingShows(followingIds: string[]) {
         return;
       }
 
+      // Fetch profiles for all unique user IDs in the results
+      const uniqueUserIds = [...new Set((data ?? []).map(r => r.created_by_user_id))];
+      let profileMap = new Map<string, FollowerProfile>();
+
+      if (uniqueUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, full_name, avatar_url")
+          .in("id", uniqueUserIds);
+
+        if (!cancelled) {
+          for (const p of (profiles ?? [])) {
+            profileMap.set(p.id, p as FollowerProfile);
+          }
+        }
+      }
+
+      if (cancelled) return;
+
       const map = new Map<string, FollowerProfile[]>();
       const shows: FriendShow[] = [];
 
       for (const row of (data ?? [])) {
         const isoDate = row.show_date as string;
-        const profile = (row as any).profiles as FollowerProfile | null;
+        const profile = profileMap.get(row.created_by_user_id);
         if (!isoDate || !profile) continue;
 
         // Build friendsByDate map
