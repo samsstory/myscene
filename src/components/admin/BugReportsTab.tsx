@@ -15,8 +15,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { CheckCircle2, Loader2, Image, X, ChevronDown, Copy, Check } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CheckCircle2, Loader2, Image, ChevronDown, Copy, Check } from "lucide-react";
 
 interface BugReport {
   id: string;
@@ -80,7 +79,6 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
     const ctx = { ...report.error_context };
     delete ctx.screenshot_url;
     if (Object.keys(ctx).length === 0) return "No error context available.";
-
     const lines: string[] = [
       `Bug Report: ${report.description}`,
       `Page: ${report.page_url ?? "unknown"}`,
@@ -93,7 +91,6 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
     if (ctx.componentStack) lines.push(`\nComponent stack:\n${ctx.componentStack}`);
     if (ctx.endpoint) lines.push(`\nEndpoint: ${ctx.endpoint}`);
     if (ctx.duration_ms) lines.push(`Duration: ${ctx.duration_ms}ms`);
-    // Include any other keys
     const knownKeys = new Set(["message", "stack", "componentStack", "endpoint", "duration_ms"]);
     for (const [k, v] of Object.entries(ctx)) {
       if (!knownKeys.has(k)) lines.push(`${k}: ${typeof v === "object" ? JSON.stringify(v, null, 2) : v}`);
@@ -110,30 +107,27 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/40" />
       </div>
     );
   }
 
   if (reports.length === 0) {
-    return <p className="py-12 text-center text-muted-foreground">No bug reports yet.</p>;
+    return <p className="py-16 text-center text-muted-foreground/50 text-sm">No bug reports yet.</p>;
   }
 
   return (
     <>
-      <div className="rounded-lg border border-border overflow-auto">
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] backdrop-blur-sm overflow-auto">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>User</TableHead>
-              <TableHead className="min-w-[240px]">Description</TableHead>
-              <TableHead>Page</TableHead>
-              <TableHead>Screenshot</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead />
+            <TableRow className="border-white/[0.06] hover:bg-transparent">
+              {["Date", "Type", "User", "Description", "Page", "Screenshot", "Status", ""].map((h) => (
+                <TableHead key={h} className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-medium">
+                  {h === "Description" ? <span className="min-w-[240px] inline-block">{h}</span> : h}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -143,41 +137,42 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
               const isExpanded = expandedIds.has(r.id);
               return (
                 <React.Fragment key={r.id}>
-                  <TableRow className={isExpanded ? "border-b-0" : ""}>
+                  <TableRow className={`border-white/[0.05] hover:bg-white/[0.02] transition-colors ${isExpanded ? "border-b-0" : ""}`}>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {format(new Date(r.created_at), "MMM d, h:mm a")}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-[10px] capitalize">
+                      <Badge variant="outline" className="text-[10px] capitalize border-white/[0.08] text-muted-foreground bg-white/[0.03]">
                         {r.type || "manual"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-mono truncate max-w-[120px]">
+                    <TableCell className="text-xs font-mono text-muted-foreground/60 truncate max-w-[100px]">
                       {r.user_id.slice(0, 8)}…
                     </TableCell>
-                    <TableCell className="text-sm">{r.description}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{r.page_url ?? "—"}</TableCell>
+                    <TableCell className="text-sm text-foreground/80">{r.description}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground/60">{r.page_url ?? "—"}</TableCell>
                     <TableCell>
                       {screenshotUrl ? (
                         <button
                           onClick={() => setLightboxUrl(screenshotUrl)}
-                          className="group relative h-10 w-16 rounded border border-border overflow-hidden hover:border-primary/50 transition-colors"
+                          className="group relative h-9 w-14 rounded-lg border border-white/[0.08] overflow-hidden hover:border-primary/40 transition-colors"
                         >
-                          <img
-                            src={screenshotUrl}
-                            alt="Bug screenshot"
-                            className="h-full w-full object-cover object-top"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                          <img src={screenshotUrl} alt="screenshot" className="h-full w-full object-cover object-top" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                             <Image className="h-3 w-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         </button>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground/40">—</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={r.status === "resolved" ? "secondary" : "destructive"} className="text-[10px]">
+                      <Badge
+                        variant="secondary"
+                        className={r.status === "resolved"
+                          ? "text-[10px] bg-white/[0.04] text-muted-foreground/60 border-white/[0.06]"
+                          : "text-[10px] bg-destructive/[0.12] text-destructive/80 border-destructive/[0.20]"}
+                      >
                         {r.status}
                       </Badge>
                     </TableCell>
@@ -188,7 +183,7 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
                             size="sm"
                             variant="ghost"
                             onClick={() => toggleExpanded(r.id)}
-                            className="gap-1 text-xs px-2"
+                            className="gap-1 text-xs px-2 h-7 text-muted-foreground hover:text-foreground border border-white/[0.06] bg-white/[0.02]"
                           >
                             <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                             Details
@@ -200,7 +195,7 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
                             variant="ghost"
                             onClick={() => markResolved(r.id)}
                             disabled={updatingId === r.id}
-                            className="gap-1 text-xs"
+                            className="gap-1 text-xs h-7 px-2 text-muted-foreground hover:text-foreground border border-white/[0.06] bg-white/[0.02]"
                           >
                             {updatingId === r.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -216,23 +211,23 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
                   {isExpanded && hasErrorContext && (
                     <TableRow>
                       <TableCell colSpan={8} className="p-0">
-                        <div className="bg-muted/30 border-t border-border px-4 py-3">
+                        <div className="bg-white/[0.02] border-t border-white/[0.05] px-4 py-3">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-muted-foreground">Error Context</span>
+                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-medium">Error Context</span>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="ghost"
                               onClick={() => copyErrorContext(r)}
-                              className="gap-1 text-xs h-7 px-2"
+                              className="gap-1 text-xs h-7 px-2 border border-white/[0.08] bg-white/[0.03] text-muted-foreground hover:text-foreground"
                             >
                               {copiedId === r.id ? (
                                 <><Check className="h-3 w-3" /> Copied</>
                               ) : (
-                                <><Copy className="h-3 w-3" /> Copy for debugging</>
+                                <><Copy className="h-3 w-3" /> Copy</>
                               )}
                             </Button>
                           </div>
-                          <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono bg-background/50 rounded-md border border-border p-3 max-h-64 overflow-auto">
+                          <pre className="text-xs text-foreground/70 whitespace-pre-wrap font-mono bg-black/20 rounded-lg border border-white/[0.06] p-3 max-h-64 overflow-auto">
                             {formatErrorContext(r)}
                           </pre>
                         </div>
@@ -248,13 +243,9 @@ export function BugReportsTab({ onCountChange }: { onCountChange?: (count: numbe
 
       {/* Screenshot lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={(open) => !open && setLightboxUrl(null)}>
-        <DialogContent className="max-w-3xl p-2 bg-card border-border">
+        <DialogContent className="max-w-3xl p-2 bg-card/95 backdrop-blur-xl border-white/[0.08]">
           {lightboxUrl && (
-            <img
-              src={lightboxUrl}
-              alt="Bug screenshot full view"
-              className="w-full h-auto rounded"
-            />
+            <img src={lightboxUrl} alt="Bug screenshot full view" className="w-full h-auto rounded-lg" />
           )}
         </DialogContent>
       </Dialog>

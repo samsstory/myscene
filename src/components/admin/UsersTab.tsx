@@ -21,7 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Bell, Loader2, Send } from "lucide-react";
+import { Bell, Loader2, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface UserEntry {
@@ -86,59 +86,57 @@ export function UsersTab() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-4 py-2 w-fit">
-        <span className="text-sm text-muted-foreground">Total Users</span>
-        <span className="font-semibold">{users.length}</span>
+    <div className="space-y-6">
+      {/* Stat pill */}
+      <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm px-4 py-2.5 w-fit">
+        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Total Users</span>
+        <span className="text-sm font-semibold text-foreground">{users.length}</span>
       </div>
 
       {loading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+            <Skeleton key={i} className="h-12 w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border border-border">
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] backdrop-blur-sm overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>City</TableHead>
-                <TableHead>Shows</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="w-10"></TableHead>
+              <TableRow className="border-white/[0.06] hover:bg-transparent">
+                {["Username", "Name", "Email", "City", "Shows", "Joined", ""].map((h) => (
+                  <TableHead key={h} className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-medium">{h}</TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.username || "—"}</TableCell>
-                  <TableCell>{u.full_name || "—"}</TableCell>
-                  <TableCell className="text-sm">{u.email || "—"}</TableCell>
-                  <TableCell>{u.home_city || "—"}</TableCell>
-                  <TableCell>{u.show_count}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                <TableRow key={u.id} className="border-white/[0.05] hover:bg-white/[0.02] transition-colors">
+                  <TableCell className="text-sm font-medium text-foreground/90">{u.username || "—"}</TableCell>
+                  <TableCell className="text-sm text-foreground/70">{u.full_name || "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{u.email || "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{u.home_city || "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{u.show_count}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
                     {format(new Date(u.created_at), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
-                      title="Send test push notification"
+                      className="h-7 w-7 rounded-lg border border-white/[0.06] bg-white/[0.03] text-muted-foreground hover:bg-white/[0.07] hover:text-foreground transition-all"
+                      title="Send push notification"
                       onClick={() => setPushTarget(u)}
                     >
-                      <Bell className="h-4 w-4" />
+                      <Bell className="h-3.5 w-3.5" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
               {users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground/50 py-12 text-sm">
                     No users yet
                   </TableCell>
                 </TableRow>
@@ -150,54 +148,50 @@ export function UsersTab() {
 
       {/* Send Push Notification Dialog */}
       <Dialog open={!!pushTarget} onOpenChange={(open) => !open && setPushTarget(null)}>
-        <DialogContent>
+        <DialogContent className="bg-card/95 backdrop-blur-xl border-white/[0.08]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+              <Bell className="h-4 w-4 text-primary/60" />
               Send Push Notification
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            To: <span className="font-medium text-foreground">{pushTarget?.username || pushTarget?.email || pushTarget?.id}</span>
+          <p className="text-xs text-muted-foreground">
+            To: <span className="font-medium text-foreground/80">{pushTarget?.username || pushTarget?.email || pushTarget?.id}</span>
           </p>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="push-title">Title</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Title</Label>
               <Input
-                id="push-title"
                 value={pushTitle}
                 onChange={(e) => setPushTitle(e.target.value)}
                 placeholder="Notification title"
+                className="bg-white/[0.04] border-white/[0.08]"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="push-body">Message</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Message</Label>
               <Textarea
-                id="push-body"
                 value={pushBody}
                 onChange={(e) => setPushBody(e.target.value)}
                 placeholder="What do you want to say?"
                 rows={3}
+                className="bg-white/[0.04] border-white/[0.08]"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="push-url">Link (optional)</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Link (optional)</Label>
               <Input
-                id="push-url"
                 value={pushUrl}
                 onChange={(e) => setPushUrl(e.target.value)}
                 placeholder="/"
+                className="bg-white/[0.04] border-white/[0.08]"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPushTarget(null)}>Cancel</Button>
-            <Button onClick={handleSendPush} disabled={sending || !pushTitle || !pushBody}>
-              {sending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="sm" className="border border-white/[0.08]" onClick={() => setPushTarget(null)}>Cancel</Button>
+            <Button size="sm" onClick={handleSendPush} disabled={sending || !pushTitle || !pushBody}>
+              {sending ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-2" />}
               Send
             </Button>
           </DialogFooter>
