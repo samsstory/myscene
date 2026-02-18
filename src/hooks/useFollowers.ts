@@ -62,6 +62,8 @@ export function useFollowers(): UseFollowersReturn {
       const followingProfiles = followingIds.map((id: string) => profileMap.get(id)).filter(Boolean) as FollowerProfile[];
       const followerProfiles  = followerIds.map((id: string) => profileMap.get(id)).filter(Boolean) as FollowerProfile[];
 
+      console.log("[useFollowers] following:", followingProfiles, "followers:", followerProfiles);
+
       setFollowing(followingProfiles);
       setFollowingSet(new Set(followingProfiles.map(p => p.id)));
       setFollowers(followerProfiles);
