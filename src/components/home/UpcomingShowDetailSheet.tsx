@@ -22,6 +22,7 @@ interface UpcomingShowDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete: (id: string) => void;
+  onRsvpChange: (id: string, status: "going" | "maybe" | "not_going") => Promise<void>;
 }
 
 const RSVP_OPTIONS: { value: RsvpStatus; label: string; icon: React.ReactNode; activeClass: string }[] = [
@@ -50,9 +51,17 @@ export default function UpcomingShowDetailSheet({
   open,
   onOpenChange,
   onDelete,
+  onRsvpChange,
 }: UpcomingShowDetailSheetProps) {
-  const [rsvp, setRsvp] = useState<RsvpStatus>("going");
+  const [rsvp, setRsvp] = useState<RsvpStatus>(show?.rsvp_status ?? "going");
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Sync RSVP state when the selected show changes
+  const showId = show?.id;
+  const showRsvp = show?.rsvp_status;
+  if (showId && showRsvp && showRsvp !== rsvp) {
+    setRsvp(showRsvp);
+  }
 
   if (!show) return null;
 
@@ -139,7 +148,10 @@ export default function UpcomingShowDetailSheet({
                 {RSVP_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setRsvp(opt.value)}
+                    onClick={() => {
+                      setRsvp(opt.value);
+                      onRsvpChange(show.id, opt.value);
+                    }}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-all ${
                       rsvp === opt.value
                         ? opt.activeClass
