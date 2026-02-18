@@ -56,6 +56,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const [parsedEvents, setParsedEvents] = useState<ParsedUpcomingEvent[]>([]);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [confirmedEvent, setConfirmedEvent] = useState<ParsedUpcomingEvent | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +74,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
     setConfirmedEvent(null);
     setParsedEvents([]);
     setCurrentEventIndex(0);
+    setSelectedImageFile(null);
+    setSelectedImageUrl(null);
     clearParsedResult();
   }, [clearParsedResult]);
 
@@ -155,6 +159,16 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
       setEditLocation(event.venue_location || "");
       setEditDate(event.show_date || "");
       setEditTicketUrl(event.ticket_url || "");
+
+      // Image priority: single screenshot → use it; otherwise fall back to Spotify image
+      if (screenshots.length === 1) {
+        setSelectedImageFile(screenshots[0].file);
+        setSelectedImageUrl(screenshots[0].preview);
+      } else {
+        setSelectedImageFile(null);
+        setSelectedImageUrl(null);
+      }
+
       setStage("confirm");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to parse");
@@ -188,20 +202,40 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   };
 
   const handleSave = async () => {
+    let finalImageUrl = confirmedEvent?.artist_image_url || undefined;
+
+    // If a single screenshot was chosen as the show graphic, upload it first
+    if (selectedImageFile) {
+      try {
+        const ext = selectedImageFile.name.split(".").pop() || "jpg";
+        const path = `upcoming/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("show-photos")
+          .upload(path, selectedImageFile, { contentType: selectedImageFile.type, upsert: false });
+
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from("show-photos").getPublicUrl(path);
+          finalImageUrl = urlData.publicUrl;
+        }
+        // If upload fails, gracefully fall back to Spotify image (finalImageUrl already set)
+      } catch {
+        // fall back silently
+      }
+    }
+
     const data: SaveUpcomingShowData = {
       artist_name: editArtist,
       venue_name: editVenue || undefined,
       venue_location: editLocation || undefined,
       show_date: editDate || undefined,
       ticket_url: editTicketUrl || undefined,
-      artist_image_url: confirmedEvent?.artist_image_url || undefined,
+      artist_image_url: finalImageUrl,
       raw_input: inputText || undefined,
     };
     const ok = await saveUpcomingShow(data);
     if (ok) {
       const nextIndex = currentEventIndex + 1;
       if (nextIndex < parsedEvents.length) {
-        // More events to review — advance to next
         advanceToNextEvent(nextIndex);
       } else {
         handleClose();
@@ -388,9 +422,9 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
             {/* Artist card */}
             <div className="relative rounded-2xl overflow-hidden min-h-[110px]">
-              {confirmedEvent.artist_image_url ? (
+              {(selectedImageUrl ?? confirmedEvent.artist_image_url) ? (
                 <div className="absolute inset-0">
-                  <img src={confirmedEvent.artist_image_url} alt={confirmedEvent.artist_name} className="w-full h-full object-cover" />
+                  <img src={selectedImageUrl ?? confirmedEvent.artist_image_url!} alt={confirmedEvent.artist_name} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
                 </div>
               ) : (
