@@ -41,7 +41,7 @@ export function useProfileSearch(): UseProfileSearchReturn {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, username, full_name, avatar_url")
-        .ilike("username", `%${query.trim()}%`)
+        .or(`username.ilike.%${query.trim()}%,full_name.ilike.%${query.trim()}%`)
         .neq("id", user?.id ?? "")
         .limit(20);
 
