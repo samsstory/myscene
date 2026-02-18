@@ -15,6 +15,20 @@ const RSVP_BADGE = {
   not_going: { Icon: X,            color: "text-white/40",    bg: "bg-white/[0.06] border-white/10"        },
 } as const;
 
+// Mock friend avatars — replace with real friend data when social layer ships
+const MOCK_FRIEND_POOLS = [
+  ["https://i.pravatar.cc/40?img=1", "https://i.pravatar.cc/40?img=5"],
+  ["https://i.pravatar.cc/40?img=9", "https://i.pravatar.cc/40?img=12", "https://i.pravatar.cc/40?img=15"],
+  ["https://i.pravatar.cc/40?img=3"],
+  ["https://i.pravatar.cc/40?img=7", "https://i.pravatar.cc/40?img=22"],
+];
+
+function getMockFriends(showId: string) {
+  // Deterministically pick a pool based on show ID so it's stable across renders
+  const idx = showId.charCodeAt(0) % MOCK_FRIEND_POOLS.length;
+  return MOCK_FRIEND_POOLS[idx];
+}
+
 function UpcomingChip({ show, onTap }: { show: UpcomingShow; onTap: (show: UpcomingShow) => void }) {
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
@@ -53,6 +67,34 @@ function UpcomingChip({ show, onTap }: { show: UpcomingShow; onTap: (show: Upcom
       <div className={`absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full border backdrop-blur-sm ${badge.bg}`}>
         <BadgeIcon className={`h-3 w-3 ${badge.color}`} />
       </div>
+
+      {/* Friend avatar stack — bottom-left, above artist name */}
+      {(() => {
+        const friends = getMockFriends(show.id);
+        const visible = friends.slice(0, 3);
+        const overflow = friends.length - visible.length;
+        return (
+          <div className="absolute bottom-[52px] left-2.5 flex items-center">
+            {visible.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt="Friend"
+                className="w-5 h-5 rounded-full border border-black/60 object-cover"
+                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i }}
+              />
+            ))}
+            {overflow > 0 && (
+              <div
+                className="w-5 h-5 rounded-full border border-black/60 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[8px] font-bold text-white"
+                style={{ marginLeft: -6, zIndex: visible.length }}
+              >
+                +{overflow}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Content */}
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
