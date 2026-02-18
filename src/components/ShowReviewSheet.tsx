@@ -1,12 +1,13 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Upload, Instagram, Mic2, Volume2, Lightbulb, Users, Sparkles, Send, Trash2 } from "lucide-react";
+import { Instagram, Send, Trash2 } from "lucide-react";
 import { parseISO, format } from "date-fns";
 import { formatShowDate } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { useShareShow } from "@/hooks/useShareShow";
 
 import { cn } from "@/lib/utils";
 import { HeroPhotoSection } from "./show-review/HeroPhotoSection";
@@ -73,6 +74,7 @@ export const ShowReviewSheet = ({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { shareShow } = useShareShow();
 
   // Fix: Sync photoUrl state when show changes
   useEffect(() => {
@@ -455,17 +457,22 @@ export const ShowReviewSheet = ({
 
             {/* Secondary Actions - Always visible */}
             <div className="flex gap-2 justify-center flex-wrap">
-              <Button
+            <Button
                 variant="ghost"
                 size="sm"
-                disabled
-                className="text-white/30 cursor-not-allowed flex flex-col items-center gap-0.5 h-auto py-2"
+                onClick={() => {
+                  const headlinerArtist = show.artists.find(a => a.isHeadliner) || show.artists[0];
+                  shareShow({
+                    showId: show.id,
+                    type: "logged",
+                    artistName: headlinerArtist?.name ?? "",
+                    venueName: show.venue.name,
+                  });
+                }}
+                className="text-white/60 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 h-auto py-2"
               >
-                <div className="flex items-center">
-                  <Send className="h-4 w-4 mr-2" />
-                  Invite friend to compare
-                </div>
-                <span className="text-[10px] text-white/20">Coming soon</span>
+                <Send className="h-4 w-4" />
+                Invite friend to compare
               </Button>
               {onDelete && (
                 <Button
