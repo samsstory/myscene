@@ -83,8 +83,8 @@ function AddShowChip({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className="flex-shrink-0 w-28 h-36 rounded-2xl border border-dashed border-white/20 bg-white/[0.04] hover:bg-white/[0.07] transition-colors flex flex-col items-center justify-center gap-2 group"
     >
-      <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-        <Plus className="h-4 w-4 text-primary" />
+      <div className="w-9 h-9 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center group-hover:bg-white/[0.14] transition-colors">
+        <Plus className="h-4 w-4 text-white/60" />
       </div>
       <span className="text-[11px] font-medium text-white/50 group-hover:text-white/70 transition-colors text-center leading-tight">
         Plan a<br />Show
@@ -144,8 +144,8 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
             onClick={handlePlanShow}
             className="w-full rounded-2xl border border-dashed border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-4 flex items-center gap-3"
           >
-            <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center flex-shrink-0">
-              <Music2 className="h-5 w-5 text-primary/70" />
+            <div className="w-10 h-10 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0">
+              <Music2 className="h-5 w-5 text-white/50" />
             </div>
             <div className="text-left">
               <p className="text-sm font-medium text-white/60">Plan a show</p>

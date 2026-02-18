@@ -253,8 +253,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full h-36 rounded-2xl border-2 border-dashed border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition-colors flex flex-col items-center justify-center gap-2.5 group"
                   >
-                    <div className="w-11 h-11 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
-                      <ImagePlus className="h-5 w-5 text-primary/80" />
+                    <div className="w-11 h-11 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center group-hover:bg-white/[0.14] transition-colors">
+                      <ImagePlus className="h-5 w-5 text-white/60" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-white/60">Upload screenshot</p>
@@ -286,6 +286,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               <Button
                 onClick={handleParse}
                 disabled={isParsing || !canParse}
+                variant="glass"
                 className="flex-1 gap-2"
               >
                 {isParsing ? (
@@ -324,7 +325,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
                 </div>
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-white/[0.03]" />
               )}
               <div className="relative p-5 pt-16">
                 <h2 className="text-2xl font-bold text-white mb-1" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
@@ -355,7 +356,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               </div>
             </div>
 
-            <Button onClick={handleSave} disabled={isSaving || !canSave} className="w-full gap-2">
+            <Button onClick={handleSave} disabled={isSaving || !canSave} variant="glass" className="w-full gap-2">
               {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : "Add to Upcoming →"}
             </Button>
           </div>
@@ -393,7 +394,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                 <Input placeholder="Ticket URL (optional)" value={editTicketUrl} onChange={(e) => setEditTicketUrl(e.target.value)} className={`pl-9 ${inputFieldClass}`} />
               </div>
             </div>
-            <Button onClick={handleSave} disabled={isSaving || !canSave} className="w-full gap-2">
+            <Button onClick={handleSave} disabled={isSaving || !canSave} variant="glass" className="w-full gap-2">
               {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : "Add to Upcoming →"}
             </Button>
           </div>
