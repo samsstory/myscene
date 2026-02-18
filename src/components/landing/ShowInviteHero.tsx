@@ -2,10 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
-import { MapPin, CalendarDays, Music, ArrowRight, Loader2, Lock } from "lucide-react";
+import { Music, ArrowRight, Loader2, Lock, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { TAG_CATEGORIES } from "@/lib/tag-constants";
 
 interface ShowPreview {
   show_id: string;
@@ -26,6 +29,7 @@ interface ShowInviteHeroProps {
 }
 
 type RsvpChoice = "going" | "maybe" | "no" | null;
+type FlowStep = "idle" | "highlights" | "note" | "share" | "otp";
 
 const RSVP_OPTIONS: { key: RsvpChoice; label: string; emoji: string }[] = [
   { key: "going", label: "I'm going!",    emoji: "🎉" },
@@ -33,9 +37,6 @@ const RSVP_OPTIONS: { key: RsvpChoice; label: string; emoji: string }[] = [
   { key: "no",    label: "Can't make it", emoji: "😢" },
 ];
 
-const TEASER_HIGHLIGHTS = ["Core memory", "Took me somewhere", "Chills", "Crowd went off", "Sound was dialed"];
-
-// Extract "City, ST" from a full address string like "123 Main St, Austin, TX 78701"
 function extractCityState(location: string | null): string | null {
   if (!location) return null;
   const parts = location.split(",").map((s) => s.trim());
@@ -45,20 +46,36 @@ function extractCityState(location: string | null): string | null {
     const stateCode = parts[stateZipIdx].split(" ")[0];
     return `${city}, ${stateCode}`;
   }
-  // Fallback: if no zip pattern found, return last non-empty part
   return parts[parts.length - 1] || null;
 }
+
+const slideVariants = {
+  enter: { opacity: 0, y: 14 },
+  center: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
 
 export default function ShowInviteHero({ showId, showType, refCode }: ShowInviteHeroProps) {
   const navigate = useNavigate();
   const [preview, setPreview] = useState<ShowPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Upcoming RSVP
   const [rsvp, setRsvp] = useState<RsvpChoice>(null);
+
+  // Multi-step logged flow
+  const [step, setStep] = useState<FlowStep>("idle");
+  const [selectedHighlights, setSelectedHighlights] = useState<string[]>([]);
+  const [note, setNote] = useState("");
   const [email, setEmail] = useState("");
-  const [showSignup, setShowSignup] = useState(false);
-  const [signupPath, setSignupPath] = useState<"log" | "skip" | null>(null);
-  const signupRef = useRef<HTMLDivElement>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpResent, setOtpResent] = useState(false);
+
+  const stepRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPreview = async () => {
@@ -82,34 +99,18 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
   }, [showId, showType]);
 
   useEffect(() => {
-    if (showSignup && signupRef.current) {
-      setTimeout(() => signupRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    if (step !== "idle" && stepRef.current) {
+      setTimeout(() => stepRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     }
-  }, [showSignup]);
+  }, [step]);
 
-  const buildAuthParams = (extra?: Record<string, string>) => {
-    const params = new URLSearchParams();
-    if (refCode) params.set("ref", refCode);
-    params.set("show", showId);
-    params.set("type", showType);
-    if (extra) Object.entries(extra).forEach(([k, v]) => params.set(k, v));
-    return params;
-  };
-
-  const handleSignup = (extra?: Record<string, string>) => {
-    if (email) sessionStorage.setItem("invite_email", email);
-    navigate(`/auth?${buildAuthParams(extra).toString()}`);
-  };
-
-  const openSignup = (path: "log" | "skip") => {
-    setSignupPath(path);
-    setShowSignup(true);
-  };
-
-  const backgroundImage = preview?.photo_url || preview?.artist_image_url || null;
   const inviterDisplay =
     preview?.inviter_full_name ||
     (preview?.inviter_username ? `@${preview.inviter_username}` : "A friend");
+
+  const firstName = inviterDisplay.startsWith("@")
+    ? inviterDisplay
+    : inviterDisplay.split(" ")[0];
 
   const dateLabel = preview?.show_date
     ? (() => { try { return format(parseISO(preview.show_date), "MMM d, yyyy"); } catch { return preview.show_date; } })()
@@ -117,6 +118,70 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
 
   const cityState = extractCityState(preview?.venue_location ?? null);
   const venueDisplay = [preview?.venue_name, cityState].filter(Boolean).join(" · ");
+  const backgroundImage = preview?.photo_url || preview?.artist_image_url || null;
+
+  // ── Highlight toggle ──
+  const toggleHighlight = (tag: string) => {
+    setSelectedHighlights((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  // ── OTP send ──
+  const handleSendOtp = async () => {
+    if (!email) return;
+    setOtpSending(true);
+    setOtpError(null);
+    // Persist invite context for post-auth pickup
+    sessionStorage.setItem("invite_show_id", showId);
+    sessionStorage.setItem("invite_show_type", showType);
+    sessionStorage.setItem("invite_highlights", JSON.stringify(selectedHighlights));
+    sessionStorage.setItem("invite_note", note);
+    if (refCode) sessionStorage.setItem("invite_ref", refCode);
+
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    setOtpSending(false);
+    if (error) {
+      setOtpError(error.message);
+    } else {
+      setStep("otp");
+    }
+  };
+
+  // ── OTP verify ──
+  const handleVerifyOtp = async () => {
+    if (otpCode.length < 6) return;
+    setOtpVerifying(true);
+    setOtpError(null);
+    const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
+    setOtpVerifying(false);
+    if (error) {
+      setOtpError("That code didn't work — please try again");
+      setOtpCode("");
+    } else {
+      navigate(`/dashboard?show=${showId}&type=${showType}&action=log${refCode ? `&ref=${refCode}` : ""}`);
+    }
+  };
+
+  // ── Resend OTP ──
+  const handleResend = async () => {
+    setOtpResent(false);
+    await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    setOtpCode("");
+    setOtpError(null);
+    setOtpResent(true);
+  };
+
+  // ── Upcoming: navigate to auth with RSVP param ──
+  const handleUpcomingSignup = () => {
+    const params = new URLSearchParams();
+    if (refCode) params.set("ref", refCode);
+    params.set("show", showId);
+    params.set("type", showType);
+    if (rsvp) params.set("rsvp", rsvp);
+    if (email) sessionStorage.setItem("invite_email", email);
+    navigate(`/auth?${params.toString()}`);
+  };
 
   if (loading) {
     return (
@@ -154,11 +219,11 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-5 py-12 gap-4">
 
-        {/* Single unified card */}
+        {/* ── Hero card ── */}
         <div className="w-full max-w-sm">
           <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl overflow-hidden shadow-2xl shadow-black/50">
 
-            {/* Hero image — taller, face-centered */}
+            {/* Hero image */}
             <div className="relative h-[280px] overflow-hidden">
               {backgroundImage ? (
                 <>
@@ -176,12 +241,10 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                 </div>
               )}
 
-              {/* Scene wordmark */}
               <div className="absolute top-4 left-4 text-[10px] font-semibold tracking-[0.25em] uppercase text-white/35">
                 Scene
               </div>
 
-              {/* Artist name + meta — bottom of image */}
               <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
                 <h1 className="text-2xl font-bold text-white leading-tight mb-1.5" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
                   {preview?.artist_name}
@@ -194,7 +257,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
               </div>
             </div>
 
-            {/* Bottom content area */}
+            {/* Bottom content */}
             <div className="px-5 py-5 space-y-4">
 
               {/* Inviter attribution */}
@@ -208,28 +271,21 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                 </p>
               </div>
 
-              {/* ── LOGGED: blurred highlights teaser ── */}
-              {showType === "logged" && (
+              {/* ── LOGGED idle state ── */}
+              {showType === "logged" && step === "idle" && (
                 <>
-                  {/* Section label */}
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-foreground/25 mb-2.5">
                       Their take
                     </p>
-
-                    {/* Blurred pills with frosted overlay */}
                     <div className="relative">
                       <div className="flex flex-wrap gap-2" style={{ filter: "blur(5px)", userSelect: "none", pointerEvents: "none" }}>
-                        {TEASER_HIGHLIGHTS.map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/[0.08] border border-white/[0.10] text-white/80"
-                          >
+                        {["Core memory", "Took me somewhere", "Chills", "Crowd went off", "Sound was dialed"].map((tag) => (
+                          <span key={tag} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/[0.08] border border-white/[0.10] text-white/80">
                             {tag}
                           </span>
                         ))}
                       </div>
-                      {/* Frosted overlay */}
                       <div className="absolute inset-0 flex items-center justify-center gap-1.5">
                         <Lock className="h-3 w-3 text-foreground/35" />
                         <span className="text-[11px] text-foreground/35">Unlocks after you log yours</span>
@@ -237,20 +293,18 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                     </div>
                   </div>
 
-                  {/* Divider */}
                   <div className="border-t border-white/[0.06]" />
 
-                  {/* Primary CTA */}
                   <div className="space-y-2">
                     <Button
-                      onClick={() => openSignup("log")}
+                      onClick={() => setStep("highlights")}
                       className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
                     >
                       Share my take
                       <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
                     <button
-                      onClick={() => openSignup("skip")}
+                      onClick={() => navigate(`/auth${refCode ? `?ref=${refCode}` : ""}`)}
                       className="w-full text-center text-xs text-foreground/30 hover:text-foreground/50 transition-colors py-1"
                     >
                       I wasn't there
@@ -260,12 +314,12 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
               )}
 
               {/* ── UPCOMING: RSVP buttons ── */}
-              {showType === "upcoming" && !showSignup && (
+              {showType === "upcoming" && step === "idle" && (
                 <div className="flex gap-2">
                   {RSVP_OPTIONS.map((opt) => (
                     <button
                       key={opt.key}
-                      onClick={() => { setRsvp(opt.key); setShowSignup(true); }}
+                      onClick={() => { setRsvp(opt.key); handleUpcomingSignup(); }}
                       className="flex-1 rounded-xl border py-3 px-1 text-[11px] font-medium text-center transition-all duration-200 leading-tight bg-white/[0.04] border-white/[0.08] text-foreground/45 hover:bg-white/[0.08] hover:border-white/[0.16]"
                     >
                       <span className="block text-base mb-1">{opt.emoji}</span>
@@ -278,35 +332,137 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
           </div>
         </div>
 
-        {/* Inline signup — slides in below the card */}
-        <AnimatePresence>
-          {showSignup && (
+        {/* ── Step panels ── */}
+        <AnimatePresence mode="wait">
+
+          {/* STEP 1: Pick highlights */}
+          {step === "highlights" && (
             <motion.div
-              ref={signupRef}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              key="highlights"
+              ref={stepRef}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-sm"
             >
-              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-6 space-y-4 shadow-xl shadow-black/30">
-                <div className="space-y-1 text-center">
-                  <p className="text-sm font-semibold text-foreground">
-                    {showType === "logged"
-                      ? signupPath === "log"
-                        ? `${inviterDisplay} is waiting to compare — add yours to unlock theirs`
-                        : "No worries — join Scene anyway"
-                      : rsvp
-                        ? `Let ${inviterDisplay} know you're ${rsvp === "going" ? "going 🎉" : rsvp === "maybe" ? "maybe going 🤔" : "not making it 😢"}`
-                        : "Create your free account"}
-                  </p>
-                  <p className="text-[11px] text-foreground/40">
-                    {showType === "logged"
-                      ? signupPath === "log"
-                        ? `Free account · Takes 30 seconds · See ${inviterDisplay}'s full review after`
-                        : "Track shows you've been to and discover what your friends think"
-                      : "Free account · Takes 30 seconds"}
-                  </p>
+              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-5 space-y-4 shadow-xl shadow-black/30">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setStep("idle")} className="text-foreground/30 hover:text-foreground/60 transition-colors">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground leading-tight">Pick your highlights</p>
+                    <p className="text-[11px] text-foreground/35">What stood out? Pick as many as you like.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {TAG_CATEGORIES.map((cat) => (
+                    <div key={cat.id}>
+                      <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-foreground/25 mb-2">
+                        {cat.label}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.tags.map((tag) => {
+                          const selected = selectedHighlights.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              onClick={() => toggleHighlight(tag)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 ${
+                                selected
+                                  ? "bg-primary/20 border-primary/50 text-primary"
+                                  : "bg-white/[0.04] border-white/[0.08] text-foreground/50 hover:border-white/[0.18] hover:text-foreground/70"
+                              }`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={() => setStep("note")}
+                  className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+                >
+                  {selectedHighlights.length > 0 ? `Continue with ${selectedHighlights.length} highlight${selectedHighlights.length > 1 ? "s" : ""}` : "Continue"}
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 2: Add note */}
+          {step === "note" && (
+            <motion.div
+              key="note"
+              ref={stepRef}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="w-full max-w-sm"
+            >
+              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-5 space-y-4 shadow-xl shadow-black/30">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setStep("highlights")} className="text-foreground/30 hover:text-foreground/60 transition-colors">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground leading-tight">Add your take</p>
+                    <p className="text-[11px] text-foreground/35">Optional — but {firstName} will love reading it.</p>
+                  </div>
+                </div>
+
+                <Textarea
+                  placeholder={`What made ${preview?.artist_name} memorable for you?`}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  maxLength={280}
+                  rows={4}
+                  className="bg-white/[0.04] border-white/[0.10] text-foreground placeholder:text-foreground/25 focus-visible:ring-primary/40 rounded-xl text-sm resize-none"
+                />
+
+                <Button
+                  onClick={() => setStep("share")}
+                  className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+                >
+                  {note.trim() ? "Share with " + firstName : "Skip & share"}
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 3: Email to share */}
+          {step === "share" && (
+            <motion.div
+              key="share"
+              ref={stepRef}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="w-full max-w-sm"
+            >
+              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-5 space-y-4 shadow-xl shadow-black/30">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setStep("note")} className="text-foreground/30 hover:text-foreground/60 transition-colors">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground leading-tight">
+                      Share my take with {firstName}
+                    </p>
+                    <p className="text-[11px] text-foreground/35">We'll send a quick code to confirm.</p>
+                  </div>
                 </div>
 
                 <div className="space-y-2.5">
@@ -315,33 +471,99 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        if (showType === "logged") handleSignup(signupPath === "log" ? { action: "log" } : {});
-                        else handleSignup(rsvp ? { rsvp: rsvp! } : {});
-                      }
-                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSendOtp(); }}
                     className="h-11 bg-white/[0.05] border-white/[0.10] text-foreground placeholder:text-foreground/25 focus-visible:ring-primary/40 rounded-xl text-sm"
                     autoFocus
                   />
+                  {otpError && <p className="text-xs text-red-400">{otpError}</p>}
                   <Button
-                    onClick={() => {
-                      if (showType === "logged") handleSignup(signupPath === "log" ? { action: "log" } : {});
-                      else handleSignup(rsvp ? { rsvp: rsvp! } : {});
-                    }}
-                    className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+                    onClick={handleSendOtp}
+                    disabled={!email || otpSending}
+                    className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 disabled:opacity-50 disabled:scale-100"
                   >
-                    {showType === "logged"
-                      ? signupPath === "log" ? "Get started →" : "Join Scene →"
-                      : "Send response →"}
+                    {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send code <ArrowRight className="h-4 w-4 ml-1" /></>}
                   </Button>
                 </div>
-
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
 
+          {/* STEP 4: OTP verification */}
+          {step === "otp" && (
+            <motion.div
+              key="otp"
+              ref={stepRef}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="w-full max-w-sm"
+            >
+              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-5 space-y-5 shadow-xl shadow-black/30">
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Check your email</p>
+                  <p className="text-[11px] text-foreground/40">
+                    We sent a 6-digit code to <span className="text-foreground/60">{email}</span>
+                  </p>
+                </div>
+
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(val) => {
+                      setOtpCode(val);
+                      setOtpError(null);
+                      if (val.length === 6) {
+                        // Auto-verify when all 6 digits entered
+                        setTimeout(() => {
+                          const verifyAuto = async () => {
+                            setOtpVerifying(true);
+                            const { error } = await supabase.auth.verifyOtp({ email, token: val, type: "email" });
+                            setOtpVerifying(false);
+                            if (error) {
+                              setOtpError("That code didn't work — please try again");
+                              setOtpCode("");
+                            } else {
+                              navigate(`/dashboard?show=${showId}&type=${showType}&action=log${refCode ? `&ref=${refCode}` : ""}`);
+                            }
+                          };
+                          verifyAuto();
+                        }, 0);
+                      }
+                    }}
+                  >
+                    <InputOTPGroup>
+                      {[0,1,2,3,4,5].map((i) => (
+                        <InputOTPSlot key={i} index={i} className="bg-white/[0.06] border-white/[0.12] text-foreground rounded-lg w-11 h-12 text-lg" />
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                {otpError && <p className="text-xs text-red-400 text-center">{otpError}</p>}
+                {otpResent && !otpError && <p className="text-xs text-primary/70 text-center">Code resent!</p>}
+
+                {otpVerifying && (
+                  <div className="flex justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary/60" />
+                  </div>
+                )}
+
+                <div className="text-center">
+                  <button
+                    onClick={handleResend}
+                    className="text-[11px] text-foreground/30 hover:text-foreground/60 transition-colors"
+                  >
+                    Didn't get it? Resend code
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
       </div>
     </div>
   );
