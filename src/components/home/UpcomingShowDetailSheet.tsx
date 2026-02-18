@@ -91,22 +91,30 @@ export default function UpcomingShowDetailSheet({
           style={{ maxHeight: "80vh", overflowY: "auto" }}
         >
           {/* Hero */}
-          <div className="relative h-40 overflow-hidden">
+          <div className="relative h-52 overflow-hidden rounded-t-2xl">
             {show.artist_image_url ? (
               <>
+                {/* Blurred background fill */}
+                <img
+                  src={show.artist_image_url}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 w-full h-full object-cover scale-110"
+                  style={{ filter: "blur(20px)", opacity: 0.5 }}
+                />
+                {/* Sharp portrait — object-top keeps the face in frame */}
                 <img
                   src={show.artist_image_url}
                   alt={show.artist_name}
-                  className="absolute inset-0 w-full h-full object-cover scale-110"
-                  style={{ filter: "blur(3px)" }}
+                  className="absolute inset-0 w-full h-full object-cover object-top"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
               </>
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent" />
             )}
             <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
-              <h2 className="text-xl font-bold text-white" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>
+              <h2 className="text-xl font-bold text-white" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
                 {show.artist_name}
               </h2>
             </div>
