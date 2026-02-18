@@ -32,33 +32,39 @@ export function useFollowers(): UseFollowersReturn {
 
       // Fetch both directions in parallel
       const [followingRes, followersRes] = await Promise.all([
-        supabase
-          .from("followers")
-          .select("following_id, profiles!followers_following_id_fkey(id, username, full_name, avatar_url)")
-          .eq("follower_id", user.id),
-        supabase
-          .from("followers")
-          .select("follower_id, profiles!followers_follower_id_fkey(id, username, full_name, avatar_url)")
-          .eq("following_id", user.id),
+        supabase.from("followers").select("following_id").eq("follower_id", user.id),
+        supabase.from("followers").select("follower_id").eq("following_id", user.id),
       ]);
 
       if (cancelled) return;
 
-      if (followingRes.data) {
-        const profiles: FollowerProfile[] = followingRes.data
-          .map((row: any) => row.profiles)
-          .filter(Boolean);
-        setFollowing(profiles);
-        setFollowingSet(new Set(profiles.map(p => p.id)));
+      const followingIds = (followingRes.data ?? []).map((r: any) => r.following_id);
+      const followerIds  = (followersRes.data ?? []).map((r: any) => r.follower_id);
+
+      const allIds = [...new Set([...followingIds, ...followerIds])];
+
+      let profileMap = new Map<string, FollowerProfile>();
+      if (allIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, full_name, avatar_url")
+          .in("id", allIds);
+
+        if (!cancelled) {
+          for (const p of (profiles ?? [])) {
+            profileMap.set(p.id, p as FollowerProfile);
+          }
+        }
       }
 
-      if (followersRes.data) {
-        const profiles: FollowerProfile[] = followersRes.data
-          .map((row: any) => row.profiles)
-          .filter(Boolean);
-        setFollowers(profiles);
-      }
+      if (cancelled) return;
 
+      const followingProfiles = followingIds.map((id: string) => profileMap.get(id)).filter(Boolean) as FollowerProfile[];
+      const followerProfiles  = followerIds.map((id: string) => profileMap.get(id)).filter(Boolean) as FollowerProfile[];
+
+      setFollowing(followingProfiles);
+      setFollowingSet(new Set(followingProfiles.map(p => p.id)));
+      setFollowers(followerProfiles);
       setIsLoading(false);
     }
 
