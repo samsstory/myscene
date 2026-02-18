@@ -287,7 +287,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                 onClick={handleParse}
                 disabled={isParsing || !canParse}
                 variant="glass"
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 bg-primary/[0.08] border-primary/[0.22] hover:bg-primary/[0.14] hover:border-primary/[0.35] text-primary/90"
               >
                 {isParsing ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Reading...</>
