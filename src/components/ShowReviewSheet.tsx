@@ -475,7 +475,7 @@ export const ShowReviewSheet = ({
                   }}
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  Send Compare Request
+                  Invite to Compare
                 </Button>
 
                 {onDelete && (
