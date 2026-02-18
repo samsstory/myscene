@@ -15,8 +15,6 @@ import {
   Trash2,
   RotateCcw,
   X,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { PushNotificationsPanel } from "./PushNotificationsPanel";
 import { SimpleEmailPreview } from "./EmailPreviewPanel";
@@ -189,17 +187,8 @@ function TemplateCard({
   );
 }
 
-const SAMPLE_DATA: Record<string, string> = {
-  "{{email}}": "jane@example.com",
-  "{{password}}": "Tmp-8xK2mQ!",
-};
 
-function fillPlaceholders(text: string): string {
-  return Object.entries(SAMPLE_DATA).reduce(
-    (result, [key, value]) => result.split(key).join(value),
-    text,
-  );
-}
+
 
 function TemplateEditorForm({
   initial,
@@ -214,7 +203,6 @@ function TemplateEditorForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
-  const [previewing, setPreviewing] = useState(false);
 
   const handleSave = () => {
     if (!name.trim() || !subject.trim()) {
@@ -245,88 +233,54 @@ function TemplateEditorForm({
     <Card className="border-border bg-card">
       <CardHeader className="flex-row items-center justify-between pb-3">
         <CardTitle className="text-base">{isNew ? "New Template" : `Edit — ${initial.name}`}</CardTitle>
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant={previewing ? "secondary" : "ghost"}
-            className="h-8 gap-1.5 text-xs"
-            onClick={() => setPreviewing(!previewing)}
-          >
-            {previewing ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {previewing ? "Edit" : "Preview"}
-          </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onCancel}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onCancel}>
+          <X className="h-4 w-4" />
+        </Button>
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex flex-col lg:flex-row">
-          {/* Editor / text preview column */}
-          <div className="flex-1 space-y-4 p-4">
-            {previewing ? (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Subject</p>
-                  <p className="text-sm font-medium text-foreground">{fillPlaceholders(subject) || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Body</p>
-                  <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/30 p-4 text-sm text-foreground">
-                    {fillPlaceholders(body) || "—"}
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground italic">
-                  Sample data: {Object.entries(SAMPLE_DATA).map(([k, v]) => `${k} → ${v}`).join(", ")}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Template Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Welcome Email" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Subject</Label>
-                  <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Email subject line" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Body</Label>
-                  <Textarea
-                    rows={8}
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    className="font-mono text-xs"
-                    placeholder="Write your template body here..."
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> and{" "}
-                    <code className="rounded bg-muted px-1">{"{{password}}"}</code> as placeholders.
-                  </p>
-                </div>
-              </>
-            )}
-
-            {!previewing && (
-              <div className="flex items-center gap-2 pt-1">
-                <Button size="sm" onClick={handleSave}>
-                  {isNew ? "Create Template" : "Save Changes"}
+          {/* Editor column */}
+          <div className="flex-1 space-y-4 p-4 min-w-0">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Template Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Welcome Email" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Subject</Label>
+              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Email subject line" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Body</Label>
+              <Textarea
+                rows={8}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                className="font-mono text-xs"
+                placeholder="Write your template body here..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> and{" "}
+                <code className="rounded bg-muted px-1">{"{{password}}"}</code> as placeholders.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <Button size="sm" onClick={handleSave}>
+                {isNew ? "Create Template" : "Save Changes"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              {initial && initial.type !== "custom" && (
+                <Button size="sm" variant="ghost" onClick={handleReset}>
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  Reset Defaults
                 </Button>
-                <Button size="sm" variant="outline" onClick={onCancel}>
-                  Cancel
-                </Button>
-                {initial && initial.type !== "custom" && (
-                  <Button size="sm" variant="ghost" onClick={handleReset}>
-                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                    Reset Defaults
-                  </Button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Live phone mockup preview column */}
-          <div className="lg:w-[320px] border-t lg:border-t-0 lg:border-l border-border bg-muted/30 px-4 py-6 flex flex-col items-center gap-2">
+          {/* Live phone mockup preview — always visible */}
+          <div className="lg:w-[320px] border-t lg:border-t-0 lg:border-l border-border bg-muted/30 px-4 py-6 flex flex-col items-center gap-2 shrink-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live Preview</p>
             <SimpleEmailPreview
               subject={subject}
@@ -339,6 +293,7 @@ function TemplateEditorForm({
     </Card>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /*  Main panel                                                        */
