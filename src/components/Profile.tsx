@@ -3,17 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, User, Camera, Loader2, Share2, Copy, Users, Gift, Sparkles, Navigation, Download, Bell, BellOff } from "lucide-react";
+import { LogOut, User, Camera, Loader2, Share2, Users, Gift, Sparkles, Navigation, Download, Bell, BellOff, UserSearch, UserPlus, Heart } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
+import { useFollowers } from "@/hooks/useFollowers";
+import FindFriendsSheet from "@/components/profile/FindFriendsSheet";
 
 const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddShow?: () => void }) => {
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
+  const [findFriendsOpen, setFindFriendsOpen] = useState(false);
   const { state: pushState, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = usePushSubscription();
+  const { following, followers } = useFollowers();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -323,6 +327,45 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
         </CardContent>
       </Card>
 
+      {/* Social Card */}
+      <Card className="border-border shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Heart className="h-5 w-5 text-primary" />
+            Friends on Scene
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Follower / Following counts */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+              <p className="text-2xl font-bold">{following.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Following</p>
+            </div>
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+              <p className="text-2xl font-bold">{followers.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Followers</p>
+            </div>
+          </div>
+
+          {/* Find Friends CTA */}
+          <Button
+            onClick={() => setFindFriendsOpen(true)}
+            className="w-full gap-2"
+            variant="outline"
+          >
+            <UserSearch className="h-4 w-4" />
+            Find Friends by Username
+          </Button>
+
+          {following.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center">
+              Follow friends to see their upcoming shows on your calendar
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="border-border shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -438,21 +481,11 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
               Coming Soon
             </Button>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Friend Requests</p>
-              <p className="text-sm text-muted-foreground">
-                Connect with other music lovers
-              </p>
-            </div>
-            <Button variant="outline" size="sm">
-              Coming Soon
-            </Button>
-          </div>
         </CardContent>
-        </Card>
+      </Card>
       </div>
+
+      <FindFriendsSheet open={findFriendsOpen} onOpenChange={setFindFriendsOpen} />
     </>
   );
 };
