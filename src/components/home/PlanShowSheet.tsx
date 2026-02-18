@@ -113,8 +113,10 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
     setCurrentEventIndex(0);
     setSelectedImageFile(null);
     setSelectedImageUrl(null);
+    setManualArtistImageUrl(undefined);
     clearParsedResult();
   }, [clearParsedResult]);
+
 
   const handleClose = () => {
     onOpenChange(false);
@@ -224,8 +226,10 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
   const handleManual = () => {
     setEditArtist(""); setEditVenue(""); setEditLocation(""); setEditDate(""); setEditTicketUrl("");
+    setManualArtistImageUrl(undefined);
     setStage("manual");
   };
+
 
   const advanceToNextEvent = (nextIndex: number) => {
     const next = parsedEvents[nextIndex];
