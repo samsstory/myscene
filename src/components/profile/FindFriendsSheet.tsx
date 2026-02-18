@@ -92,7 +92,7 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by username…"
+              placeholder="Search by name or @username…"
               className="pl-9"
               autoFocus
               autoCapitalize="none"
