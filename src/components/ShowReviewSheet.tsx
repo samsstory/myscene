@@ -374,127 +374,137 @@ export const ShowReviewSheet = ({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl">
-          <div className="space-y-6 pt-4">
-            {/* Hero Photo Section */}
-            <HeroPhotoSection
-              photoUrl={photoUrl}
-              uploading={uploading}
-              artists={show.artists}
-              venue={show.venue}
-              date={show.date}
-              datePrecision={show.datePrecision}
-              rankPosition={rankData.position}
-              rankTotal={rankData.total}
-              comparisonsCount={rankData.comparisons}
-              onPhotoUpload={handlePhotoUpload}
-              fileInputRef={fileInputRef}
-              onEditShow={handleEditShow}
-              onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
-            />
+        <SheetContent
+          side="bottom"
+          className="h-[92dvh] rounded-t-3xl border-t border-white/[0.08] bg-background/95 backdrop-blur-2xl p-0 overflow-hidden"
+        >
+          {/* Ambient background bleed from photo */}
+          {photoUrl && (
+            <>
+              <img
+                src={photoUrl}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 w-full h-full object-cover scale-110 pointer-events-none"
+                style={{ filter: "blur(60px)", opacity: 0.06 }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/70 to-background pointer-events-none" />
+            </>
+          )}
 
-            {/* HOW IT FELT Section - Tags */}
-            {hasTags && (
-              <div className="space-y-4">
-                <h3 
-                  className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40"
-                  style={{ textShadow: "0 0 8px rgba(255,255,255,0.1)" }}
-                >
-                  How It Felt
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {show.tags!.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1.5 rounded-full text-sm font-medium bg-primary/15 border border-primary/30 text-white/80 backdrop-blur-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+          <div className="relative z-10 h-full overflow-y-auto overscroll-contain">
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-[3px] rounded-full bg-white/20" />
+            </div>
+
+            <div className="px-5 pb-10 pt-2 space-y-5">
+              {/* Hero Photo Section */}
+              <HeroPhotoSection
+                photoUrl={photoUrl}
+                uploading={uploading}
+                artists={show.artists}
+                venue={show.venue}
+                date={show.date}
+                datePrecision={show.datePrecision}
+                rankPosition={rankData.position}
+                rankTotal={rankData.total}
+                comparisonsCount={rankData.comparisons}
+                onPhotoUpload={handlePhotoUpload}
+                fileInputRef={fileInputRef}
+                onEditShow={handleEditShow}
+                onRankThisShow={onNavigateToRank ? handleRankThisShow : undefined}
+              />
+
+              {/* Highlights / Tags */}
+              {hasTags && (
+                <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4 space-y-3">
+                  <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-foreground/30">
+                    Highlights
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {show.tags!.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-3 py-1.5 rounded-full text-[11px] font-medium bg-primary/10 border border-primary/25 text-primary/80 backdrop-blur-sm"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Notes Quote Card */}
-            <NotesQuoteCard notes={show.notes} />
-
-            {/* Primary CTA: Close the review sheet */}
-            <Button
-              onClick={() => onOpenChange(false)}
-              className={cn(
-                "w-full py-6 rounded-xl font-semibold text-base",
-                "bg-gradient-to-r from-cyan-500 via-primary to-coral",
-                "shadow-lg shadow-primary/30",
-                "hover:shadow-primary/50 hover:scale-[1.02] transition-all duration-200",
-                "border-0"
               )}
-            >
-              Done
-            </Button>
 
-            {/* Secondary CTA: Share to Instagram */}
-            <div className="space-y-2">
+              {/* Notes Quote Card */}
+              <NotesQuoteCard notes={show.notes} />
+
+              {/* Divider */}
+              <div className="border-t border-white/[0.06]" />
+
+              {/* Primary CTA */}
               <Button
-                onClick={handleShareClick}
-                data-tour="share-instagram"
-                variant="ghost"
-                className={cn(
-                  "w-full py-5 rounded-xl font-medium text-base",
-                  "bg-white/[0.03] border border-white/[0.1]",
-                  "text-white/70 hover:text-white hover:bg-white/[0.08]",
-                  "transition-all duration-200"
-                )}
+                onClick={() => onOpenChange(false)}
+                className="w-full h-12 rounded-xl font-semibold text-base bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border-0"
               >
-                <Instagram className="h-5 w-5 mr-2" />
-                Share to Instagram
+                Done
               </Button>
-              
-              {/* Added to Scene date */}
-              <p className="text-center text-white/40 text-xs">
+
+              {/* Secondary actions row */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleShareClick}
+                  data-tour="share-instagram"
+                  variant="ghost"
+                  className="flex-1 h-11 rounded-xl font-medium text-sm bg-white/[0.04] border border-white/[0.08] text-foreground/60 hover:text-foreground hover:bg-white/[0.08] transition-all"
+                >
+                  <Instagram className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="flex-1 h-11 rounded-xl font-medium text-sm bg-white/[0.04] border border-white/[0.08] text-foreground/60 hover:text-foreground hover:bg-white/[0.08] transition-all"
+                  onClick={() => {
+                    const headlinerArtist = show.artists.find(a => a.isHeadliner) || show.artists[0];
+                    shareShow({
+                      showId: show.id,
+                      type: "logged",
+                      artistName: headlinerArtist?.name ?? "",
+                      venueName: show.venue.name,
+                    });
+                  }}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Invite
+                </Button>
+
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="h-11 w-11 rounded-xl bg-white/[0.04] border border-white/[0.08] text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Added to Scene timestamp */}
+              <p className="text-center text-foreground/25 text-[11px]">
                 Added to Scene on {formatShowDate(show.date, show.datePrecision)}
               </p>
             </div>
-
-            {/* Secondary Actions - Always visible */}
-            <div className="flex gap-2 justify-center flex-wrap">
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const headlinerArtist = show.artists.find(a => a.isHeadliner) || show.artists[0];
-                  shareShow({
-                    showId: show.id,
-                    type: "logged",
-                    artistName: headlinerArtist?.name ?? "",
-                    venueName: show.venue.name,
-                  });
-                }}
-                className="text-white/60 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 h-auto py-2"
-              >
-                <Send className="h-4 w-4" />
-                Invite friend to compare
-              </Button>
-              {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            {/* Hidden file input for photo changes */}
-            <Input
-              ref={fileInputRef}
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp"
-              className="hidden"
-              onChange={handlePhotoUpload}
-            />
           </div>
+
+          {/* Hidden file input for photo changes */}
+          <Input
+            ref={fileInputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
         </SheetContent>
       </Sheet>
 
