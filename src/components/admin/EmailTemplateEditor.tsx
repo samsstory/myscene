@@ -1,31 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Mail, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, Mail, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "scene-email-template";
 
 export const DEFAULT_APPROVE_SUBJECT = "You're in! Your Scene beta access is ready";
-export const DEFAULT_APPROVE_BODY = `Welcome to Scene!
-
-Your beta access is ready. Here are your login details:
+export const DEFAULT_APPROVE_BODY = `You've been approved for Scene beta access! Here are your login credentials:
 
 Email: {{email}}
 Temporary Password: {{password}}
 
-👉 Log in now: https://tryscene.app
-
 We recommend changing your password after your first login.`;
 
 export const DEFAULT_RESEND_SUBJECT = "You're in! Your Scene beta access is ready";
-export const DEFAULT_RESEND_BODY = `Welcome to Scene!
-
-Your beta access is ready! Log in with the credentials you were given.
-
-👉 Go to Scene: https://tryscene.app
+export const DEFAULT_RESEND_BODY = `Your Scene beta access is ready. Log in with the credentials you were given when you were first approved.
 
 If you've forgotten your password, use the reset option on the login page.`;
 
@@ -83,13 +75,22 @@ export function EmailTemplateEditor() {
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">Email Templates</span>
-          <span className="text-xs text-muted-foreground">— auto-applied on approve & resend</span>
+          <span className="text-xs text-muted-foreground">— auto-applied on approve &amp; resend</span>
         </div>
         {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
       </button>
 
       {expanded && (
         <div className="space-y-6 border-t border-border px-4 py-4">
+
+          {/* Branded shell notice */}
+          <div className="flex items-start gap-2.5 rounded-lg bg-primary/5 border border-primary/20 px-3 py-3">
+            <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Your message body is automatically wrapped in Scene's <strong className="text-foreground">branded dark email shell</strong> — SCENE ✦ wordmark, gradient header, and styled CTA button included. Just focus on the copy.
+            </p>
+          </div>
+
           {/* Approval template */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-foreground">Approval Email</h3>
@@ -103,13 +104,13 @@ export function EmailTemplateEditor() {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Body</Label>
               <Textarea
-                rows={7}
+                rows={6}
                 value={template.approveBody}
                 onChange={(e) => setTemplate({ ...template, approveBody: e.target.value })}
                 className="font-mono text-xs"
               />
               <p className="text-xs text-muted-foreground">
-                Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> and <code className="rounded bg-muted px-1">{"{{password}}"}</code> as placeholders.
+                Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> and <code className="rounded bg-muted px-1">{"{{password}}"}</code> as placeholders — these are replaced with the actual credentials automatically.
               </p>
             </div>
           </div>
@@ -127,13 +128,13 @@ export function EmailTemplateEditor() {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Body</Label>
               <Textarea
-                rows={5}
+                rows={4}
                 value={template.resendBody}
                 onChange={(e) => setTemplate({ ...template, resendBody: e.target.value })}
                 className="font-mono text-xs"
               />
               <p className="text-xs text-muted-foreground">
-                Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> as a placeholder. No password placeholder for resends.
+                Use <code className="rounded bg-muted px-1">{"{{email}}"}</code> as a placeholder. No password for resends — users use their existing credentials.
               </p>
             </div>
           </div>
