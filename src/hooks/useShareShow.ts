@@ -42,7 +42,7 @@ export function useShareShow() {
         show: showId,
         type,
       });
-      const url = `https://tryscene.app/?${params.toString()}`;
+      const url = `${window.location.origin}/?${params.toString()}`;
 
       // Compose share message
       const venueText = venueName ? ` at ${venueName}` : "";
