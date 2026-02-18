@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+
 import { TAG_CATEGORIES } from "@/lib/tag-constants";
 
 interface ShowPreview {
@@ -69,9 +69,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
   const [selectedHighlights, setSelectedHighlights] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [email, setEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
   const [otpSending, setOtpSending] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [otpResent, setOtpResent] = useState(false);
 
@@ -155,23 +153,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
     }
   };
 
-  // ── OTP verify ──
-  const handleVerifyOtp = async () => {
-    if (otpCode.length < 6) return;
-    setOtpVerifying(true);
-    setOtpError(null);
-    const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
-    setOtpVerifying(false);
-    if (error) {
-      setOtpError("That code didn't work — please try again");
-      setOtpCode("");
-    } else {
-      // invite=true signals Dashboard to open the compare flow
-      navigate(`/dashboard?invite=true&show=${showId}&type=${showType}${refCode ? `&ref=${refCode}` : ""}`);
-    }
-  };
-
-  // ── Resend OTP ──
+  // ── Resend magic link ──
   const handleResend = async () => {
     setOtpResent(false);
     await supabase.auth.signInWithOtp({
@@ -181,7 +163,6 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-    setOtpCode("");
     setOtpError(null);
     setOtpResent(true);
   };
@@ -502,7 +483,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
             </motion.div>
           )}
 
-          {/* STEP 4: OTP verification */}
+          {/* STEP 4: Check your email (magic link) */}
           {step === "otp" && (
             <motion.div
               key="otp"
@@ -514,65 +495,23 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-sm"
             >
-              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-5 space-y-5 shadow-xl shadow-black/30">
-                <div className="text-center space-y-1">
+              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-6 space-y-4 shadow-xl shadow-black/30 text-center">
+                <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">Check your email</p>
-                  <p className="text-[11px] text-foreground/40">
+                  <p className="text-[11px] text-foreground/40 leading-relaxed">
                     We sent a login link to <span className="text-foreground/60">{email}</span> — click it to continue
                   </p>
                 </div>
 
-                <div className="flex justify-center">
-                  <InputOTP
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(val) => {
-                      setOtpCode(val);
-                      setOtpError(null);
-                      if (val.length === 6) {
-                        // Auto-verify when all 6 digits entered
-                        setTimeout(() => {
-                          const verifyAuto = async () => {
-                            setOtpVerifying(true);
-                            const { error } = await supabase.auth.verifyOtp({ email, token: val, type: "email" });
-                            setOtpVerifying(false);
-                            if (error) {
-                              setOtpError("That code didn't work — please try again");
-                              setOtpCode("");
-                            } else {
-                              navigate(`/dashboard?show=${showId}&type=${showType}&action=log${refCode ? `&ref=${refCode}` : ""}`);
-                            }
-                          };
-                          verifyAuto();
-                        }, 0);
-                      }
-                    }}
-                  >
-                    <InputOTPGroup>
-                      {[0,1,2,3,4,5].map((i) => (
-                        <InputOTPSlot key={i} index={i} className="bg-white/[0.06] border-white/[0.12] text-foreground rounded-lg w-11 h-12 text-lg" />
-                      ))}
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
+                {otpError && <p className="text-xs text-red-400">{otpError}</p>}
+                {otpResent && !otpError && <p className="text-xs text-primary/70">Link resent!</p>}
 
-                {otpError && <p className="text-xs text-red-400 text-center">{otpError}</p>}
-                {otpResent && !otpError && <p className="text-xs text-primary/70 text-center">Code resent!</p>}
-
-                {otpVerifying && (
-                  <div className="flex justify-center">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary/60" />
-                  </div>
-                )}
-
-                <div className="text-center">
-                  <button
-                    onClick={handleResend}
-                    className="text-[11px] text-foreground/30 hover:text-foreground/60 transition-colors"
-                  >
-                    Didn't get it? Resend code
-                  </button>
-                </div>
+                <button
+                  onClick={handleResend}
+                  className="text-[11px] text-foreground/30 hover:text-foreground/60 transition-colors"
+                >
+                  Didn't get it? Resend link
+                </button>
               </div>
             </motion.div>
           )}
