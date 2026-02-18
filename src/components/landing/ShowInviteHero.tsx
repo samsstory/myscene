@@ -143,7 +143,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // No emailRedirectTo = Supabase sends 6-digit OTP code, not magic link
       },
     });
     setOtpSending(false);
@@ -176,7 +176,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // No emailRedirectTo = sends 6-digit code, not magic link
       },
     });
     setOtpCode("");
