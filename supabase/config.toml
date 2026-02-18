@@ -36,5 +36,8 @@ verify_jwt = false
 [functions.parse-show-notes]
 verify_jwt = false
 
+[functions.parse-upcoming-show]
+verify_jwt = false
+
 [functions.send-push-notification]
 verify_jwt = false

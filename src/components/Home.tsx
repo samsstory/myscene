@@ -27,6 +27,8 @@ import MissingPhotosSheet from "./home/MissingPhotosSheet";
 import FocusedRankingSession from "./home/FocusedRankingSession";
 import RankingProgressCard from "./home/RankingProgressCard";
 import FriendTeaser from "./home/FriendTeaser";
+import WhatsNextStrip from "./home/WhatsNextStrip";
+import PlanShowSheet from "./home/PlanShowSheet";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Skeleton } from "./ui/skeleton";
 
@@ -116,6 +118,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   
   // Focused ranking session state
   const [focusedRankingOpen, setFocusedRankingOpen] = useState(false);
+
+  // Plan a show sheet state
+  const [planShowOpen, setPlanShowOpen] = useState(false);
   
   // Todo action sheet state
   const [todoSheetOpen, setTodoSheetOpen] = useState(false);
@@ -428,6 +433,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       <div className="space-y-5">
         {/* Stat Pills */}
         <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} showsTourActive={showsTourActive} showsRef={showsRef} />
+
+        {/* What's Next Strip */}
+        <WhatsNextStrip onPlanShow={() => setPlanShowOpen(true)} />
 
         {/* Personal Highlight Reel */}
         {highlightShows.length > 0 && (
@@ -878,6 +886,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         allShows={shows} 
         rankings={rankings}
       />
+
+      {/* Plan Show Sheet */}
+      <PlanShowSheet open={planShowOpen} onOpenChange={setPlanShowOpen} />
 
       <FocusedRankingSession
         open={focusedRankingOpen}
