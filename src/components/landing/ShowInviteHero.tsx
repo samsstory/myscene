@@ -476,7 +476,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                     disabled={!email || otpSending}
                     className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 disabled:opacity-50 disabled:scale-100"
                   >
-                    {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send login link <ArrowRight className="h-4 w-4 ml-1" /></>}
+                    {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send Verification <ArrowRight className="h-4 w-4 ml-1" /></>}
                   </Button>
                 </div>
               </div>
