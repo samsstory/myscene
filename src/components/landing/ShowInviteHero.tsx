@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
-import { MapPin, CalendarDays, Music, ArrowRight, Loader2, BookOpen } from "lucide-react";
+import { MapPin, CalendarDays, Music, ArrowRight, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,10 +27,10 @@ interface ShowInviteHeroProps {
 
 type RsvpChoice = "going" | "maybe" | "no" | null;
 
-const RSVP_OPTIONS: { key: RsvpChoice; upcoming: string; emoji: string }[] = [
-  { key: "going", upcoming: "I'm going!",    emoji: "🎉" },
-  { key: "maybe", upcoming: "Maybe...",      emoji: "🤔" },
-  { key: "no",    upcoming: "Can't make it", emoji: "😢" },
+const RSVP_OPTIONS: { key: RsvpChoice; label: string; emoji: string }[] = [
+  { key: "going", label: "I'm going!",    emoji: "🎉" },
+  { key: "maybe", label: "Maybe...",      emoji: "🤔" },
+  { key: "no",    label: "Can't make it", emoji: "😢" },
 ];
 
 export default function ShowInviteHero({ showId, showType, refCode }: ShowInviteHeroProps) {
@@ -40,16 +40,15 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
   const [notFound, setNotFound] = useState(false);
   const [rsvp, setRsvp] = useState<RsvpChoice>(null);
   const [email, setEmail] = useState("");
-  const [showLogCta, setShowLogCta] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
   const signupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPreview = async () => {
       try {
-        const fnName =
-          showType === "logged"
-            ? "get_show_invite_preview"
-            : "get_upcoming_show_invite_preview";
+        const fnName = showType === "logged"
+          ? "get_show_invite_preview"
+          : "get_upcoming_show_invite_preview";
         const { data, error } = await supabase.rpc(fnName as any, { p_show_id: showId });
         if (error || !data || (Array.isArray(data) && data.length === 0)) {
           setNotFound(true);
@@ -66,10 +65,10 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
   }, [showId, showType]);
 
   useEffect(() => {
-    if ((rsvp || showLogCta) && signupRef.current) {
+    if (showSignup && signupRef.current) {
       setTimeout(() => signupRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     }
-  }, [rsvp, showLogCta]);
+  }, [showSignup]);
 
   const buildAuthParams = (extra?: Record<string, string>) => {
     const params = new URLSearchParams();
@@ -96,16 +95,6 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
 
   const selectedOption = RSVP_OPTIONS.find((o) => o.key === rsvp);
 
-  const upcomingSignupHeadline =
-    rsvp === "going" ? `Let ${inviterDisplay} know you're going 🎉` :
-    rsvp === "maybe" ? `Let ${inviterDisplay} know you're interested 🤔` :
-    `Let ${inviterDisplay} know you can't make it 😢`;
-
-  const upcomingSignupSubtitle =
-    rsvp === "going" ? `To confirm and notify ${inviterDisplay}, create your free Scene account.` :
-    rsvp === "maybe" ? `To save this show and let ${inviterDisplay} know, create your free Scene account.` :
-    `To send your response to ${inviterDisplay}, create your free Scene account.`;
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -119,13 +108,8 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="bg-white/[0.04] backdrop-blur-md border border-white/[0.08] rounded-2xl p-10 max-w-sm w-full text-center space-y-4">
           <div className="text-3xl">🎵</div>
-          <p className="text-foreground/70 text-sm">
-            {inviterDisplay !== "A friend" ? `${inviterDisplay} has invited you` : "You've been invited"} to join Scene — track every concert, rank your shows, and share with friends.
-          </p>
-          <Button
-            onClick={() => navigate(`/auth${refCode ? `?ref=${refCode}` : ""}`)}
-            className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
-          >
+          <p className="text-foreground/70 text-sm">You've been invited to join Scene — track every concert, rank your shows, and share with friends.</p>
+          <Button onClick={() => navigate(`/auth${refCode ? `?ref=${refCode}` : ""}`)} className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
             Create your free account →
           </Button>
         </div>
@@ -135,243 +119,172 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Full-screen blurred background */}
       {backgroundImage ? (
         <>
-          <img src={backgroundImage} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: "blur(32px)", opacity: 0.25 }} />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/60 to-background/90" />
+          <img src={backgroundImage} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: "blur(40px)", opacity: 0.2 }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/70 to-background" />
         </>
       ) : (
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 50% 0%, hsl(var(--primary)/0.15), transparent 70%)" }} />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 50% 0%, hsl(var(--primary)/0.12), transparent 70%)" }} />
       )}
 
-      <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-5 pt-16 pb-12 gap-6">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-5 py-12 gap-5">
 
-        <div className="text-xs font-semibold tracking-[0.2em] uppercase text-foreground/30 mb-2">Scene</div>
+        {/* Single hero card */}
+        <div className="w-full max-w-sm">
+          <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl overflow-hidden shadow-2xl shadow-black/50">
 
-        {/* Invite attribution */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-primary text-sm font-bold">{(inviterDisplay[0] || "?").toUpperCase()}</span>
-          </div>
-          <p className="text-sm text-foreground/65 leading-snug max-w-[240px]">
-            <span className="text-foreground font-semibold">{inviterDisplay}</span>{" "}
-            {showType === "logged"
-              ? "logged this show and wants to compare notes"
-              : "is going to this show and wants you there"}
-          </p>
-        </div>
-
-        {/* Locked review teaser — only for logged shows */}
-        {showType === "logged" && (
-          <div className="w-full max-w-sm">
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl px-5 py-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
-                <span className="text-base">🔒</span>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-xs font-semibold text-foreground/70 leading-snug">
-                  {inviterDisplay}'s review is hidden
-                </p>
-                <p className="text-[10px] text-foreground/35 leading-snug">
-                  Log your own experience first to unlock their rating, notes & tags.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Glass show card */}
-        <div className="bg-white/[0.06] backdrop-blur-xl border border-white/[0.10] rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl shadow-black/40">
-          {backgroundImage && (
-            <div className="relative h-40 overflow-hidden">
-              <img src={backgroundImage} alt={preview?.artist_name} className="w-full h-full object-cover object-top" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <h1 className="text-2xl font-bold text-white leading-tight drop-shadow-lg">{preview?.artist_name}</h1>
-              </div>
-            </div>
-          )}
-
-          <div className="p-5 space-y-3">
-            {!backgroundImage && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                  <Music className="h-5 w-5 text-primary/70" />
+            {/* Full-bleed artist image */}
+            <div className="relative h-56 overflow-hidden">
+              {backgroundImage ? (
+                <>
+                  <img src={backgroundImage} alt={preview?.artist_name} className="w-full h-full object-cover object-top" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                </>
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <Music className="h-16 w-16 text-primary/30" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground leading-tight">{preview?.artist_name}</h1>
-              </div>
-            )}
+              )}
 
-            {(preview?.venue_name || preview?.venue_location) && (
-              <div className="flex items-center gap-2 text-sm text-foreground/55">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-foreground/35" />
-                <span>{[preview?.venue_name, preview?.venue_location].filter(Boolean).join(" · ")}</span>
+              {/* Scene wordmark — top left */}
+              <div className="absolute top-4 left-4 text-[10px] font-semibold tracking-[0.25em] uppercase text-white/40">
+                Scene
               </div>
-            )}
 
-            {dateLabel && (
-              <div className="flex items-center gap-2 text-sm text-foreground/55">
-                <CalendarDays className="h-3.5 w-3.5 flex-shrink-0 text-foreground/35" />
-                <span>{dateLabel}</span>
+              {/* Artist name — bottom left */}
+              <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+                <h1 className="text-2xl font-bold text-white leading-tight" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
+                  {preview?.artist_name}
+                </h1>
               </div>
-            )}
+            </div>
 
-            {/* ── LOGGED: single "Log this show" CTA ── */}
-            {showType === "logged" && (
-              <div className="border-t border-white/[0.06] pt-4 space-y-2.5">
-                <p className="text-[11px] text-foreground/40 uppercase tracking-widest text-center">Were you there?</p>
+            {/* Show meta + inviter + CTA */}
+            <div className="px-5 py-5 space-y-4">
+
+              {/* Venue & date — compact single line each */}
+              <div className="space-y-1.5">
+                {(preview?.venue_name || preview?.venue_location) && (
+                  <div className="flex items-center gap-2 text-sm text-foreground/50">
+                    <MapPin className="h-3 w-3 flex-shrink-0 text-foreground/30" />
+                    <span>{[preview?.venue_name, preview?.venue_location].filter(Boolean).join(" · ")}</span>
+                  </div>
+                )}
+                {dateLabel && (
+                  <div className="flex items-center gap-2 text-sm text-foreground/50">
+                    <CalendarDays className="h-3 w-3 flex-shrink-0 text-foreground/30" />
+                    <span>{dateLabel}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-white/[0.06]" />
+
+              {/* Inviter row + locked pill — same line */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-primary text-[10px] font-bold">{(inviterDisplay[0] || "?").toUpperCase()}</span>
+                  </div>
+                  <p className="text-xs text-foreground/50 truncate">
+                    <span className="text-foreground/80 font-medium">{inviterDisplay}</span>
+                    {showType === "logged" ? " was there" : " is going"}
+                  </p>
+                </div>
+                {showType === "logged" && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] flex-shrink-0">
+                    <Lock className="h-2.5 w-2.5 text-foreground/30" />
+                    <span className="text-[10px] text-foreground/30">Review hidden</span>
+                  </div>
+                )}
+              </div>
+
+              {/* ── LOGGED: "Log this show" CTA ── */}
+              {showType === "logged" && (
                 <Button
-                  onClick={() => setShowLogCta(true)}
-                  className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 flex items-center justify-center gap-2"
+                  onClick={() => setShowSignup(true)}
+                  className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
                 >
-                  <BookOpen className="h-4 w-4" />
-                  Log this show
+                  Log this show & compare
+                  <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
-                <p className="text-[10px] text-foreground/30 text-center">
-                  Compare your experience with {inviterDisplay}'s
-                </p>
-              </div>
-            )}
+              )}
 
-            {/* ── UPCOMING: RSVP buttons ── */}
-            {showType === "upcoming" && (
-              <div className="border-t border-white/[0.06] pt-4 space-y-2.5">
-                <p className="text-[11px] text-foreground/40 uppercase tracking-widest text-center">Are you going?</p>
+              {/* ── UPCOMING: RSVP buttons ── */}
+              {showType === "upcoming" && !showSignup && (
                 <div className="flex gap-2">
                   {RSVP_OPTIONS.map((opt) => (
                     <button
                       key={opt.key}
-                      onClick={() => setRsvp(opt.key)}
-                      className={[
-                        "flex-1 rounded-xl border py-3 px-1 text-[11px] font-medium text-center transition-all duration-200 leading-tight",
-                        rsvp === opt.key
-                          ? opt.key === "going"
-                            ? "bg-primary/[0.16] border-primary/[0.50] text-primary shadow-[0_0_12px_hsl(var(--primary)/0.25)]"
-                            : opt.key === "maybe"
-                            ? "bg-amber-500/[0.16] border-amber-400/[0.50] text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.2)]"
-                            : "bg-white/[0.12] border-white/[0.35] text-foreground/75"
-                          : "bg-white/[0.04] border-white/[0.08] text-foreground/45 hover:bg-white/[0.08] hover:border-white/[0.16]",
-                      ].join(" ")}
+                      onClick={() => { setRsvp(opt.key); setShowSignup(true); }}
+                      className="flex-1 rounded-xl border py-3 px-1 text-[11px] font-medium text-center transition-all duration-200 leading-tight bg-white/[0.04] border-white/[0.08] text-foreground/45 hover:bg-white/[0.08] hover:border-white/[0.16]"
                     >
                       <span className="block text-base mb-1">{opt.emoji}</span>
-                      {opt.upcoming}
+                      {opt.label}
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        {/* ── LOGGED: inline signup to log ── */}
+        {/* Inline signup — slides in below the card */}
         <AnimatePresence>
-          {showType === "logged" && showLogCta && (
+          {showSignup && (
             <motion.div
               ref={signupRef}
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.97 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
               className="w-full max-w-sm"
             >
-              <div className="bg-white/[0.06] backdrop-blur-xl border border-white/[0.10] rounded-2xl p-6 space-y-4 shadow-xl shadow-black/30">
-                <div className="space-y-1.5 text-center">
-                  <p className="text-base font-semibold text-foreground leading-snug">Log your experience 🎵</p>
-                  <p className="text-xs text-foreground/50 leading-relaxed">
-                    Create a free Scene account to log this show, rate it, and compare notes with {inviterDisplay}.
+              <div className="bg-white/[0.05] backdrop-blur-xl border border-white/[0.09] rounded-3xl p-6 space-y-4 shadow-xl shadow-black/30">
+                <div className="space-y-1 text-center">
+                  <p className="text-sm font-semibold text-foreground">
+                    {showType === "logged"
+                      ? "Create your account to log & compare"
+                      : selectedOption
+                        ? `Let ${inviterDisplay} know — ${selectedOption.emoji} ${selectedOption.label}`
+                        : "Create your free account"}
+                  </p>
+                  <p className="text-[11px] text-foreground/40">
+                    {showType === "logged"
+                      ? `Unlock ${inviterDisplay}'s review once you've logged yours`
+                      : "Free account · Takes 30 seconds"}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-white/[0.05] border border-white/[0.08]">
-                  <span className="text-base">🎤</span>
-                  <span className="text-sm text-foreground/70">
-                    {preview?.artist_name}{preview?.venue_name ? ` · ${preview.venue_name}` : ""}
-                  </span>
-                </div>
-
                 <div className="space-y-2.5">
                   <Input
                     type="email"
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSignup({ action: "log" })}
-                    className="h-12 bg-white/[0.06] border-white/[0.12] text-foreground placeholder:text-foreground/30 focus-visible:ring-primary/40"
+                    onKeyDown={(e) => e.key === "Enter" && handleSignup(showType === "logged" ? { action: "log" } : { rsvp: rsvp! })}
+                    className="h-11 bg-white/[0.05] border-white/[0.10] text-foreground placeholder:text-foreground/25 focus-visible:ring-primary/40 rounded-xl text-sm"
                     autoFocus
                   />
                   <Button
-                    onClick={() => handleSignup({ action: "log" })}
-                    className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 flex items-center justify-center gap-2"
+                    onClick={() => handleSignup(showType === "logged" ? { action: "log" } : { rsvp: rsvp! })}
+                    className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
                   >
-                    Create account & log show
-                    <ArrowRight className="h-4 w-4" />
+                    {showType === "logged" ? "Get started →" : "Send response →"}
                   </Button>
                 </div>
 
-                <p className="text-center text-[10px] text-foreground/30 leading-relaxed">
-                  Free account · Log every show, rank your experiences, share with friends.
+                <p className="text-center text-[10px] text-foreground/25">
+                  Free · No credit card required
                 </p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── UPCOMING: inline RSVP signup ── */}
-        <AnimatePresence>
-          {showType === "upcoming" && rsvp && (
-            <motion.div
-              ref={signupRef}
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.97 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="w-full max-w-sm"
-            >
-              <div className="bg-white/[0.06] backdrop-blur-xl border border-white/[0.10] rounded-2xl p-6 space-y-4 shadow-xl shadow-black/30">
-                <div className="space-y-1.5 text-center">
-                  <p className="text-base font-semibold text-foreground leading-snug">{upcomingSignupHeadline}</p>
-                  <p className="text-xs text-foreground/50 leading-relaxed">{upcomingSignupSubtitle}</p>
-                </div>
-
-                <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-white/[0.05] border border-white/[0.08]">
-                  <span className="text-base">{selectedOption?.emoji}</span>
-                  <span className="text-sm text-foreground/70">
-                    Your response: <span className="text-foreground font-medium">{selectedOption?.upcoming}</span>
-                  </span>
-                </div>
-
-                <div className="space-y-2.5">
-                  <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSignup({ rsvp: rsvp! })}
-                    className="h-12 bg-white/[0.06] border-white/[0.12] text-foreground placeholder:text-foreground/30 focus-visible:ring-primary/40"
-                    autoFocus
-                  />
-                  <Button
-                    onClick={() => handleSignup({ rsvp: rsvp! })}
-                    className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 flex items-center justify-center gap-2"
-                  >
-                    Verify email & send response
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <p className="text-center text-[10px] text-foreground/30 leading-relaxed">
-                  Free account · Your email is used to verify your response and let you track every show you've been to.
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {!rsvp && !showLogCta && (
-          <p className="text-[11px] text-foreground/25 text-center max-w-[220px] leading-relaxed mt-2">
-            Scene is where music fans log concerts, rank their shows, and share with friends.
-          </p>
-        )}
       </div>
     </div>
   );
