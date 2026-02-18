@@ -46,15 +46,19 @@ export function useShareShow() {
 
       // Compose share message
       const venueText = venueName ? ` at ${venueName}` : "";
+      const shareTitle =
+        type === "logged"
+          ? `What did you think of ${artistName}${venueText}?`
+          : `${inviterName} wants you at ${artistName}${venueText}`;
       const text =
         type === "logged"
-          ? `${inviterName} logged ${artistName}${venueText} on Scene 🎵 — check it out`
+          ? `${inviterName} saw ${artistName}${venueText} and wants to compare notes 🎵`
           : `${inviterName} is going to see ${artistName}${venueText} and wants you there 🎤`;
 
       // Try native share first (mobile)
       if (navigator.share) {
         try {
-          await navigator.share({ title: `Scene — ${artistName}`, text, url });
+          await navigator.share({ title: shareTitle, text, url });
           return;
         } catch (err: any) {
           // User cancelled — swallow AbortError silently
