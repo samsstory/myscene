@@ -204,7 +204,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                 </div>
                 <p className="text-xs text-foreground/50 leading-snug">
                   <span className="text-foreground/80 font-medium">{inviterDisplay}</span>
-                  {showType === "logged" ? " left their review" : " is going to this"}
+                  {showType === "logged" ? " wants to compare notes with you" : " is going to this"}
                 </p>
               </div>
 
@@ -214,7 +214,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                   {/* Section label */}
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-foreground/25 mb-2.5">
-                      Their highlights
+                      Their take
                     </p>
 
                     {/* Blurred pills with frosted overlay */}
@@ -246,7 +246,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                       onClick={() => openSignup("log")}
                       className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
                     >
-                      Log what I thought
+                      Share my take
                       <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
                     <button
@@ -294,7 +294,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                   <p className="text-sm font-semibold text-foreground">
                     {showType === "logged"
                       ? signupPath === "log"
-                        ? `Your review stays hidden until ${inviterDisplay} sees it`
+                        ? `${inviterDisplay} is waiting to compare — add yours to unlock theirs`
                         : "No worries — join Scene anyway"
                       : rsvp
                         ? `Let ${inviterDisplay} know you're ${rsvp === "going" ? "going 🎉" : rsvp === "maybe" ? "maybe going 🤔" : "not making it 😢"}`
@@ -303,7 +303,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                   <p className="text-[11px] text-foreground/40">
                     {showType === "logged"
                       ? signupPath === "log"
-                        ? `Create a free account to log ${preview?.artist_name} and compare notes`
+                        ? `Free account · Takes 30 seconds · See ${inviterDisplay}'s full review after`
                         : "Track shows you've been to and discover what your friends think"
                       : "Free account · Takes 30 seconds"}
                   </p>
