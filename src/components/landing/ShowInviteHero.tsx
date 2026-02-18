@@ -165,7 +165,8 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
       setOtpError("That code didn't work — please try again");
       setOtpCode("");
     } else {
-      navigate(`/dashboard?show=${showId}&type=${showType}&action=log${refCode ? `&ref=${refCode}` : ""}`);
+      // invite=true signals Dashboard to open the compare flow
+      navigate(`/dashboard?invite=true&show=${showId}&type=${showType}${refCode ? `&ref=${refCode}` : ""}`);
     }
   };
 
