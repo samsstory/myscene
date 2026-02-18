@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Music2, Trash2 } from "lucide-react";
+import { Plus, Music2 } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import PlanShowSheet from "./PlanShowSheet";
+import UpcomingShowDetailSheet from "./UpcomingShowDetailSheet";
 
 interface WhatsNextStripProps {
   onPlanShow?: () => void;
 }
 
-function UpcomingChip({ show, onDelete }: { show: UpcomingShow; onDelete: (id: string) => void }) {
-  const [showDelete, setShowDelete] = useState(false);
-
+function UpcomingChip({ show, onTap }: { show: UpcomingShow; onTap: (show: UpcomingShow) => void }) {
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
     : "Date TBD";
@@ -22,9 +21,9 @@ function UpcomingChip({ show, onDelete }: { show: UpcomingShow; onDelete: (id: s
     : null;
 
   return (
-    <div
-      className="relative flex-shrink-0 w-32 h-36 rounded-2xl overflow-hidden cursor-pointer select-none"
-      onClick={() => setShowDelete((v) => !v)}
+    <button
+      className="relative flex-shrink-0 w-32 h-36 rounded-2xl overflow-hidden cursor-pointer select-none text-left"
+      onClick={() => onTap(show)}
     >
       {/* Background */}
       {show.artist_image_url ? (
@@ -39,22 +38,6 @@ function UpcomingChip({ show, onDelete }: { show: UpcomingShow; onDelete: (id: s
         </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/20 to-transparent" />
-      )}
-
-      {/* Delete overlay */}
-      {showDelete && (
-        <button
-          className="absolute inset-0 flex items-center justify-center bg-black/70 z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(show.id);
-          }}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <Trash2 className="h-5 w-5 text-red-400" />
-            <span className="text-xs text-red-400 font-medium">Remove</span>
-          </div>
-        </button>
       )}
 
       {/* Content */}
@@ -73,7 +56,7 @@ function UpcomingChip({ show, onDelete }: { show: UpcomingShow; onDelete: (id: s
           {venueLabel && ` · ${venueLabel}`}
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -96,6 +79,8 @@ function AddShowChip({ onClick }: { onClick: () => void }) {
 export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const { upcomingShows, isLoading, deleteUpcomingShow } = usePlanUpcomingShow();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedShow, setSelectedShow] = useState<UpcomingShow | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const handlePlanShow = () => {
     if (onPlanShow) {
@@ -103,6 +88,11 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     } else {
       setSheetOpen(true);
     }
+  };
+
+  const handleChipTap = (show: UpcomingShow) => {
+    setSelectedShow(show);
+    setDetailOpen(true);
   };
 
   return (
@@ -164,7 +154,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
               <UpcomingChip
                 key={show.id}
                 show={show}
-                onDelete={deleteUpcomingShow}
+                onTap={handleChipTap}
               />
             ))}
             <AddShowChip onClick={handlePlanShow} />
@@ -172,7 +162,15 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         )}
       </div>
 
-      {/* Local sheet (used when no external handler passed) */}
+      {/* Detail sheet */}
+      <UpcomingShowDetailSheet
+        show={selectedShow}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onDelete={deleteUpcomingShow}
+      />
+
+      {/* Plan show sheet (used when no external handler passed) */}
       {!onPlanShow && (
         <PlanShowSheet open={sheetOpen} onOpenChange={setSheetOpen} />
       )}
