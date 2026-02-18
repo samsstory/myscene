@@ -143,7 +143,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
       email,
       options: {
         shouldCreateUser: true,
-        // No emailRedirectTo = Supabase sends 6-digit OTP code, not magic link
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     setOtpSending(false);
@@ -176,7 +176,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
       email,
       options: {
         shouldCreateUser: true,
-        // No emailRedirectTo = sends 6-digit code, not magic link
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     setOtpCode("");
@@ -516,7 +516,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                 <div className="text-center space-y-1">
                   <p className="text-sm font-semibold text-foreground">Check your email</p>
                   <p className="text-[11px] text-foreground/40">
-                    We sent a 6-digit code to <span className="text-foreground/60">{email}</span>
+                    We sent a login link to <span className="text-foreground/60">{email}</span> — click it to continue
                   </p>
                 </div>
 
