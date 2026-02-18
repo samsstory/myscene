@@ -1,74 +1,107 @@
 
-# Fix: Prefer Show Graphic Over Spotify Artist Image
+# Add Upcoming Shows to the Calendar Grid
 
-## Problem Analysis
+## What we're building
 
-The current image selection chain is:
+The calendar view in `Home.tsx` currently only shows past logged shows as solid tiles. We'll upgrade it to a unified timeline that shows both past and future shows on the same grid, with "Today" as a clear visual anchor point.
 
-```text
-User uploads screenshot(s)
-        ↓
-Edge function ignores screenshots as image candidates
-        ↓
-Spotify search runs on the extracted artist name
-        ↓
-confirmedEvent.artist_image_url = Spotify profile photo (always)
-        ↓
-Confirmation card displays Spotify photo (always)
-        ↓
-Saved upcoming show uses Spotify photo
-```
+## Current State
 
-The screenshot the user uploaded — which is often the actual show graphic or poster — is never considered as the image for the card or the saved record.
+The `renderCalendarView()` function in `src/components/Home.tsx` (lines 656-762):
+- Pulls past shows via `getShowsForDate(day)` — filtered from the `shows` state
+- Renders each match as a 32x32px tile with a photo/artist image and rank badge
+- Empty days get a faint dot
+- No awareness of upcoming shows or "today"
 
-## Desired Behavior
+The `usePlanUpcomingShow` hook already exposes `upcomingShows` with full data including `show_date`, `artist_image_url`, `artist_name`, `venue_name`, and `rsvp_status`.
+
+## Visual Design
 
 ```text
-User uploads screenshot(s)
-        ↓
-If exactly 1 screenshot → use it as the show image
-If 0 screenshots (text/URL input) → fall back to Spotify artist image
-If 2+ screenshots → fall back to Spotify artist image (ambiguous which is the show graphic)
-        ↓
-Confirmation card backdrop shows the correct image
-        ↓
-Saved upcoming show stores the correct image URL
+PAST SHOW TILE (solid)          TODAY MARKER            UPCOMING SHOW TILE (ghost)
+┌──────────────┐                 ┌──────────────┐        ┌──────────────┐
+│ [photo/img]  │                 │  date num    │        │ [artist img] │
+│   #3 badge   │                 │  (glowing    │        │  opacity 55% │
+│              │                 │   ring)      │        │  dashed bdr  │
+└──────────────┘                 └──────────────┘        │  RSVP badge  │
+Solid, full-opacity              Cyan/white glow          └──────────────┘
+Normal rank overlay              ring around date num      Going=green dot
+                                                           Maybe=amber dot
+                                                           Not going=dim dot
 ```
 
-## What Needs To Change
+## Exact Changes Required
 
-### 1. Store the screenshot as a file in cloud storage before saving
+### 1. `src/components/Home.tsx`
 
-Currently, screenshots only exist as local `blob:` preview URLs (created by `URL.createObjectURL`). These are temporary — they disappear when the session ends and can't be stored in the database.
+**Import additions (top of file):**
+- Import `usePlanUpcomingShow` from `@/hooks/usePlanUpcomingShow`
+- Import `isToday`, `isFuture`, `isPast` from `date-fns`
+- Import `CheckCircle2`, `AlertCircle` from `lucide-react`
 
-When a single screenshot was uploaded and the user hits "Add To Calendar", the file needs to be uploaded to cloud storage (`show-photos` bucket) to get a permanent URL.
+**State addition (inside `Home` component):**
+- Call `usePlanUpcomingShow()` to get `upcomingShows` — this hook already handles auth and realtime, so it's a zero-cost addition
 
-### 2. Image priority logic in `PlanShowSheet.tsx`
+**New helper function `getUpcomingShowsForDate(date: Date)`:**
+- Filters `upcomingShows` where `show.show_date` matches the given day (using `isSameDay` + `parseISO`)
 
-After parsing, set a `selectedImageUrl` in state using this priority:
+**Updated `renderCalendarView()` logic per day cell:**
 
-- **1 screenshot uploaded** → use that screenshot's local preview URL for the confirmation card UI, and upload the actual file to storage on save
-- **0 or 2+ screenshots** → use `confirmedEvent.artist_image_url` (Spotify) as before
+Each day cell now handles three possible states:
 
-### 3. Confirmation card renders `selectedImageUrl`
+- **Today**: Wrap the date number in a glowing ring (`ring-2 ring-cyan-400/70 rounded-full` with a faint glow shadow). Show shows from both `getShowsForDate` and `getUpcomingShowsForDate` if any exist.
 
-The artist card backdrop (line 391–398 in `PlanShowSheet.tsx`) currently reads `confirmedEvent.artist_image_url`. It will instead read from the new `selectedImageUrl` state.
+- **Past day with shows**: Existing solid tile rendering — unchanged, photo/artist image + rank badge overlay.
 
-### 4. Save path uploads file if needed
+- **Future day with upcoming shows**: Ghost tile — same 32x32 structure but with:
+  - `opacity-60` on the image
+  - `border border-dashed border-white/30` container
+  - Small RSVP status dot in bottom-right corner:
+    - `going` → emerald dot (`bg-emerald-400`)
+    - `maybe` → amber dot (`bg-amber-400`)
+    - `not_going` → white/10 dim dot
 
-In `handleSave`, before calling `saveUpcomingShow`:
-- If the image source is a screenshot file (not a Spotify URL), upload it to the `show-photos` Supabase storage bucket
-- Use the returned permanent public URL as `artist_image_url` in the saved record
-- If upload fails, gracefully fall back to Spotify image
+- **Empty past days**: Keep existing faint dot (`w-1.5 h-1.5 bg-muted-foreground/30`)
 
-## Files To Edit
+- **Empty future days**: Slightly lighter dot or no dot to visually indicate "ahead"
 
-**`src/components/home/PlanShowSheet.tsx`** (only file that needs changing):
-- Add `selectedImageFile` state (`File | null`) to track the screenshot file chosen as the show graphic
-- Add `selectedImageUrl` state (`string | null`) to track what's shown in the card
-- After `handleParse` resolves events, set `selectedImageFile` to `screenshots[0].file` and `selectedImageUrl` to `screenshots[0].preview` when exactly 1 screenshot exists; otherwise set both to `null` and use `confirmedEvent.artist_image_url` for the URL
-- Update the artist card backdrop JSX to use `selectedImageUrl ?? confirmedEvent.artist_image_url`
-- In `handleSave`, if `selectedImageFile` is set, upload to `show-photos` storage bucket first, then use the resulting public URL as `artist_image_url`; otherwise use `confirmedEvent?.artist_image_url`
-- Reset `selectedImageFile` and `selectedImageUrl` in `resetInputState`
+**Today marker on the date number:**
+- Currently the calendar does not render date numbers at all — we'll add a small date number label above the tile (or within the cell top) only for "today" so it stands out. This avoids cluttering every cell.
+- Alternative: simply give today's cell a subtle `bg-cyan-500/10 rounded-lg` background and a `ring-1 ring-cyan-400/40` border to make it pop without adding text.
 
-No edge function changes or database migrations are needed.
+**Click behavior for upcoming show tiles:**
+- Tap opens the existing `UpcomingShowDetailSheet` (already used in `WhatsNextStrip`)
+- Requires adding `selectedUpcomingShow` + `upcomingDetailOpen` state to `Home`, and importing `UpcomingShowDetailSheet`
+
+### 2. No database changes needed
+`upcoming_shows` table already exists with RLS. The `usePlanUpcomingShow` hook already fetches data correctly.
+
+### 3. No new files needed
+All changes are contained within `Home.tsx`, reusing existing hooks and sheets.
+
+## Implementation Order
+
+1. Add imports (`usePlanUpcomingShow`, date-fns helpers, icons, `UpcomingShowDetailSheet`)
+2. Instantiate `usePlanUpcomingShow()` inside `Home` to get `upcomingShows`
+3. Add `getUpcomingShowsForDate` helper
+4. Add `selectedUpcomingShow` + `upcomingDetailOpen` state
+5. Refactor `renderCalendarView()` day cell rendering:
+   - Today highlight ring on cell
+   - Upcoming ghost tiles with RSVP dot
+   - Click handler for upcoming tiles → detail sheet
+6. Add `<UpcomingShowDetailSheet>` to the JSX return
+
+## What this looks like end-to-end
+
+When a user navigates to their calendar for the current month, they'll see:
+- Their logged past shows as solid tiles (unchanged)
+- Today's date highlighted with a glowing ring/background
+- Any upcoming planned shows rendered as semi-transparent ghost tiles with a small colored RSVP dot
+- Tapping a ghost tile opens the existing Upcoming Show detail sheet (same one used in What's Next strip)
+- Future empty days blend subtly into the background, past empty days keep their faint dot
+
+## Technical Notes
+
+- `usePlanUpcomingShow` is already memoized with `useCallback` and subscribes to realtime changes — calling it in `Home` adds no extra network overhead
+- The `UpcomingShowDetailSheet` accepts `show`, `open`, `onOpenChange`, `onDelete`, and `onRsvpChange` props — all already wired up in `WhatsNextStrip`, so the same pattern applies here
+- The calendar currently navigates months freely (past and future), so ghost tiles will correctly appear on any future month the user browses to
