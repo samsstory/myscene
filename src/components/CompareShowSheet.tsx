@@ -138,7 +138,11 @@ export default function CompareShowSheet({
 
       if (artistsErr) console.error("Error fetching artists:", artistsErr);
 
-      // 3. Insert new show for current user
+      // Find headliner artist image to use as the show's visual
+      const headliner = artists?.find((a) => a.is_headliner) || artists?.[0];
+      const artistImageUrl = headliner?.artist_image_url || null;
+
+      // 3. Insert new show for current user (never copy inviter's custom photo)
       const { data: newShow, error: insertErr } = await supabase
         .from("shows")
         .insert({
@@ -152,6 +156,8 @@ export default function CompareShowSheet({
           event_name: show.event_name,
           event_description: show.event_description,
           notes: myNote || null,
+          // Use Spotify artist image as the visual, not inviter's personal photo
+          photo_url: artistImageUrl,
         })
         .select("id")
         .maybeSingle();
@@ -159,11 +165,16 @@ export default function CompareShowSheet({
       if (insertErr) { console.error("Error inserting show:", insertErr); return; }
       if (!newShow) { console.error("Insert returned no data"); return; }
 
-      // 4. Insert artists
+      // 4. Insert artists — destructure to exclude id so Postgres auto-generates it
       if (artists && artists.length > 0) {
-        const { error: artistInsertErr } = await supabase.from("show_artists").insert(
-          artists.map((a) => ({ ...a, show_id: newShow.id, id: undefined }))
-        );
+        const artistRows = artists.map((a) => ({
+          artist_name: a.artist_name,
+          is_headliner: a.is_headliner,
+          artist_image_url: a.artist_image_url,
+          spotify_artist_id: a.spotify_artist_id,
+          show_id: newShow.id,
+        }));
+        const { error: artistInsertErr } = await supabase.from("show_artists").insert(artistRows);
         if (artistInsertErr) console.error("Error inserting artists:", artistInsertErr);
       }
 
