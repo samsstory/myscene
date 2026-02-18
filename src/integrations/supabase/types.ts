@@ -154,6 +154,7 @@ export type Database = {
           id: string
           onboarding_completed_at: string | null
           onboarding_step: string | null
+          phone_number: string | null
           pwa_installed: boolean | null
           referral_code: string | null
           updated_at: string
@@ -169,6 +170,7 @@ export type Database = {
           id: string
           onboarding_completed_at?: string | null
           onboarding_step?: string | null
+          phone_number?: string | null
           pwa_installed?: boolean | null
           referral_code?: string | null
           updated_at?: string
@@ -184,6 +186,7 @@ export type Database = {
           id?: string
           onboarding_completed_at?: string | null
           onboarding_step?: string | null
+          phone_number?: string | null
           pwa_installed?: boolean | null
           referral_code?: string | null
           updated_at?: string

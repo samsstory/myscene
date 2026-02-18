@@ -90,6 +90,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   useEffect(() => {
     fetchProfile();
@@ -105,7 +106,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
       setEmail(user.email || "");
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("avatar_url, referral_code, username, full_name")
+        .select("avatar_url, referral_code, username, full_name, phone_number")
         .eq("id", user.id)
         .single();
       if (error && error.code !== "PGRST116") {
@@ -116,6 +117,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
         setReferralCode(profile.referral_code);
         setUsername(profile.username || "");
         setFullName(profile.full_name || "");
+        setPhoneNumber((profile as any).phone_number || "");
       }
       const { count, error: countError } = await supabase
         .from("referrals")
@@ -187,8 +189,9 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
         .from("profiles")
         .update({ 
           username: username.trim() || null,
-          full_name: fullName.trim() || null
-        })
+          full_name: fullName.trim() || null,
+          phone_number: phoneNumber.trim() || null,
+        } as any)
         .eq("id", user.id);
       if (profileError) throw profileError;
       if (email !== user.email) {
@@ -416,6 +419,16 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
+                  className="bg-white/[0.04] border-white/[0.10] text-white/80 placeholder:text-white/25 focus:border-primary/40"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-wider text-white/40">Phone Number</label>
+                <Input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+1 (555) 000-0000"
                   className="bg-white/[0.04] border-white/[0.10] text-white/80 placeholder:text-white/25 focus:border-primary/40"
                 />
               </div>
