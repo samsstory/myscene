@@ -48,7 +48,7 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
 
   // Trigger confetti celebration
   const triggerConfetti = useCallback(() => {
-    const colors = ['#22d3ee', '#f97316', '#fbbf24'];
+    const colors = ['#e2e8f0', '#94a3b8', '#22d3ee'];
     
     confetti({
       particleCount: 100,
@@ -481,9 +481,9 @@ const FocusedRankingSession = ({ open, onOpenChange, onComplete }: FocusedRankin
             style={{ top: 'calc((100vw - 2rem - 0.75rem) / 2 * 0.75 / 2 + 1rem)' }}
           >
             <div 
-              className="bg-primary text-primary-foreground font-bold text-sm px-4 py-2 rounded-full"
+              className="bg-white/[0.12] backdrop-blur-sm border border-white/[0.22] text-white/90 font-bold text-sm px-4 py-2 rounded-full"
               style={{ 
-                boxShadow: '0 0 20px hsl(var(--primary) / 0.5), 0 4px 12px rgba(0,0,0,0.3)' 
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)' 
               }}
             >
               VS

@@ -94,9 +94,8 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
               disabled={!isInteractive}
               className={cn(
                 "flex-1 relative overflow-hidden rounded-2xl transition-all duration-300",
-                "bg-gradient-to-br from-primary/[0.12] to-secondary/[0.08]",
-                "backdrop-blur-md border border-primary/20",
-                isInteractive && "hover:border-primary/40 active:scale-[0.97] cursor-pointer",
+                "bg-white/[0.06] backdrop-blur-md border border-white/[0.12]",
+                isInteractive && "hover:bg-white/[0.10] hover:border-white/[0.18] active:scale-[0.97] cursor-pointer",
                 "group"
               )}
             >
@@ -106,10 +105,10 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
               <div className="relative px-3 py-3 flex items-center justify-center gap-2">
                 {/* Pulsing dot */}
                 <div className="relative shrink-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-primary/50 animate-ping" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse" />
+                  <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-white/30 animate-ping" />
                 </div>
-                <span className="text-xs font-semibold text-primary/90 tracking-wide">
+                <span className="text-xs font-semibold text-white/80 tracking-wide">
                   {stat.label}
                 </span>
                 <ChevronRight className="w-3 h-3 text-primary/50 shrink-0" />
