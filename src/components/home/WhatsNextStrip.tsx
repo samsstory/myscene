@@ -9,6 +9,24 @@ import PlanShowSheet from "./PlanShowSheet";
 import UpcomingShowDetailSheet from "./UpcomingShowDetailSheet";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
+// ─── DEMO OVERRIDE ───────────────────────────────────────────────────────────
+// Temporary: shows 10 dummy friends on the first Mine card to preview the UI
+const DEMO_10_FRIENDS: FriendShow[] = Array.from({ length: 10 }, (_, i) => ({
+  id: `demo-friend-${i}`,
+  show_date: "2025-03-08",
+  artist_name: "Fred again..",
+  artist_image_url: null,
+  venue_name: "MSG",
+  venue_location: "New York",
+  friend: {
+    id: `demo-user-${i}`,
+    username: ["alex_burns", "janine.w", "dj_tobi", "sarah_m", "ben.c", "lucy.v", "marcus_k", "priya_d", "noah_j", "chloe_r"][i],
+    full_name: ["Alex Burns", "Janine W", "DJ Tobi", "Sarah M", "Ben C", "Lucy V", "Marcus K", "Priya D", "Noah J", "Chloe R"][i],
+    avatar_url: null,
+  },
+}));
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 interface WhatsNextStripProps {
   onPlanShow?: () => void;
@@ -593,12 +611,12 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
 
         {activeTab === "mine" && !isLoading && deduplicatedMineShows.length > 0 && (
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-            {deduplicatedMineShows.map((show) => (
+            {deduplicatedMineShows.map((show, idx) => (
               <UpcomingChip
                 key={show.id}
                 show={show}
                 friendsHere={friendsByDate.get(show.show_date ?? "") ?? []}
-                goingWith={friendOverlapByShowId.get(show.id) ?? []}
+                goingWith={idx === 0 ? DEMO_10_FRIENDS : (friendOverlapByShowId.get(show.id) ?? [])}
                 onTap={handleChipTap}
               />
             ))}
