@@ -776,6 +776,33 @@ export type Database = {
           username: string
         }[]
       }
+      get_show_invite_preview: {
+        Args: { p_show_id: string }
+        Returns: {
+          artist_image_url: string
+          artist_name: string
+          inviter_full_name: string
+          inviter_username: string
+          photo_url: string
+          show_date: string
+          show_id: string
+          venue_location: string
+          venue_name: string
+        }[]
+      }
+      get_upcoming_show_invite_preview: {
+        Args: { p_show_id: string }
+        Returns: {
+          artist_image_url: string
+          artist_name: string
+          inviter_full_name: string
+          inviter_username: string
+          show_date: string
+          show_id: string
+          venue_location: string
+          venue_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

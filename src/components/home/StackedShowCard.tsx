@@ -1,9 +1,10 @@
 import { Card } from "@/components/ui/card";
-import { Instagram } from "lucide-react";
+import { Instagram, UserPlus } from "lucide-react";
 import { cn, formatShowDate } from "@/lib/utils";
 import { forwardRef } from "react";
 import SceneLogo from "@/components/ui/SceneLogo";
 import { Badge } from "@/components/ui/badge";
+import { useShareShow } from "@/hooks/useShareShow";
 
 interface Artist {
   name: string;
@@ -45,6 +46,7 @@ interface StackedShowCardProps {
 
 const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
   ({ show, rankInfo, isExpanded, onExpand, onTap, onShare }, ref) => {
+    const { shareShow } = useShareShow();
     const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
     const artistName = headliner?.name || "Unknown Artist";
     
@@ -197,6 +199,24 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
                 <div className="text-white/50 text-xs mt-0.5 italic">
                   {show.eventDescription}
                 </div>
+              )}
+              {/* Invite pill */}
+              {!show.isLocalDemo && (
+                <button
+                  className="mt-2.5 flex items-center gap-1.5 bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.12] rounded-full px-3 py-1.5 text-[11px] font-medium text-white/70 hover:text-white/90 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    shareShow({
+                      showId: show.id,
+                      type: "logged",
+                      artistName: artistName,
+                      venueName: show.venue.name,
+                    });
+                  }}
+                >
+                  <UserPlus className="h-3 w-3" />
+                  Invite a friend
+                </button>
               )}
             </div>
             

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
-import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X, UserPlus, ChevronRight } from "lucide-react";
+import { useShareShow } from "@/hooks/useShareShow";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,7 @@ export default function UpcomingShowDetailSheet({
 }: UpcomingShowDetailSheetProps) {
   const [rsvp, setRsvp] = useState<RsvpStatus>(show?.rsvp_status ?? "going");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { shareShow } = useShareShow();
 
   // Sync RSVP state only when the selected show *changes* (different show opened),
   // not on every re-render — avoids resetting the optimistic local update.
@@ -163,6 +165,30 @@ export default function UpcomingShowDetailSheet({
                 ))}
               </div>
             </div>
+
+            {/* Invite a friend */}
+            <button
+              className="w-full flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] rounded-xl px-4 py-3 transition-all group"
+              onClick={() =>
+                shareShow({
+                  showId: show.id,
+                  type: "upcoming",
+                  artistName: show.artist_name,
+                  venueName: show.venue_name ?? undefined,
+                })
+              }
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
+                <UserPlus className="h-4 w-4 text-primary/70" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-foreground/90">Invite a friend</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Invite them to join you at {show.artist_name}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+            </button>
 
             {/* Remove */}
             <Button
