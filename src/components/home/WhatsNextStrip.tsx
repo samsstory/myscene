@@ -478,6 +478,25 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     return result;
   }, [upcomingShows, friendShows]);
 
+  /**
+   * Deduplicate Mine shows by (normalised artist_name + show_date).
+   * When duplicates exist, keep the earliest created_at entry (the "original").
+   */
+  const deduplicatedMineShows = useMemo(() => {
+    const norm = (s: string) => s.trim().toLowerCase();
+    const seen = new Map<string, UpcomingShow>();
+    for (const show of upcomingShows) {
+      const key = `${norm(show.artist_name)}|${show.show_date ?? ""}`;
+      const existing = seen.get(key);
+      if (!existing || show.created_at < existing.created_at) {
+        seen.set(key, show);
+      }
+    }
+    return Array.from(seen.values()).sort(
+      (a, b) => (a.show_date ?? "").localeCompare(b.show_date ?? "")
+    );
+  }, [upcomingShows]);
+
   /** Set of friend show IDs already shown as badges on Mine cards — hide from Friends tab */
   const overlappingFriendShowIds = useMemo(() => {
     const ids = new Set<string>();
@@ -534,7 +553,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
           </div>
 
           {/* + Add only on Mine tab */}
-          {activeTab === "mine" && upcomingShows.length > 0 && (
+          {activeTab === "mine" && deduplicatedMineShows.length > 0 && (
             <button
               onClick={handlePlanShow}
               className="text-[10px] text-white/40 hover:text-white/70 transition-colors uppercase tracking-widest"
@@ -554,7 +573,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         )}
 
         {/* ── MINE TAB ── */}
-        {activeTab === "mine" && !isLoading && upcomingShows.length === 0 && (
+        {activeTab === "mine" && !isLoading && deduplicatedMineShows.length === 0 && (
           <button
             onClick={handlePlanShow}
             className="w-full rounded-2xl border border-dashed border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-4 flex items-center gap-3"
@@ -572,9 +591,9 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
           </button>
         )}
 
-        {activeTab === "mine" && !isLoading && upcomingShows.length > 0 && (
+        {activeTab === "mine" && !isLoading && deduplicatedMineShows.length > 0 && (
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-            {upcomingShows.map((show) => (
+            {deduplicatedMineShows.map((show) => (
               <UpcomingChip
                 key={show.id}
                 show={show}
