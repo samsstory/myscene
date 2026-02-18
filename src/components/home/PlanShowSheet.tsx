@@ -292,7 +292,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                 {isParsing ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Reading...</>
                 ) : (
-                  <><Sparkles className="h-4 w-4" /> Parse with AI</>
+                  <><Sparkles className="h-4 w-4" /> Magic Add</>
                 )}
               </Button>
               <Button
