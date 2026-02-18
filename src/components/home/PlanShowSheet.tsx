@@ -269,7 +269,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-white/60">Upload screenshots</p>
-                      <p className="text-xs text-white/35 mt-0.5">Instagram, Ticketmaster, RA — add as many as you like</p>
+                      <p className="text-xs text-white/35 mt-0.5">Instagram, Ticketmaster, your group chat – add as many as you'd like</p>
                     </div>
                   </button>
                 ) : (
