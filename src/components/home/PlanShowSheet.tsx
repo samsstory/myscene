@@ -233,13 +233,18 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
             {/* Text tab */}
             {activeTab === "text" && (
-              <Textarea
-                placeholder="Paste a Ticketmaster / RA link, Instagram caption, or type artist name, venue, and date..."
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className={`min-h-[130px] resize-none text-sm ${inputFieldClass}`}
-                autoFocus
-              />
+              <>
+                <p className="text-xs text-muted-foreground/70 flex items-center gap-1">
+                  <span>💡</span> Instagram links won't work — use the <button onClick={() => setActiveTab("screenshot")} className="underline underline-offset-2 hover:text-foreground transition-colors">Screenshot tab</button> instead for Instagram posts.
+                </p>
+                <Textarea
+                  placeholder="Paste a Ticketmaster / RA link, Instagram caption, or type artist name, venue, and date..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  className={`min-h-[130px] resize-none text-sm ${inputFieldClass}`}
+                  autoFocus
+                />
+              </>
             )}
 
             {/* Screenshot tab */}
