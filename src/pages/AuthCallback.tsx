@@ -3,33 +3,50 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
+const buildInviteUrl = () => {
+  const showId = sessionStorage.getItem("invite_show_id");
+  const showType = sessionStorage.getItem("invite_show_type");
+  const refCode = sessionStorage.getItem("invite_ref");
+  if (showId && showType) {
+    return `/dashboard?invite=true&show=${showId}&type=${showType}${refCode ? `&ref=${refCode}` : ""}`;
+  }
+  return "/dashboard";
+};
+
 const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        const showId = sessionStorage.getItem("invite_show_id");
-        const showType = sessionStorage.getItem("invite_show_type");
-        const refCode = sessionStorage.getItem("invite_ref");
-
-        if (showId && showType) {
-          // invite=true signals Dashboard to open the compare flow
-          navigate(
-            `/dashboard?invite=true&show=${showId}&type=${showType}${refCode ? `&ref=${refCode}` : ""}`,
-            { replace: true }
-          );
-        } else {
-          navigate("/dashboard", { replace: true });
+    // Magic links put the token in the URL hash. Supabase exchanges it async,
+    // so we must listen for the SIGNED_IN event rather than calling getSession()
+    // immediately (which races against the token exchange).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        subscription.unsubscribe();
+        navigate(buildInviteUrl(), { replace: true });
+      } else if (event === "INITIAL_SESSION") {
+        // Already have a session (e.g. user was already logged in)
+        if (session) {
+          subscription.unsubscribe();
+          navigate(buildInviteUrl(), { replace: true });
         }
-      } else {
+        // If no session on INITIAL_SESSION, wait for SIGNED_IN from token exchange
+      } else if (event === "SIGNED_OUT") {
+        subscription.unsubscribe();
         navigate("/auth", { replace: true });
       }
-    };
+    });
 
-    handleCallback();
+    // Safety fallback: if no auth event fires in 8s, redirect to auth
+    const timeout = setTimeout(() => {
+      subscription.unsubscribe();
+      navigate("/auth", { replace: true });
+    }, 8000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, [navigate]);
 
   return (
