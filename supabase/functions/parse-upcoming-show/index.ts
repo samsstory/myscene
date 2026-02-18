@@ -49,15 +49,61 @@ async function searchSpotifyArtist(artistName: string): Promise<string | null> {
   }
 }
 
+const SYSTEM_PROMPT = `You are an upcoming concert event extractor. Given a URL, Instagram caption, plain text, or a screenshot image, extract structured event data for future concerts.
+
+Rules:
+- Extract the primary headliner artist name (properly capitalized)
+- Venue name: extract if clearly mentioned, otherwise leave empty
+- Venue location: city and/or country if present
+- Show date: ISO YYYY-MM-DD format if found; leave empty if not found
+- Ticket URL: only include if a URL is explicitly present in the input (Ticketmaster, RA, etc.)
+- Confidence: "high" = all fields clearly present, "medium" = some inference needed, "low" = significant guessing
+- If multiple events are present (e.g. a tour), extract each as a separate event
+- Artist names like "fred again" → "Fred Again..", "bicep" → "Bicep"
+- For screenshot images: read all visible text carefully including dates, venues, prices, and artist names`;
+
+const TOOL_DEFINITION = {
+  type: 'function',
+  function: {
+    name: 'extract_upcoming_events',
+    description: 'Extract structured upcoming concert/event data',
+    parameters: {
+      type: 'object',
+      properties: {
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              artist_name: { type: 'string', description: 'Primary headliner artist name, properly capitalized.' },
+              venue_name: { type: 'string', description: 'Venue name if mentioned. Empty string if not found.' },
+              venue_location: { type: 'string', description: 'City and/or country. Empty string if not found.' },
+              show_date: { type: 'string', description: 'ISO date YYYY-MM-DD. Empty string if not found.' },
+              ticket_url: { type: 'string', description: 'Ticket purchase URL if explicitly present. Empty string otherwise.' },
+              confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+            },
+            required: ['artist_name', 'venue_name', 'venue_location', 'show_date', 'ticket_url', 'confidence'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['events'],
+      additionalProperties: false,
+    },
+  },
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { input } = await req.json();
-    if (!input || input.trim().length === 0) {
-      return new Response(JSON.stringify({ error: 'No input provided', events: [] }), {
+    const body = await req.json();
+    const { input, image } = body; // image = base64 data URL e.g. "data:image/jpeg;base64,..."
+
+    if (!input && !image) {
+      return new Response(JSON.stringify({ error: 'No input or image provided', events: [] }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -66,7 +112,27 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    console.log('Parsing upcoming show input, length:', input.length);
+    // Build the user message content — multimodal if image provided
+    let userContent: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+
+    if (image) {
+      console.log('Parsing upcoming show from screenshot image');
+      userContent = [
+        {
+          type: 'image_url',
+          image_url: { url: image },
+        },
+        {
+          type: 'text',
+          text: input
+            ? `Also consider this additional context: ${input}`
+            : 'Extract all upcoming concert or event details you can see in this screenshot.',
+        },
+      ];
+    } else {
+      console.log('Parsing upcoming show from text, length:', input.length);
+      userContent = input;
+    }
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -77,57 +143,10 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
-          {
-            role: 'system',
-            content: `You are an upcoming concert event extractor. Given a URL, Instagram caption, or plain text, extract structured event data for future concerts.
-
-Rules:
-- Extract the primary headliner artist name (properly capitalized)
-- Venue name: extract if clearly mentioned, otherwise leave empty
-- Venue location: city and/or country if present
-- Show date: ISO YYYY-MM-DD format if found; leave empty if not found
-- Ticket URL: only include if a URL is explicitly present in the input (Ticketmaster, RA, etc.)
-- Confidence: "high" = all fields clearly present, "medium" = some inference needed, "low" = significant guessing
-- If multiple events are present (e.g. a tour), extract each as a separate event
-- Artist names like "fred again" → "Fred Again..", "bicep" → "Bicep"`,
-          },
-          {
-            role: 'user',
-            content: input,
-          },
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userContent },
         ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'extract_upcoming_events',
-              description: 'Extract structured upcoming concert/event data',
-              parameters: {
-                type: 'object',
-                properties: {
-                  events: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        artist_name: { type: 'string', description: 'Primary headliner artist name, properly capitalized.' },
-                        venue_name: { type: 'string', description: 'Venue name if mentioned. Empty string if not found.' },
-                        venue_location: { type: 'string', description: 'City and/or country. Empty string if not found.' },
-                        show_date: { type: 'string', description: 'ISO date YYYY-MM-DD. Empty string if not found.' },
-                        ticket_url: { type: 'string', description: 'Ticket purchase URL if explicitly present. Empty string otherwise.' },
-                        confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-                      },
-                      required: ['artist_name', 'venue_name', 'venue_location', 'show_date', 'ticket_url', 'confidence'],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ['events'],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
+        tools: [TOOL_DEFINITION],
         tool_choice: { type: 'function', function: { name: 'extract_upcoming_events' } },
       }),
     });
@@ -173,21 +192,17 @@ Rules:
     }
 
     if (parsedEvents.length === 0) {
-      return new Response(JSON.stringify({ events: [], message: 'No events could be extracted from the input.' }), {
+      return new Response(JSON.stringify({ events: [], message: 'No events could be extracted.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     console.log(`Extracted ${parsedEvents.length} events, enriching with Spotify...`);
 
-    // Enrich with Spotify artist images (parallel, non-fatal)
     const enrichedEvents = await Promise.all(
       parsedEvents.map(async (event) => {
         const artistImageUrl = await searchSpotifyArtist(event.artist_name);
-        return {
-          ...event,
-          artist_image_url: artistImageUrl,
-        };
+        return { ...event, artist_image_url: artistImageUrl };
       })
     );
 
