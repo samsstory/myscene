@@ -1,13 +1,44 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Ticket, Loader2, Music2, Calendar, MapPin, Sparkles, ImagePlus, X, Link2, Plus } from "lucide-react";
+import { ArrowLeft, Ticket, Loader2, Music2, Music, Calendar, MapPin, Sparkles, ImagePlus, X, Link2, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { usePlanUpcomingShow, type ParsedUpcomingEvent, type SaveUpcomingShowData } from "@/hooks/usePlanUpcomingShow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+interface ArtistSuggestion {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  genres?: string[];
+}
+
+function useArtistSearch(query: string) {
+  const [suggestions, setSuggestions] = useState<ArtistSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setSuggestions([]); return; }
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("search-artists", {
+          body: { searchTerm: query.trim() },
+        });
+        if (!error) setSuggestions(data?.artists || []);
+      } catch { /* silent */ } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  return { suggestions, isSearching, clearSuggestions: () => setSuggestions([]) };
+}
 
 interface PlanShowSheetProps {
   open: boolean;
@@ -67,6 +98,12 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const [editLocation, setEditLocation] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editTicketUrl, setEditTicketUrl] = useState("");
+  const [manualArtistImageUrl, setManualArtistImageUrl] = useState<string | undefined>(undefined);
+
+  // Spotify artist search for manual entry
+  const { suggestions: artistSuggestions, isSearching: isArtistSearching, clearSuggestions } = useArtistSearch(
+    stage === "manual" ? editArtist : ""
+  );
 
   const resetInputState = useCallback(() => {
     setInputText("");
@@ -202,7 +239,10 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   };
 
   const handleSave = async () => {
-    let finalImageUrl = confirmedEvent?.artist_image_url || undefined;
+    // For manual stage, prefer the Spotify image captured on artist selection
+    let finalImageUrl = stage === "manual"
+      ? manualArtistImageUrl
+      : (confirmedEvent?.artist_image_url || undefined);
 
     // If a single screenshot was chosen as the show graphic, upload it first
     if (selectedImageFile) {
@@ -231,6 +271,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
       ticket_url: editTicketUrl || undefined,
       artist_image_url: finalImageUrl,
       raw_input: inputText || undefined,
+
     };
     const ok = await saveUpcomingShow(data);
     if (ok) {
@@ -492,10 +533,65 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               <p className="text-sm text-muted-foreground">Fill in what you know</p>
             </SheetHeader>
             <div className="space-y-3">
-              <div className="relative">
-                <Music2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Artist name *" value={editArtist} onChange={(e) => setEditArtist(e.target.value)} className={`pl-9 ${inputFieldClass}`} autoFocus />
+              {/* Artist search with Spotify suggestions */}
+              <div className="space-y-2">
+                <div className="relative">
+                  {manualArtistImageUrl ? (
+                    <img src={manualArtistImageUrl} alt={editArtist} className="absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full object-cover border border-white/10" />
+                  ) : isArtistSearching ? (
+                    <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+                  ) : (
+                    <Music2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  )}
+                  <Input
+                    placeholder="Artist name *"
+                    value={editArtist}
+                    onChange={(e) => {
+                      setEditArtist(e.target.value);
+                      setManualArtistImageUrl(undefined); // clear selected image if user re-types
+                    }}
+                    className={`${manualArtistImageUrl ? "pl-11" : "pl-9"} ${inputFieldClass}`}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Spotify suggestions */}
+                {artistSuggestions.length > 0 && (
+                  <div className="space-y-1 max-h-[220px] overflow-y-auto rounded-xl border border-white/[0.08] bg-background/80 backdrop-blur-sm p-1">
+                    {artistSuggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setEditArtist(s.name);
+                          setManualArtistImageUrl(s.imageUrl || undefined);
+                          clearSuggestions();
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all",
+                          "hover:bg-primary/10 hover:border-primary/30",
+                          "border border-transparent"
+                        )}
+                      >
+                        {s.imageUrl ? (
+                          <img src={s.imageUrl} alt={s.name} className="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
+                            <Music className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{s.name}</div>
+                          {s.genres && s.genres.length > 0 && (
+                            <div className="text-xs text-muted-foreground truncate">{s.genres.join(", ")}</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Venue name (optional)" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} className={`pl-9 ${inputFieldClass}`} />
@@ -518,6 +614,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
             </Button>
           </div>
         )}
+
       </SheetContent>
     </Sheet>
   );
