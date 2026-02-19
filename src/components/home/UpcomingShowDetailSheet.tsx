@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
-import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X, UserPlus, ChevronRight } from "lucide-react";
+import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X, UserPlus, ChevronRight, Link, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useShareShow } from "@/hooks/useShareShow";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -58,14 +60,41 @@ export default function UpcomingShowDetailSheet({
   goingWith = [],
 }: UpcomingShowDetailSheetProps) {
   const [rsvp, setRsvp] = useState<RsvpStatus>(show?.rsvp_status ?? "going");
+  const [addingTicket, setAddingTicket] = useState(false);
+  const [ticketInput, setTicketInput] = useState("");
+  const [isSavingTicket, setIsSavingTicket] = useState(false);
+  const [localTicketUrl, setLocalTicketUrl] = useState<string | null>(show?.ticket_url ?? null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { shareShow } = useShareShow();
 
-  // Sync RSVP state only when the selected show *changes* (different show opened),
-  // not on every re-render — avoids resetting the optimistic local update.
+  // Sync state only when the selected show *changes*
   useEffect(() => {
     if (show?.rsvp_status) setRsvp(show.rsvp_status);
+    setLocalTicketUrl(show?.ticket_url ?? null);
+    setAddingTicket(false);
+    setTicketInput("");
   }, [show?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveTicket = async () => {
+    if (!ticketInput.trim() || !show) return;
+    setIsSavingTicket(true);
+    try {
+      const url = ticketInput.trim();
+      const { error } = await supabase
+        .from("upcoming_shows" as any)
+        .update({ ticket_url: url })
+        .eq("id", show.id);
+      if (error) throw error;
+      setLocalTicketUrl(url);
+      setAddingTicket(false);
+      setTicketInput("");
+      toast.success("Ticket link saved!");
+    } catch {
+      toast.error("Failed to save ticket link");
+    } finally {
+      setIsSavingTicket(false);
+    }
+  };
 
   if (!show) return null;
 
@@ -138,9 +167,9 @@ export default function UpcomingShowDetailSheet({
                   </span>
                 </div>
               )}
-              {show.ticket_url && (
+              {localTicketUrl ? (
                 <a
-                  href={show.ticket_url}
+                  href={localTicketUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-primary hover:underline"
@@ -148,6 +177,42 @@ export default function UpcomingShowDetailSheet({
                   <Ticket className="h-4 w-4 flex-shrink-0" />
                   View Tickets
                 </a>
+              ) : addingTicket ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    value={ticketInput}
+                    onChange={(e) => setTicketInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveTicket()}
+                    placeholder="Paste ticket link…"
+                    autoFocus
+                    className="flex-1 text-sm bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-1.5 text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50 transition-colors"
+                  />
+                  <button
+                    onClick={handleSaveTicket}
+                    disabled={isSavingTicket || !ticketInput.trim()}
+                    className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 hover:bg-primary/30 disabled:opacity-40 transition-colors"
+                  >
+                    <Send className="h-3.5 w-3.5 text-primary" />
+                  </button>
+                  <button
+                    onClick={() => { setAddingTicket(false); setTicketInput(""); }}
+                    className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg hover:bg-white/[0.06] transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingTicket(true)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground/70 hover:text-muted-foreground transition-colors group"
+                >
+                  <Link className="h-4 w-4 flex-shrink-0" />
+                  <span>Add ticket link</span>
+                  <span className="text-[10px] bg-white/[0.06] border border-white/[0.08] rounded px-1.5 py-0.5 text-muted-foreground/50 group-hover:border-white/[0.14] transition-colors ml-1">
+                    Help your friends out
+                  </span>
+                </button>
               )}
               <a
                 href={`https://open.spotify.com/search/${encodeURIComponent(show.artist_name)}`}
