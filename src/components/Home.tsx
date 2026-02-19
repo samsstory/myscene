@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isToday, isFuture } from "date-fns";
 import { usePlanUpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import UpcomingShowDetailSheet from "@/components/home/UpcomingShowDetailSheet";
+import ScheduleView from "@/components/home/ScheduleView";
 
 import { ShowReviewSheet } from "./ShowReviewSheet";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
@@ -162,7 +163,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const { upcomingShows, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
   const { following, followers } = useFollowers();
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
-  const { friendsByDate } = useFriendUpcomingShows(followingIds);
+  const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
   const { items: activityItems, isLoading: activityLoading } = useFriendActivity(followingIds);
   
   // Normalizer for PhotoOverlayEditor show format
@@ -1176,7 +1177,21 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         >
           {viewMode === 'home' && renderHomeView()}
 
-          {viewMode === 'calendar' && renderCalendarView()}
+          {viewMode === 'calendar' && (
+            <ScheduleView
+              shows={shows}
+              rankings={rankings}
+              upcomingShows={upcomingShows}
+              friendsByDate={friendsByDate}
+              friendShows={friendShows}
+              onShowTap={handleShowTap}
+              onUpcomingTap={(show) => { setSelectedUpcomingShow(show); setUpcomingDetailOpen(true); }}
+              onPlanShow={() => setPlanShowOpen(true)}
+              calendarFriendsMode={calendarFriendsMode}
+              onToggleFriendsMode={() => setCalendarFriendsMode(v => !v)}
+              followingCount={following.length}
+            />
+          )}
 
           {viewMode === 'globe' && (
             <MapView
@@ -1295,6 +1310,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           setUpcomingDetailOpen(false);
         }}
         onRsvpChange={updateRsvpStatus}
+        goingWith={selectedUpcomingShow
+          ? friendShows.filter(fs => fs.show_date === selectedUpcomingShow.show_date)
+          : []}
       />
 
       {/* Friends-on-Day sheet (from calendar friends overlay tap) */}
