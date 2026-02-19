@@ -33,7 +33,7 @@ Switching tabs feels like a snappy content slide, not a page reload. Header neve
 
 ---
 
-## Phase 2 — Horizontal Pill Sub-Nav (Spotify Filter Row)
+## Phase 2 — Horizontal Pill Sub-Nav (Spotify Filter Row) ✅ COMPLETE
 > **Effort:** Medium | **Risk:** Low | **Impact:** High discoverability + familiar UX
 
 ### What

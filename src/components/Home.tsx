@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { motion, AnimatePresence } from "framer-motion";
 import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X, UserCircle, Tag, Camera, Users } from "lucide-react";
+import ContentPillNav, { type ContentView } from "./home/ContentPillNav";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isToday, isFuture } from "date-fns";
 import { usePlanUpcomingShow } from "@/hooks/usePlanUpcomingShow";
@@ -68,7 +70,7 @@ interface ShowRanking {
   comparisons_count: number;
 }
 
-type ViewMode = 'home' | 'calendar' | 'rankings' | 'globe';
+type ViewMode = ContentView;
 
 interface HomeProps {
   onNavigateToRank?: () => void;
@@ -1031,40 +1033,38 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
   return (
     <div className="space-y-4">
-      {viewMode === 'home' && renderHomeView()}
-      
-      {viewMode === 'calendar' && (
-        <>
-          {renderSubViewHeader('Show Calendar')}
-          {renderCalendarView()}
-        </>
-      )}
-      
-      {viewMode === 'rankings' && (
-        <>
-          {renderSubViewHeader('Top Ranked Shows')}
-          {renderRankingsView()}
-        </>
-      )}
-      
-      {viewMode === 'globe' && (
-        <>
-          {renderSubViewHeader('Show Globe')}
-          <MapView 
-            shows={shows} 
-            onEditShow={show => {
-              setEditShow(show);
-              setEditDialogOpen(true);
-            }}
-            onAddFromPhotos={onAddFromPhotos}
-            onAddSingleShow={onAddSingleShow}
-            onShowTap={(show) => {
-              setReviewShow(show);
-              setReviewSheetOpen(true);
-            }}
-          />
-        </>
-      )}
+      {/* Spotify-style horizontal pill sub-nav */}
+      <ContentPillNav
+        activeView={viewMode}
+        onViewChange={(v) => setViewMode(v)}
+        rankNudge={stats.unrankedCount > 0 || stats.incompleteTagsCount > 0}
+      />
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={viewMode}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
+          {viewMode === 'home' && renderHomeView()}
+
+          {viewMode === 'calendar' && renderCalendarView()}
+
+          {viewMode === 'globe' && (
+            <MapView
+              shows={shows}
+              onEditShow={show => { setEditShow(show); setEditDialogOpen(true); }}
+              onAddFromPhotos={onAddFromPhotos}
+              onAddSingleShow={onAddSingleShow}
+              onShowTap={(show) => { setReviewShow(show); setReviewSheetOpen(true); }}
+            />
+          )}
+
+          {viewMode === 'rankings' && renderRankingsView()}
+        </motion.div>
+      </AnimatePresence>
 
       
       {/* Incomplete Tags Sheet */}
