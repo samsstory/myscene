@@ -178,21 +178,63 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
     );
   }
 
-  if (weekShows.length === 0) return null;
+  // ── DUMMY DATA for preview/testing ──────────────────────────────────────────
+  const DUMMY_SHOWS: WeekShow[] = [
+    {
+      key: "dummy-1",
+      artistName: "Fred again..",
+      artistImageUrl: "/images/fred-again-msg.webp",
+      venueName: "MSG",
+      showDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      friends: [
+        { id: "d1", username: "alex_b", full_name: "Alex Burns", avatar_url: null },
+        { id: "d2", username: "jess_m", full_name: "Jess M", avatar_url: null },
+      ],
+    },
+    {
+      key: "dummy-2",
+      artistName: "Jamie xx",
+      artistImageUrl: "/images/jamie-xx-printworks.webp",
+      venueName: "Printworks London",
+      showDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      friends: [
+        { id: "d3", username: "mia_k", full_name: "Mia K", avatar_url: null },
+      ],
+    },
+    {
+      key: "dummy-3",
+      artistName: "Mau P",
+      artistImageUrl: "/images/mau-p-concert.png",
+      venueName: "Fabric",
+      showDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      friends: [
+        { id: "d4", username: "sam_r", full_name: "Sam R", avatar_url: null },
+        { id: "d5", username: "cal_w", full_name: "Cal W", avatar_url: null },
+        { id: "d6", username: "dana_l", full_name: "Dana L", avatar_url: null },
+        { id: "d7", username: "rio_p", full_name: "Rio P", avatar_url: null },
+      ],
+    },
+  ];
+
+  const displayShows = weekShows.length > 0 ? weekShows : DUMMY_SHOWS;
+  const isDummy = weekShows.length === 0;
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-primary/[0.05] p-4 space-y-3">
+    <div className={`rounded-2xl border p-4 space-y-3 ${isDummy ? "border-white/[0.10] bg-white/[0.03]" : "border-primary/20 bg-primary/[0.05]"}`}>
       {/* Label */}
       <div className="flex items-center gap-2">
-        <Ticket className="h-3.5 w-3.5 text-primary/70" />
-        <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-primary/70">
+        <Ticket className={`h-3.5 w-3.5 ${isDummy ? "text-white/30" : "text-primary/70"}`} />
+        <span className={`text-[11px] uppercase tracking-[0.18em] font-semibold ${isDummy ? "text-white/30" : "text-primary/70"}`}>
           Who's going this week
         </span>
+        {isDummy && (
+          <span className="ml-auto text-[10px] text-white/20 border border-white/10 rounded-full px-2 py-0.5">Preview</span>
+        )}
       </div>
 
       {/* Show rows */}
       <div className="space-y-2.5">
-        {weekShows.map((show, i) => (
+        {displayShows.map((show, i) => (
           <motion.div
             key={show.key}
             initial={{ opacity: 0, y: 6 }}
@@ -279,8 +321,8 @@ export default function FriendsPanelView() {
         )}
       </div>
 
-      {/* Who's going this week — shown only when following people */}
-      {following.length > 0 && <WhosGoingCard followingIds={followingIds} />}
+      {/* Who's going this week — always shown (dummy data when no friends yet) */}
+      <WhosGoingCard followingIds={followingIds} />
 
       {/* Tab switcher — Activity | Find Friends */}
       <div className="flex items-center gap-1">
