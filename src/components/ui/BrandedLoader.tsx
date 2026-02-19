@@ -23,6 +23,16 @@ const FALLBACK_QUOTE = {
 const DEFAULT_QUOTE_DELAY_MS = 800;
 const DEFAULT_MIN_QUOTE_DISPLAY_MS = 1500;
 
+// Quotes only show on the very first app open per browser session.
+// Once seen, the flag is set and quotes never appear again until the tab/session is closed.
+const isFirstOpen = (): boolean => {
+  if (sessionStorage.getItem("scene-app-opened")) return false;
+  sessionStorage.setItem("scene-app-opened", "1");
+  return true;
+};
+
+const SHOW_QUOTE_THIS_SESSION = isFirstOpen();
+
 const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showReassurance = false, onQuoteVisible, onReadyToDismiss }: BrandedLoaderProps) => {
   const [quote, setQuote] = useState(FALLBACK_QUOTE);
   const [quoteVisible, setQuoteVisible] = useState(false);
@@ -33,8 +43,15 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showRe
   onVisibleRef.current = onQuoteVisible;
   const timingRef = useRef({ delay: DEFAULT_QUOTE_DELAY_MS, minDisplay: DEFAULT_MIN_QUOTE_DISPLAY_MS });
 
+  // Only show quote on very first open of the app session
+  const shouldShowQuote = showQuote && SHOW_QUOTE_THIS_SESSION;
+
   useEffect(() => {
-    if (!showQuote) return;
+    if (!shouldShowQuote) {
+      // Still fire onReadyToDismiss immediately so the loader doesn't get held open
+      onReadyRef.current?.();
+      return;
+    }
 
     let cancelled = false;
 
@@ -76,7 +93,7 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showRe
 
     init().catch(() => {});
     return () => { cancelled = true; };
-  }, [showQuote]);
+  }, [shouldShowQuote]);
 
   // Expose a "safe to dismiss" signal once the quote has been visible long enough
   useEffect(() => {
@@ -93,7 +110,7 @@ const BrandedLoader = ({ className, showQuote = true, fullScreen = false, showRe
         <SceneLogo size="lg" className="text-2xl" />
       </div>
       <AnimatePresence>
-        {showQuote && quoteVisible && (
+        {shouldShowQuote && quoteVisible && (
           <motion.p
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
