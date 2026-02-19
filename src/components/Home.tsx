@@ -139,8 +139,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [selectedUpcomingShow, setSelectedUpcomingShow] = useState<import("@/hooks/usePlanUpcomingShow").UpcomingShow | null>(null);
   const [upcomingDetailOpen, setUpcomingDetailOpen] = useState(false);
 
-  // Activity/Recent tab state
-  const [feedTab, setFeedTab] = useState<"activity" | "recent">("activity");
+  // (feedTab removed — Scene Feed replaces the tab switcher)
 
   // Calendar: Friends overlay toggle + friends-on-day sheet
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
@@ -453,7 +452,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
   // Render functions for sub-views
   const renderHomeView = () => {
-    const recentShows = shows.slice(0, 5);
     const highlightShows = getHighlightShows();
     
     return (
@@ -481,61 +479,20 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           </>
         )}
 
-        {/* Activity / Recent Shows tabs */}
+        {/* Scene Feed — social-first */}
         <div className="space-y-3">
-          {/* Tab switcher */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setFeedTab("activity")}
-              className={`flex-1 px-4 py-2.5 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-300 border backdrop-blur-md ${
-                feedTab === "activity"
-                  ? "bg-white/[0.10] border-white/[0.18] text-white/90"
-                  : "bg-white/[0.04] border-white/[0.06] text-white/50 hover:bg-white/[0.08] hover:border-white/[0.12] hover:text-white/70"
-              }`}
-            >
-              Activity
-            </button>
-            <button
-              onClick={() => setFeedTab("recent")}
-              className={`flex-1 px-4 py-2.5 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-300 border backdrop-blur-md ${
-                feedTab === "recent"
-                  ? "bg-white/[0.10] border-white/[0.18] text-white/90"
-                  : "bg-white/[0.04] border-white/[0.06] text-white/50 hover:bg-white/[0.08] hover:border-white/[0.12] hover:text-white/70"
-              }`}
-            >
-              Recent Shows
-            </button>
-          </div>
-
-          {/* Activity feed */}
-          {feedTab === "activity" && (
-            <FriendActivityFeed
-              items={activityItems}
-              isLoading={activityLoading}
-              hasFollowing={following.length > 0}
-            />
-          )}
-
-          {/* Recent shows */}
-          {feedTab === "recent" && (
-            <>
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-28 w-full rounded-xl" />
-                  ))}
-                </div>
-              ) : (
-                <StackedShowList
-                  shows={recentShows}
-                  getRankInfo={getShowRankInfo}
-                  onShowTap={handleShowTap}
-                  onShowShare={handleShareFromCard}
-                />
-              )}
-              {recentShows.length > 0 && <FriendTeaser />}
-            </>
-          )}
+          <h3
+            className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+            style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+          >
+            Scene Feed
+          </h3>
+          <FriendActivityFeed
+            items={activityItems}
+            isLoading={activityLoading}
+            hasFollowing={following.length > 0}
+            onFindFriends={() => setViewMode("friends")}
+          />
         </div>
       </div>
     );
@@ -544,9 +501,45 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const renderRankingsView = () => {
     const sortedShows = getSortedShows();
     const filteredShowIds = sortedShows.map(s => s.id);
+    const recentShows = shows.slice(0, 5);
     
     return (
       <div className="space-y-4">
+
+        {/* Recent Shows — shown when no search query active */}
+        {!rankingsSearch.trim() && recentShows.length > 0 && (
+          <div className="space-y-3">
+            <h3
+              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+            >
+              Recent Shows
+            </h3>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-28 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <StackedShowList
+                shows={recentShows}
+                getRankInfo={getShowRankInfo}
+                onShowTap={handleShowTap}
+                onShowShare={handleShareFromCard}
+              />
+            )}
+            <div className="border-t border-white/[0.06] pt-4">
+              <h3
+                className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60 mb-4"
+                style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+              >
+                All Shows
+              </h3>
+            </div>
+          </div>
+        )}
+
         {/* Search bar - glassmorphism styled */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
