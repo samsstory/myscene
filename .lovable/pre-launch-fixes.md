@@ -98,3 +98,69 @@ Phase 1A (SpotlightTour)  →  1B (BulkUpload nav)  →  1C (Dual calendar)
 | 4A. Pill naming review | ⬜ Todo |
 | 4B. Micro-interactions | ⬜ Todo |
 | 4C. Loading experience | ⬜ Todo |
+| **5. Engagement Pulse analytics tab** | ⬜ Todo |
+
+---
+
+## Phase 5 — Engagement Pulse Analytics Tab
+> **Priority:** P1 | **Goal:** Data-driven launch insights for first 50 beta users
+
+### Core Framework: Hooked Model Mapping
+
+| Hooked Stage | Scene Action | Key Metric |
+|--------------|-------------|------------|
+| **Trigger** | Friend adds upcoming show / push notification | Notification open rate, friend activity views per session |
+| **Action** | View friend's calendar, add own upcoming show | Upcoming shows added, Schedule tab views |
+| **Variable Reward** | Discover shared show, see ranking evolve | "Same show" discoveries, ranking sessions completed |
+| **Investment** | Follow friends, log past shows, complete rankings | Friends followed, shows logged, comparisons done |
+
+### Aha Moment Hypothesis
+> **"Users who see a friend's upcoming show within their first 3 sessions retain at 2x the rate."**
+> Secondary: Users who add 3+ shows in their first week.
+
+### 5A. Event Tracking Infrastructure
+Track these events (store in a `user_analytics_events` table):
+- `show_added` (past vs upcoming, with timestamp)
+- `friend_followed`
+- `friend_show_viewed` (viewed another user's show detail)
+- `schedule_tab_opened`
+- `ranking_session_completed` (number of comparisons)
+- `shared_show_discovered` (user + friend going to same show)
+- `push_notification_opened`
+- `session_start` (with session count for the user)
+
+### 5B. Admin Tab — 3 Sections
+
+#### Section 1: Activation Funnel
+| Metric | Description |
+|--------|-------------|
+| Signup → First show added | Basic activation rate + median time |
+| Signup → First friend followed | Social activation rate + median time |
+| Signup → First upcoming show added | Calendar activation |
+| Signup → Viewed a friend's show | **Aha moment reached** |
+| Time-to-each-milestone | Speed = product-market fit signal |
+
+#### Section 2: Habit Metrics
+| Metric | Description |
+|--------|-------------|
+| DAU / WAU ratio | Stickiness (target >25% for social) |
+| Shows added per user per week | Content creation velocity |
+| Friends panel views per session | Social engagement depth |
+| Return within 48h of adding a show | Investment → trigger loop closure |
+| Users with 3+ friends followed | "Magic number" threshold to validate |
+
+#### Section 3: Smart Recommendations (Hybrid)
+- **Rule-based cards** for known patterns:
+  - "X users have 0 friends — consider friend suggestion nudge"
+  - "Only Y% add upcoming shows after logging past shows — add post-log prompt"
+  - "Z% of users haven't returned in 7 days — trigger re-engagement push"
+- **AI-powered weekly digest** (Lovable AI / Gemini Flash):
+  - Analyze cohort behavior, surface unexpected correlations
+  - Natural-language summary: "Users who add shows on weekends retain 40% better — consider a Friday evening push notification"
+
+### 5C. Implementation Plan
+1. Create `user_analytics_events` table with RLS
+2. Add lightweight event tracking hook (`useTrackEvent`) to frontend
+3. Instrument key touchpoints (show add, friend follow, schedule view, etc.)
+4. Build admin "Engagement Pulse" tab with charts (recharts) + recommendation cards
+5. Add AI analysis edge function for weekly digest
