@@ -279,7 +279,7 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
       <div className="flex items-center gap-2">
         <Ticket className={`h-3.5 w-3.5 ${isDummy ? "text-white/30" : "text-primary/70"}`} />
         <span className={`text-[11px] uppercase tracking-[0.18em] font-semibold ${isDummy ? "text-white/30" : "text-primary/70"}`}>
-          Who's going this week
+          My Scene This Week
         </span>
         {isDummy && (
           <span className="ml-auto text-[10px] text-white/20 border border-white/10 rounded-full px-2 py-0.5">Preview</span>
