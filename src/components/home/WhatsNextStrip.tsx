@@ -476,7 +476,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
 
-  const [activeTab, setActiveTab] = useState<"mine" | "friends">("mine");
+  const [activeTab, setActiveTab] = useState<"mine" | "friends" | "discover">("mine");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedShow, setSelectedShow] = useState<UpcomingShow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -672,6 +672,20 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
                 </span>
               )}
             </button>
+            {/* Discover pill — coming soon */}
+            <button
+              onClick={() => setActiveTab("discover")}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.12em] transition-all ${
+                activeTab === "discover"
+                  ? "bg-white/[0.10] text-white/50 border border-white/15"
+                  : "text-white/25 hover:text-white/40"
+              }`}
+            >
+              Discover
+              <span className="text-[8px] font-bold leading-none px-1 py-0.5 rounded-full bg-white/10 text-white/35 tracking-wide normal-case">
+                Soon
+              </span>
+            </button>
           </div>
 
           {/* + Add only on Mine tab */}
@@ -752,6 +766,17 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
                 onToggle={(s, e) => handleToggleFriendShow(s, e)}
               />
             ))}
+          </div>
+        )}
+
+        {/* ── DISCOVER TAB — coming soon ── */}
+        {activeTab === "discover" && (
+          <div className="w-full rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-5 flex flex-col items-center gap-2 text-center">
+            <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center mb-1">
+              <Music2 className="h-4 w-4 text-white/30" />
+            </div>
+            <p className="text-sm font-medium text-white/40">Discover is coming soon</p>
+            <p className="text-xs text-white/25 max-w-[200px]">Find upcoming shows from artists you love, near you</p>
           </div>
         )}
 
