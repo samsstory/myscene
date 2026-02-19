@@ -809,6 +809,14 @@ export type Database = {
           username: string
         }[]
       }
+      get_referral_rank: {
+        Args: { _user_id: string }
+        Returns: {
+          invite_count: number
+          total_inviters: number
+          user_rank: number
+        }[]
+      }
       get_show_invite_preview: {
         Args: { p_show_id: string }
         Returns: {
