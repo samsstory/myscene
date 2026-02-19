@@ -325,16 +325,16 @@ export default function FriendsPanelView() {
       <WhosGoingCard followingIds={followingIds} />
 
       {/* Tab switcher — Activity | Find Friends */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.07] w-fit">
         {(["activity", "find"] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.12em] transition-all border",
+              "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === tab
-                ? "bg-primary/20 border-primary/40 text-primary"
-                : "bg-white/[0.05] border-white/[0.08] text-white/40 hover:text-white/60"
+                ? "bg-white/[0.10] text-white/90 shadow-sm"
+                : "text-white/35 hover:text-white/55"
             )}
           >
             {tab === "activity" ? "Activity" : "Find Friends"}
