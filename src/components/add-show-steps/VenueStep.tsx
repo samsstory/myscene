@@ -15,10 +15,10 @@ interface VenueStepProps {
   value: string;
   location: string;
   locationFilter: string;
-  showType: 'show' | 'showcase' | 'festival';
+  showType: 'set' | 'show' | 'festival';
   onSelect: (venue: string, location: string, venueId: string | null, latitude?: number, longitude?: number) => void;
   onLocationFilterChange: (filter: string) => void;
-  onShowTypeChange: (type: 'show' | 'showcase' | 'festival') => void;
+  onShowTypeChange: (type: 'set' | 'show' | 'festival') => void;
   isLoadingDefaultCity?: boolean;
   isEditing?: boolean;
   onSave?: () => void;
@@ -386,9 +386,9 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   const getPlaceholder = () => {
     switch (showType) {
-      case 'show':
+      case 'set':
         return 'Search for venue...';
-      case 'showcase':
+      case 'show':
         return 'Search for venue...';
       case 'festival':
         return 'Search for venue or grounds...';
@@ -399,9 +399,9 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
 
   const getManualEntryLabel = () => {
     switch (showType) {
-      case 'show':
+      case 'set':
         return 'New venue';
-      case 'showcase':
+      case 'show':
         return 'New venue';
       case 'festival':
         return 'New venue / grounds';

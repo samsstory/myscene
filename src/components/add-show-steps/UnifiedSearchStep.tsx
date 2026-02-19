@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export type SearchResultType = 'artist' | 'venue';
-export type UnifiedShowType = 'show' | 'showcase' | 'festival';
+export type UnifiedShowType = 'set' | 'show' | 'festival';
 
 interface UnifiedSearchResult {
   type: SearchResultType;
@@ -27,22 +27,22 @@ interface UnifiedSearchStepProps {
   showType?: UnifiedShowType;
 }
 
-const UnifiedSearchStep = ({ onSelect, showType = 'show' }: UnifiedSearchStepProps) => {
+const UnifiedSearchStep = ({ onSelect, showType = 'set' }: UnifiedSearchStepProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
 
-  const isEventMode = showType === 'showcase' || showType === 'festival';
+  const isEventMode = showType === 'show' || showType === 'festival';
 
   const getHeading = () => {
-    if (showType === 'showcase') return 'Name this event or night';
+    if (showType === 'show') return 'Name this event or night';
     if (showType === 'festival') return 'Name this festival';
     return 'Search for an artist';
   };
 
   const getPlaceholder = () => {
-    if (showType === 'showcase') return 'Elrow, Circoloco, Anjunadeep...';
+    if (showType === 'show') return 'Elrow, Circoloco, Anjunadeep...';
     if (showType === 'festival') return 'Coachella, EDC, ARC...';
     return 'Search artists...';
   };
