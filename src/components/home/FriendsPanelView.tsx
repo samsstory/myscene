@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPlus, Users, Search, Loader2, UserCheck, Calendar, Music2, Zap, Ticket } from "lucide-react";
+import { UserPlus, Users, Search, Loader2, UserCheck, Calendar, Zap, Music2, Ticket } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format, parseISO, addDays, startOfDay } from "date-fns";
@@ -11,27 +11,40 @@ import { useProfileSearch } from "@/hooks/useProfileSearch";
 
 type FilterTab = "all" | "upcoming" | "logged";
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function buildHeadline(item: FriendActivityItem, friendName: string): string {
+  const artist = item.artistName;
+  const at = item.venueName ? ` at ${item.venueName}` : "";
+  const friendCount = item.sharedFriends ? item.sharedFriends.length + 1 : 2;
+
+  if (item.signal === "shared")    return `You and ${friendName} are both going to ${artist}${at}`;
+  if (item.signal === "multi-friend") return `${friendCount} friends are going to ${artist}${at}`;
+  if (item.signal === "high-rating") return `${friendName} ranked ${artist}${at} among their best`;
+  if (item.type === "upcoming")    return `${friendName} is going to ${artist}${at}`;
+  return `${friendName} added ${artist}${at} to their Scene`;
+}
+
+// ─── Activity Card ────────────────────────────────────────────────────────────
 
 function ActivityCard({ item }: { item: FriendActivityItem }) {
   const friendName = item.friend.full_name || item.friend.username || "Someone";
   const dateStr = item.showDate ? format(parseISO(item.showDate), "MMM d") : null;
   const isShared = item.signal === "shared";
   const isMulti = item.signal === "multi-friend";
-  const isHighRating = item.signal === "high-rating";
   const displayImage = item.photoUrl || item.artistImageUrl;
+  const headline = buildHeadline(item, friendName);
 
   return (
     <div className={cn(
       "relative rounded-2xl overflow-hidden border",
       isShared ? "border-primary/30" : isMulti ? "border-violet-500/25" : "border-white/[0.07]"
     )}>
-      {/* Background image with overlay */}
+      {/* Full-bleed background */}
       {displayImage && (
         <div className="absolute inset-0">
           <img src={displayImage} alt={item.artistName} className="w-full h-full object-cover scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/65 to-black/35" />
         </div>
       )}
       {!displayImage && (
@@ -42,68 +55,52 @@ function ActivityCard({ item }: { item: FriendActivityItem }) {
       )}
 
       {/* Content */}
-      <div className="relative px-4 py-3.5 flex items-end gap-3">
+      <div className="relative px-4 py-3.5 flex items-start gap-3">
         {/* Friend avatar */}
-        <div className="flex-shrink-0 mb-0.5">
+        <div className="flex-shrink-0 mt-0.5">
           <Avatar className="h-8 w-8 border border-white/20">
             <AvatarImage src={item.friend.avatar_url ?? undefined} />
-            <AvatarFallback className="text-xs bg-white/10 text-white/70">{friendName.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="text-xs bg-white/10 text-white/70">
+              {friendName.charAt(0).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
         </div>
 
         {/* Text info */}
         <div className="flex-1 min-w-0">
-          {/* Signal label */}
-          {(isShared || isMulti || isHighRating) && (
-            <p className={cn(
-              "text-[10px] font-semibold uppercase tracking-[0.18em] mb-0.5",
-              isShared ? "text-primary/90" : isMulti ? "text-violet-400/90" : "text-white/60"
-            )}
-              style={{ textShadow: isShared ? "0 0 8px hsl(var(--primary)/0.5)" : undefined }}
-            >
-              {isShared ? "You're going too" : isMulti ? "Friends are going" : "Top ranked"}
-            </p>
-          )}
-
-          {/* Artist name */}
+          {/* Narrative headline — primary story */}
           <p
-            className="text-base font-bold text-white/95 leading-tight truncate"
-            style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
+            className="text-sm font-semibold text-white/95 leading-snug"
+            style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
           >
-            {item.artistName}
+            {headline}
           </p>
 
-          {/* Venue · date */}
-          <p className="text-[11px] text-white/50 truncate mt-0.5">
-            {[item.venueName, item.venueLocation, dateStr].filter(Boolean).join(" · ")}
+          {/* Date + location */}
+          <p className="text-[11px] text-white/45 mt-1 truncate">
+            {[dateStr, item.venueLocation].filter(Boolean).join(" · ")}
           </p>
 
-          {/* Narrative line */}
-          <p className="text-[11px] text-white/40 mt-1.5">
-            {item.type === "upcoming"
-              ? `${friendName} has this one on their radar`
-              : `${friendName} was there`}
-          </p>
-
-          {/* Shared friends stack */}
+          {/* Shared friends stack for multi-friend signal */}
           {item.sharedFriends && item.sharedFriends.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-1.5">
+            <div className="flex items-center gap-1.5 mt-2">
               <div className="flex -space-x-1.5">
                 {item.sharedFriends.slice(0, 3).map(f => (
                   <Avatar key={f.id} className="h-5 w-5 border border-background">
                     <AvatarImage src={f.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-[8px] bg-white/10">{(f.full_name || f.username || "?").charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="text-[8px] bg-white/10">
+                      {(f.full_name || f.username || "?").charAt(0).toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                 ))}
               </div>
-              <span className="text-[11px] text-white/35">+{item.sharedFriends.length} also going</span>
             </div>
           )}
         </div>
 
-        {/* Type badge (upcoming/logged) */}
+        {/* Type badge */}
         <div className={cn(
-          "flex-shrink-0 self-start w-7 h-7 rounded-full border flex items-center justify-center",
+          "flex-shrink-0 w-7 h-7 rounded-full border flex items-center justify-center",
           item.type === "upcoming" ? "bg-primary/20 border-primary/30" : "bg-emerald-500/20 border-emerald-500/30"
         )}>
           {item.type === "upcoming"
@@ -115,7 +112,6 @@ function ActivityCard({ item }: { item: FriendActivityItem }) {
   );
 }
 
-
 // ─── Find Friends ─────────────────────────────────────────────────────────────
 
 function FindFriendsSection() {
@@ -126,8 +122,18 @@ function FindFriendsSection() {
   return (
     <div className="space-y-3">
       <div className="relative">
-        {isSearching ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 animate-spin" /> : <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />}
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search by name or @username…" autoCapitalize="none" autoCorrect="off" spellCheck={false} className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 placeholder:text-white/25 text-sm focus:outline-none focus:border-primary/40 transition-colors" />
+        {isSearching
+          ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 animate-spin" />
+          : <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />}
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search by name or @username…"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 placeholder:text-white/25 text-sm focus:outline-none focus:border-primary/40 transition-colors"
+        />
       </div>
       {showEmpty && <p className="text-xs text-center text-white/30 py-4">No users found for "{query}"</p>}
       {query.length < 2 && <p className="text-xs text-center text-white/25 py-2">Type a name or @username to search</p>}
@@ -138,7 +144,9 @@ function FindFriendsSection() {
           return (
             <div key={profile.id} className="flex items-center gap-3 py-3">
               <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-primary/[0.12] border border-primary/[0.20] flex items-center justify-center">
-                {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.username ?? "User"} className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-primary/80">{initials}</span>}
+                {profile.avatar_url
+                  ? <img src={profile.avatar_url} alt={profile.username ?? "User"} className="w-full h-full object-cover" />
+                  : <span className="text-sm font-bold text-primary/80">{initials}</span>}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white/90 truncate">{profile.full_name ?? profile.username ?? "Unknown"}</p>
@@ -161,7 +169,7 @@ function FindFriendsSection() {
   );
 }
 
-// ─── Who's Going This Week ────────────────────────────────────────────────────
+// ─── My Scene This Week ───────────────────────────────────────────────────────
 
 interface WeekShow {
   key: string;
@@ -200,13 +208,12 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
     return (
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 space-y-2.5 animate-pulse">
         <div className="h-3 w-36 rounded bg-white/10" />
-        <div className="h-12 rounded-xl bg-white/[0.04]" />
-        <div className="h-12 rounded-xl bg-white/[0.03]" />
+        <div className="h-16 rounded-xl bg-white/[0.04]" />
+        <div className="h-16 rounded-xl bg-white/[0.03]" />
       </div>
     );
   }
 
-  // ── DUMMY DATA for preview/testing ──────────────────────────────────────────
   const DUMMY_SHOWS: WeekShow[] = [
     {
       key: "dummy-1",
@@ -260,7 +267,7 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
         )}
       </div>
 
-      {/* Show rows */}
+      {/* Show rows — full-bleed cards */}
       <div className="space-y-2.5">
         {displayShows.map((show, i) => (
           <motion.div
@@ -277,12 +284,15 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
                 <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/30" />
               </div>
             ) : (
-              <div className="absolute inset-0 bg-white/[0.03]" />
+              <div className="absolute inset-0 bg-white/[0.03]">
+                <div className="w-full h-full flex items-center justify-center">
+                  <Music2 className="h-5 w-5 text-white/15" />
+                </div>
+              </div>
             )}
 
             {/* Content */}
             <div className="relative flex items-center gap-3 px-4 py-3.5">
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70 mb-0.5">
                   {format(parseISO(show.showDate), "EEE MMM d")}
@@ -326,7 +336,7 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
   );
 }
 
-// ─── Main inline Friends view ─────────────────────────────────────────────────
+// ─── Main Friends View ────────────────────────────────────────────────────────
 
 export default function FriendsPanelView() {
   const [activeTab, setActiveTab] = useState<"activity" | "find">("activity");
@@ -362,10 +372,10 @@ export default function FriendsPanelView() {
         )}
       </div>
 
-      {/* Who's going this week — always shown (dummy data when no friends yet) */}
+      {/* My Scene This Week — always shown */}
       <WhosGoingCard followingIds={followingIds} />
 
-      {/* Tab switcher — Activity | Find Friends */}
+      {/* Tab switcher */}
       <div className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.07] w-fit">
         {(["activity", "find"] as const).map(tab => (
           <button
