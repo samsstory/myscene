@@ -395,6 +395,27 @@ export default function ScheduleView({
           </button>
         </div>
 
+        {/* Today pill — only visible when browsing a different month */}
+        <AnimatePresence>
+          {format(viewMonth, "yyyy-MM") !== format(startOfMonth(today), "yyyy-MM") && (
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.95 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="flex justify-center mb-3"
+            >
+              <button
+                onClick={() => { setViewMonth(startOfMonth(today)); setSelectedDay(today); }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.10] text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-white/[0.10] transition-all duration-200 backdrop-blur-sm"
+              >
+                <CalendarDays className="h-3 w-3" />
+                Today
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {activeDays.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <CalendarDays className="w-8 h-8 text-muted-foreground/20 mb-2" />
