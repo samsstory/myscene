@@ -718,8 +718,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             <Select value={currentYear.toString()} onValueChange={value => {
               setCurrentMonth(new Date(parseInt(value), currentMonthIndex));
             }}>
-              <SelectTrigger className="w-[80px] h-8 text-xs">
-                <SelectValue />
+              <SelectTrigger className="w-[58px] h-8 text-xs">
+                <span>'{String(currentYear).slice(2)}</span>
               </SelectTrigger>
               <SelectContent>
                 {years.reverse().map(year => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
