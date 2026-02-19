@@ -291,8 +291,8 @@ export default function ScheduleView({
         <div className="w-[70px]" />
 
         {/* Center: ‹ Month Year › with optional Today shortcut below */}
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-1 flex-1 text-center">
+          <div className="flex items-center gap-2 justify-center">
             <button
               onClick={() => { setViewMonth(m => subMonths(m, 1)); setSelectedDay(null); }}
               className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-white/[0.10] transition-colors"
@@ -300,7 +300,7 @@ export default function ScheduleView({
               <ChevronLeft className="h-3 w-3 text-muted-foreground" />
             </button>
             <span className="text-sm font-semibold text-foreground tracking-wide min-w-[100px] text-center">
-              {format(viewMonth, "MMMM yyyy")}
+              {format(viewMonth, "MMM yyyy")}
             </span>
             <button
               onClick={() => { setViewMonth(m => addMonths(m, 1)); setSelectedDay(null); }}
