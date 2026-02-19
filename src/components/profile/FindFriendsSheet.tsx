@@ -75,7 +75,7 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] flex flex-col rounded-t-2xl px-0 bg-background/80 backdrop-blur-xl border-t border-white/[0.08]"
+        className="max-h-[85dvh] flex flex-col rounded-t-2xl px-0 bg-background/80 backdrop-blur-xl border-t border-white/[0.08]"
       >
         {/* Header */}
         <div className="px-6 pt-2 pb-4 border-b border-white/[0.06]">
@@ -97,7 +97,7 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name or @username…"
-              autoFocus
+              
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
