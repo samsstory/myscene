@@ -747,13 +747,13 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                           {attentionNeeds.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 pt-0.5">
                               {attentionNeeds.includes("unranked") && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/[0.12] border border-amber-500/25 text-amber-400/80">
-                                  Unranked
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/[0.15] border border-amber-500/30 text-amber-300">
+                                  ↕ Unranked
                                 </span>
                               )}
                               {attentionNeeds.includes("no moment") && (
                                 <span
-                                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.10] text-white/40 cursor-pointer hover:border-primary/30 hover:text-primary/70 transition-colors"
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/[0.12] border border-sky-500/25 text-sky-400/80 cursor-pointer hover:border-sky-400/40 hover:text-sky-300 transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setQuickPhotoShow(show);
@@ -761,6 +761,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                                   }}
                                 >
                                   + Add moment
+                                </span>
+                              )}
+                              {attentionNeeds.includes("no highlights") && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/[0.12] border border-violet-500/25 text-violet-300/80">
+                                  ✦ No highlights
                                 </span>
                               )}
                             </div>
