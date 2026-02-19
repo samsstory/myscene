@@ -16,8 +16,8 @@
     <link rel="apple-touch-icon" href="/images/pwa-192.png" />
     <link rel="canonical" href="https://tryscene.app/" />
 
-    <!-- Preload LCP hero image -->
-    <link rel="preload" as="image" href="/images/fred-again-msg.webp" type="image/webp" />
+    <!-- Preload LCP hero image with high fetch priority -->
+    <link rel="preload" as="image" href="/images/fred-again-msg.webp" type="image/webp" fetchpriority="high" imagesrcset="/images/fred-again-msg.webp" />
 
     <!-- Preconnect to Mapbox origins to reduce network dependency chain depth -->
     <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
