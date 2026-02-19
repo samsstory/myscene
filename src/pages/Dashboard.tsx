@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { Home as HomeIcon, Plus, Music } from "lucide-react";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -217,43 +217,6 @@ const Dashboard = () => {
     setShowSpotlightTour(false);
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "home":
-        return (
-          <Home
-            onNavigateToRank={() => setActiveTab("home")}
-            onNavigateToProfile={() => setActiveTab("profile")}
-            onAddFromPhotos={() => setShowUnifiedAdd(true)}
-            onAddSingleShow={() => setShowAddDialog(true)}
-            openShowId={openShowId}
-            onShowOpened={() => setOpenShowId(null)}
-            showsTourActive={showsTourActive}
-            showsRef={showsStatRef}
-          />
-        );
-      case "profile":
-        return (
-          <Profile
-            onStartTour={() => { setActiveTab("home"); setShowSpotlightTour(true); }}
-            onAddShow={() => { setActiveTab("home"); setShowUnifiedAdd(true); }}
-          />
-        );
-      default:
-        return (
-          <Home
-            onNavigateToRank={() => setActiveTab("home")}
-            onNavigateToProfile={() => setActiveTab("profile")}
-            onAddFromPhotos={() => setShowUnifiedAdd(true)}
-            onAddSingleShow={() => setShowAddDialog(true)}
-            openShowId={openShowId}
-            onShowOpened={() => setOpenShowId(null)}
-            showsTourActive={showsTourActive}
-            showsRef={showsStatRef}
-          />
-        );
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-accent pb-24">
@@ -281,19 +244,26 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content — always mounted, toggled via display to preserve scroll */}
       <main className="container mx-auto px-4 py-4">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-          >
-            {renderContent()}
-          </motion.div>
-        </AnimatePresence>
+        <div style={{ display: activeTab === "home" ? "block" : "none" }}>
+          <Home
+            onNavigateToRank={() => setActiveTab("home")}
+            onNavigateToProfile={() => setActiveTab("profile")}
+            onAddFromPhotos={() => setShowUnifiedAdd(true)}
+            onAddSingleShow={() => setShowAddDialog(true)}
+            openShowId={openShowId}
+            onShowOpened={() => setOpenShowId(null)}
+            showsTourActive={showsTourActive}
+            showsRef={showsStatRef}
+          />
+        </div>
+        <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
+          <Profile
+            onStartTour={() => { setActiveTab("home"); setShowSpotlightTour(true); }}
+            onAddShow={() => { setActiveTab("home"); setShowUnifiedAdd(true); }}
+          />
+        </div>
       </main>
 
       {/* Floating Navigation */}
