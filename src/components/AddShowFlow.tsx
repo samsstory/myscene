@@ -920,9 +920,21 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     if (step === 7 && showStepSelector) {
       return (
         <ShowTypeStep
-          onSelect={(type) => {
+          onSelect={async (type) => {
+            if (!editShow) return;
             updateShowData({ showType: type });
-            setStep(0);
+            setHasUnsavedChanges(true);
+            // Save directly to avoid stale-state race condition
+            const { error } = await supabase
+              .from("shows")
+              .update({ show_type: type })
+              .eq("id", editShow.id);
+            if (error) {
+              toast.error("Failed to update show type");
+            } else {
+              toast.success("Show type updated!");
+              setStep(0);
+            }
           }}
         />
       );
