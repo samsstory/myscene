@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export type ContentView = "home" | "calendar" | "globe" | "rankings";
+export type ContentView = "home" | "calendar" | "globe" | "rankings" | "rank";
 
 interface PillNavItem {
   id: ContentView;
@@ -13,14 +13,15 @@ interface PillNavItem {
 interface ContentPillNavProps {
   activeView: ContentView;
   onViewChange: (view: ContentView) => void;
-  rankNudge?: boolean; // shows a dot on Rankings when there are unranked shows
+  rankNudge?: boolean; // shows a dot on Rank when there are unranked shows
 }
 
 const PILLS: PillNavItem[] = [
   { id: "home", label: "Home" },
   { id: "calendar", label: "Calendar" },
   { id: "globe", label: "Globe" },
-  { id: "rankings", label: "Rankings" },
+  { id: "rank", label: "Rank" },
+  { id: "rankings", label: "All Shows" },
 ];
 
 export default function ContentPillNav({ activeView, onViewChange, rankNudge }: ContentPillNavProps) {
@@ -55,7 +56,7 @@ export default function ContentPillNav({ activeView, onViewChange, rankNudge }: 
                 />
               )}
               <span className="relative z-10">{pill.label}</span>
-              {pill.id === "rankings" && rankNudge && !isActive && (
+              {pill.id === "rank" && rankNudge && !isActive && (
                 <span className="relative z-10 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_hsl(var(--primary)/0.8)]" />
               )}
             </motion.button>
