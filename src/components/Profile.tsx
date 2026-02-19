@@ -488,7 +488,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
                       {referralCount}
                     </span>
                     <span className="text-[9px] uppercase tracking-[0.15em] text-white/35 mt-0.5">
-                      {referralCount === 1 ? "Friend" : "Friends"} Invited
+                      {referralCount === 1 ? "Friend" : "Friends"} Recruited
                     </span>
                   </div>
                   {referralRank && (
