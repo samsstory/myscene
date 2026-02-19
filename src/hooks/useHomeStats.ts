@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 import { StatPill, StatPillAction } from "@/components/home/StatPills";
-import { Music, Target } from "lucide-react";
+import { Target } from "lucide-react";
 
 interface TopShow {
   id: string;
@@ -344,15 +344,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
   }, [fetchStats]);
 
   const statPills: StatPill[] = [
-    // Total Shows -> Rankings
-    {
-      id: 'total-shows',
-      label: 'All Shows',
-      value: stats.allTimeShows,
-      icon: Music,
-      highlight: true,
-      action: 'rankings' as StatPillAction,
-    },
     // To-Do pill -> aggregates pending actions
     ...(() => {
       const todoItems: string[] = [];
