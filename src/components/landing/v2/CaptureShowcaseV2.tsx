@@ -81,11 +81,21 @@ const ShowReviewMockup = () => (
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: "url('/images/rufus-du-sol-red-rocks.webp')",
+          backgroundImage: "url('/images/rufus-du-sol-red-rocks-mobile.webp')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
-      />
+      >
+        {/* Load full-res on larger screens via a hidden img for browser hint */}
+        <img
+          src="/images/rufus-du-sol-red-rocks.webp"
+          aria-hidden="true"
+          alt=""
+          loading="lazy"
+          className="hidden lg:block"
+          style={{ position: "absolute", width: 0, height: 0, opacity: 0 }}
+        />
+      </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
       {/* Scene watermark - positioned below notch area */}
