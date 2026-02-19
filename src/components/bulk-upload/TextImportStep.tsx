@@ -97,7 +97,7 @@ const TextImportStep = ({ onShowsParsed, onBack }: TextImportStepProps) => {
           if (error) setError(null);
         }}
         placeholder={`bicep printworks dec 2023\nfred again, ally pally, jan 12 2024\ndisclosure @ hï ibiza summer 2023\njamie xx b2b four tet, fabric, march 2024`}
-        className="min-h-[180px] resize-none bg-white/[0.03] border-white/[0.1] placeholder:text-muted-foreground/50 text-sm leading-relaxed"
+        className="min-h-[100px] max-h-[35dvh] resize-none bg-white/[0.03] border-white/[0.1] placeholder:text-muted-foreground/50 text-sm leading-relaxed"
         autoFocus
         disabled={isParsing}
       />
