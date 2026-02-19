@@ -60,7 +60,7 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
       aspectRatio: "16/10"
     }}>
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30" style={{
-        backgroundImage: "url('/images/fred-again-msg.png')",
+        backgroundImage: "url('/images/fred-again-msg.webp')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         filter: "brightness(1.15) contrast(1.1)"

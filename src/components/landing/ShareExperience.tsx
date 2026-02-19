@@ -7,7 +7,7 @@ import { Instagram, X, Plus, Share2 } from "lucide-react";
 const StoryMockup = () => <div className="h-full w-full relative bg-black">
     {/* Full-bleed concert photo */}
     <div className="absolute inset-0" style={{
-    backgroundImage: "url('/images/jamie-xx-printworks.png')",
+    backgroundImage: "url('/images/jamie-xx-printworks.webp')",
     backgroundSize: "cover",
     backgroundPosition: "center"
   }} />
