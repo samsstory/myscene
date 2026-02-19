@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X, UserCircle, Tag, Camera } from "lucide-react";
+import { Music2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeft, Instagram, Plus, Search, X, UserCircle, Tag, Camera, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isToday, isFuture } from "date-fns";
 import { usePlanUpcomingShow } from "@/hooks/usePlanUpcomingShow";
@@ -132,6 +132,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   // Upcoming show detail sheet state (for calendar ghost tiles)
   const [selectedUpcomingShow, setSelectedUpcomingShow] = useState<import("@/hooks/usePlanUpcomingShow").UpcomingShow | null>(null);
   const [upcomingDetailOpen, setUpcomingDetailOpen] = useState(false);
+
+  // Calendar: Friends overlay toggle + friends-on-day sheet
+  const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
+  const [friendsDaySheetOpen, setFriendsDaySheetOpen] = useState(false);
+  const [friendsDayDate, setFriendsDayDate] = useState<Date | null>(null);
 
   const { stats, statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   const { upcomingShows, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
@@ -684,15 +689,25 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const years = Array.from({ length: new Date().getFullYear() - 1989 + 1 }, (_, i) => 1990 + i);
 
+    // Count unique friends with shows this month for the badge
+    const friendsThisMonth = new Set<string>();
+    friendsByDate.forEach((friends, isoDate) => {
+      const d = parseISO(isoDate);
+      if (d.getFullYear() === currentYear && d.getMonth() === currentMonthIndex) {
+        friends.forEach(f => friendsThisMonth.add(f.id));
+      }
+    });
+
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4 gap-4">
-          <div className="flex items-center gap-2">
+      <div className="space-y-4">
+        {/* Header row: month/year selectors + nav + friends toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
             <Select value={months[currentMonthIndex]} onValueChange={value => {
               const monthIndex = months.indexOf(value);
               setCurrentMonth(new Date(currentYear, monthIndex));
             }}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[120px] h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -703,7 +718,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             <Select value={currentYear.toString()} onValueChange={value => {
               setCurrentMonth(new Date(parseInt(value), currentMonthIndex));
             }}>
-              <SelectTrigger className="w-[100px]">
+              <SelectTrigger className="w-[80px] h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -712,19 +727,57 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             </Select>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={() => setCurrentMonth(new Date(currentYear, currentMonthIndex - 1))} size="sm" variant="default">
+          <div className="flex items-center gap-1.5">
+            {/* Friends toggle pill */}
+            <button
+              onClick={() => setCalendarFriendsMode(v => !v)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.1em] transition-all border ${
+                calendarFriendsMode
+                  ? "bg-primary/20 border-primary/50 text-primary"
+                  : "bg-white/[0.05] border-white/10 text-white/40 hover:text-white/60"
+              }`}
+            >
+              <Users className="h-3 w-3" />
+              Friends
+              {friendsThisMonth.size > 0 && (
+                <span className={`text-[9px] font-bold leading-none px-1 py-0.5 rounded-full ${
+                  calendarFriendsMode ? "bg-primary/40 text-primary-foreground" : "bg-white/15 text-white/60"
+                }`}>
+                  {friendsThisMonth.size}
+                </span>
+              )}
+            </button>
+
+            <Button onClick={() => setCurrentMonth(new Date(currentYear, currentMonthIndex - 1))} size="sm" variant="default" className="h-8 w-8 p-0">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button onClick={() => setCurrentMonth(new Date(currentYear, currentMonthIndex + 1))} size="sm" variant="default">
+            <Button onClick={() => setCurrentMonth(new Date(currentYear, currentMonthIndex + 1))} size="sm" variant="default" className="h-8 w-8 p-0">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        {/* Legend when friends mode is on */}
+        {calendarFriendsMode && (
+          <div className="flex items-center gap-4 px-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-primary/30 border border-primary/50" />
+              <span className="text-[10px] text-white/40">Mine</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-violet-500/30 border border-violet-500/50" />
+              <span className="text-[10px] text-white/40">Friends</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-500/50" />
+              <span className="text-[10px] text-white/40">Both</span>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-7 gap-1.5">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-            <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">{day}</div>
+            <div key={day} className="text-center text-[10px] font-medium text-muted-foreground py-1">{day}</div>
           ))}
           
           {Array.from({ length: startDay }).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
@@ -734,14 +787,31 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             const dayUpcoming = getUpcomingShowsForDate(day);
             const todayCell = isToday(day);
             const futureDay = isFuture(day) && !todayCell;
-            const hasContent = dayShows.length > 0 || dayUpcoming.length > 0;
+
+            // Friends data for this day
+            const isoDate = format(day, "yyyy-MM-dd");
+            const friendsOnDay = friendsByDate.get(isoDate) ?? [];
+            const hasFriendActivity = calendarFriendsMode && friendsOnDay.length > 0;
+            const hasMineActivity = dayShows.length > 0 || dayUpcoming.length > 0;
+            const hasContent = hasMineActivity;
+            const bothOnDay = hasFriendActivity && hasMineActivity;
+
+            // Ring color for friends mode
+            const friendModeRing = calendarFriendsMode && hasFriendActivity
+              ? bothOnDay
+                ? "ring-1 ring-emerald-400/70"
+                : "ring-1 ring-violet-400/60"
+              : "";
 
             return (
               <div
                 key={day.toISOString()}
-                className={`aspect-square flex flex-col items-center justify-center relative transition-all
+                className={`aspect-square flex flex-col items-center justify-center relative transition-all rounded-lg
                   ${hasContent ? "bg-card" : "bg-background"}
-                  ${todayCell ? "ring-2 ring-cyan-400/60 rounded-lg bg-cyan-500/10" : ""}
+                  ${todayCell ? "ring-2 ring-cyan-400/60 bg-cyan-500/10" : ""}
+                  ${!todayCell && friendModeRing ? friendModeRing : ""}
+                  ${calendarFriendsMode && hasFriendActivity && !hasMineActivity ? "bg-violet-500/[0.07]" : ""}
+                  ${calendarFriendsMode && bothOnDay ? "bg-emerald-500/[0.06]" : ""}
                 `}
                 style={todayCell ? { boxShadow: "0 0 8px 1px hsl(var(--primary) / 0.15)" } : undefined}
               >
@@ -752,7 +822,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   </span>
                 )}
 
-                {/* Past show tiles */}
+                {/* Past show tiles (Mine) */}
                 {dayShows.length > 0 && (
                   <div className="flex flex-wrap gap-0.5 items-center justify-center p-1">
                     {dayShows.map(show => {
@@ -793,12 +863,12 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   </div>
                 )}
 
-                {/* Upcoming / ghost tiles */}
+                {/* Upcoming / ghost tiles (Mine) */}
                 {dayUpcoming.length > 0 && (
                   <div className="flex flex-wrap gap-0.5 items-center justify-center p-1">
                     {dayUpcoming.map(upcoming => {
-                      const isoDate = upcoming.show_date ?? "";
-                      const friendsHere = friendsByDate.get(isoDate) ?? [];
+                      const upcomingIsoDate = upcoming.show_date ?? "";
+                      const friendsHere = friendsByDate.get(upcomingIsoDate) ?? [];
                       const visibleFriends = friendsHere.slice(0, 2);
                       const overflowCount = friendsHere.length - visibleFriends.length;
                       return (
@@ -819,39 +889,21 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                                 className="w-8 h-8 rounded object-cover shadow-lg"
                                 style={{ filter: "brightness(0.75)" }}
                               />
-                              {/* dashed border overlay */}
                               <div className="absolute inset-0 rounded border border-dashed border-white/40" />
-                              {/* RSVP dot */}
                               <span className={`absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border border-black/30 ${rsvpDotClass(upcoming.rsvp_status)}`} />
-                              {/* Friend avatar micro-stack */}
                               {visibleFriends.length > 0 && (
                                 <div className="absolute top-0.5 left-0.5 flex items-center">
                                   {visibleFriends.map((friend, i) => (
                                     friend.avatar_url ? (
-                                      <img
-                                        key={friend.id}
-                                        src={friend.avatar_url}
-                                        alt={friend.username ?? "Friend"}
-                                        className="w-3 h-3 rounded-full border border-black/60 object-cover"
-                                        style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}
-                                      />
+                                      <img key={friend.id} src={friend.avatar_url} alt={friend.username ?? "Friend"} className="w-3 h-3 rounded-full border border-black/60 object-cover" style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }} />
                                     ) : (
-                                      <div
-                                        key={friend.id}
-                                        className="w-3 h-3 rounded-full border border-black/60 bg-primary/60 flex items-center justify-center"
-                                        style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}
-                                      >
-                                        <span className="text-[6px] font-bold text-primary-foreground leading-none">
-                                          {(friend.username ?? friend.full_name ?? "?")[0].toUpperCase()}
-                                        </span>
+                                      <div key={friend.id} className="w-3 h-3 rounded-full border border-black/60 bg-primary/60 flex items-center justify-center" style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}>
+                                        <span className="text-[6px] font-bold text-primary-foreground leading-none">{(friend.username ?? friend.full_name ?? "?")[0].toUpperCase()}</span>
                                       </div>
                                     )
                                   ))}
                                   {overflowCount > 0 && (
-                                    <div
-                                      className="w-3 h-3 rounded-full border border-black/60 bg-muted/80 flex items-center justify-center"
-                                      style={{ marginLeft: -4, zIndex: visibleFriends.length }}
-                                    >
+                                    <div className="w-3 h-3 rounded-full border border-black/60 bg-muted/80 flex items-center justify-center" style={{ marginLeft: -4, zIndex: visibleFriends.length }}>
                                       <span className="text-[5px] font-bold text-foreground leading-none">+{overflowCount}</span>
                                     </div>
                                   )}
@@ -860,39 +912,21 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                             </div>
                           ) : (
                             <div className="relative w-8 h-8 rounded border border-dashed border-white/30 flex items-center justify-center bg-primary/10">
-                              <span className="text-[9px] font-bold text-primary/70 leading-none text-center px-0.5 truncate">
-                                {upcoming.artist_name.split(" ")[0]}
-                              </span>
+                              <span className="text-[9px] font-bold text-primary/70 leading-none text-center px-0.5 truncate">{upcoming.artist_name.split(" ")[0]}</span>
                               <span className={`absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border border-black/30 ${rsvpDotClass(upcoming.rsvp_status)}`} />
-                              {/* Friend avatar micro-stack (no-photo tile) */}
                               {visibleFriends.length > 0 && (
                                 <div className="absolute top-0.5 left-0.5 flex items-center">
                                   {visibleFriends.map((friend, i) => (
                                     friend.avatar_url ? (
-                                      <img
-                                        key={friend.id}
-                                        src={friend.avatar_url}
-                                        alt={friend.username ?? "Friend"}
-                                        className="w-3 h-3 rounded-full border border-black/60 object-cover"
-                                        style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}
-                                      />
+                                      <img key={friend.id} src={friend.avatar_url} alt={friend.username ?? "Friend"} className="w-3 h-3 rounded-full border border-black/60 object-cover" style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }} />
                                     ) : (
-                                      <div
-                                        key={friend.id}
-                                        className="w-3 h-3 rounded-full border border-black/60 bg-primary/60 flex items-center justify-center"
-                                        style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}
-                                      >
-                                        <span className="text-[6px] font-bold text-primary-foreground leading-none">
-                                          {(friend.username ?? friend.full_name ?? "?")[0].toUpperCase()}
-                                        </span>
+                                      <div key={friend.id} className="w-3 h-3 rounded-full border border-black/60 bg-primary/60 flex items-center justify-center" style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}>
+                                        <span className="text-[6px] font-bold text-primary-foreground leading-none">{(friend.username ?? friend.full_name ?? "?")[0].toUpperCase()}</span>
                                       </div>
                                     )
                                   ))}
                                   {overflowCount > 0 && (
-                                    <div
-                                      className="w-3 h-3 rounded-full border border-black/60 bg-muted/80 flex items-center justify-center"
-                                      style={{ marginLeft: -4, zIndex: visibleFriends.length }}
-                                    >
+                                    <div className="w-3 h-3 rounded-full border border-black/60 bg-muted/80 flex items-center justify-center" style={{ marginLeft: -4, zIndex: visibleFriends.length }}>
                                       <span className="text-[5px] font-bold text-foreground leading-none">+{overflowCount}</span>
                                     </div>
                                   )}
@@ -906,8 +940,72 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   </div>
                 )}
 
+                {/* Friends overlay: when friends mode is ON and friends are on this day, show avatar stack */}
+                {calendarFriendsMode && friendsOnDay.length > 0 && !hasMineActivity && (
+                  <button
+                    className="flex flex-col items-center justify-center gap-0.5 w-full h-full px-0.5"
+                    onClick={() => { setFriendsDayDate(day); setFriendsDaySheetOpen(true); }}
+                  >
+                    {/* Stacked avatars */}
+                    <div className="flex items-center justify-center">
+                      {friendsOnDay.slice(0, 3).map((friend, i) => (
+                        friend.avatar_url ? (
+                          <img
+                            key={friend.id}
+                            src={friend.avatar_url}
+                            alt={friend.username ?? "Friend"}
+                            className="w-4 h-4 rounded-full border border-black/60 object-cover"
+                            style={{ marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}
+                          />
+                        ) : (
+                          <div
+                            key={friend.id}
+                            className="w-4 h-4 rounded-full border border-black/60 bg-violet-500/70 flex items-center justify-center"
+                            style={{ marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}
+                          >
+                            <span className="text-[6px] font-bold text-white leading-none">
+                              {(friend.username ?? friend.full_name ?? "?")[0].toUpperCase()}
+                            </span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                    {friendsOnDay.length > 3 && (
+                      <span className="text-[7px] font-semibold text-violet-300/80 leading-none">+{friendsOnDay.length - 3}</span>
+                    )}
+                    <span className="text-[7px] text-white/30 leading-none">{format(day, "d")}</span>
+                  </button>
+                )}
+
+                {/* Friends overlay indicator on days where both user AND friends have shows */}
+                {calendarFriendsMode && hasFriendActivity && hasMineActivity && (
+                  <button
+                    className="absolute bottom-0.5 left-0 right-0 flex justify-center"
+                    onClick={() => { setFriendsDayDate(day); setFriendsDaySheetOpen(true); }}
+                    title={`${friendsOnDay.length} friend${friendsOnDay.length > 1 ? "s" : ""} also going`}
+                  >
+                    <div className="flex items-center gap-0.5">
+                      {friendsOnDay.slice(0, 2).map((friend, i) => (
+                        friend.avatar_url ? (
+                          <img key={friend.id} src={friend.avatar_url} alt="" className="w-2.5 h-2.5 rounded-full border border-black/40 object-cover" style={{ marginLeft: i === 0 ? 0 : -3 }} />
+                        ) : (
+                          <div key={friend.id} className="w-2.5 h-2.5 rounded-full border border-black/40 bg-violet-500/70 flex items-center justify-center" style={{ marginLeft: i === 0 ? 0 : -3 }}>
+                            <span className="text-[5px] font-bold text-white leading-none">{(friend.username ?? friend.full_name ?? "?")[0].toUpperCase()}</span>
+                          </div>
+                        )
+                      ))}
+                      {friendsOnDay.length > 2 && <span className="text-[6px] text-violet-300/70 font-bold leading-none">+{friendsOnDay.length - 2}</span>}
+                    </div>
+                  </button>
+                )}
+
                 {/* Empty day dot */}
-                {!hasContent && (
+                {!hasContent && !hasFriendActivity && (
+                  <div className={`w-1.5 h-1.5 rounded-full ${futureDay ? "bg-muted-foreground/15" : "bg-muted-foreground/30"}`} />
+                )}
+
+                {/* Date number on empty days in friends mode */}
+                {!hasContent && hasFriendActivity && !calendarFriendsMode && (
                   <div className={`w-1.5 h-1.5 rounded-full ${futureDay ? "bg-muted-foreground/15" : "bg-muted-foreground/30"}`} />
                 )}
               </div>
@@ -1058,6 +1156,50 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         }}
         onRsvpChange={updateRsvpStatus}
       />
+
+      {/* Friends-on-Day sheet (from calendar friends overlay tap) */}
+      <Sheet open={friendsDaySheetOpen} onOpenChange={setFriendsDaySheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl bg-background border-white/10 pb-safe">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-left text-base font-semibold">
+              {friendsDayDate ? format(friendsDayDate, "EEEE, MMMM d") : "Friends"}
+            </SheetTitle>
+          </SheetHeader>
+
+          {friendsDayDate && (() => {
+            const isoDate = format(friendsDayDate, "yyyy-MM-dd");
+            const friends = friendsByDate.get(isoDate) ?? [];
+            // Get all friend shows for this day
+            return (
+              <div className="space-y-3 max-h-[55vh] overflow-y-auto">
+                {friends.map(friend => {
+                  const name = friend.full_name ?? friend.username ?? "Friend";
+                  const initial = (friend.username ?? name)[0].toUpperCase();
+                  return (
+                    <div key={friend.id} className="flex items-center gap-3 py-1">
+                      {friend.avatar_url ? (
+                        <img src={friend.avatar_url} alt={name} className="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-bold text-violet-300">{initial}</span>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                        {friend.username && <p className="text-xs text-muted-foreground truncate">@{friend.username}</p>}
+                      </div>
+                      <Users className="h-3.5 w-3.5 text-violet-400/60 flex-shrink-0" />
+                    </div>
+                  );
+                })}
+                {friends.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No friends on this day</p>
+                )}
+              </div>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
 
       <FocusedRankingSession
         open={focusedRankingOpen}
