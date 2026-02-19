@@ -167,3 +167,30 @@ Inactive pill: bg-white/[0.06]  border-white/[0.10]  text-muted-foreground
 Nav glow:      drop-shadow-[0_0_8px_hsl(var(--primary))]
 Transition:    duration-200 ease-out  (or spring stiffness-400)
 ```
+
+---
+
+## Future — Friends Page (Parked, revisit after Phase 5)
+
+> **Priority:** High for social retention | **Effort:** TBD
+
+### Context
+The follow infrastructure exists (asymmetric `followers` table, mutual follow detection via `get_mutual_followers()`). The "Friends" pill in the Home sub-nav currently shows an upcoming shows strip. A dedicated Friends page would go deeper.
+
+### Questions to think through before designing
+- **Entry point:** Does Friends become a 4th item in the bottom nav, a pill in Home, or a full tab accessed from Profile?
+- **What's the core loop?** Options:
+  - Activity feed — "Fred added Boiler Room to their list"
+  - Shared upcoming shows — who's going to the same gigs as me
+  - Compare mode — see how a friend ranked the same show you both attended
+  - Friend leaderboard — who's seen the most shows this year
+- **Asymmetric vs. mutual:** Show all followers, or only close friends (mutual follows)?
+- **Discovery:** How do users find people? (Username search, import contacts, "people who saw the same artists")
+
+### Instinct
+The most compelling first version is **shared upcoming shows + compare mode** — it creates a concrete social reason to open the app before a gig and after one. Pure activity feeds are low-signal until the user base grows.
+
+### Files likely touched
+- `src/components/home/WhatsNextStrip.tsx` — Friends strip already lives here; may evolve into its own page
+- `src/components/profile/FindFriendsSheet.tsx` — discovery entry point already exists
+- `src/hooks/useFriendUpcomingShows.ts` — data layer already exists
