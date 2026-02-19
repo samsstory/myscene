@@ -257,6 +257,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [bio, setBio] = useState("");
 
   useEffect(() => { fetchProfile(); }, []);
 
@@ -268,7 +269,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
       setUserId(user.id);
 
       const [profileRes, countRes, showCountRes] = await Promise.all([
-        supabase.from("profiles").select("avatar_url, referral_code, username, full_name, phone_number").eq("id", user.id).single(),
+        supabase.from("profiles").select("avatar_url, referral_code, username, full_name, phone_number, bio").eq("id", user.id).single(),
         supabase.from("referrals").select("*", { count: "exact", head: true }).eq("referrer_id", user.id),
         supabase.from("shows").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
@@ -279,6 +280,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
         setUsername(profileRes.data.username || "");
         setFullName(profileRes.data.full_name || "");
         setPhoneNumber((profileRes.data as any).phone_number || "");
+        setBio((profileRes.data as any).bio || "");
       }
       if (!countRes.error && countRes.count !== null) setReferralCount(countRes.count);
       if (!showCountRes.error && showCountRes.count !== null) setTotalShows(showCountRes.count);
@@ -327,6 +329,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
         username: username.trim() || null,
         full_name: fullName.trim() || null,
         phone_number: phoneNumber.trim() || null,
+        bio: bio.trim() || null,
       } as any).eq("id", user.id);
       if (email !== user.email) {
         await supabase.auth.updateUser({ email });
@@ -384,6 +387,9 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
             </p>
             {username && fullName && (
               <p className="text-xs text-white/35 mt-0.5">@{username}</p>
+            )}
+            {bio && (
+              <p className="text-xs text-white/50 mt-1.5 leading-relaxed line-clamp-2">{bio}</p>
             )}
             {/* Micro stats */}
             <div className="flex items-center gap-3 mt-2">
@@ -485,6 +491,18 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
               <div className="space-y-1.5">
                 <label className="text-[11px] uppercase tracking-wider text-white/40">Full Name</label>
                 <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" className="bg-white/[0.04] border-white/[0.10] text-white/80 placeholder:text-white/25 focus:border-primary/40" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-wider text-white/40">Bio</label>
+                <textarea
+                  value={bio}
+                  onChange={e => setBio(e.target.value)}
+                  placeholder="Tell the scene what you're about…"
+                  maxLength={160}
+                  rows={3}
+                  className="w-full rounded-md bg-white/[0.04] border border-white/[0.10] text-white/80 placeholder:text-white/25 focus:border-primary/40 focus:outline-none px-3 py-2 text-sm resize-none transition-colors"
+                />
+                <p className="text-[10px] text-white/25 text-right">{bio.length}/160</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] uppercase tracking-wider text-white/40">Email</label>
