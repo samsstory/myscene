@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Music, Star, Camera } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Music, Star, Camera, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
 import ShowTypeStep from "./add-show-steps/ShowTypeStep";
@@ -30,6 +30,7 @@ interface AddShowFlowProps {
     notes?: string | null;
     venueId?: string | null;
     photo_url?: string | null;
+    showType?: string;
   } | null;
 }
 
@@ -112,7 +113,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venue: editShow.venue.name,
         venueLocation: editShow.venue.location,
         venueId: editShow.venueId || null,
-        showType: 'show',
+        showType: (editShow.showType as ShowType) || 'show',
         eventName: "",
         eventDescription: "",
         date: editShow.datePrecision === 'exact' ? showDate : undefined,
@@ -439,7 +440,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           show_date: showDate,
           date_precision: showData.datePrecision,
           rating: showData.rating,
-          notes: showData.notes || null
+          notes: showData.notes || null,
+          show_type: showData.showType,
         }).
         eq('id', editShow.id).
         select().
@@ -727,6 +729,17 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               <div><div className="font-semibold">Artists</div><div className="text-sm text-muted-foreground">{showData.artists.map((a) => a.name).join(", ")}</div></div>
             </div>
           </button>
+          <button onClick={() => setStep(7)} className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Layers className="h-5 w-5 text-primary" /></div>
+              <div>
+                <div className="font-semibold">Show Type</div>
+                <div className="text-sm text-muted-foreground capitalize">
+                  {{ show: "Solo Show", showcase: "Showcase", festival: "Festival" }[showData.showType] || "Solo Show"}
+                </div>
+              </div>
+            </div>
+          </button>
           <button onClick={() => setStep(4)} className="w-full p-4 rounded-lg bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200 text-left">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Star className="h-5 w-5 text-primary" /></div>
@@ -901,6 +914,18 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
 
       }
+    }
+
+    // Edit mode: Show Type picker (step 7)
+    if (step === 7 && showStepSelector) {
+      return (
+        <ShowTypeStep
+          onSelect={(type) => {
+            updateShowData({ showType: type });
+            setStep(0);
+          }}
+        />
+      );
     }
 
     // Success step (step 5 for new shows)
