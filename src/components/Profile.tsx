@@ -472,8 +472,8 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
 
             <div className="relative space-y-3">
               <div className="space-y-1">
-                <p className="text-base font-bold text-white/90" style={{ textShadow: "0 0 12px rgba(255,255,255,0.2)" }}>Recruit your crew
- to Scene
+                <p className="text-base font-bold text-white/90" style={{ textShadow: "0 0 12px rgba(255,255,255,0.2)" }}>Recruit the squad  to Scene
+
                 </p>
                 <p className="text-xs text-white/50 leading-relaxed">
                   The more friends who log shows, the better the compare game gets.
