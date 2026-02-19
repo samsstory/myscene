@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { format, parseISO, isToday, isSameDay, addDays, subDays, isFuture, isPast, startOfDay, eachDayOfInterval } from "date-fns";
+import { format, parseISO, isToday, isSameDay, addDays, subDays, isFuture, isPast, startOfDay, eachDayOfInterval, isWithinInterval } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Plus, CalendarDays, MapPin, ChevronRight, Music2 } from "lucide-react";
+import { Users, Plus, CalendarDays, MapPin, ChevronRight, Music2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import type { FriendShow } from "@/hooks/useFriendUpcomingShows";
@@ -176,6 +176,71 @@ export default function ScheduleView({
     return set.size;
   }, [friendsByDate, today]);
 
+  // "This Week" — upcoming events in the next 7 days, sorted by date
+  const thisWeekItems = useMemo(() => {
+    const end = addDays(today, 7);
+    type WeekItem = {
+      id: string;
+      artistName: string;
+      artistImage: string | null;
+      date: string; // ISO
+      dayLabel: string; // e.g. "Fri"
+      isFriend: boolean;
+      friendName?: string;
+      rsvpStatus?: string;
+      source: UpcomingShow | FriendShow | null;
+    };
+    const items: WeekItem[] = [];
+
+    // My upcoming shows
+    for (const s of upcomingShows) {
+      if (!s.show_date) continue;
+      try {
+        const d = parseISO(s.show_date);
+        if (isWithinInterval(d, { start: today, end })) {
+          items.push({
+            id: `mine-${s.id}`,
+            artistName: s.artist_name,
+            artistImage: s.artist_image_url,
+            date: s.show_date,
+            dayLabel: format(d, "EEE"),
+            isFriend: false,
+            rsvpStatus: s.rsvp_status,
+            source: s,
+          });
+        }
+      } catch {}
+    }
+
+    // Friends' upcoming shows (only if not already added as mine on same day+artist)
+    if (calendarFriendsMode) {
+      for (const fs of friendShows) {
+        if (!fs.show_date) continue;
+        try {
+          const d = parseISO(fs.show_date);
+          if (!isWithinInterval(d, { start: today, end })) continue;
+          // Skip if I already have a matching upcoming show on same day
+          const alreadyMine = items.some(
+            i => !i.isFriend && i.date === fs.show_date && i.artistName.toLowerCase() === fs.artist_name.toLowerCase()
+          );
+          if (alreadyMine) continue;
+          items.push({
+            id: `friend-${fs.id}`,
+            artistName: fs.artist_name,
+            artistImage: fs.artist_image_url,
+            date: fs.show_date,
+            dayLabel: format(d, "EEE"),
+            isFriend: true,
+            friendName: fs.friend.full_name?.split(" ")[0] ?? fs.friend.username ?? "Friend",
+            source: fs,
+          });
+        } catch {}
+      }
+    }
+
+    return items.sort((a, b) => a.date.localeCompare(b.date));
+  }, [upcomingShows, friendShows, calendarFriendsMode, today]);
+
   const rsvpDotClass = (status: string) =>
     status === "going" ? "bg-emerald-400" : status === "maybe" ? "bg-amber-400" : "bg-red-400";
 
@@ -206,6 +271,92 @@ export default function ScheduleView({
         </button>
       </div>
 
+      {/* ── This Week strip ── */}
+      {thisWeekItems.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Sparkles className="h-3 w-3 text-primary/60" />
+            <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground/60">
+              This Week
+            </span>
+          </div>
+          <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+            {thisWeekItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  // Jump to that day in the strip
+                  try {
+                    const d = startOfDay(parseISO(item.date));
+                    setSelectedDay(d);
+                    // Find and scroll the chip
+                    const iso = format(d, "yyyy-MM-dd");
+                    const strip = stripRef.current;
+                    if (strip) {
+                      const chipEls = strip.querySelectorAll<HTMLButtonElement>("[data-day-iso]");
+                      chipEls.forEach(el => {
+                        if (el.dataset.dayIso === iso) scrollChipIntoView(el);
+                      });
+                    }
+                  } catch {}
+                }}
+                className={cn(
+                  "flex-shrink-0 flex flex-col items-center gap-1.5 w-[68px] rounded-2xl border py-2.5 transition-all duration-200",
+                  item.isFriend
+                    ? "bg-violet-500/[0.06] border-violet-500/[0.15] hover:bg-violet-500/[0.12]"
+                    : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08]"
+                )}
+              >
+                {/* Artist thumbnail */}
+                <div className="relative w-11 h-11 rounded-xl overflow-hidden flex-shrink-0">
+                  {item.artistImage ? (
+                    <img
+                      src={item.artistImage}
+                      alt={item.artistName}
+                      className="w-full h-full object-cover"
+                      style={item.isFriend ? { filter: "brightness(0.7) saturate(0.8)" } : undefined}
+                    />
+                  ) : (
+                    <div className={cn(
+                      "w-full h-full flex items-center justify-center",
+                      item.isFriend ? "bg-violet-500/10" : "bg-primary/10"
+                    )}>
+                      <Music2 className={cn("w-5 h-5", item.isFriend ? "text-violet-400/40" : "text-primary/40")} />
+                    </div>
+                  )}
+                  {/* RSVP dot for my shows */}
+                  {!item.isFriend && item.rsvpStatus && (
+                    <span className={cn(
+                      "absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border border-black/30",
+                      rsvpDotClass(item.rsvpStatus)
+                    )} />
+                  )}
+                  {/* Friend indicator */}
+                  {item.isFriend && (
+                    <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-violet-500/80 border border-black/30 flex items-center justify-center">
+                      <Users className="w-2 h-2 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Day label */}
+                <span className={cn(
+                  "text-[10px] font-bold leading-none",
+                  item.isFriend ? "text-violet-300/70" : "text-primary/70"
+                )}>
+                  {item.dayLabel}
+                </span>
+
+                {/* Artist name */}
+                <span className="text-[9px] text-muted-foreground/60 leading-tight text-center px-1 truncate w-full">
+                  {item.artistName}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Day-chip strip ── */}
       <div
         ref={stripRef}
@@ -226,6 +377,7 @@ export default function ScheduleView({
             <button
               key={iso}
               ref={isTodayDay ? todayChipRef : undefined}
+              data-day-iso={iso}
               onClick={(e) => {
                 setSelectedDay(day);
                 scrollChipIntoView(e.currentTarget);
