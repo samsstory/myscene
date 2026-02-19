@@ -32,15 +32,30 @@ const IndexV2 = () => {
     <div className="min-h-screen bg-background">
       <LandingHeroV2 />
       <Suspense fallback={<div className="py-24 md:py-32" />}>
-        <LogShowcaseV2 />
-        <CaptureShowcaseV2 />
-        <RankingSpotlightV2 />
-        <ShareExperienceV2 />
-        <LazyGlobeShowcase />
-        <LandingCTAV2 />
+        {/* content-visibility: auto skips layout/paint for off-screen sections,
+            improving Speed Index by keeping initial paint focused on the hero */}
+        <div style={{ contentVisibility: "auto", containIntrinsicSize: "0 800px" }}>
+          <LogShowcaseV2 />
+        </div>
+        <div style={{ contentVisibility: "auto", containIntrinsicSize: "0 800px" }}>
+          <CaptureShowcaseV2 />
+        </div>
+        <div style={{ contentVisibility: "auto", containIntrinsicSize: "0 800px" }}>
+          <RankingSpotlightV2 />
+        </div>
+        <div style={{ contentVisibility: "auto", containIntrinsicSize: "0 800px" }}>
+          <ShareExperienceV2 />
+        </div>
+        <div style={{ contentVisibility: "auto", containIntrinsicSize: "0 700px" }}>
+          <LazyGlobeShowcase />
+        </div>
+        <div style={{ contentVisibility: "auto", containIntrinsicSize: "0 400px" }}>
+          <LandingCTAV2 />
+        </div>
       </Suspense>
     </div>
   );
+
 };
 
 export default IndexV2;
