@@ -148,7 +148,7 @@ export default function FeedbackSheet({
 
   return (
     <Drawer open={open} onOpenChange={(val) => { if (!val) handleClose(); }}>
-      <DrawerContent className="bg-card border-border">
+      <DrawerContent className="bg-card border-border max-h-[90dvh] overflow-y-auto">
         {/* ── Mode picker ── */}
         {mode === "choose" && (
           <>
@@ -294,7 +294,6 @@ export default function FeedbackSheet({
                 maxLength={2000}
                 rows={4}
                 className="resize-none bg-muted/50 border-white/10"
-                autoFocus
               />
               {error && <p className="text-xs text-destructive">{error}</p>}
               <p className="text-[11px] text-muted-foreground">{description.length}/2000</p>
