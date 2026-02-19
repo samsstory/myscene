@@ -690,10 +690,13 @@ function SparseGrid({
     return set;
   }, [activeDays]);
 
-  // Build gridTemplateColumns: active cols get "1fr", empty cols get "20px"
+  // Build gridTemplateColumns: cap active cols so a single active col never fills the full width.
+  // With 1 active col: ~72px max. With 7: ~1fr each (~44px typical on mobile).
   const gridTemplate = useMemo(() => {
+    const count = activeColSet.size;
+    const maxColWidth = Math.min(72, Math.max(44, Math.round(280 / Math.max(count, 1))));
     return [0, 1, 2, 3, 4, 5, 6]
-      .map(wd => (activeColSet.has(wd) ? "1fr" : "20px"))
+      .map(wd => (activeColSet.has(wd) ? `minmax(0, ${maxColWidth}px)` : "16px"))
       .join(" ");
   }, [activeColSet]);
 
