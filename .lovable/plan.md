@@ -1,89 +1,43 @@
 
 
-# Rename Show Types: Set / Show / Festival
+# Mini Bar Chart on My Shows Page
 
-## Summary
+## What We're Building
+A minimal, rounded bar chart (inspired by the reference image) showing the number of shows per month, positioned between the "needs attention" banner and the search bar on the My Shows (rankings) page. The chart updates dynamically based on the selected timeline filter (All Time, This Year, Last Year, This Month).
 
-Rename the three event classifications from their current values (`show`, `showcase`, `festival`) to (`set`, `show`, `festival`) with updated labels and descriptions throughout the database and UI.
+## Design
+- Pure CSS/HTML bars (no charting library) for minimal footprint
+- Rounded-pill shaped bars matching the reference image aesthetic
+- Count labels above each bar
+- Month abbreviations below (Feb, Mar, Apr, etc.)
+- Uses the app's primary color for bars with subtle opacity variations
+- Compact height (~100px chart area)
+- Horizontal scroll if many months are shown
+- Smooth transitions when the timeline filter changes
 
-| Current DB value | Current UI label | New DB value | New UI label | New description |
-|---|---|---|---|---|
-| `show` | Solo Show | `set` | Set | 1 artist, 1 performance |
-| `showcase` | Showcase | `show` | Show | Multiple sets, different artists, 1 event |
-| `festival` | Festival | `festival` | Festival | Multiple artists, multiple sets, multiple stages |
+## Implementation
 
----
+### 1. New Component: `src/components/rankings/ShowsBarChart.tsx`
+- Accepts `shows` array and `timeFilter` as props
+- Groups shows by month using `date-fns` (`format(date, 'yyyy-MM')`), then counts per month
+- Determines the visible month range based on the active time filter:
+  - **All Time**: all months from first show to current month
+  - **This Year / Last Year**: Jan-Dec of the relevant year
+  - **This Month**: just the current month (chart hidden since single bar is not useful)
+- Renders a row of flex items, each containing: count label, a rounded bar (height proportional to max count), and month abbreviation
+- Bars use `bg-primary` with rounded-full styling to match the pill shape in the reference
+- Zero-count months render as a tiny dot/stub
 
-## Phase 1: Database Migration
+### 2. Integration in `Home.tsx`
+- Import `ShowsBarChart`
+- Place it in the rankings view, directly after the attention banner block (around line 557) and before the search bar (line 560)
+- Pass the `shows` array and `topRatedFilter` value
+- Also respect `showTypeFilter` so the chart reflects the active type filter
 
-Run a SQL migration to update all existing rows:
-
-```text
-UPDATE shows SET show_type = 'set' WHERE show_type = 'show';
-UPDATE shows SET show_type = 'show' WHERE show_type = 'showcase';
-```
-
-Order matters: rename `show` -> `set` first, then `showcase` -> `show`, to avoid collisions.
-
-Also update the default column value from `'show'` to `'set'`:
-
-```text
-ALTER TABLE shows ALTER COLUMN show_type SET DEFAULT 'set';
-```
-
----
-
-## Phase 2: UI Changes (all files)
-
-### 2A. ShowTypeStep.tsx (type selector cards)
-- Change `ShowType` union: `'set' | 'show' | 'festival'`
-- Update the three card definitions:
-  - `set` / Music icon / "Set" / "1 artist, 1 performance."
-  - `show` / Layers icon / "Show" / "Multiple sets, different artists, 1 event."
-  - `festival` / Tent icon / "Festival" / "Multiple artists, multiple sets, multiple stages."
-
-### 2B. UnifiedSearchStep.tsx
-- Update `UnifiedShowType` union to `'set' | 'show' | 'festival'`
-- Change `isEventMode` check from `showcase` to `show`
-- Update heading/placeholder strings:
-  - `show` -> "Name this event or night" (was showcase)
-  - `festival` stays the same
-  - `set` -> "Search for an artist" (was show)
-
-### 2C. VenueStep.tsx
-- Update type annotations from `'show' | 'showcase' | 'festival'` to `'set' | 'show' | 'festival'`
-
-### 2D. AddShowFlow.tsx
-- Update all `showType` comparisons: `'show'` -> `'set'`, `'showcase'` -> `'show'`
-- Update the edit-mode label map: `{ set: "Set", show: "Show", festival: "Festival" }`
-
-### 2E. Home.tsx
-- Update filter state type: `"all" | "set" | "show" | "festival"`
-- Update `typeCounts` keys and filter pill labels:
-  - `set` -> "Sets"
-  - `show` -> "Shows"
-  - `festival` -> "Festivals"
-
-### 2F. DemoAddShowFlow.tsx
-- Update `showType` type annotation
-
-### 2G. useFriendActivity.ts
-- Update comment from `'show' | 'showcase' | 'festival'` to `'set' | 'show' | 'festival'`
-
-### 2H. CompareShowSheet.tsx
-- No logic changes needed (passes through raw `show_type` value)
-
----
-
-## Phase 3: ELO Ranking Pool Alignment
-
-The ranking/comparison system segments by `show_type`. Since `festival` is unchanged, only the pool labels shift. The smart-pairing logic in `CompareShowSheet.tsx` and `Rank.tsx` uses the raw DB value, so once the migration runs and the UI sends the new values, pools automatically align. No additional ranking code changes expected, but will verify during implementation.
-
----
-
-## Risk Considerations
-
-- **Data migration order** is critical to avoid `show` -> `show` collision. The two-step UPDATE handles this.
-- **Existing demo data** served by the `get-demo-data` edge function may contain old values. Will check and update if needed.
-- **In-flight sessions**: Users with the old app version cached could still send `showcase`. The DB accepts any text, so no hard failure, but the value would be orphaned. Low risk for 50 beta users.
+### Technical Details
+- No new dependencies needed -- pure Tailwind CSS bars
+- Bar height calculated as `(count / maxCount) * maxBarHeight` where `maxBarHeight` is ~64px
+- Months with zero shows get a 4px minimum height bar (the dot effect from the reference)
+- The chart container has `overflow-x-auto` for long timelines with horizontal scroll
+- Wrapped in a subtle card-like container: `bg-white/[0.03] border border-white/[0.06] rounded-xl p-3`
 
