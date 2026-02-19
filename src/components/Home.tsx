@@ -1392,7 +1392,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           tags: editShow.tags,
           notes: editShow.notes,
           venueId: editShow.venueId,
-          photo_url: editShow.photo_url
+          photo_url: editShow.photo_url,
+          showType: editShow.showType,
         } : null}
       />
 
