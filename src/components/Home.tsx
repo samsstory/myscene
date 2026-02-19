@@ -453,46 +453,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const renderRankingsView = () => {
     const sortedShows = getSortedShows();
     const filteredShowIds = sortedShows.map(s => s.id);
-    const recentShows = shows.slice(0, 5);
-    
+
     return (
       <div className="space-y-4">
 
-        {/* Recent Shows — shown when no search query active */}
-        {!rankingsSearch.trim() && recentShows.length > 0 && (
-          <div className="space-y-3">
-            <h3
-              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
-              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-            >
-              Recent Shows
-            </h3>
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-28 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : (
-              <StackedShowList
-                shows={recentShows}
-                getRankInfo={getShowRankInfo}
-                onShowTap={handleShowTap}
-                onShowShare={handleShareFromCard}
-              />
-            )}
-            <div className="border-t border-white/[0.06] pt-4">
-              <h3
-                className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60 mb-4"
-                style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-              >
-                All Shows
-              </h3>
-            </div>
-          </div>
-        )}
-
-        {/* Search bar - glassmorphism styled */}
+        {/* Search bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
           <input
@@ -512,7 +477,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           )}
         </div>
 
-        {/* Filter bar - glassmorphism styled */}
+        {/* Filter bar */}
         <div className="flex items-center justify-between gap-4">
           <Select value={topRatedFilter} onValueChange={(v) => setTopRatedFilter(v as typeof topRatedFilter)}>
             <SelectTrigger className="w-[140px] bg-white/[0.05] border-white/[0.08] text-white/80">
@@ -540,8 +505,15 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           </Button>
         </div>
 
-        {/* Empty state */}
-        {sortedShows.length === 0 ? (
+        {/* Loading skeletons */}
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : sortedShows.length === 0 ? (
+          /* Empty state */
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="relative mb-4">
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
@@ -549,58 +521,42 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 <Music2 className="h-8 w-8 text-white/40" />
               </div>
             </div>
-            <h3 
+            <h3
               className="text-lg font-semibold text-white/80 mb-1"
               style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
             >
-              No shows match this filter
+              {rankingsSearch.trim() ? "No shows match your search" : "No shows match this filter"}
             </h3>
             <p className="text-sm text-white/50">
-              Try selecting a different time period
+              {rankingsSearch.trim() ? "Try a different artist, venue, or city" : "Try selecting a different time period"}
             </p>
           </div>
         ) : (
-          /* Show list */
+          /* Unified show list */
           <div className="flex flex-col gap-3">
             {sortedShows.map((show) => {
               const baseRankInfo = getShowRankInfo(show.id, filteredShowIds);
-              // When viewing worst/oldest, show inverted position so worst show appears as #total
               const rankInfo = sortMode === "worst" && baseRankInfo.position
                 ? { ...baseRankInfo, position: baseRankInfo.total - baseRankInfo.position + 1 }
                 : baseRankInfo;
               return (
-                <SwipeableRankingCard 
-                  key={show.id} 
+                <SwipeableRankingCard
+                  key={show.id}
                   onDelete={() => setDeleteConfirmShow(show)}
                 >
-                  <Card 
+                  <Card
                     className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.05] transition-all duration-300 cursor-pointer relative overflow-hidden"
                     onClick={() => handleShowTap(show)}
                   >
                     <CardContent className="p-4 relative">
-                      {/* Instagram share button - top right */}
-                      <div className="absolute top-2 right-2">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className={`h-7 w-7 ${show.photo_url ? 'text-pink-400 hover:text-pink-300' : 'text-white/30 hover:text-white/50'}`}
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleShareFromCard(show);
-                          }}
-                        >
-                          <Instagram className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="flex gap-4 pr-8">
-                        {/* Larger thumbnail - 80px */}
+                      <div className="flex gap-4 pr-2">
+                        {/* Thumbnail */}
                         {show.photo_url ? (
                           <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/10">
                             <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
                           </div>
                         ) : (
-                          <div 
+                          <div
                             className="relative w-20 h-20 rounded-xl bg-white/[0.05] flex items-center justify-center flex-shrink-0 border border-white/[0.08] group cursor-pointer hover:bg-white/[0.08] transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -609,7 +565,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                             }}
                           >
                             <span className="text-2xl text-white/40 select-none" style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}>✦</span>
-                            {/* Quick add photo button */}
                             <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-primary/80 flex items-center justify-center shadow-lg opacity-70 group-hover:opacity-100 transition-opacity">
                               <Plus className="h-3 w-3 text-primary-foreground" />
                             </div>
@@ -617,8 +572,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                         )}
 
                         <div className="min-w-0 flex-1 space-y-1">
-                          {/* Artist name with glow */}
-                          <div 
+                          {/* Artist name */}
+                          <div
                             className="font-bold text-base leading-tight truncate"
                             style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
                           >
@@ -632,15 +587,15 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                               <span className="text-white/40 font-normal"> +{show.artists.length - 2}</span>
                             )}
                           </div>
-                          {/* Venue with muted glow */}
-                          <div 
+                          {/* Venue */}
+                          <div
                             className="text-sm text-white/60 truncate"
                             style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}
                           >
                             {show.venue.name}
                           </div>
-                          {/* Date with muted glow */}
-                          <div 
+                          {/* Date */}
+                          <div
                             className="text-sm text-white/60"
                             style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}
                           >
