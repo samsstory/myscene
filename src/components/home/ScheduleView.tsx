@@ -629,11 +629,11 @@ function SparseGrid({
     return set;
   }, [activeDays]);
 
-  // Build gridTemplateColumns: active cols get equal 1fr, empty cols collapse to 14px.
-  // The grid itself is full-width; active columns share space equally.
+  // Build gridTemplateColumns: active cols share space equally but capped at 25%
+  // of the total grid width — prevents a single active column from stretching too wide.
   const gridTemplate = useMemo(() => {
     return [0, 1, 2, 3, 4, 5, 6]
-      .map(wd => (activeColSet.has(wd) ? "1fr" : "14px"))
+      .map(wd => (activeColSet.has(wd) ? "minmax(0, 25%)" : "14px"))
       .join(" ");
   }, [activeColSet]);
 
