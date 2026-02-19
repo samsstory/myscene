@@ -169,8 +169,6 @@ function UpcomingChip({
         <BadgeIcon className={`h-3 w-3 ${badge.color}`} />
       </div>
 
-      <FriendAvatarStack friends={friendsHere} />
-
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
         {/* Stacked friend avatars when friends are going to same show */}
         <GoingWithAvatarStack goingWith={goingWith} />
