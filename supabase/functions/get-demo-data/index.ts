@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
         .in("show_id", showIds);
 
       // Map artists to shows
-      const artistsByShow = (artistsData || []).reduce((acc: Record<string, Array<{ artist_name: string; is_headliner: boolean }>>, artist: { show_id: string; artist_name: string; is_headliner: boolean }) => {
+      const artistsByShow = (artistsData || []).reduce((acc: Record<string, Array<{ artist_name: string; is_headliner: boolean; artist_image_url: string | null }>>, artist: { show_id: string; artist_name: string; is_headliner: boolean; artist_image_url: string | null }) => {
         if (!acc[artist.show_id]) acc[artist.show_id] = [];
         acc[artist.show_id].push(artist);
         return acc;
@@ -66,9 +66,10 @@ Deno.serve(async (req) => {
 
       data.shows = (showsData || []).map((show: Record<string, unknown>) => ({
         id: show.id,
-        artists: (artistsByShow[show.id as string] || []).map((a: { artist_name: string; is_headliner: boolean }) => ({
+        artists: (artistsByShow[show.id as string] || []).map((a: { artist_name: string; is_headliner: boolean; artist_image_url: string | null }) => ({
           name: a.artist_name,
           isHeadliner: a.is_headliner,
+          imageUrl: a.artist_image_url,
         })),
         venue: {
           name: show.venue_name,
