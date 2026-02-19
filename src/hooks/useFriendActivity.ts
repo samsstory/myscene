@@ -18,6 +18,8 @@ export interface FriendActivityItem {
   rating?: number | null;
   photoUrl?: string | null;
   createdAt: string;
+  // ELO rank position in the friend's collection (1 = #1 ranked)
+  rankPosition?: number | null;
   // If multiple friends share this event
   sharedFriends?: FollowerProfile[];
 }
@@ -129,21 +131,41 @@ export function useFriendActivity(followingIds: string[], myUpcomingArtistDates?
         });
       }
 
-      // Process logged shows — fetch artists separately
+      // Process logged shows — fetch artists and rankings in parallel
       const loggedShowIds = (loggedRes.data ?? []).map(r => r.id);
-      let artistMap = new Map<string, { name: string; imageUrl: string | null }>();
+      let artistMap = new Map<string, { name: string; image_url: string | null }>();
+      // rankMap: show_id → rank position (1-indexed, sorted by ELO desc)
+      const rankMap = new Map<string, number>();
+
       if (loggedShowIds.length > 0) {
-        const { data: artistsData } = await supabase
-          .from("show_artists")
-          .select("show_id, artist_name, artist_image_url, is_headliner")
-          .in("show_id", loggedShowIds);
+        const [artistsRes, rankingsRes] = await Promise.all([
+          supabase
+            .from("show_artists")
+            .select("show_id, artist_name, artist_image_url, is_headliner")
+            .in("show_id", loggedShowIds),
+          supabase
+            .from("show_rankings")
+            .select("show_id, user_id, elo_score")
+            .in("user_id", followingIds),
+        ]);
 
         if (!cancelled) {
-          for (const a of (artistsData ?? [])) {
+          for (const a of (artistsRes.data ?? [])) {
             // Prefer headliner
             if (!artistMap.has(a.show_id) || a.is_headliner) {
-              artistMap.set(a.show_id, { name: a.artist_name, image_url: a.artist_image_url } as any);
+              artistMap.set(a.show_id, { name: a.artist_name, image_url: a.artist_image_url });
             }
+          }
+
+          // Group rankings by user, sort by ELO desc, assign positions
+          const ranksByUser = new Map<string, Array<{ show_id: string; elo_score: number }>>();
+          for (const r of (rankingsRes.data ?? [])) {
+            if (!ranksByUser.has(r.user_id)) ranksByUser.set(r.user_id, []);
+            ranksByUser.get(r.user_id)!.push({ show_id: r.show_id, elo_score: r.elo_score });
+          }
+          for (const [, userRankings] of ranksByUser) {
+            userRankings.sort((a, b) => b.elo_score - a.elo_score);
+            userRankings.forEach((r, idx) => rankMap.set(r.show_id, idx + 1));
           }
         }
       }
@@ -157,8 +179,10 @@ export function useFriendActivity(followingIds: string[], myUpcomingArtistDates?
         const artist = artistMap.get(row.id);
         if (!artist) continue; // skip shows with no artists
 
-        const isHighRating = (row.rating ?? 0) >= 4;
-        const signal: ActivitySignal = isHighRating ? "high-rating" : "standard";
+        const rankPosition = rankMap.get(row.id) ?? null;
+        // "high-rating" signal = ranked in top 3 by ELO
+        const isTopRanked = rankPosition !== null && rankPosition <= 3;
+        const signal: ActivitySignal = isTopRanked ? "high-rating" : "standard";
 
         rawItems.push({
           id: `logged-${row.id}`,
@@ -166,14 +190,15 @@ export function useFriendActivity(followingIds: string[], myUpcomingArtistDates?
           signal,
           friendUserId: row.user_id,
           friend,
-          artistName: (artist as any).name,
-          artistImageUrl: (artist as any).image_url ?? null,
+          artistName: artist.name,
+          artistImageUrl: artist.image_url ?? null,
           venueName: row.venue_name,
           venueLocation: row.venue_location,
           showDate: row.show_date,
           rating: row.rating,
           photoUrl: row.photo_url,
           createdAt: row.created_at,
+          rankPosition,
         });
       }
 

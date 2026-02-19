@@ -1,7 +1,6 @@
-import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
-import { Calendar, Users, Zap, Music2, UserPlus } from "lucide-react";
+import { Calendar, Users, Zap, Music2, UserPlus, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { FriendActivityItem } from "@/hooks/useFriendActivity";
@@ -14,7 +13,7 @@ interface FriendActivityFeedProps {
 }
 
 /** Returns a signal config: label, color classes, icon */
-function getSignalConfig(signal: FriendActivityItem["signal"], type: FriendActivityItem["type"]) {
+function getSignalConfig(signal: FriendActivityItem["signal"], type: FriendActivityItem["type"], rankPosition?: number | null) {
   if (signal === "shared") {
     return {
       label: "You're both going",
@@ -30,10 +29,11 @@ function getSignalConfig(signal: FriendActivityItem["signal"], type: FriendActiv
     };
   }
   if (signal === "high-rating") {
+    const label = rankPosition === 1 ? "#1 show" : rankPosition ? `Ranked #${rankPosition}` : "Top ranked";
     return {
-      label: "Top ranked",
-      icon: Music2,
-      pill: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+      label,
+      icon: Trophy,
+      pill: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     };
   }
   // Standard — differentiate by type
@@ -44,10 +44,14 @@ function getSignalConfig(signal: FriendActivityItem["signal"], type: FriendActiv
       pill: "bg-white/10 text-white/60 border-white/10",
     };
   }
+  // Standard logged — still show rank if available
+  const label = rankPosition ? `Ranked #${rankPosition}` : "Logged";
   return {
-    label: "Logged",
-    icon: Music2,
-    pill: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
+    label,
+    icon: rankPosition ? Trophy : Music2,
+    pill: rankPosition
+      ? "bg-white/10 text-white/50 border-white/10"
+      : "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
   };
 }
 
@@ -55,7 +59,7 @@ function getSignalConfig(signal: FriendActivityItem["signal"], type: FriendActiv
 function RichImageCard({ item }: { item: FriendActivityItem }) {
   const friendName = item.friend.full_name || item.friend.username || "Someone";
   const friendInitial = friendName.charAt(0).toUpperCase();
-  const signal = getSignalConfig(item.signal, item.type);
+  const signal = getSignalConfig(item.signal, item.type, item.rankPosition);
   const SignalIcon = signal.icon;
 
   const imageUrl = item.photoUrl || item.artistImageUrl;
@@ -147,7 +151,7 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
 function CompactCard({ item }: { item: FriendActivityItem }) {
   const friendName = item.friend.full_name || item.friend.username || "Someone";
   const friendInitial = friendName.charAt(0).toUpperCase();
-  const signal = getSignalConfig(item.signal, item.type);
+  const signal = getSignalConfig(item.signal, item.type, item.rankPosition);
   const SignalIcon = signal.icon;
 
   const dateStr = item.showDate
