@@ -6,6 +6,7 @@ import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/components/Home";
+import type { ContentView } from "@/components/home/ContentPillNav";
 import Profile from "@/components/Profile";
 
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
@@ -39,6 +40,7 @@ const Dashboard = () => {
   const [quoteHoldActive, setQuoteHoldActive] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  const [homeView, setHomeView] = useState<ContentView>("home");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
@@ -261,6 +263,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-4">
         <div style={{ display: activeTab === "home" ? "block" : "none" }}>
           <Home
+            initialView={homeView}
             onNavigateToRank={() => setActiveTab("home")}
             onNavigateToProfile={() => setActiveTab("profile")}
             onAddFromPhotos={() => setShowUnifiedAdd(true)}
@@ -294,10 +297,10 @@ const Dashboard = () => {
             <motion.button
               whileTap={{ scale: 0.88 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              onClick={() => { haptic(); setActiveTab("home"); }}
+              onClick={() => { haptic(); setActiveTab("home"); setHomeView("home"); }}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-colors py-1.5",
-                activeTab === "home"
+                activeTab === "home" && homeView === "home"
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
                   : "text-white/60"
               )}
@@ -309,10 +312,12 @@ const Dashboard = () => {
             <motion.button
               whileTap={{ scale: 0.88 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              onClick={() => { haptic(); setActiveTab("home"); }}
+              onClick={() => { haptic(); setActiveTab("home"); setHomeView("calendar"); }}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-colors py-1.5",
-                "text-white/60 hover:text-white/90"
+                activeTab === "home" && homeView === "calendar"
+                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
+                  : "text-white/60"
               )}
               aria-label="Schedule"
             >
