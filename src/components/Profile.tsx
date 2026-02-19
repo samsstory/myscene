@@ -459,41 +459,34 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
         <div>
           <SectionLabel>Invite your squad</SectionLabel>
           {/* Hero invite card */}
-          <button
-            onClick={shareInviteLink}
-            className="w-full relative overflow-hidden rounded-2xl border border-primary/[0.25] bg-gradient-to-br from-primary/[0.15] via-primary/[0.08] to-transparent p-5 text-left hover:border-primary/[0.40] hover:from-primary/[0.22] transition-all group"
-          >
+          <div className="relative overflow-hidden rounded-2xl border border-primary/[0.25] bg-gradient-to-br from-primary/[0.15] via-primary/[0.08] to-transparent p-5">
             {/* Glow blob */}
-            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-primary/[0.20] blur-2xl pointer-events-none group-hover:bg-primary/[0.30] transition-colors" />
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-primary/[0.20] blur-2xl pointer-events-none" />
 
-            <div className="relative flex items-start justify-between gap-4">
+            <div className="relative space-y-3">
               <div className="space-y-1">
                 <p className="text-base font-bold text-white/90" style={{ textShadow: "0 0 12px rgba(255,255,255,0.2)" }}>
                   Bring your crew to Scene
                 </p>
-                <p className="text-xs text-white/50 leading-relaxed max-w-[220px]">
+                <p className="text-xs text-white/50 leading-relaxed">
                   The more friends who log shows, the better the compare game gets.
                 </p>
                 {referralCount > 0 && (
-                  <p className="text-xs text-primary/70 font-medium mt-2">
+                  <p className="text-xs text-primary/70 font-medium">
                     {referralCount} {referralCount === 1 ? "friend" : "friends"} joined via your link ✦
                   </p>
                 )}
               </div>
-              <div className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/[0.18] border border-primary/[0.35] flex items-center justify-center shadow-[0_0_16px_hsl(var(--primary)/0.3)] group-hover:scale-110 transition-transform">
-                <Share2 className="h-5 w-5 text-primary" />
-              </div>
-            </div>
 
-            <div className="relative mt-4 flex items-center gap-2 py-2.5 px-3 rounded-xl bg-primary/[0.12] border border-primary/[0.20]">
-              <span className="text-xs text-primary/80 font-medium flex-1 truncate">
-                {referralCode ? `myscene.lovable.app/?ref=${referralCode}` : "Loading your link…"}
-              </span>
-              <span className="text-[10px] uppercase tracking-[0.15em] text-primary/60 font-semibold flex-shrink-0">
-                {navigator.share ? "Share" : "Copy"}
-              </span>
+              <button
+                onClick={shareInviteLink}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/[0.18] border border-primary/[0.35] text-primary font-semibold text-sm hover:bg-primary/[0.28] active:scale-95 transition-all shadow-[0_0_16px_hsl(var(--primary)/0.25)]"
+              >
+                <Share2 className="h-4 w-4" />
+                Invite your squad
+              </button>
             </div>
-          </button>
+          </div>
         </div>
 
         {/* ── Explore ── */}
