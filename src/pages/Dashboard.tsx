@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
-import BugReportButton from "@/components/BugReportButton";
+import FeedbackSheet from "@/components/FeedbackSheet";
 import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
 import BugPromptBanner from "@/components/BugPromptBanner";
@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [quoteHoldActive, setQuoteHoldActive] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
@@ -56,7 +57,7 @@ const Dashboard = () => {
   const showLoader = !dataReady;
 
   const { showReassurance, showPrompt, elapsedMs, dismiss: dismissSlowLoad } = useSlowLoadDetector(showLoader);
-  const { prompt, dismissPrompt, openReport, reportOpen, setReportOpen } = useBugReportPrompt();
+  const { prompt, dismissPrompt, openReport: _openReport, reportOpen, setReportOpen } = useBugReportPrompt();
   const { stats } = useHomeStats();
 
   // Only elevate z-index for FAB during tour step 0 (first step)
@@ -183,25 +184,21 @@ const Dashboard = () => {
     return (
       <>
         <BrandedLoader fullScreen showReassurance={showReassurance} onQuoteVisible={() => setQuoteHoldActive(true)} onReadyToDismiss={() => setQuoteHoldActive(false)} />
-        <BugReportButton />
         <BugPromptBanner
           visible={showPrompt}
           message={`Things are taking longer than usual (${(elapsedMs / 1000).toFixed(1)}s). Want to let us know?`}
           onReport={() => {
             dismissSlowLoad();
-            setReportOpen(true);
+            setFeedbackOpen(true);
           }}
           onDismiss={dismissSlowLoad}
         />
-        {reportOpen && (
-          <BugReportButton
-            externalOpen={reportOpen}
-            onExternalClose={() => setReportOpen(false)}
-            prefillDescription={`Page took ${(elapsedMs / 1000).toFixed(1)}s to load on ${window.location.pathname}`}
-            errorContext={{ duration_ms: elapsedMs, page: window.location.pathname }}
-            reportType="slow_load"
-          />
-        )}
+        <FeedbackSheet
+          open={feedbackOpen}
+          onOpenChange={setFeedbackOpen}
+          prefillDescription={`Page took ${(elapsedMs / 1000).toFixed(1)}s to load on ${window.location.pathname}`}
+          errorContext={{ duration_ms: elapsedMs, page: window.location.pathname }}
+        />
       </>
     );
   }
@@ -304,12 +301,12 @@ const Dashboard = () => {
         "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4 pb-safe",
         shouldElevateNavZ ? "z-[10001]" : "z-50"
       )}>
-        {/* Left spacer to balance FAB for centering pill */}
+        {/* Left spacer */}
         <div className="w-0 shrink-0" />
-        
-        {/* Glass Pill Navigation — simplified to Home + Profile */}
-        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-10 py-3 shadow-2xl">
-          <div className="flex items-center gap-14">
+
+        {/* Glass Pill Navigation — Home | Feedback | Profile */}
+        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-8 py-3 shadow-2xl">
+          <div className="flex items-center gap-10">
             {/* Home */}
             <button
               onClick={() => setActiveTab("home")}
@@ -321,6 +318,24 @@ const Dashboard = () => {
               )}
             >
               <HomeIcon className="h-6 w-6" />
+            </button>
+
+            {/* Feedback — centre, beta-prominent */}
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              className={cn(
+                "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                feedbackOpen
+                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
+                  : "text-white/60 hover:text-white/90"
+              )}
+              aria-label="Share feedback"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
             </button>
 
             {/* Profile */}
@@ -371,16 +386,8 @@ const Dashboard = () => {
           </div>
         </FloatingTourTarget>
 
-        {/* FAB stack — bug report + add button */}
+        {/* FAB — add show */}
         <div className={cn("flex flex-col items-center gap-3", showSpotlightTour && "z-[10001]")}>
-          <BugReportButton
-            externalOpen={reportOpen}
-            onExternalClose={() => setReportOpen(false)}
-            prefillDescription={prompt.prefillDescription}
-            errorContext={prompt.errorContext}
-            reportType={prompt.type}
-          />
-          {/* FAB Button */}
           <button
             onClick={() => {
               if (showSpotlightTour) return;
@@ -393,7 +400,6 @@ const Dashboard = () => {
               showSpotlightTour ? "z-[10001]" : "z-50"
             )}
           >
-            {/* Shimmer overlay */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-500" />
             <Plus className="h-9 w-9 text-primary-foreground relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" />
           </button>
@@ -418,15 +424,23 @@ const Dashboard = () => {
         onAddManually={() => setShowAddDialog(true)}
       />
 
-      {/* API error / prompt banner */}
+      {/* API error / prompt banner — now opens FeedbackSheet */}
       <BugPromptBanner
         visible={prompt.open}
         message={prompt.prefillDescription || "Something went wrong. Want to report this?"}
         onReport={() => {
           dismissPrompt();
-          setReportOpen(true);
+          setFeedbackOpen(true);
         }}
         onDismiss={dismissPrompt}
+      />
+
+      {/* Unified Feedback Sheet */}
+      <FeedbackSheet
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        prefillDescription={prompt.prefillDescription}
+        errorContext={prompt.errorContext}
       />
 
 
