@@ -68,6 +68,7 @@ interface Show {
   photo_declined?: boolean;
   eventName?: string | null;
   eventDescription?: string | null;
+  showType?: string;
 }
 
 interface ShowRanking {
@@ -110,6 +111,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   }, [initialView]);
   const [sortMode, setSortMode] = useState<"best" | "worst" | "newest" | "oldest">("best");
   const [attentionFilterActive, setAttentionFilterActive] = useState(false);
+  const [showTypeFilter, setShowTypeFilter] = useState<"all" | "show" | "showcase" | "festival">("all");
   const [rankingsSearch, setRankingsSearch] = useState("");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
@@ -298,6 +300,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           photo_declined: show.photo_declined,
           eventName: show.event_name,
           eventDescription: (show as any).event_description,
+          showType: show.show_type,
         };
       }));
 
@@ -356,6 +359,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         });
       }
 
+      // Apply show type filter
+      if (showTypeFilter !== "all") {
+        filteredShows = filteredShows.filter(show => show.showType === showTypeFilter);
+      }
+
       // Apply search filter
       if (rankingsSearch.trim()) {
         const q = rankingsSearch.trim().toLowerCase();
@@ -386,7 +394,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       return sorted;
     }
     return filteredShows;
-  }, [shows, viewMode, topRatedFilter, sortMode, rankings, rankingsSearch]);
+  }, [shows, viewMode, topRatedFilter, showTypeFilter, sortMode, rankings, rankingsSearch]);
 
   const getShowsForDate = (date: Date) => shows.filter(show => isSameDay(parseISO(show.date), date));
 
@@ -582,7 +590,49 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           </Button>
         </div>
 
+        {/* Show type filter pills */}
+        {(() => {
+          const typeCounts = {
+            show: shows.filter(s => s.showType === "show").length,
+            showcase: shows.filter(s => s.showType === "showcase").length,
+            festival: shows.filter(s => s.showType === "festival").length,
+          };
+          const hasMultipleTypes = [typeCounts.show > 0, typeCounts.showcase > 0, typeCounts.festival > 0].filter(Boolean).length > 1;
+          if (!hasMultipleTypes) return null;
+          const pills: { value: typeof showTypeFilter; label: string; count: number }[] = [
+            { value: "all", label: "All", count: shows.length },
+            ...(typeCounts.show > 0 ? [{ value: "show" as const, label: "Shows", count: typeCounts.show }] : []),
+            ...(typeCounts.showcase > 0 ? [{ value: "showcase" as const, label: "Showcases", count: typeCounts.showcase }] : []),
+            ...(typeCounts.festival > 0 ? [{ value: "festival" as const, label: "Festivals", count: typeCounts.festival }] : []),
+          ];
+          return (
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+              {pills.map(pill => (
+                <button
+                  key={pill.value}
+                  onClick={() => setShowTypeFilter(pill.value)}
+                  className={cn(
+                    "flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 border",
+                    showTypeFilter === pill.value
+                      ? "bg-primary/20 border-primary/40 text-primary"
+                      : "bg-white/[0.04] border-white/[0.08] text-white/50 hover:bg-white/[0.08] hover:text-white/70"
+                  )}
+                >
+                  {pill.label}
+                  <span className={cn(
+                    "text-[10px] font-bold tabular-nums",
+                    showTypeFilter === pill.value ? "text-primary/70" : "text-white/30"
+                  )}>
+                    {pill.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Loading skeletons */}
+
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
