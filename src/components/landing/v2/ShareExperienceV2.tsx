@@ -4,12 +4,18 @@ import { X, Plus } from "lucide-react";
 
 // Story overlay mockup
 const StoryMockup = () => <div className="h-full w-full relative bg-black">
-    {/* Full-bleed concert photo */}
-    <div className="absolute inset-0" style={{
-    backgroundImage: "url('/images/jamie-xx-printworks.webp')",
-    backgroundSize: "cover",
-    backgroundPosition: "center"
-  }} />
+    {/* Full-bleed concert photo - responsive: mobile gets smaller file */}
+    <picture>
+      <source srcSet="/images/jamie-xx-printworks-mobile.webp" media="(max-width: 1024px)" type="image/webp" />
+      <source srcSet="/images/jamie-xx-printworks.webp" type="image/webp" />
+      <img
+        src="/images/jamie-xx-printworks.webp"
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    </picture>
     
     {/* Gradient overlays */}
     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40" />

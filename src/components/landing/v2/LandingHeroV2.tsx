@@ -44,12 +44,19 @@ const MockShowCard = () => <div className="h-full w-full bg-gradient-accent flex
       boxShadow: "0 8px 32px -8px rgba(0,0,0,0.6), 0 4px 16px -4px rgba(0,0,0,0.4)"
     }}>
         {/* Photo with moody treatment */}
-        <div className="absolute inset-0" style={{
-        backgroundImage: "url('/images/fred-again-msg.webp')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        filter: "brightness(0.95) contrast(1.05)"
-      }} />
+        {/* Responsive background image: mobile gets the smaller file */}
+        <picture>
+          <source srcSet="/images/fred-again-msg-mobile.webp" media="(max-width: 1024px)" type="image/webp" />
+          <source srcSet="/images/fred-again-msg.webp" type="image/webp" />
+          <img
+            src="/images/fred-again-msg.webp"
+            alt=""
+            aria-hidden="true"
+            fetchPriority="high"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: "brightness(0.95) contrast(1.05)" }}
+          />
+        </picture>
         {/* Darker gradient overlay for mood */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
         {/* Vignette effect */}
