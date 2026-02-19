@@ -459,11 +459,19 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
         {/* Personal Highlight Reel */}
         {highlightShows.length > 0 && (
-          <HighlightReel
-            shows={highlightShows}
-            getRankInfo={getShowRankInfo}
-            onShowTap={handleShowTap}
-          />
+          <>
+            <h3
+              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+            >
+              Your Top Shows
+            </h3>
+            <HighlightReel
+              shows={highlightShows}
+              getRankInfo={getShowRankInfo}
+              onShowTap={handleShowTap}
+            />
+          </>
         )}
 
         {/* Recent Shows */}

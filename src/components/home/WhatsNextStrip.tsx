@@ -630,6 +630,14 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     <>
 
       <div className="space-y-2.5">
+        {/* Section label */}
+        <h3
+          className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+          style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+        >
+          Upcoming Shows
+        </h3>
+
         {/* Header with segmented pill toggle */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
