@@ -22,6 +22,7 @@ import Rank from "./Rank";
 import AddShowFlow from "./AddShowFlow";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
 import SwipeableRankingCard from "./rankings/SwipeableRankingCard";
+import ShowsBarChart from "./rankings/ShowsBarChart";
 import { toast } from "sonner";
 
 // Home components
@@ -554,6 +555,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               </span>
             </div>
           </button>
+        )}
+
+        {/* Mini bar chart — shows per month */}
+        {!attentionFilterActive && (
+          <ShowsBarChart shows={sortedShows} timeFilter={topRatedFilter} />
         )}
 
         {/* Search bar — hidden when attention filter active */}
