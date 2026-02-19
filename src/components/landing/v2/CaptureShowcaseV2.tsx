@@ -81,7 +81,7 @@ const ShowReviewMockup = () => (
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: "url('/images/rufus-du-sol-red-rocks.png')",
+          backgroundImage: "url('/images/rufus-du-sol-red-rocks.webp')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
