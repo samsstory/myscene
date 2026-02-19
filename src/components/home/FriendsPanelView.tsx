@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPlus, Users, Search, Loader2, UserCheck, Calendar, Star, Zap, Music2, Ticket } from "lucide-react";
+import { UserPlus, Users, Search, Loader2, UserCheck, Calendar, Music2, Zap, Ticket } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format, parseISO, addDays, startOfDay } from "date-fns";
@@ -13,25 +13,6 @@ type FilterTab = "all" | "upcoming" | "logged";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StarRow({ rating }: { rating: number }) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} className={cn("h-3 w-3", i < rating ? "fill-amber-400 text-amber-400" : "fill-white/10 text-white/10")} />
-      ))}
-    </span>
-  );
-}
-
-function SignalChip({ signal }: { signal: FriendActivityItem["signal"] }) {
-  if (signal === "shared")
-    return <span className="flex items-center gap-1 text-[10px] font-semibold text-primary uppercase tracking-wider"><Zap className="h-3 w-3" /> You're both going</span>;
-  if (signal === "multi-friend")
-    return <span className="flex items-center gap-1 text-[10px] font-semibold text-violet-400 uppercase tracking-wider"><Users className="h-3 w-3" /> Multiple friends</span>;
-  if (signal === "high-rating")
-    return <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 uppercase tracking-wider"><Star className="h-3 w-3" /> Highly rated</span>;
-  return null;
-}
 
 function ActivityCard({ item }: { item: FriendActivityItem }) {
   const friendName = item.friend.full_name || item.friend.username || "Someone";
@@ -76,11 +57,11 @@ function ActivityCard({ item }: { item: FriendActivityItem }) {
           {(isShared || isMulti || isHighRating) && (
             <p className={cn(
               "text-[10px] font-semibold uppercase tracking-[0.18em] mb-0.5",
-              isShared ? "text-primary/90" : isMulti ? "text-violet-400/90" : "text-amber-400/90"
+              isShared ? "text-primary/90" : isMulti ? "text-violet-400/90" : "text-white/60"
             )}
               style={{ textShadow: isShared ? "0 0 8px hsl(var(--primary)/0.5)" : undefined }}
             >
-              {isShared ? "You're both going" : isMulti ? "Multiple friends" : "Highly rated"}
+              {isShared ? "You're going too" : isMulti ? "Friends are going" : "Top ranked"}
             </p>
           )}
 
@@ -97,19 +78,12 @@ function ActivityCard({ item }: { item: FriendActivityItem }) {
             {[item.venueName, item.venueLocation, dateStr].filter(Boolean).join(" · ")}
           </p>
 
-          {/* Who logged / is going */}
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[11px] text-white/40">
-              {item.type === "upcoming" ? `${friendName} is going` : `${friendName} logged this`}
-            </span>
-            {item.type === "logged" && item.rating && (
-              <span className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={cn("h-2.5 w-2.5", i < item.rating! ? "fill-amber-400 text-amber-400" : "fill-white/10 text-white/10")} />
-                ))}
-              </span>
-            )}
-          </div>
+          {/* Narrative line */}
+          <p className="text-[11px] text-white/40 mt-1.5">
+            {item.type === "upcoming"
+              ? `${friendName} has this one on their radar`
+              : `${friendName} was there`}
+          </p>
 
           {/* Shared friends stack */}
           {item.sharedFriends && item.sharedFriends.length > 0 && (
@@ -134,7 +108,7 @@ function ActivityCard({ item }: { item: FriendActivityItem }) {
         )}>
           {item.type === "upcoming"
             ? <Calendar className="h-3.5 w-3.5 text-primary/80" />
-            : <Star className="h-3.5 w-3.5 text-emerald-400/80" />}
+            : <Zap className="h-3.5 w-3.5 text-emerald-400/80" />}
         </div>
       </div>
     </div>
