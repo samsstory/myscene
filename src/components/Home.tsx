@@ -478,12 +478,13 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const renderRankingsView = () => {
     const rankingMap = new Map(rankings.map(r => [r.show_id, r]));
 
-    // Compute attention status per show
+    // Compute attention status per show — must match what useHomeStats counts
     const getAttentionNeeds = (show: Show) => {
       const needs: string[] = [];
       const ranking = rankingMap.get(show.id);
       if (!ranking || ranking.comparisons_count === 0) needs.push("unranked");
       if (!show.photo_url && !show.photo_declined) needs.push("no moment");
+      if (!show.tags || show.tags.length === 0) needs.push("no highlights");
       return needs;
     };
 
@@ -535,6 +536,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                       {[
                         rankings.filter(r => r.comparisons_count === 0).length > 0 && `${rankings.filter(r => r.comparisons_count === 0).length} unranked`,
                         shows.filter(s => !s.photo_url && !s.photo_declined).length > 0 && `${shows.filter(s => !s.photo_url && !s.photo_declined).length} without a moment`,
+                        shows.filter(s => !s.tags || s.tags.length === 0).length > 0 && `${shows.filter(s => !s.tags || s.tags.length === 0).length} without highlights`,
                       ].filter(Boolean).join(" · ")}
                     </p>
                   )}
