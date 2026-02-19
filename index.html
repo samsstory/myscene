@@ -19,11 +19,9 @@
     <!-- Preload LCP hero image with high fetch priority -->
     <link rel="preload" as="image" href="/images/fred-again-msg.webp" type="image/webp" fetchpriority="high" imagesrcset="/images/fred-again-msg.webp" />
 
-    <!-- Preconnect to Mapbox origins to reduce network dependency chain depth -->
-    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
-    <link rel="preconnect" href="https://events.mapbox.com" crossorigin />
-    <link rel="dns-prefetch" href="https://api.mapbox.com" />
-    <link rel="dns-prefetch" href="https://events.mapbox.com" />
+
+    <!-- Preconnect to Mapbox origins only when the globe section loads (see LazyGlobeShowcase) -->
+    <!-- Removed eager preconnect - Lighthouse flagged them as unused since Mapbox is now lazy-loaded -->
 
     <!-- Open Graph / iMessage / Facebook -->
     <meta property="og:type" content="website" />
