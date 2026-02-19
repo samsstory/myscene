@@ -21,7 +21,7 @@ const SmartCaptureMockup = () => <div className="h-full w-full bg-background fle
       <div className="relative rounded-xl overflow-hidden" style={{
       aspectRatio: "16/10"
     }}>
-        <img src="/images/circoloco-concert.png" alt="Concert photo" className="w-full h-full object-cover" />
+        <img src="/images/circoloco-concert.webp" alt="Concert photo" className="w-full h-full object-cover" loading="lazy" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         <div className="absolute top-2 left-2 flex items-center gap-1 bg-green-500/20 text-green-400 text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm">
           <Check className="h-2.5 w-2.5" />

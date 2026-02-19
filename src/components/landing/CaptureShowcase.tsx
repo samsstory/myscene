@@ -13,7 +13,7 @@ const ShowReviewMockup = () => <div className="h-full w-full bg-background flex 
     aspectRatio: "16/10"
   }}>
       <div className="absolute inset-0" style={{
-      backgroundImage: "url('/images/rufus-du-sol-red-rocks.png')",
+      backgroundImage: "url('/images/rufus-du-sol-red-rocks.webp')",
       backgroundSize: "cover",
       backgroundPosition: "center"
     }} />
