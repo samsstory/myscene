@@ -68,4 +68,22 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Split mapbox into its own chunk — heaviest dependency (~970KB)
+          if (id.includes("mapbox-gl")) return "mapbox";
+          // Split framer-motion — animation lib not needed on first paint
+          if (id.includes("framer-motion")) return "framer-motion";
+          // Split charting library — only used in admin/dashboard
+          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          // Core React runtime
+          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) return "react";
+          // Radix UI components
+          if (id.includes("@radix-ui")) return "radix";
+        },
+      },
+    },
+  },
 }));
