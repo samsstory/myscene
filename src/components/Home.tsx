@@ -484,23 +484,23 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         {/* Activity / Recent Shows tabs */}
         <div className="space-y-3">
           {/* Tab switcher */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.07] w-fit">
             <button
               onClick={() => setFeedTab("activity")}
-              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.12em] transition-all border ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 feedTab === "activity"
-                  ? "bg-primary/20 border-primary/40 text-primary"
-                  : "bg-white/[0.05] border-white/[0.08] text-white/40 hover:text-white/60"
+                  ? "bg-white/[0.10] text-white/90 shadow-sm"
+                  : "text-white/35 hover:text-white/55"
               }`}
             >
               Activity
             </button>
             <button
               onClick={() => setFeedTab("recent")}
-              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.12em] transition-all border ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 feedTab === "recent"
-                  ? "bg-primary/20 border-primary/40 text-primary"
-                  : "bg-white/[0.05] border-white/[0.08] text-white/40 hover:text-white/60"
+                  ? "bg-white/[0.10] text-white/90 shadow-sm"
+                  : "text-white/35 hover:text-white/55"
               }`}
             >
               Recent Shows
