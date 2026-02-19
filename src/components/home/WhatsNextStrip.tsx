@@ -202,6 +202,11 @@ function UpcomingChip({
 }
 
 
+/** A FriendShow augmented with all friends who share the same event */
+interface GroupedFriendShow extends FriendShow {
+  allFriends: FollowerProfile[];
+}
+
 function FriendChip({
   show,
   isAdded,
@@ -209,11 +214,11 @@ function FriendChip({
   onTap,
   onToggle,
 }: {
-  show: FriendShow;
+  show: GroupedFriendShow;
   isAdded: boolean;
   isToggling: boolean;
-  onTap: (show: FriendShow) => void;
-  onToggle: (show: FriendShow, e: React.MouseEvent) => void;
+  onTap: (show: GroupedFriendShow) => void;
+  onToggle: (show: GroupedFriendShow, e: React.MouseEvent) => void;
 }) {
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
@@ -225,9 +230,18 @@ function FriendChip({
     ? (show.venue_location.length > 16 ? show.venue_location.slice(0, 14) + "…" : show.venue_location)
     : null;
 
-  const friendName = show.friend.username
-    ? `@${show.friend.username}`
-    : show.friend.full_name?.split(" ")[0] ?? "Friend";
+  // Build stacked avatar info
+  const allFriends = show.allFriends;
+  const visibleAvatars = allFriends.slice(0, 3);
+  const extraCount = allFriends.length - visibleAvatars.length;
+
+  // Label: "Alex + 2 more going" or "Alex going"
+  const firstName = allFriends[0]?.full_name?.split(" ")[0]
+    ?? allFriends[0]?.username
+    ?? "Friend";
+  const goingLabel = extraCount > 0
+    ? `${firstName} + ${extraCount} more going`
+    : `${firstName} going`;
 
   return (
     <button
@@ -248,20 +262,35 @@ function FriendChip({
         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/15 to-transparent" />
       )}
 
-
-      {/* Friend avatar — top-left */}
-      <div className="absolute top-2 left-2">
-        {show.friend.avatar_url ? (
-          <img
-            src={show.friend.avatar_url}
-            alt={show.friend.username ?? show.friend.full_name ?? "Friend"}
-            className="w-6 h-6 rounded-full border border-black/60 object-cover"
-          />
-        ) : (
-          <div className="w-6 h-6 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center">
-            <span className="text-[8px] font-bold text-primary-foreground leading-none">
-              {(show.friend.username ?? show.friend.full_name ?? "?")[0].toUpperCase()}
-            </span>
+      {/* Stacked friend avatars — top-left */}
+      <div className="absolute top-2 left-2 flex items-center">
+        {visibleAvatars.map((f, i) =>
+          f.avatar_url ? (
+            <img
+              key={f.id}
+              src={f.avatar_url}
+              alt={f.username ?? f.full_name ?? "Friend"}
+              className="w-6 h-6 rounded-full border border-black/60 object-cover"
+              style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
+            />
+          ) : (
+            <div
+              key={f.id}
+              className="w-6 h-6 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center"
+              style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
+            >
+              <span className="text-[8px] font-bold text-primary-foreground leading-none">
+                {(f.username ?? f.full_name ?? "?")[0].toUpperCase()}
+              </span>
+            </div>
+          )
+        )}
+        {extraCount > 0 && (
+          <div
+            className="w-6 h-6 rounded-full border border-black/60 bg-white/20 flex items-center justify-center"
+            style={{ marginLeft: -8, zIndex: 0 }}
+          >
+            <span className="text-[7px] font-bold text-white/90 leading-none">+{extraCount}</span>
           </div>
         )}
       </div>
@@ -287,13 +316,19 @@ function FriendChip({
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
         <p
-          className="text-xs font-bold text-white leading-tight line-clamp-2"
+          className="text-xs font-bold text-white leading-tight line-clamp-1"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
         >
           {show.artist_name}
         </p>
         <p
-          className="text-[10px] text-white/70 mt-0.5"
+          className="text-[9px] text-white/80 mt-0.5 leading-tight line-clamp-1"
+          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
+        >
+          {goingLabel}
+        </p>
+        <p
+          className="text-[9px] text-white/55 mt-0.5"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
         >
           {dateLabel}
@@ -395,18 +430,23 @@ function FriendShowDetailSheet({
   isToggling,
   onToggle,
 }: {
-  show: FriendShow | null;
+  show: GroupedFriendShow | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   isAdded: boolean;
   isToggling: boolean;
-  onToggle: (show: FriendShow) => void;
+  onToggle: (show: GroupedFriendShow) => void;
 }) {
   if (!show) return null;
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "EEEE, MMMM d, yyyy"); } catch { return ""; } })()
     : "Date TBD";
-  const friendName = show.friend.username ?? show.friend.full_name ?? "Friend";
+
+  const allFriends = show.allFriends ?? [show.friend];
+  const friendCount = allFriends.length;
+  const friendLabel = friendCount === 1
+    ? `${allFriends[0].full_name?.split(" ")[0] ?? allFriends[0].username ?? "Friend"} is going`
+    : `${friendCount} friends going`;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -425,18 +465,36 @@ function FriendShowDetailSheet({
         )}
 
         <div className="space-y-3 text-sm mb-5">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="h-4 w-4 flex-shrink-0" />
-            <span>
-              {show.friend.avatar_url && (
-                <img src={show.friend.avatar_url} alt={friendName} className="inline w-5 h-5 rounded-full object-cover mr-1.5 align-middle" />
+          {/* Who's going */}
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center">
+              {allFriends.slice(0, 4).map((f, i) =>
+                f.avatar_url ? (
+                  <img
+                    key={f.id}
+                    src={f.avatar_url}
+                    alt={f.username ?? f.full_name ?? ""}
+                    className="w-7 h-7 rounded-full border-2 border-background object-cover"
+                    style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 4 - i }}
+                  />
+                ) : (
+                  <div
+                    key={f.id}
+                    className="w-7 h-7 rounded-full border-2 border-background bg-primary/40 flex items-center justify-center"
+                    style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 4 - i }}
+                  >
+                    <span className="text-[9px] font-bold text-primary-foreground">
+                      {(f.username ?? f.full_name ?? "?")[0].toUpperCase()}
+                    </span>
+                  </div>
+                )
               )}
-              <span className="font-medium text-foreground">@{show.friend.username ?? friendName}</span> is going
-            </span>
+            </div>
+            <span className="text-sm font-medium text-foreground">{friendLabel}</span>
           </div>
-          <div className="text-muted-foreground">{dateLabel}</div>
+          <div className="text-muted-foreground text-sm">{dateLabel}</div>
           {(show.venue_name || show.venue_location) && (
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground text-sm">
               {show.venue_name}{show.venue_name && show.venue_location ? " · " : ""}{show.venue_location}
             </div>
           )}
@@ -480,7 +538,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedShow, setSelectedShow] = useState<UpcomingShow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedFriendShow, setSelectedFriendShow] = useState<FriendShow | null>(null);
+  const [selectedFriendShow, setSelectedFriendShow] = useState<GroupedFriendShow | null>(null);
   const [friendDetailOpen, setFriendDetailOpen] = useState(false);
   // goingWith for the currently-open detail sheet
   const [friendsGoingWith, setFriendsGoingWith] = useState<FriendShow[]>([]);
@@ -503,7 +561,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     setFriendsGoingWith(goingWith);
   };
 
-  const handleFriendChipTap = (show: FriendShow) => {
+  const handleFriendChipTap = (show: GroupedFriendShow) => {
     setSelectedFriendShow(show);
     setFriendDetailOpen(true);
   };
@@ -620,17 +678,23 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     return ids;
   }, [friendOverlapByShowId]);
 
-  /** Friend shows deduplicated by artist+date, filtered to exclude Mine overlaps */
-  const filteredFriendShows = useMemo(() => {
+  /** Friend shows grouped by artist+date — one card per unique show with all attending friends */
+  const filteredFriendShows = useMemo((): GroupedFriendShow[] => {
     const filtered = friendShows.filter(fs => !overlappingFriendShowIds.has(fs.id));
-    // Deduplicate by artist_name + show_date — keep first occurrence only
-    const seen = new Set<string>();
-    return filtered.filter(fs => {
+    const groupMap = new Map<string, GroupedFriendShow>();
+    for (const fs of filtered) {
       const key = `${fs.artist_name.toLowerCase()}__${fs.show_date ?? ""}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+      if (!groupMap.has(key)) {
+        groupMap.set(key, { ...fs, allFriends: [fs.friend] });
+      } else {
+        const existing = groupMap.get(key)!;
+        // Avoid duplicate friends
+        if (!existing.allFriends.some(f => f.id === fs.friend.id)) {
+          existing.allFriends.push(fs.friend);
+        }
+      }
+    }
+    return Array.from(groupMap.values());
   }, [friendShows, overlappingFriendShowIds]);
 
   return (
