@@ -20,7 +20,7 @@ const PILLS: PillNavItem[] = [
   { id: "home", label: "Home" },
   { id: "calendar", label: "Schedule" },
   { id: "rank", label: "H2H" },
-  { id: "rankings", label: "All Shows" },
+  { id: "rankings", label: "My Shows" },
   { id: "globe", label: "Globe" },
   { id: "friends", label: "Friends" },
 ];
