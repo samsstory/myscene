@@ -42,7 +42,7 @@ const SmartCaptureMockup = () => <div className="h-full w-full bg-background fle
           </div>
         </div>
         
-        <p className="text-white/40 text-[10px] pl-6">
+        <p className="text-white/60 text-[10px] pl-6">
           Dec 6, 2024 · Miami, FL
         </p>
         
