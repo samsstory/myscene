@@ -240,6 +240,23 @@ function FriendChip({
       )}
 
 
+      {/* Friend avatar — top-left */}
+      <div className="absolute top-2 left-2">
+        {show.friend.avatar_url ? (
+          <img
+            src={show.friend.avatar_url}
+            alt={show.friend.username ?? show.friend.full_name ?? "Friend"}
+            className="w-6 h-6 rounded-full border border-black/60 object-cover"
+          />
+        ) : (
+          <div className="w-6 h-6 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center">
+            <span className="text-[8px] font-bold text-primary-foreground leading-none">
+              {(show.friend.username ?? show.friend.full_name ?? "?")[0].toUpperCase()}
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Quick add/remove toggle — top-right */}
       <button
         onClick={(e) => onToggle(show, e)}
