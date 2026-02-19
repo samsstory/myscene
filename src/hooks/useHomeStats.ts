@@ -357,7 +357,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       if (totalTodos > 0) {
         return [{
           id: 'todo',
-          label: 'Finish Up',
+          label: 'Improve',
           value: totalTodos,
           icon: Target,
           action: 'todo-sheet' as StatPillAction,
