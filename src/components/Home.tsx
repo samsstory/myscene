@@ -424,6 +424,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       case 'rankings-attention':
         setAttentionFilterActive(true);
         setRankingsSearch("");
+        setTopRatedFilter("all-time");
+        setShowTypeFilter("all");
         setViewMode('rankings');
         break;
       case 'show-detail':
@@ -485,14 +487,13 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       return needs;
     };
 
+    // Always compute attention shows from the FULL shows list (ignore date/type filters)
     const attentionShows = shows.filter(s => getAttentionNeeds(s).length > 0);
 
-    // Apply attention filter on top of the normal sorted list
-    let sortedShows = getSortedShows();
-    if (attentionFilterActive) {
-      const attentionIds = new Set(attentionShows.map(s => s.id));
-      sortedShows = sortedShows.filter(s => attentionIds.has(s.id));
-    }
+    // When attention filter is active, show all attention shows regardless of date/type filters
+    let sortedShows = attentionFilterActive
+      ? attentionShows
+      : getSortedShows();
     const filteredShowIds = sortedShows.map(s => s.id);
 
     return (
