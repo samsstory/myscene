@@ -294,43 +294,56 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="flex items-center gap-3"
+            className="relative rounded-2xl overflow-hidden border border-white/[0.07] min-h-[72px]"
           >
-            {/* Thumbnail */}
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-white/10 bg-white/[0.04]">
-              {show.artistImageUrl ? (
-                <img src={show.artistImageUrl} alt={show.artistName} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Music2 className="h-4 w-4 text-white/20" />
-                </div>
-              )}
-            </div>
+            {/* Full-bleed background */}
+            {show.artistImageUrl ? (
+              <div className="absolute inset-0">
+                <img src={show.artistImageUrl} alt={show.artistName} className="w-full h-full object-cover scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/30" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 bg-white/[0.03]" />
+            )}
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white/90 truncate">{show.artistName}</p>
-              <p className="text-[11px] text-white/40 truncate">
-                {format(parseISO(show.showDate), "EEE MMM d")}
-                {show.venueName ? ` · ${show.venueName}` : ""}
-              </p>
-            </div>
+            {/* Content */}
+            <div className="relative flex items-center gap-3 px-4 py-3.5">
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70 mb-0.5">
+                  {format(parseISO(show.showDate), "EEE MMM d")}
+                </p>
+                <p className="text-sm font-bold text-white/95 truncate" style={{ textShadow: "0 0 12px rgba(255,255,255,0.25)" }}>
+                  {show.artistName}
+                </p>
+                {show.venueName && (
+                  <p className="text-[11px] text-white/45 truncate mt-0.5">{show.venueName}</p>
+                )}
+              </div>
 
-            {/* Friend avatar stack */}
-            <div className="flex-shrink-0 flex items-center -space-x-2">
-              {show.friends.slice(0, 3).map(friend => (
-                <Avatar key={friend.id} className="h-6 w-6 border-2 border-background">
-                  <AvatarImage src={friend.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-[8px] bg-primary/30 text-primary">
-                    {(friend.full_name || friend.username || "?").charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              ))}
-              {show.friends.length > 3 && (
-                <div className="h-6 w-6 rounded-full border-2 border-background bg-white/10 flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-white/60">+{show.friends.length - 3}</span>
+              {/* Friend avatar stack */}
+              <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                <div className="flex items-center -space-x-2">
+                  {show.friends.slice(0, 3).map(friend => (
+                    <Avatar key={friend.id} className="h-7 w-7 border-2 border-background/60">
+                      <AvatarImage src={friend.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-[9px] bg-primary/30 text-primary">
+                        {(friend.full_name || friend.username || "?").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {show.friends.length > 3 && (
+                    <div className="h-7 w-7 rounded-full border-2 border-background/60 bg-white/10 flex items-center justify-center">
+                      <span className="text-[9px] font-bold text-white/60">+{show.friends.length - 3}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+                <span className="text-[10px] text-white/35">
+                  {show.friends.length === 1
+                    ? (show.friends[0].full_name || show.friends[0].username || "1 friend")
+                    : `${show.friends.length} friends going`}
+                </span>
+              </div>
             </div>
           </motion.div>
         ))}
