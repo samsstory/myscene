@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-
+import { motion } from "framer-motion";
 import { Home as HomeIcon, Plus, Music } from "lucide-react";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +26,9 @@ import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
 import BugPromptBanner from "@/components/BugPromptBanner";
 import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
+
+// Soft haptic tap — silently ignored on desktop / unsupported browsers
+const haptic = () => { try { navigator.vibrate?.(6); } catch {} };
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -278,23 +281,27 @@ const Dashboard = () => {
         <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-8 py-3 shadow-2xl">
           <div className="flex items-center gap-10">
             {/* Home */}
-            <button
-              onClick={() => setActiveTab("home")}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              onClick={() => { haptic(); setActiveTab("home"); }}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
                 activeTab === "home"
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
                   : "text-white/60"
               )}
             >
               <HomeIcon className="h-6 w-6" />
-            </button>
+            </motion.button>
 
             {/* Feedback — centre, beta-prominent */}
-            <button
-              onClick={() => setFeedbackOpen(true)}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              onClick={() => { haptic(); setFeedbackOpen(true); }}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
                 feedbackOpen
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
                   : "text-white/60 hover:text-white/90"
@@ -306,13 +313,15 @@ const Dashboard = () => {
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-            </button>
+            </motion.button>
 
             {/* Profile */}
-            <button
-              onClick={() => setActiveTab("profile")}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              onClick={() => { haptic(); setActiveTab("profile"); }}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all py-1.5",
+                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
                 activeTab === "profile"
                   ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
                   : "text-white/60"
@@ -322,7 +331,7 @@ const Dashboard = () => {
                 <circle cx="12" cy="8" r="4" />
                 <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
               </svg>
-            </button>
+            </motion.button>
           </div>
         </nav>
 

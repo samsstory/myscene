@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Music2 } from "lucide-react";
 import StackedShowCard from "./StackedShowCard";
@@ -164,8 +165,15 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
     >
       <div className="relative pb-32 pt-2">
         {shows.map((show, index) => (
-          <div
+          <motion.div
             key={show.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.28,
+              ease: "easeOut",
+              delay: Math.min(index * 0.04, 0.24),
+            }}
             className="snap-center will-change-transform"
             style={{
               marginTop: index === 0 ? 0 : "-20px",
@@ -184,7 +192,7 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
               onTap={() => onShowTap(show)}
               onShare={() => onShowShare(show)}
             />
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
