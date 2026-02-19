@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
-import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X, UserPlus, ChevronRight } from "lucide-react";
+import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X, UserPlus, ChevronRight, Music } from "lucide-react";
 import { useShareShow } from "@/hooks/useShareShow";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -149,6 +149,15 @@ export default function UpcomingShowDetailSheet({
                   View Tickets
                 </a>
               )}
+              <a
+                href={`https://open.spotify.com/search/${encodeURIComponent(show.artist_name)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-[#1DB954] hover:underline"
+              >
+                <Music className="h-4 w-4 flex-shrink-0" />
+                Listen on Spotify
+              </a>
             </div>
 
             {/* RSVP */}
