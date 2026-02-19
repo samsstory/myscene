@@ -22,7 +22,18 @@ const DEMO_10_FRIENDS: FriendShow[] = Array.from({ length: 10 }, (_, i) => ({
     id: `demo-user-${i}`,
     username: ["alex_burns", "janine.w", "dj_tobi", "sarah_m", "ben.c", "lucy.v", "marcus_k", "priya_d", "noah_j", "chloe_r"][i],
     full_name: ["Alex Burns", "Janine W", "DJ Tobi", "Sarah M", "Ben C", "Lucy V", "Marcus K", "Priya D", "Noah J", "Chloe R"][i],
-    avatar_url: null,
+    avatar_url: [
+      "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=128&h=128&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=128&h=128&fit=crop&crop=face",
+    ][i],
   },
 }));
 // ─────────────────────────────────────────────────────────────────────────────
