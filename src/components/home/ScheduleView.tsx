@@ -616,6 +616,7 @@ interface SparseGridProps {
 function SparseGrid({
   activeDays,
   selectedDay,
+  friendsByDate,
   getCellImage,
   getCellLabel,
   getCellType,
@@ -817,6 +818,43 @@ function SparseGrid({
                     {isTodayCell && !isSelected && (
                       <div className="absolute inset-0 rounded-xl ring-2 ring-cyan-400/60 pointer-events-none" />
                     )}
+
+                    {/* Friend avatar stack */}
+                    {(() => {
+                      const friends = friendsByDate.get(iso) ?? [];
+                      if (friends.length === 0) return null;
+                      const visible = friends.slice(0, 2);
+                      return (
+                        <div className="absolute top-0.5 right-0.5 flex items-center">
+                          {visible.map((f, i) =>
+                            f.avatar_url ? (
+                              <img
+                                key={f.id}
+                                src={f.avatar_url}
+                                alt={f.username ?? "Friend"}
+                                className="w-3.5 h-3.5 rounded-full border border-black/60 object-cover"
+                                style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}
+                              />
+                            ) : (
+                              <div
+                                key={f.id}
+                                className="w-3.5 h-3.5 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center"
+                                style={{ marginLeft: i === 0 ? 0 : -4, zIndex: i }}
+                              >
+                                <span className="text-[6px] font-bold text-primary-foreground leading-none">
+                                  {(f.username ?? f.full_name ?? "?")[0].toUpperCase()}
+                                </span>
+                              </div>
+                            )
+                          )}
+                          {friends.length > 2 && (
+                            <span className="text-[7px] font-bold text-white/70 ml-0.5 leading-none" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+                              +{friends.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <div className="absolute bottom-0 left-0 right-0 px-1 pb-1 flex items-end justify-between">
                       <span className={cn(
