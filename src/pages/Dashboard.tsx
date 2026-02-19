@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home as HomeIcon, Plus, Music } from "lucide-react";
+import { Home as HomeIcon, Plus, Music, CalendarDays, Bell } from "lucide-react";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -230,20 +230,30 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 pt-safe">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <SceneLogo size="lg" className="text-white" />
-          <button
-            onClick={() => setActiveTab("profile")}
-            className="transition-transform hover:scale-105"
-          >
-            <Avatar className={cn(
-              "h-9 w-9 border-2 transition-colors",
-              activeTab === "profile" ? "border-primary" : "border-transparent"
-            )}>
-              <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
-              <AvatarFallback className="text-sm bg-muted">
-                {session?.user?.email?.charAt(0).toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Friends / activity icon */}
+            <button
+              onClick={() => setActiveTab("profile")}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
+              aria-label="Friend activity"
+            >
+              <Bell className="h-4 w-4 text-white/60" />
+            </button>
+            <button
+              onClick={() => setActiveTab("profile")}
+              className="transition-transform hover:scale-105"
+            >
+              <Avatar className={cn(
+                "h-9 w-9 border-2 transition-colors",
+                activeTab === "profile" ? "border-primary" : "border-transparent"
+              )}>
+                <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
+                <AvatarFallback className="text-sm bg-muted">
+                  {session?.user?.email?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -277,9 +287,9 @@ const Dashboard = () => {
         {/* Left spacer */}
         <div className="w-0 shrink-0" />
 
-        {/* Glass Pill Navigation — Home | Feedback | Profile */}
-        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-8 py-3 shadow-2xl">
-          <div className="flex items-center gap-10">
+        {/* Glass Pill Navigation — Home | Schedule | Feedback | Profile */}
+        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-3 shadow-2xl">
+          <div className="flex items-center gap-8">
             {/* Home */}
             <motion.button
               whileTap={{ scale: 0.88 }}
@@ -295,7 +305,21 @@ const Dashboard = () => {
               <HomeIcon className="h-6 w-6" />
             </motion.button>
 
-            {/* Feedback — centre, beta-prominent */}
+            {/* Schedule */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              onClick={() => { haptic(); setActiveTab("home"); }}
+              className={cn(
+                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
+                "text-white/60 hover:text-white/90"
+              )}
+              aria-label="Schedule"
+            >
+              <CalendarDays className="h-6 w-6" />
+            </motion.button>
+
+            {/* Feedback */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
