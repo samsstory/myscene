@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 import { StatPill, StatPillAction } from "@/components/home/StatPills";
-import { Music, Calendar, Target } from "lucide-react";
+import { Music, Target } from "lucide-react";
 
 interface TopShow {
   id: string;
@@ -352,14 +352,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       icon: Music,
       highlight: true,
       action: 'rankings' as StatPillAction,
-    },
-    // This Year -> Calendar
-    {
-      id: 'this-year',
-      label: 'Calendar',
-      value: stats.showsThisYear,
-      icon: Calendar,
-      action: 'calendar' as StatPillAction,
     },
     // To-Do pill -> aggregates pending actions
     ...(() => {
