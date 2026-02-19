@@ -629,11 +629,11 @@ function SparseGrid({
     return set;
   }, [activeDays]);
 
-  // Active cols use 1fr so the grid always fills full width.
-  // The 25% cap is enforced on the card element itself (see motion.button below).
+  // Active cols capped at 25vw using viewport units — column never wider than the card.
+  // Card fills 100% of column with no centering gaps.
   const gridTemplate = useMemo(() => {
     return [0, 1, 2, 3, 4, 5, 6]
-      .map(wd => (activeColSet.has(wd) ? "1fr" : "14px"))
+      .map(wd => (activeColSet.has(wd) ? "minmax(0, 25vw)" : "14px"))
       .join(" ");
   }, [activeColSet]);
 
@@ -789,12 +789,12 @@ function SparseGrid({
                 const isPastDay = isPast(day) && !isTodayCell;
 
                 return (
-                  <div key={iso} className="flex justify-center items-start">
                   <motion.button
+                    key={iso}
                     onClick={() => onSelectDay(day)}
                     whileTap={{ scale: 0.92 }}
                     className={cn(
-                      "relative w-full max-w-[25vw] h-16 max-h-[72px] rounded-xl overflow-hidden border-[1.5px] transition-all duration-200",
+                      "relative w-full h-16 max-h-[72px] rounded-xl overflow-hidden border-[1.5px] transition-all duration-200",
                       cellTypeColors[type],
                       isSelected && `ring-2 ring-offset-1 ring-offset-background ${selectedRingColors[type]}`
                     )}
@@ -828,8 +828,8 @@ function SparseGrid({
                       <div className={cn("w-1 h-1 rounded-full flex-shrink-0", dotColors[type])} />
                     </div>
                   </motion.button>
-                  </div>
                 );
+
               })}
             </div>
           );
