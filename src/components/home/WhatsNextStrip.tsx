@@ -239,28 +239,6 @@ function FriendChip({
         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/15 to-transparent" />
       )}
 
-      {/* Friend avatar + name — top-left */}
-      <div className="absolute top-2 left-2 flex items-center gap-1 max-w-[calc(100%-36px)]">
-        {show.friend.avatar_url ? (
-          <img
-            src={show.friend.avatar_url}
-            alt={friendName}
-            className="w-5 h-5 rounded-full border border-black/60 object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="w-5 h-5 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center flex-shrink-0">
-            <span className="text-[7px] font-bold text-primary-foreground leading-none">
-              {(show.friend.username ?? show.friend.full_name ?? "?")[0].toUpperCase()}
-            </span>
-          </div>
-        )}
-        <span
-          className="text-[9px] font-semibold text-white/80 truncate leading-none"
-          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
-        >
-          {friendName}
-        </span>
-      </div>
 
       {/* Quick add/remove toggle — top-right */}
       <button
