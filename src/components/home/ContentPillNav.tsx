@@ -18,10 +18,10 @@ interface ContentPillNavProps {
 
 const PILLS: PillNavItem[] = [
   { id: "home", label: "Home" },
-  { id: "calendar", label: "Calendar" },
-  { id: "globe", label: "Globe" },
+  { id: "calendar", label: "Schedule" },
   { id: "rank", label: "Rank" },
   { id: "rankings", label: "All Shows" },
+  { id: "globe", label: "Globe" },
 ];
 
 export default function ContentPillNav({ activeView, onViewChange, rankNudge }: ContentPillNavProps) {
