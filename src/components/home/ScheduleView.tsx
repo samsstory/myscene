@@ -309,70 +309,8 @@ export default function ScheduleView({
         </button>
       </div>
 
-      {/* ── This Week strip ── */}
-      {thisWeekItems.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Sparkles className="h-3 w-3 text-primary/60" />
-            <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground/60">
-              This Week
-            </span>
-          </div>
-          <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
-            {thisWeekItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  try {
-                    const d = startOfDay(parseISO(item.date));
-                    setSelectedDay(d);
-                    // Jump to the correct month
-                    setViewMonth(startOfMonth(d));
-                  } catch {}
-                }}
-                className={cn(
-                  "flex-shrink-0 flex flex-col items-center gap-1.5 w-[68px] rounded-2xl border py-2.5 transition-all duration-200",
-                  item.isFriend
-                    ? "bg-violet-500/[0.06] border-violet-500/[0.15] hover:bg-violet-500/[0.12]"
-                    : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08]"
-                )}
-              >
-                <div className="relative w-11 h-11 rounded-xl overflow-hidden flex-shrink-0">
-                  {item.artistImage ? (
-                    <img
-                      src={item.artistImage}
-                      alt={item.artistName}
-                      className="w-full h-full object-cover"
-                      style={item.isFriend ? { filter: "brightness(0.7) saturate(0.8)" } : undefined}
-                    />
-                  ) : (
-                    <div className={cn(
-                      "w-full h-full flex items-center justify-center",
-                      item.isFriend ? "bg-violet-500/10" : "bg-primary/10"
-                    )}>
-                      <Music2 className={cn("w-5 h-5", item.isFriend ? "text-violet-400/40" : "text-primary/40")} />
-                    </div>
-                  )}
-                  {!item.isFriend && item.rsvpStatus && (
-                    <span className={cn("absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border border-black/30", rsvpDotClass(item.rsvpStatus))} />
-                  )}
-                  {item.isFriend && (
-                    <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-violet-500/80 border border-black/30 flex items-center justify-center">
-                      <Users className="w-2 h-2 text-white" />
-                    </div>
-                  )}
-                </div>
-                <span className={cn("text-[10px] font-bold leading-none", item.isFriend ? "text-violet-300/70" : "text-primary/70")}>
-                  {item.dayLabel}
-                </span>
-                <span className="text-[9px] text-muted-foreground/60 leading-tight text-center px-1 truncate w-full">
-                  {item.artistName}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+
+
 
       {/* ── Sparse Month Grid ── */}
       <div className="mb-4">
@@ -690,13 +628,11 @@ function SparseGrid({
     return set;
   }, [activeDays]);
 
-  // Build gridTemplateColumns: cap active cols so a single active col never fills the full width.
-  // With 1 active col: ~72px max. With 7: ~1fr each (~44px typical on mobile).
+  // Build gridTemplateColumns: active cols get equal 1fr, empty cols collapse to 14px.
+  // The grid itself is full-width; active columns share space equally.
   const gridTemplate = useMemo(() => {
-    const count = activeColSet.size;
-    const maxColWidth = Math.min(72, Math.max(44, Math.round(280 / Math.max(count, 1))));
     return [0, 1, 2, 3, 4, 5, 6]
-      .map(wd => (activeColSet.has(wd) ? `minmax(0, ${maxColWidth}px)` : "16px"))
+      .map(wd => (activeColSet.has(wd) ? "1fr" : "14px"))
       .join(" ");
   }, [activeColSet]);
 
@@ -817,7 +753,7 @@ function SparseGrid({
                 const colHasEvents = activeColSet.has(colIdx);
 
                 if (!cell) {
-                  return <div key={colIdx} className={colHasEvents ? "h-14" : "h-5"} />;
+                  return <div key={colIdx} className={colHasEvents ? "h-16 max-h-[72px]" : "h-5"} />;
                 }
 
                 if (!cell.hasEvent) {
@@ -857,7 +793,7 @@ function SparseGrid({
                     onClick={() => onSelectDay(day)}
                     whileTap={{ scale: 0.92 }}
                     className={cn(
-                      "relative h-14 rounded-xl overflow-hidden border-[1.5px] transition-all duration-200",
+                      "relative h-16 max-h-[72px] rounded-xl overflow-hidden border-[1.5px] transition-all duration-200",
                       cellTypeColors[type],
                       isSelected && `ring-2 ring-offset-1 ring-offset-background ${selectedRingColors[type]}`
                     )}
