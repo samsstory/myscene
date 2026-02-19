@@ -76,30 +76,28 @@ User can reach Globe, Rank, Schedule, and All Shows without the bottom nav chang
 
 ---
 
-## Phase 3 — Bottom Nav Simplification
+## Phase 3 — Bottom Nav Simplification ✅ COMPLETE
 > **Effort:** Low | **Risk:** Low | **Impact:** Cleaner chrome, less cognitive load
 
 ### What
-Once Globe and Rank live in the pill nav (Phase 2), the bottom nav no longer needs 3 icons. Simplify to 2 primary destinations.
+Simplified the bottom nav and introduced a unified feedback system for the beta.
 
-### Chosen approach (decide before implementing — default: Option B)
-- **Option A:** Home + Profile — cleanest, most Spotify-like
-- **Option B:** Home + FAB (center) + Profile — keeps Add action prominent in nav ← recommended
-- **Option C:** Keep 3 icons but replace Globe/Rank with Friends + Profile
+### Final decisions
+- **Nav structure:** `Home | Feedback (centre) | Profile` — 3 items
+- **Feedback button** opens a unified `FeedbackSheet` (feature request + bug report in one)
+- **Floating bug report button** removed — feedback consolidated into nav
+- **Feature requests** stored in a dedicated `feature_requests` DB table (separate from `bug_reports`)
+- **Admin dashboard** has a new **Feature Requests** tab with status workflow: New → Under Consideration → Planned → Shipped → Misaligned (archived sub-tab)
+- Onboarding `SpotlightTour` refs for `nav-globe` / `nav-rank` no longer needed (those moved to pill nav in Phase 2)
 
-### Files to touch
-- `src/pages/Dashboard.tsx` — remove Globe/Rank nav buttons, adjust pill spacing
+### Files created/touched
+- `src/components/FeedbackSheet.tsx` — unified bug + feature request drawer
+- `src/components/admin/FeatureRequestsTab.tsx` — admin tab with Active / Misaligned sub-tabs
+- `src/pages/Admin.tsx` — added Feature Requests tab + badge
+- `src/pages/Dashboard.tsx` — 3-item bottom nav, removed BugReportButton
 
-### Steps
-- [ ] Confirm Option A/B/C above before starting
-- [ ] Remove Globe and Rank `<button>` elements from bottom nav pill
-- [ ] Rebalance spacing: `gap-10` → `gap-16` or similar
-- [ ] Move FAB into center of nav pill if going with Option B
-- [ ] Update onboarding `SpotlightTour` steps that reference `nav-globe` and `nav-rank` data attributes
-- [ ] Update `FloatingTourTarget` refs accordingly
-
-### Success Criteria
-Bottom nav pill contains only 2–3 items. No dead space. Feels intentional.
+### Success Criteria ✅
+Bottom nav pill contains exactly 3 items. Feedback is a first-class beta action. Feature requests have a dedicated admin workflow.
 
 ---
 
