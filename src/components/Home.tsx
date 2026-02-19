@@ -415,6 +415,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       case 'todo-sheet':
         setTodoSheetOpen(true);
         break;
+      case 'rankings-attention':
+        setAttentionFilterActive(true);
+        setRankingsSearch("");
+        setViewMode('rankings');
+        break;
       case 'show-detail':
         if (payload) {
           const show = shows.find(s => s.id === payload);
