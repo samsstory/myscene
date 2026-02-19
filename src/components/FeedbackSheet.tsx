@@ -122,15 +122,24 @@ export default function FeedbackSheet({
           ...(capturedScreenshotUrl ? { screenshot_url: capturedScreenshotUrl } : {}),
         };
 
-        await supabase.from("bug_reports" as any).insert({
-          user_id: session.user.id,
-          description: reportDescription,
-          page_url: pageUrl,
-          user_agent: userAgent,
-          device_info: deviceInfo,
-          type: isBug ? "manual" : "feature_request",
-          error_context: Object.keys(context).length > 0 ? context : null,
-        } as any);
+        if (isBug) {
+          await supabase.from("bug_reports" as any).insert({
+            user_id: session.user.id,
+            description: reportDescription,
+            page_url: pageUrl,
+            user_agent: userAgent,
+            device_info: deviceInfo,
+            type: "manual",
+            error_context: Object.keys(context).length > 0 ? context : null,
+          } as any);
+        } else {
+          await (supabase as any).from("feature_requests").insert({
+            user_id: session.user.id,
+            description: reportDescription,
+            page_url: pageUrl,
+            status: "new",
+          });
+        }
       } catch {
         // Best-effort
       }
