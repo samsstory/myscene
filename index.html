@@ -16,6 +16,12 @@
     <link rel="apple-touch-icon" href="/images/pwa-192.png" />
     <link rel="canonical" href="https://tryscene.app/" />
 
+    <!-- Preconnect to Mapbox origins to reduce network dependency chain depth -->
+    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
+    <link rel="preconnect" href="https://events.mapbox.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.mapbox.com" />
+    <link rel="dns-prefetch" href="https://events.mapbox.com" />
+
     <!-- Open Graph / iMessage / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tryscene.app/" />
