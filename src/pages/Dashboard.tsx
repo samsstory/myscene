@@ -23,6 +23,7 @@ import { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
 import FeedbackSheet from "@/components/FeedbackSheet";
+import FriendsPanel from "@/components/FriendsPanel";
 import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
 import BugPromptBanner from "@/components/BugPromptBanner";
@@ -42,6 +43,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [homeView, setHomeView] = useState<ContentView>("home");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [friendsPanelOpen, setFriendsPanelOpen] = useState(false);
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
@@ -235,7 +237,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             {/* Friends / activity icon */}
             <button
-              onClick={() => setActiveTab("profile")}
+              onClick={() => setFriendsPanelOpen(true)}
               className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
               aria-label="Friend activity"
             >
@@ -442,6 +444,9 @@ const Dashboard = () => {
         }}
         onDismiss={dismissPrompt}
       />
+
+      {/* Friends Panel */}
+      <FriendsPanel open={friendsPanelOpen} onOpenChange={setFriendsPanelOpen} />
 
       {/* Unified Feedback Sheet */}
       <FeedbackSheet
