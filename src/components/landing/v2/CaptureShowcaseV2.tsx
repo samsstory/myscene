@@ -108,7 +108,7 @@ const ShowReviewMockup = () => (
     {/* Section Header - Friendly, conversational */}
     <div className="px-3 pt-3 pb-1">
       <p className="text-white/60 text-[10px] font-normal">What stood out?</p>
-      <p className="text-white/40 text-[8px]">Pick what made the night.</p>
+      <p className="text-white/60 text-[8px]">Pick what made the night.</p>
     </div>
 
     {/* Tag Categories */}
@@ -116,7 +116,7 @@ const ShowReviewMockup = () => (
       {tagCategories.map((category) => (
         <div key={category.label}>
           {/* Subtle category label */}
-          <p className="text-white/30 text-[8px] uppercase tracking-wider mb-0.5">
+          <p className="text-white/55 text-[8px] uppercase tracking-wider mb-0.5">
             {category.label}
           </p>
           {/* Tag grid */}
@@ -132,7 +132,7 @@ const ShowReviewMockup = () => (
     {/* Freeform Note - Reframed */}
     <div className="px-3 py-2">
       <div className="bg-white/[0.03] rounded-lg p-2 border border-white/[0.06]">
-        <p className="text-white/40 text-[8px] mb-0.5">My take (optional)</p>
+        <p className="text-white/60 text-[8px] mb-0.5">My take (optional)</p>
         <p className="text-white/60 text-[10px] leading-relaxed">
           The sunrise set was unreal.
         </p>
