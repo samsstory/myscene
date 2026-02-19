@@ -75,10 +75,10 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] flex flex-col rounded-t-2xl px-0 bg-background/80 backdrop-blur-xl border-t border-white/[0.08]"
+        className="max-h-[60dvh] flex flex-col rounded-t-2xl px-0 bg-background/80 backdrop-blur-xl border-t border-white/[0.08] overflow-x-hidden w-full"
       >
         {/* Header */}
-        <div className="px-6 pt-2 pb-4 border-b border-white/[0.06]">
+        <div className="px-4 pt-2 pb-4 border-b border-white/[0.06] w-full box-border">
           <p
             className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/50 mb-4"
             style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
@@ -87,7 +87,7 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
           </p>
 
           {/* Search input */}
-          <div className="relative">
+          <div className="relative w-full">
             {isSearching ? (
               <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 animate-spin" />
             ) : (
@@ -97,17 +97,16 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name or @username…"
-              
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 placeholder:text-white/25 text-sm focus:outline-none focus:border-primary/40 transition-colors"
+              className="w-full box-border pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 placeholder:text-white/25 text-sm focus:outline-none focus:border-primary/40 transition-colors"
             />
           </div>
         </div>
 
         {/* Results */}
-        <div className="flex-1 overflow-y-auto px-6 divide-y divide-white/[0.05]">
+        <div className="flex-1 overflow-y-auto px-4 divide-y divide-white/[0.05]">
 
           {/* Prompt state */}
           {showPrompt && (
