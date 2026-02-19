@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export type ContentView = "home" | "calendar" | "globe" | "rankings" | "rank";
+export type ContentView = "home" | "calendar" | "globe" | "rankings" | "rank" | "friends";
 
 interface PillNavItem {
   id: ContentView;
@@ -22,6 +22,7 @@ const PILLS: PillNavItem[] = [
   { id: "rank", label: "Rank" },
   { id: "rankings", label: "All Shows" },
   { id: "globe", label: "Globe" },
+  { id: "friends", label: "Friends" },
 ];
 
 export default function ContentPillNav({ activeView, onViewChange, rankNudge }: ContentPillNavProps) {
