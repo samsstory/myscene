@@ -40,6 +40,7 @@ interface ScheduleViewProps {
   friendShows: FriendShow[];
   onShowTap: (show: Show) => void;
   onUpcomingTap: (show: UpcomingShow) => void;
+  onFriendShowTap?: (show: FriendShow) => void;
   onPlanShow: () => void;
   calendarFriendsMode: boolean;
   onToggleFriendsMode: () => void;
@@ -59,6 +60,7 @@ export default function ScheduleView({
   friendShows,
   onShowTap,
   onUpcomingTap,
+  onFriendShowTap,
   onPlanShow,
   calendarFriendsMode,
   onToggleFriendsMode,
@@ -534,7 +536,11 @@ export default function ScheduleView({
               {dayFriendShows
                 .filter(fs => !dayUpcoming.some(u => u.artist_name === fs.artist_name))
                 .map(fs => (
-                  <div key={fs.id} className="w-full flex items-center gap-3 bg-violet-500/[0.05] border border-violet-500/[0.15] rounded-2xl px-4 py-3">
+                  <button
+                    key={fs.id}
+                    onClick={() => onFriendShowTap?.(fs)}
+                    className="w-full flex items-center gap-3 bg-violet-500/[0.05] hover:bg-violet-500/[0.08] border border-violet-500/[0.15] hover:border-violet-500/[0.25] rounded-2xl px-4 py-3 transition-all text-left group"
+                  >
                     <div className="relative w-11 h-11 rounded-xl flex-shrink-0 overflow-hidden bg-violet-500/10">
                       {fs.artist_image_url ? (
                         <img src={fs.artist_image_url} alt={fs.artist_name} className="w-full h-full object-cover" style={{ filter: "brightness(0.7) saturate(0.8)" }} />
@@ -563,7 +569,8 @@ export default function ScheduleView({
                         <span className="text-[10px] text-violet-300/60">{fs.friend.full_name?.split(" ")[0] ?? fs.friend.username} is going</span>
                       </div>
                     </div>
-                  </div>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors flex-shrink-0" />
+                  </button>
                 ))}
 
               {/* Empty state */}

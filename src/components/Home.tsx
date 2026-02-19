@@ -1186,6 +1186,22 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               friendShows={friendShows}
               onShowTap={handleShowTap}
               onUpcomingTap={(show) => { setSelectedUpcomingShow(show); setUpcomingDetailOpen(true); }}
+              onFriendShowTap={(fs) => {
+                // Convert FriendShow to UpcomingShow shape so the detail sheet can display it
+                const asUpcoming: import("@/hooks/usePlanUpcomingShow").UpcomingShow = {
+                  id: fs.id,
+                  artist_name: fs.artist_name,
+                  venue_name: fs.venue_name,
+                  venue_location: fs.venue_location,
+                  show_date: fs.show_date,
+                  ticket_url: null,
+                  artist_image_url: fs.artist_image_url,
+                  rsvp_status: "going",
+                  created_at: "",
+                };
+                setSelectedUpcomingShow(asUpcoming);
+                setUpcomingDetailOpen(true);
+              }}
               onPlanShow={() => setPlanShowOpen(true)}
               calendarFriendsMode={calendarFriendsMode}
               onToggleFriendsMode={() => setCalendarFriendsMode(v => !v)}
