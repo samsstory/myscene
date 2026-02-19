@@ -40,6 +40,7 @@ import { useHomeStats } from "@/hooks/useHomeStats";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows } from "@/hooks/useFriendUpcomingShows";
 import { Skeleton } from "./ui/skeleton";
+import FriendsPanelView from "./home/FriendsPanelView";
 
 interface Artist {
   name: string;
@@ -1076,6 +1077,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     </div>
   );
 
+  const renderFriendsView = () => <FriendsPanelView />;
+
   return (
     <div className="space-y-4">
       {/* Spotify-style horizontal pill sub-nav */}
@@ -1115,6 +1118,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           )}
 
           {viewMode === 'rankings' && renderRankingsView()}
+
+          {viewMode === 'friends' && renderFriendsView()}
         </motion.div>
       </AnimatePresence>
 

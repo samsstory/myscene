@@ -23,7 +23,6 @@ import { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
 import FeedbackSheet from "@/components/FeedbackSheet";
-import FriendsPanel from "@/components/FriendsPanel";
 import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
 import BugPromptBanner from "@/components/BugPromptBanner";
@@ -43,7 +42,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [homeView, setHomeView] = useState<ContentView>("home");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [friendsPanelOpen, setFriendsPanelOpen] = useState(false);
+  const [announcementsOpen, setAnnouncementsOpen] = useState(false);
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const [showSpotlightTour, setShowSpotlightTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
@@ -235,11 +234,11 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <SceneLogo size="lg" className="text-white" />
           <div className="flex items-center gap-3">
-            {/* Friends / activity icon */}
+            {/* Notifications / announcements icon */}
             <button
-              onClick={() => setFriendsPanelOpen(true)}
+              onClick={() => setAnnouncementsOpen(true)}
               className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
-              aria-label="Friend activity"
+              aria-label="Notifications"
             >
               <Bell className="h-4 w-4 text-white/60" />
             </button>
@@ -445,8 +444,12 @@ const Dashboard = () => {
         onDismiss={dismissPrompt}
       />
 
-      {/* Friends Panel */}
-      <FriendsPanel open={friendsPanelOpen} onOpenChange={setFriendsPanelOpen} />
+      {/* Announcements Sheet — placeholder for feature announcements */}
+      <FeedbackSheet
+        open={announcementsOpen}
+        onOpenChange={setAnnouncementsOpen}
+        prefillDescription="Feature announcement / notification"
+      />
 
       {/* Unified Feedback Sheet */}
       <FeedbackSheet
