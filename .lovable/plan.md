@@ -194,3 +194,51 @@ The most compelling first version is **shared upcoming shows + compare mode** �
 - `src/components/home/WhatsNextStrip.tsx` — Friends strip already lives here; may evolve into its own page
 - `src/components/profile/FindFriendsSheet.tsx` — discovery entry point already exists
 - `src/hooks/useFriendUpcomingShows.ts` — data layer already exists
+
+---
+
+## Future — Spotify-Powered Show Discovery (Parked)
+
+> **Priority:** High for engagement + retention | **Effort:** Medium | **Risk:** Low (Spotify API already integrated)
+
+### Context
+Scene already has a working Spotify integration (Client Credentials flow via `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET`) used for artist search and image enrichment. Bandsintown is also already integrated (`BANDSINTOWN_API_KEY`). Together these can power a native discovery surface without needing access to Spotify's private "Upcoming Shows" feature.
+
+### The Idea
+Surface upcoming shows for artists the user has already logged in Scene — a "you might want to catch these" feed based on their own concert history and taste profile.
+
+### Feasibility Notes
+- **Spotify does NOT expose its own "Upcoming Shows" data via public API** — the upcoming shows visible in the Spotify app are powered by a private internal ticketing integration (not accessible externally).
+- **What we CAN do instead:**
+  1. Extract the user's top artists from their Scene history (artists seen most / rated highest)
+  2. Query **Bandsintown** (already integrated) for upcoming shows for those artists
+  3. Optionally expand via Spotify's `GET /artists/{id}/related-artists` endpoint
+  4. Surface results in Scene → 1-tap add to calendar + invite friends
+
+### Data Flow
+```
+User's show history → top artists (by show count / rating)
+  → Bandsintown upcoming shows API (per artist)
+  → Deduplicate + rank by relevance (location, date proximity, artist score)
+  → "Shows you might love" strip on Home or a new Discover pill
+```
+
+### Personalisation Signals Available
+- Artists already seen (`show_artists` table)
+- Ratings per show (`shows.rating`) → weight favourite artists higher
+- Home city/location (`profiles.home_latitude/longitude`) → proximity filter
+- Related artists via Spotify `GET /artists/{id}/related-artists` → expand beyond seen artists
+
+### Edge Function Needed
+A `get-artist-recommendations` edge function that reads the user's top artists, queries Bandsintown for upcoming shows, optionally enriches with Spotify related artists, and returns a ranked deduplicated list.
+
+### UI Surface Options
+- A **Discover** pill in the Home sub-nav
+- A horizontal card strip on Home ("Based on your history")
+- A section inside the existing Schedule view
+
+### Questions to Answer Before Building
+- Location-aware? (within X km of home city)
+- Show artists the user has *already seen* (return visits) or new artists only?
+- CTA: "Add to calendar" only, or also "Find tickets" (linking out to Bandsintown/Songkick)?
+- Standalone Discover section or integrated into Schedule?
