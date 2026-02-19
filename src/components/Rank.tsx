@@ -494,6 +494,16 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
     <>
     {debugBar}
     <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
+      {/* Page Header */}
+      <div className="text-center space-y-1">
+        <h3
+          className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60"
+          style={{ textShadow: "0 0 12px hsl(var(--primary) / 0.3)" }}
+        >
+          Head To Head
+        </h3>
+      </div>
+
       {/* Confirmation Ring */}
       <div className="flex justify-center">
         <ConfirmationRing 
