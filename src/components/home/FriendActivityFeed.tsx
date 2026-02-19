@@ -64,7 +64,7 @@ function buildActivityString(item: FriendActivityItem): string {
   // Logged shows
   if (item.rankPosition === 1) return `${firstName} ranked ${artist} their #1 show${at}`;
   if (item.rankPosition) return `${firstName} ranked ${artist} #${item.rankPosition}${at}`;
-  return `${firstName} just logged ${artist}${at}`;
+  return `${firstName} added ${artist}${at} to their Scene`;
 }
 
 // ─── Signal icon for avatar dot ───────────────────────────────────────────────
