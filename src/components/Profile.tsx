@@ -497,7 +497,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
                         #{referralRank.rank}
                       </span>
                       <span className="text-[9px] uppercase tracking-[0.15em] text-primary/50 mt-0.5">
-                        of {referralRank.total} inviters
+                        All Time
                       </span>
                     </div>
                   )}
