@@ -1,84 +1,179 @@
+# Scene Navigation Rethink — Spotify-Inspired UI
+## Multi-Phase Implementation Plan
 
-# "Upcoming Shows" Strip — Toggle Design Plan
-
-## Recommendation: Segmented Toggle in the Header (not a second row)
-
-A second full row of equal-height chips would consume ~160px of extra vertical space every time the user loads the home screen, regardless of whether they care about social plans that day. That's a meaningful cost.
-
-However, a plain toggle that hides friends' shows behind a tap means the social signal is never passively discoverable — which defeats the whole purpose of the feature.
-
-The right approach is a **header-level segmented control** that replaces the current "What's Next" label. It gives friends' shows a permanent, prominent home without costing any vertical space. The chip row beneath simply swaps content when toggled. This pattern is familiar (similar to how Spotify separates "My Library" from "Following"), feels intentional, and preserves the real estate budget.
+> **How to use this file:** Prompt Lovable with "continue working on the plan" or reference a specific phase by name, e.g. "implement Phase 1 from the plan."
 
 ---
 
-## Visual Design
+## Context & Goal
 
-```text
-┌─────────────────────────────────────────────┐
-│  [Mine]  [Friends · 3]          + Add        │  ← segmented pill toggle in header
-├─────────────────────────────────────────────┤
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐    │
-│  │ chip │  │ chip │  │ chip │  │  +   │    │  ← scrollable row (content swaps)
-│  └──────┘  └──────┘  └──────┘  └──────┘    │
-└─────────────────────────────────────────────┘
+Scene's current nav swaps entire component trees when tapping bottom nav buttons — it feels like a page reload. Spotify keeps a persistent shell (header + bottom nav) and only animates the content area, making everything feel like one continuous surface. Music fans who use Spotify daily will find this immediately familiar.
+
+**Core principle:** The shell never unmounts. Only the content moves.
+
+---
+
+## Phase 1 — Animated Content Transitions
+> **Effort:** Low | **Risk:** Low | **Impact:** Immediate quality boost
+
+### What
+Add framer-motion `AnimatePresence` to the content swap in `Dashboard.tsx` so switching tabs produces a smooth fade + subtle slide instead of an abrupt DOM swap.
+
+### Files to touch
+- `src/pages/Dashboard.tsx` — wrap `renderContent()` in `<AnimatePresence>` + `<motion.div key={activeTab}>`
+
+### Steps
+- [ ] Wrap the `<main>` content in `<AnimatePresence mode="wait">`
+- [ ] Add `<motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18, ease: "easeOut" }}>` around `renderContent()`
+- [ ] Confirm header and bottom nav are **outside** the animated wrapper (they already are ✅)
+- [ ] Test on simulated slow CPU (DevTools → Performance → 4x throttle) for jank
+
+### Success Criteria
+Switching tabs feels like a snappy content slide, not a page reload. Header never flickers.
+
+---
+
+## Phase 2 — Horizontal Pill Sub-Nav (Spotify Filter Row)
+> **Effort:** Medium | **Risk:** Low | **Impact:** High discoverability + familiar UX
+
+### What
+Add a horizontally scrollable pill row near the top of the Home content — like Spotify's "All / Music / Podcasts" row. Globe and Rank become sub-views within Home rather than separate bottom-nav destinations.
+
+### Design spec
+```
+[ Mine ]  [ Friends ]  [ Globe ]  [ Rank ]   ← scrollable, glassmorphic
+```
+- Pill: `bg-white/[0.06] border border-white/10 rounded-full px-4 py-1.5 text-sm`
+- Active pill: `bg-primary/20 border-primary/40 text-primary font-semibold`
+- Active pill slides with a `layoutId="pill-indicator"` shared layout animation
+- Horizontal scroll, `scrollbar-width: none`, `scroll-snap-type: x mandatory`
+- Sticky below the dashboard header
+
+### Files to create/touch
+- `src/components/home/ContentPillNav.tsx` — new scrollable pill row component
+- `src/components/Home.tsx` — add pill nav + wire sub-view state
+- `src/pages/Dashboard.tsx` — remove Globe/Rank as separate bottom-nav tabs; simplify `activeTab` to `"home" | "profile"`
+
+### Steps
+- [ ] Create `ContentPillNav.tsx` with props: `views`, `activeView`, `onViewChange`
+- [ ] Mount it at the top of `Home.tsx` content area (below stat pills, above highlight reel)
+- [ ] Add `subView` state to `Home.tsx`: `"mine" | "friends" | "globe" | "rank"`
+- [ ] Render `<Rank>` and `<MapView>` inline inside Home when their sub-view is active
+- [ ] Remove Globe + Rank from `Dashboard.tsx` `renderContent()` and bottom nav
+- [ ] Animate sub-view content with `AnimatePresence` keyed to `subView`
+
+### Success Criteria
+User can reach Globe and Rank without the bottom nav changing. Bottom nav becomes macro-level only.
+
+---
+
+## Phase 3 — Bottom Nav Simplification
+> **Effort:** Low | **Risk:** Low | **Impact:** Cleaner chrome, less cognitive load
+
+### What
+Once Globe and Rank live in the pill nav (Phase 2), the bottom nav no longer needs 3 icons. Simplify to 2 primary destinations.
+
+### Chosen approach (decide before implementing — default: Option B)
+- **Option A:** Home + Profile — cleanest, most Spotify-like
+- **Option B:** Home + FAB (center) + Profile — keeps Add action prominent in nav ← recommended
+- **Option C:** Keep 3 icons but replace Globe/Rank with Friends + Profile
+
+### Files to touch
+- `src/pages/Dashboard.tsx` — remove Globe/Rank nav buttons, adjust pill spacing
+
+### Steps
+- [ ] Confirm Option A/B/C above before starting
+- [ ] Remove Globe and Rank `<button>` elements from bottom nav pill
+- [ ] Rebalance spacing: `gap-10` → `gap-16` or similar
+- [ ] Move FAB into center of nav pill if going with Option B
+- [ ] Update onboarding `SpotlightTour` steps that reference `nav-globe` and `nav-rank` data attributes
+- [ ] Update `FloatingTourTarget` refs accordingly
+
+### Success Criteria
+Bottom nav pill contains only 2–3 items. No dead space. Feels intentional.
+
+---
+
+## Phase 4 — Persistent Shell (Scroll State Preservation)
+> **Effort:** Medium | **Risk:** Medium | **Impact:** Eliminates scroll-position loss on tab switch
+
+### What
+Scroll position within a tab resets to top when you switch away and come back. Fix this so returning to the Home tab picks up where you left off — like Spotify does.
+
+### Strategy
+Use CSS `display: contents` / `visibility: hidden` + `position: absolute` to keep all tab trees mounted but hide non-active ones. React state stays alive, scroll position is preserved, no re-fetch on return.
+
+### Files to touch
+- `src/pages/Dashboard.tsx` — replace conditional `renderContent()` with always-mounted hidden panels
+
+### Steps
+- [ ] Replace `renderContent()` switch with always-rendered panels:
+  ```tsx
+  <div style={{ display: activeTab === "home" ? "block" : "none" }}>
+    <Home ... />
+  </div>
+  <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
+    <Profile ... />
+  </div>
+  ```
+- [ ] Wrap in `<AnimatePresence>` on the visible panel only (using opacity not display for animation)
+- [ ] Test memory usage — mounting all panels simultaneously is fine for this app size
+- [ ] Verify that Rank/Globe (now sub-views of Home per Phase 2) benefit automatically
+
+### Success Criteria
+Scroll back to halfway through your show list → switch to Profile → come back → still at the same position.
+
+---
+
+## Phase 5 — Micro-Interaction Polish
+> **Effort:** Low | **Risk:** None | **Impact:** Premium tactile feel
+
+### What
+Final layer of polish that makes every tap feel satisfying and alive.
+
+### Steps
+- [ ] `whileTap={{ scale: 0.93 }}` on all pill nav buttons (bottom nav + content pills)
+- [ ] Shared layout animation: `layoutId="active-pill"` slides the active indicator between content pills
+- [ ] Bottom nav active icon: soft glow pulse via CSS `@keyframes` (already partially implemented with `drop-shadow`)
+- [ ] Content cards stagger in on first load: `variants` with `staggerChildren: 0.04`
+- [ ] Mobile haptic: `navigator.vibrate?.(6)` on tab switch (gracefully ignored on desktop)
+- [ ] Add `transition={{ type: "spring", stiffness: 400, damping: 30 }}` to pill indicator for snappy feel
+
+### Success Criteria
+Every interaction feels snappy and intentional. The UI communicates state through motion, not just color.
+
+---
+
+## Implementation Order
+
+```
+Phase 1  →  Phase 2  →  Phase 3  →  Phase 4  →  Phase 5
+ Animate     Pill nav    Simplify    Persist     Polish
+ content     sub-views   bottom nav  scroll      micro-FX
 ```
 
-- "Mine" tab: current personal upcoming shows + AddShowChip at end
-- "Friends" tab: friend show chips (read-only, no add chip)
-- A subtle badge/count on the "Friends" tab shows how many friends have upcoming shows (e.g. "Friends · 3") — this makes the tab itself a passive signal that something is there
-- The "+ Add" button in the top-right only appears on the "Mine" tab
-- If the user has zero friends with upcoming shows, the "Friends" tab still appears but shows a soft empty state inside the chip row (e.g. "No friends have shows planned yet")
+Start with Phase 1 (lowest risk, immediate visible improvement), then Phase 2 (biggest structural change), then clean up from there.
 
 ---
 
-## What Changes
+## Key File Reference
 
-### `src/hooks/useFriendUpcomingShows.ts`
-Extend the existing Supabase SELECT to pull full show fields per row:
-- Add `id`, `artist_name`, `artist_image_url`, `venue_name`, `venue_location` to the SELECT
-- Keep the existing `friendsByDate` Map (used by the calendar ghost tiles — no breakage)
-- Add a new `friendShows[]` flat array sorted by `show_date` ascending, each entry containing the show fields plus the owning `friend: FollowerProfile`
-
-### `src/components/home/WhatsNextStrip.tsx`
-- Rename internal section label from "What's Next" to use the segmented toggle
-- Add local state: `activeTab: 'mine' | 'friends'` defaulting to `'mine'`
-- Replace the plain `<h3>What's Next</h3>` header with two pill tabs side by side:
-  - Left pill: "Mine" 
-  - Right pill: "Friends" with a count badge if `friendShows.length > 0`
-- The `+ Add` button in the top-right conditionally renders only when `activeTab === 'mine'`
-- Below the header, conditionally render either:
-  - **Mine tab**: existing `UpcomingChip` list + `AddShowChip` (exactly as today)
-  - **Friends tab**: a new `FriendChip` sub-component displaying friend show cards (read-only, with friend avatar overlaid top-left)
-- The empty state for Friends tab: a simple inline message ("No friends have planned shows yet") styled as a soft single-line pill — not a full-height button
-- The strip pulls `friendShows` from the upgraded `useFriendUpcomingShows` hook
-
-### `FriendChip` sub-component (inside WhatsNextStrip.tsx)
-Same `w-32 h-36` dimensions as `UpcomingChip`. Shows:
-- Blurred artist image background (or gradient fallback)
-- Friend avatar + truncated username in top-left (replaces the RSVP badge)
-- Artist name + date + venue in the bottom overlay
-- Tapping opens a read-only bottom sheet (reuse `UpcomingShowDetailSheet` in view-only mode, or a simple `Sheet` with the info — phase 2 can add "I'm going too" CTA)
+| File | Role |
+|---|---|
+| `src/pages/Dashboard.tsx` | Shell: header, bottom nav, tab state, content switch |
+| `src/components/Home.tsx` | Home tab: highlight reel, stats, what's next, sub-view logic |
+| `src/components/Rank.tsx` | Rank view — will become a Home sub-view in Phase 2 |
+| `src/components/MapView.tsx` | Globe/map — will become a Home sub-view in Phase 2 |
+| `src/components/home/WhatsNextStrip.tsx` | Upcoming shows strip (Mine / Friends toggle) |
+| `src/components/home/ContentPillNav.tsx` | NEW in Phase 2 — scrollable pill filter row |
 
 ---
 
-## Files to Create / Modify
+## Design Tokens to Use
 
-| File | Action | Summary |
-|---|---|---|
-| `src/hooks/useFriendUpcomingShows.ts` | Edit | Broaden SELECT to include full show fields; expose `friendShows[]` flat array alongside existing `friendsByDate` Map |
-| `src/components/home/WhatsNextStrip.tsx` | Edit | Add segmented toggle header; add `FriendChip` sub-component; wire `friendShows` from hook; conditional tab rendering |
-
-No changes needed to `Home.tsx` — `WhatsNextStrip` is self-contained and already receives `onPlanShow` from there.
-
----
-
-## Why Not a Second Row?
-
-- Costs ~160px of vertical space on every home screen load
-- Friends' data is only interesting when timely (soonest shows first) — a second row with 0 entries would leave a blank gap
-- The toggle pattern keeps the layout stable regardless of how many friends have plans
-- It also sets up future tabs cleanly (e.g. a "Nearby" tab later)
-
-## Why Not Just a Toggle Button (icon only)?
-
-An icon-only toggle (e.g. a people icon in the corner) is too easy to miss and doesn't communicate that friends have upcoming shows. The count badge on the "Friends" pill is the passive social signal that makes users curious to tap it.
+```
+Active pill:   bg-primary/20  border-primary/40  text-primary
+Inactive pill: bg-white/[0.06]  border-white/[0.10]  text-muted-foreground
+Nav glow:      drop-shadow-[0_0_8px_hsl(var(--primary))]
+Transition:    duration-200 ease-out  (or spring stiffness-400)
+```
