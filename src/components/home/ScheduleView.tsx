@@ -287,27 +287,8 @@ export default function ScheduleView({
       {/* ── Single compact header row ── */}
       <div className="flex items-center justify-between mb-3">
 
-        {/* Left: Friends toggle */}
-        <button
-          onClick={onToggleFriendsMode}
-          className={cn(
-            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.08em] border transition-all duration-200",
-            calendarFriendsMode
-              ? "bg-primary/15 border-primary/40 text-primary"
-              : "bg-white/[0.05] border-white/10 text-white/40 hover:text-white/60"
-          )}
-        >
-          <Users className="h-3 w-3" />
-          Friends
-          {friendsNext30 > 0 && (
-            <span className={cn(
-              "text-[9px] font-bold px-1 py-0.5 rounded-full leading-none",
-              calendarFriendsMode ? "bg-primary/40 text-primary-foreground" : "bg-white/15 text-white/60"
-            )}>
-              {friendsNext30}
-            </span>
-          )}
-        </button>
+        {/* Left: spacer to balance Friends toggle width */}
+        <div className="w-[70px]" />
 
         {/* Center: ‹ Month Year › with optional Today shortcut below */}
         <div className="flex flex-col items-center gap-1">
@@ -347,8 +328,27 @@ export default function ScheduleView({
           </AnimatePresence>
         </div>
 
-        {/* Right: spacer to balance Friends toggle width */}
-        <div className="w-[70px]" />
+        {/* Right: Friends toggle */}
+        <button
+          onClick={onToggleFriendsMode}
+          className={cn(
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.08em] border transition-all duration-200",
+            calendarFriendsMode
+              ? "bg-primary/15 border-primary/40 text-primary"
+              : "bg-white/[0.05] border-white/10 text-white/40 hover:text-white/60"
+          )}
+        >
+          <Users className="h-3 w-3" />
+          Friends
+          {friendsNext30 > 0 && (
+            <span className={cn(
+              "text-[9px] font-bold px-1 py-0.5 rounded-full leading-none",
+              calendarFriendsMode ? "bg-primary/40 text-primary-foreground" : "bg-white/15 text-white/60"
+            )}>
+              {friendsNext30}
+            </span>
+          )}
+        </button>
       </div>
 
 
