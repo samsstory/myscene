@@ -78,24 +78,18 @@ const ShowReviewMockup = () => (
       className="relative mx-3 rounded-xl overflow-hidden"
       style={{ aspectRatio: "16/10" }}
     >
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: "url('/images/rufus-du-sol-red-rocks-mobile.webp')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        {/* Load full-res on larger screens via a hidden img for browser hint */}
+      {/* Responsive background image: mobile gets smaller file */}
+      <picture>
+        <source srcSet="/images/rufus-du-sol-red-rocks-mobile.webp" media="(max-width: 1024px)" type="image/webp" />
+        <source srcSet="/images/rufus-du-sol-red-rocks.webp" type="image/webp" />
         <img
           src="/images/rufus-du-sol-red-rocks.webp"
-          aria-hidden="true"
           alt=""
+          aria-hidden="true"
           loading="lazy"
-          className="hidden lg:block"
-          style={{ position: "absolute", width: 0, height: 0, opacity: 0 }}
+          className="absolute inset-0 w-full h-full object-cover"
         />
-      </div>
+      </picture>
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
       {/* Scene watermark - positioned below notch area */}
