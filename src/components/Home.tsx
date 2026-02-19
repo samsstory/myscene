@@ -603,6 +603,14 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             <p className="text-sm text-white/50">
               {attentionFilterActive ? "All your shows are ranked and have moments." : rankingsSearch.trim() ? "Try a different artist, venue, or city" : "Try selecting a different time period"}
             </p>
+            {attentionFilterActive && (
+              <button
+                onClick={() => setAttentionFilterActive(false)}
+                className="mt-4 text-sm font-medium text-primary/80 hover:text-primary transition-colors underline underline-offset-2"
+              >
+                View all shows
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
