@@ -38,55 +38,109 @@ function ActivityCard({ item }: { item: FriendActivityItem }) {
   const dateStr = item.showDate ? format(parseISO(item.showDate), "MMM d") : null;
   const isShared = item.signal === "shared";
   const isMulti = item.signal === "multi-friend";
+  const isHighRating = item.signal === "high-rating";
+  const displayImage = item.photoUrl || item.artistImageUrl;
 
   return (
     <div className={cn(
-      "relative rounded-2xl border px-4 py-3.5 flex items-start gap-3 overflow-hidden",
-      isShared ? "bg-primary/[0.08] border-primary/25" : isMulti ? "bg-violet-500/[0.06] border-violet-500/20" : "bg-white/[0.04] border-white/[0.08]"
+      "relative rounded-2xl overflow-hidden border",
+      isShared ? "border-primary/30" : isMulti ? "border-violet-500/25" : "border-white/[0.07]"
     )}>
-      {isShared && <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />}
-
-      <div className="relative flex-shrink-0 mt-0.5">
-        <Avatar className="h-9 w-9 border border-white/10">
-          <AvatarImage src={item.friend.avatar_url ?? undefined} />
-          <AvatarFallback className="text-xs bg-white/10 text-white/70">{friendName.charAt(0).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <span className={cn("absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border border-background flex items-center justify-center", item.type === "upcoming" ? "bg-primary/80" : "bg-emerald-500/80")}>
-          {item.type === "upcoming" ? <Calendar className="h-2.5 w-2.5 text-white" /> : <Star className="h-2.5 w-2.5 text-white" />}
-        </span>
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <SignalChip signal={item.signal} />
-        <p className="text-sm font-semibold text-white/90 mt-0.5 truncate">{item.artistName}</p>
-        <p className="text-xs text-white/50 truncate mt-0.5">{[item.venueName, item.venueLocation, dateStr].filter(Boolean).join(" · ")}</p>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-[11px] text-white/40">{item.type === "upcoming" ? `${friendName} is going` : `${friendName} logged this`}</span>
-          {item.type === "logged" && item.rating && <StarRow rating={item.rating} />}
-        </div>
-        {item.sharedFriends && item.sharedFriends.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <div className="flex -space-x-1.5">
-              {item.sharedFriends.slice(0, 3).map(f => (
-                <Avatar key={f.id} className="h-5 w-5 border border-background">
-                  <AvatarImage src={f.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-[8px] bg-white/10">{(f.full_name || f.username || "?").charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-              ))}
-            </div>
-            <span className="text-[11px] text-white/35">+{item.sharedFriends.length} also going</span>
-          </div>
-        )}
-      </div>
-
-      {(item.artistImageUrl || item.photoUrl) && (
-        <div className="flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-white/10">
-          <img src={item.photoUrl || item.artistImageUrl || ""} alt={item.artistName} className="w-full h-full object-cover" />
+      {/* Background image with overlay */}
+      {displayImage && (
+        <div className="absolute inset-0">
+          <img src={displayImage} alt={item.artistName} className="w-full h-full object-cover scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/30" />
         </div>
       )}
+      {!displayImage && (
+        <div className={cn(
+          "absolute inset-0",
+          isShared ? "bg-primary/[0.08]" : isMulti ? "bg-violet-500/[0.06]" : "bg-white/[0.03]"
+        )} />
+      )}
+
+      {/* Content */}
+      <div className="relative px-4 py-3.5 flex items-end gap-3">
+        {/* Friend avatar */}
+        <div className="flex-shrink-0 mb-0.5">
+          <Avatar className="h-8 w-8 border border-white/20">
+            <AvatarImage src={item.friend.avatar_url ?? undefined} />
+            <AvatarFallback className="text-xs bg-white/10 text-white/70">{friendName.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </div>
+
+        {/* Text info */}
+        <div className="flex-1 min-w-0">
+          {/* Signal label */}
+          {(isShared || isMulti || isHighRating) && (
+            <p className={cn(
+              "text-[10px] font-semibold uppercase tracking-[0.18em] mb-0.5",
+              isShared ? "text-primary/90" : isMulti ? "text-violet-400/90" : "text-amber-400/90"
+            )}
+              style={{ textShadow: isShared ? "0 0 8px hsl(var(--primary)/0.5)" : undefined }}
+            >
+              {isShared ? "You're both going" : isMulti ? "Multiple friends" : "Highly rated"}
+            </p>
+          )}
+
+          {/* Artist name */}
+          <p
+            className="text-base font-bold text-white/95 leading-tight truncate"
+            style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
+          >
+            {item.artistName}
+          </p>
+
+          {/* Venue · date */}
+          <p className="text-[11px] text-white/50 truncate mt-0.5">
+            {[item.venueName, item.venueLocation, dateStr].filter(Boolean).join(" · ")}
+          </p>
+
+          {/* Who logged / is going */}
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-[11px] text-white/40">
+              {item.type === "upcoming" ? `${friendName} is going` : `${friendName} logged this`}
+            </span>
+            {item.type === "logged" && item.rating && (
+              <span className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className={cn("h-2.5 w-2.5", i < item.rating! ? "fill-amber-400 text-amber-400" : "fill-white/10 text-white/10")} />
+                ))}
+              </span>
+            )}
+          </div>
+
+          {/* Shared friends stack */}
+          {item.sharedFriends && item.sharedFriends.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <div className="flex -space-x-1.5">
+                {item.sharedFriends.slice(0, 3).map(f => (
+                  <Avatar key={f.id} className="h-5 w-5 border border-background">
+                    <AvatarImage src={f.avatar_url ?? undefined} />
+                    <AvatarFallback className="text-[8px] bg-white/10">{(f.full_name || f.username || "?").charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <span className="text-[11px] text-white/35">+{item.sharedFriends.length} also going</span>
+            </div>
+          )}
+        </div>
+
+        {/* Type badge (upcoming/logged) */}
+        <div className={cn(
+          "flex-shrink-0 self-start w-7 h-7 rounded-full border flex items-center justify-center",
+          item.type === "upcoming" ? "bg-primary/20 border-primary/30" : "bg-emerald-500/20 border-emerald-500/30"
+        )}>
+          {item.type === "upcoming"
+            ? <Calendar className="h-3.5 w-3.5 text-primary/80" />
+            : <Star className="h-3.5 w-3.5 text-emerald-400/80" />}
+        </div>
+      </div>
     </div>
   );
 }
+
 
 // ─── Find Friends ─────────────────────────────────────────────────────────────
 
