@@ -793,7 +793,7 @@ function SparseGrid({
                 const colHasEvents = activeColSet.has(colIdx);
 
                 if (!cell) {
-                  return <div key={colIdx} className={colHasEvents ? "aspect-square" : "h-5"} />;
+                  return <div key={colIdx} className={colHasEvents ? "h-14" : "h-5"} />;
                 }
 
                 if (!cell.hasEvent) {
@@ -804,7 +804,7 @@ function SparseGrid({
                       key={colIdx}
                       className={cn(
                         "flex items-end justify-center",
-                        colHasEvents ? "aspect-square pb-1" : "h-full justify-center items-center"
+                        colHasEvents ? "h-14 pb-1" : "h-5 justify-center items-center"
                       )}
                     >
                       <span className={cn(
@@ -833,7 +833,7 @@ function SparseGrid({
                     onClick={() => onSelectDay(day)}
                     whileTap={{ scale: 0.92 }}
                     className={cn(
-                      "relative aspect-square rounded-xl overflow-hidden border-[1.5px] transition-all duration-200",
+                      "relative h-14 rounded-xl overflow-hidden border-[1.5px] transition-all duration-200",
                       cellTypeColors[type],
                       isSelected && `ring-2 ring-offset-1 ring-offset-background ${selectedRingColors[type]}`
                     )}
