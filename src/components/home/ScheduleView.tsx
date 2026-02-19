@@ -662,6 +662,20 @@ function SparseGrid({
   onSelectDay,
   viewMonth,
 }: SparseGridProps) {
+  // Which weekday columns (0=Sun..6=Sat) have at least one event this month?
+  const activeColSet = useMemo(() => {
+    const set = new Set<number>();
+    for (const d of activeDays) set.add(getDay(d));
+    return set;
+  }, [activeDays]);
+
+  // Build gridTemplateColumns: active cols get "1fr", empty cols get "20px"
+  const gridTemplate = useMemo(() => {
+    return [0, 1, 2, 3, 4, 5, 6]
+      .map(wd => (activeColSet.has(wd) ? "1fr" : "20px"))
+      .join(" ");
+  }, [activeColSet]);
+
   // Build the full calendar grid for the month (all days, all weeks, 7 cols)
   type WeekRow = {
     weekIndex: number;
@@ -674,18 +688,15 @@ function SparseGrid({
 
     const firstDay = startOfMonth(viewMonth);
     const lastDay = endOfMonth(viewMonth);
-    const startCol = getDay(firstDay); // 0=Sun
+    const startCol = getDay(firstDay);
 
-    // All days in month
     const monthDays = eachDayOfInterval({ start: firstDay, end: lastDay });
 
-    // Group into weeks
     const weeks: WeekRow[] = [];
     let weekCells: Array<{ day: Date; iso: string; hasEvent: boolean } | null> = Array(7).fill(null);
     let weekIdx = 0;
     let hasEventsInWeek = false;
 
-    // Pad the first week
     for (let i = 0; i < startCol; i++) weekCells[i] = null;
 
     for (const day of monthDays) {
@@ -697,14 +708,12 @@ function SparseGrid({
       weekCells[col] = { day, iso, hasEvent };
 
       if (col === 6) {
-        // End of week row — push and reset
         weeks.push({ weekIndex: weekIdx, hasEvents: hasEventsInWeek, cells: weekCells });
         weekCells = Array(7).fill(null);
         hasEventsInWeek = false;
         weekIdx++;
       }
     }
-    // Push the last partial week if non-empty
     if (weekCells.some(c => c !== null)) {
       weeks.push({ weekIndex: weekIdx, hasEvents: hasEventsInWeek, cells: weekCells });
     }
@@ -733,31 +742,41 @@ function SparseGrid({
     "overlap": "bg-amber-400",
   };
 
+  const GAP = "4px";
+
   return (
     <div>
-      {/* Weekday column headers — always all 7 */}
-      <div className="grid grid-cols-7 mb-2" style={{ gap: "4px" }}>
-        {WEEKDAY_LABELS.map(wd => (
-          <div key={wd} className="text-center text-[9px] font-semibold uppercase tracking-[0.10em] text-muted-foreground/35">
-            {wd}
-          </div>
-        ))}
+      {/* Weekday column headers — all 7, but empty cols are narrow */}
+      <div className="grid mb-2" style={{ gridTemplateColumns: gridTemplate, gap: GAP }}>
+        {WEEKDAY_LABELS.map((wd, idx) => {
+          const isEmpty = !activeColSet.has(idx);
+          return (
+            <div
+              key={wd}
+              className={cn(
+                "text-center font-semibold uppercase tracking-[0.10em]",
+                isEmpty
+                  ? "text-[7px] text-muted-foreground/20"
+                  : "text-[9px] text-muted-foreground/40"
+              )}
+            >
+              {isEmpty ? wd[0] : wd}
+            </div>
+          );
+        })}
       </div>
 
       {/* Week rows */}
       <div className="space-y-1">
         {allWeeks.map((week, rowIdx) => {
           if (!week.hasEvents) {
-            // Empty week — render a slim void row that implies time passing
+            // Empty week — slim void row
             return (
-              <div key={rowIdx} className="grid grid-cols-7 h-5" style={{ gap: "4px" }}>
+              <div key={rowIdx} className="grid h-5" style={{ gridTemplateColumns: gridTemplate, gap: GAP }}>
                 {week.cells.map((cell, colIdx) => (
-                  <div
-                    key={colIdx}
-                    className="flex items-center justify-center"
-                  >
+                  <div key={colIdx} className="flex items-center justify-center">
                     {cell ? (
-                      <span className="text-[8px] text-muted-foreground/15 font-medium tabular-nums leading-none">
+                      <span className="text-[7px] text-muted-foreground/15 font-medium tabular-nums leading-none">
                         {format(cell.day, "d")}
                       </span>
                     ) : null}
@@ -769,23 +788,28 @@ function SparseGrid({
 
           // Week with events — full-height row
           return (
-            <div key={rowIdx} className="grid grid-cols-7" style={{ gap: "4px" }}>
+            <div key={rowIdx} className="grid" style={{ gridTemplateColumns: gridTemplate, gap: GAP }}>
               {week.cells.map((cell, colIdx) => {
+                const colHasEvents = activeColSet.has(colIdx);
+
                 if (!cell) {
-                  // Out-of-month padding cell
-                  return <div key={colIdx} className="aspect-square" />;
+                  return <div key={colIdx} className={colHasEvents ? "aspect-square" : "h-5"} />;
                 }
 
                 if (!cell.hasEvent) {
-                  // In-month day, no event — ghost cell: just a tiny date number
+                  // In-month day, no event — ghost: tiny date number
                   const isTodayCell = isToday(cell.day);
                   return (
                     <div
                       key={colIdx}
-                      className="aspect-square flex items-end justify-center pb-1"
+                      className={cn(
+                        "flex items-end justify-center",
+                        colHasEvents ? "aspect-square pb-1" : "h-full justify-center items-center"
+                      )}
                     >
                       <span className={cn(
-                        "text-[9px] font-medium tabular-nums leading-none",
+                        "tabular-nums leading-none",
+                        colHasEvents ? "text-[9px] font-medium" : "text-[7px] font-medium",
                         isTodayCell ? "text-cyan-400/50" : "text-muted-foreground/20"
                       )}>
                         {format(cell.day, "d")}
@@ -814,7 +838,6 @@ function SparseGrid({
                       isSelected && `ring-2 ring-offset-1 ring-offset-background ${selectedRingColors[type]}`
                     )}
                   >
-                    {/* Art background */}
                     {img ? (
                       <img
                         src={img}
@@ -828,15 +851,12 @@ function SparseGrid({
                       </div>
                     )}
 
-                    {/* Gradient scrim */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
 
-                    {/* Today ring */}
                     {isTodayCell && !isSelected && (
                       <div className="absolute inset-0 rounded-xl ring-2 ring-cyan-400/60 pointer-events-none" />
                     )}
 
-                    {/* Day number + dot */}
                     <div className="absolute bottom-0 left-0 right-0 px-1 pb-1 flex items-end justify-between">
                       <span className={cn(
                         "text-[10px] font-black leading-none tabular-nums drop-shadow-sm",
