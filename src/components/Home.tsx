@@ -16,6 +16,7 @@ import { ShowReviewSheet } from "./ShowReviewSheet";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import { QuickPhotoAddSheet } from "./QuickPhotoAddSheet";
 import MapView from "./MapView";
+import Rank from "./Rank";
 import AddShowFlow from "./AddShowFlow";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
 import SwipeableRankingCard from "./rankings/SwipeableRankingCard";
@@ -391,7 +392,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         setViewMode('globe');
         break;
       case 'rank-tab':
-        onNavigateToRank?.();
+        setViewMode('rank');
         break;
       case 'todo-sheet':
         setTodoSheetOpen(true);
@@ -1059,6 +1060,13 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onAddFromPhotos={onAddFromPhotos}
               onAddSingleShow={onAddSingleShow}
               onShowTap={(show) => { setReviewShow(show); setReviewSheetOpen(true); }}
+            />
+          )}
+
+          {viewMode === 'rank' && (
+            <Rank
+              onAddShow={onAddSingleShow}
+              onViewAllShows={() => setViewMode('rankings')}
             />
           )}
 
