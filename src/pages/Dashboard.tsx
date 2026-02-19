@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Home as HomeIcon, Plus, Music, CalendarDays, Bell } from "lucide-react";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import Home from "@/components/Home";
 import type { ContentView } from "@/components/home/ContentPillNav";
 import Profile from "@/components/Profile";
@@ -233,13 +233,19 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 pt-safe">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <SceneLogo size="lg" className="text-white" />
-          <button
-            onClick={() => setAnnouncementsOpen(true)}
-            className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4 text-white/60" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4 text-white/60" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              No notifications yet
+            </TooltipContent>
+          </Tooltip>
         </div>
       </header>
 
