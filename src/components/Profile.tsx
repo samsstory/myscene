@@ -342,10 +342,22 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
     } finally { setSaving(false); }
   };
 
-  const copyReferralLink = async () => {
+  const shareInviteLink = async () => {
     if (!referralCode) return;
-    await navigator.clipboard.writeText(`${window.location.origin}/?ref=${referralCode}`);
-    toast.success("Referral link copied!");
+    const url = `${window.location.origin}/?ref=${referralCode}`;
+    const shareData = {
+      title: "Join me on Scene",
+      text: "I track every concert I go to and rank them. Come compare notes with me on Scene 🎶",
+      url,
+    };
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Invite link copied!");
+    }
   };
 
   const displayName = fullName || username || email.split("@")[0];
@@ -445,28 +457,43 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
 
         {/* ── Invite ── */}
         <div>
-          <SectionLabel>Invite Friends</SectionLabel>
-          <GlassPanel className="divide-y divide-white/[0.05]">
-            <div className="flex items-center gap-3 px-1 py-3">
-              <div className="h-9 w-9 rounded-full bg-primary/[0.12] border border-primary/[0.20] flex items-center justify-center shrink-0">
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white/90">
-                  <span style={{ textShadow: "0 0 10px rgba(255,255,255,0.2)" }}>{referralCount}</span>{" "}
-                  {referralCount === 1 ? "friend invited" : "friends invited"}
+          <SectionLabel>Invite your squad</SectionLabel>
+          {/* Hero invite card */}
+          <button
+            onClick={shareInviteLink}
+            className="w-full relative overflow-hidden rounded-2xl border border-primary/[0.25] bg-gradient-to-br from-primary/[0.15] via-primary/[0.08] to-transparent p-5 text-left hover:border-primary/[0.40] hover:from-primary/[0.22] transition-all group"
+          >
+            {/* Glow blob */}
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-primary/[0.20] blur-2xl pointer-events-none group-hover:bg-primary/[0.30] transition-colors" />
+
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-base font-bold text-white/90" style={{ textShadow: "0 0 12px rgba(255,255,255,0.2)" }}>
+                  Bring your crew to Scene
                 </p>
-                <p className="text-xs text-white/35 mt-0.5">Share your link to get credit</p>
+                <p className="text-xs text-white/50 leading-relaxed max-w-[220px]">
+                  The more friends who log shows, the better the compare game gets.
+                </p>
+                {referralCount > 0 && (
+                  <p className="text-xs text-primary/70 font-medium mt-2">
+                    {referralCount} {referralCount === 1 ? "friend" : "friends"} joined via your link ✦
+                  </p>
+                )}
+              </div>
+              <div className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/[0.18] border border-primary/[0.35] flex items-center justify-center shadow-[0_0_16px_hsl(var(--primary)/0.3)] group-hover:scale-110 transition-transform">
+                <Share2 className="h-5 w-5 text-primary" />
               </div>
             </div>
-            <GlassRow
-              icon={<Share2 className="h-4 w-4" />}
-              title="Copy Invite Link"
-              subtitle={referralCode ? `scene.app/?ref=${referralCode}` : "Loading…"}
-              chevron
-              onClick={copyReferralLink}
-            />
-          </GlassPanel>
+
+            <div className="relative mt-4 flex items-center gap-2 py-2.5 px-3 rounded-xl bg-primary/[0.12] border border-primary/[0.20]">
+              <span className="text-xs text-primary/80 font-medium flex-1 truncate">
+                {referralCode ? `myscene.lovable.app/?ref=${referralCode}` : "Loading your link…"}
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-primary/60 font-semibold flex-shrink-0">
+                {navigator.share ? "Share" : "Copy"}
+              </span>
+            </div>
+          </button>
         </div>
 
         {/* ── Explore ── */}
