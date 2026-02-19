@@ -484,23 +484,23 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         {/* Activity / Recent Shows tabs */}
         <div className="space-y-3">
           {/* Tab switcher */}
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.07] w-fit">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setFeedTab("activity")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 px-4 py-2.5 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-300 border backdrop-blur-md ${
                 feedTab === "activity"
-                  ? "bg-white/[0.10] text-white/90 shadow-sm"
-                  : "text-white/35 hover:text-white/55"
+                  ? "bg-white/[0.10] border-white/[0.18] text-white/90"
+                  : "bg-white/[0.04] border-white/[0.06] text-white/50 hover:bg-white/[0.08] hover:border-white/[0.12] hover:text-white/70"
               }`}
             >
               Activity
             </button>
             <button
               onClick={() => setFeedTab("recent")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 px-4 py-2.5 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-300 border backdrop-blur-md ${
                 feedTab === "recent"
-                  ? "bg-white/[0.10] text-white/90 shadow-sm"
-                  : "text-white/35 hover:text-white/55"
+                  ? "bg-white/[0.10] border-white/[0.18] text-white/90"
+                  : "bg-white/[0.04] border-white/[0.06] text-white/50 hover:bg-white/[0.08] hover:border-white/[0.12] hover:text-white/70"
               }`}
             >
               Recent Shows
