@@ -629,11 +629,11 @@ function SparseGrid({
     return set;
   }, [activeDays]);
 
-  // Active cols capped at 25vw using viewport units — column never wider than the card.
-  // Card fills 100% of column with no centering gaps.
+  // Active cols: capped at 25vw each. Inactive cols: share remaining space equally (1fr)
+  // so the grid always fills the full screen width.
   const gridTemplate = useMemo(() => {
     return [0, 1, 2, 3, 4, 5, 6]
-      .map(wd => (activeColSet.has(wd) ? "minmax(0, 25vw)" : "14px"))
+      .map(wd => (activeColSet.has(wd) ? "minmax(0, 25vw)" : "1fr"))
       .join(" ");
   }, [activeColSet]);
 
