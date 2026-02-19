@@ -16,26 +16,16 @@ interface FriendActivityFeedProps {
 // ─── Date formatting ──────────────────────────────────────────────────────────
 
 /**
- * Smart date label:
- * - Festivals → just the year (event name IS the context)
- * - Upcoming → "MMM d" or "MMM d, yyyy" (people need exact dates)
- * - Logged, current year → "MMM d"
- * - Logged, past year → just the year
+ * Smart date label for upcoming shows only:
+ * - Current calendar year → "MMM d"
+ * - Next calendar year or beyond → "MMM d, yyyy"
  */
-function formatActivityDate(
-  showDate: string | null,
-  showType: string | null | undefined,
-  itemType: "upcoming" | "logged"
-): string | null {
+function formatUpcomingDate(showDate: string | null): string | null {
   if (!showDate) return null;
   const date = parseISO(showDate);
   const currentYear = getYear(new Date());
   const showYear = getYear(date);
-
-  if (showType === "festival") return String(showYear);
-  if (itemType === "upcoming") return format(date, showYear === currentYear ? "MMM d" : "MMM d, yyyy");
-  if (showYear < currentYear) return String(showYear);
-  return format(date, "MMM d");
+  return format(date, showYear === currentYear ? "MMM d" : "MMM d, yyyy");
 }
 
 // ─── Narrative string builder ─────────────────────────────────────────────────
@@ -95,12 +85,14 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
   const narrative = buildActivityString(item);
   const friendInitial = (item.friend.full_name || item.friend.username || "?").charAt(0).toUpperCase();
 
-  const dateStr = formatActivityDate(item.showDate, item.showType, item.type);
+  const dateStr = formatUpcomingDate(item.showDate);
   const timeAgo = formatDistanceToNow(parseISO(item.createdAt), { addSuffix: true });
   const isTopRanked = item.rankPosition === 1;
 
-  // Venue already in narrative — secondary shows location + date only
-  const secondaryParts = [item.venueLocation, dateStr].filter(Boolean);
+  // Logged: venue name gives "where" context; Upcoming: date gives "when" context
+  const secondaryParts = item.type === "logged"
+    ? [item.venueName].filter(Boolean)
+    : [dateStr].filter(Boolean);
 
   return (
     <motion.div
@@ -181,11 +173,13 @@ function CompactCard({ item }: { item: FriendActivityItem }) {
   const meta = getSignalMeta(item);
   const MetaIcon = meta.icon;
 
-  const dateStr = formatActivityDate(item.showDate, item.showType, item.type);
+  const dateStr = formatUpcomingDate(item.showDate);
   const timeAgo = formatDistanceToNow(parseISO(item.createdAt), { addSuffix: true });
 
-  // Venue already in narrative — secondary shows location + date only
-  const secondaryParts = [item.venueLocation, dateStr].filter(Boolean);
+  // Logged: venue name; Upcoming: date only
+  const secondaryParts = item.type === "logged"
+    ? [item.venueName].filter(Boolean)
+    : [dateStr].filter(Boolean);
 
   const isShared = item.signal === "shared";
   const isMultiFriend = item.signal === "multi-friend";
