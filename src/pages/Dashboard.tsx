@@ -233,30 +233,13 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 pt-safe">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <SceneLogo size="lg" className="text-white" />
-          <div className="flex items-center gap-3">
-            {/* Notifications / announcements icon */}
-            <button
-              onClick={() => setAnnouncementsOpen(true)}
-              className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4 text-white/60" />
-            </button>
-            <button
-              onClick={() => setActiveTab("profile")}
-              className="transition-transform hover:scale-105"
-            >
-              <Avatar className={cn(
-                "h-9 w-9 border-2 transition-colors",
-                activeTab === "profile" ? "border-primary" : "border-transparent"
-              )}>
-                <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
-                <AvatarFallback className="text-sm bg-muted">
-                  {session?.user?.email?.charAt(0).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-          </div>
+          <button
+            onClick={() => setAnnouncementsOpen(true)}
+            className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
+            aria-label="Notifications"
+          >
+            <Bell className="h-4 w-4 text-white/60" />
+          </button>
         </div>
       </header>
 
