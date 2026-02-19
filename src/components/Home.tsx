@@ -33,6 +33,8 @@ import FocusedRankingSession from "./home/FocusedRankingSession";
 import RankingProgressCard from "./home/RankingProgressCard";
 import FriendTeaser from "./home/FriendTeaser";
 import WhatsNextStrip from "./home/WhatsNextStrip";
+import FriendActivityFeed from "./home/FriendActivityFeed";
+import { useFriendActivity } from "@/hooks/useFriendActivity";
 import PlanShowSheet from "./home/PlanShowSheet";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -136,6 +138,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [selectedUpcomingShow, setSelectedUpcomingShow] = useState<import("@/hooks/usePlanUpcomingShow").UpcomingShow | null>(null);
   const [upcomingDetailOpen, setUpcomingDetailOpen] = useState(false);
 
+  // Activity/Recent tab state
+  const [feedTab, setFeedTab] = useState<"activity" | "recent">("activity");
+
   // Calendar: Friends overlay toggle + friends-on-day sheet
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
   const [friendsDaySheetOpen, setFriendsDaySheetOpen] = useState(false);
@@ -146,6 +151,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const { following, followers } = useFollowers();
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
   const { friendsByDate } = useFriendUpcomingShows(followingIds);
+  const { items: activityItems, isLoading: activityLoading } = useFriendActivity(followingIds);
   
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -474,31 +480,61 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           </>
         )}
 
-        {/* Recent Shows */}
+        {/* Activity / Recent Shows tabs */}
         <div className="space-y-3">
-          <h3 
-            className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
-            style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-          >
-            Recent Shows
-          </h3>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-28 w-full rounded-xl" />
-              ))}
-            </div>
-          ) : (
-            <StackedShowList
-              shows={recentShows}
-              getRankInfo={getShowRankInfo}
-              onShowTap={handleShowTap}
-              onShowShare={handleShareFromCard}
+          {/* Tab switcher */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setFeedTab("activity")}
+              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.12em] transition-all border ${
+                feedTab === "activity"
+                  ? "bg-primary/20 border-primary/40 text-primary"
+                  : "bg-white/[0.05] border-white/[0.08] text-white/40 hover:text-white/60"
+              }`}
+            >
+              Activity
+            </button>
+            <button
+              onClick={() => setFeedTab("recent")}
+              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.12em] transition-all border ${
+                feedTab === "recent"
+                  ? "bg-primary/20 border-primary/40 text-primary"
+                  : "bg-white/[0.05] border-white/[0.08] text-white/40 hover:text-white/60"
+              }`}
+            >
+              Recent Shows
+            </button>
+          </div>
+
+          {/* Activity feed */}
+          {feedTab === "activity" && (
+            <FriendActivityFeed
+              items={activityItems}
+              isLoading={activityLoading}
+              hasFollowing={following.length > 0}
             />
           )}
-          
-          {/* Friend teaser */}
-          {recentShows.length > 0 && <FriendTeaser />}
+
+          {/* Recent shows */}
+          {feedTab === "recent" && (
+            <>
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-28 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <StackedShowList
+                  shows={recentShows}
+                  getRankInfo={getShowRankInfo}
+                  onShowTap={handleShowTap}
+                  onShowShare={handleShareFromCard}
+                />
+              )}
+              {recentShows.length > 0 && <FriendTeaser />}
+            </>
+          )}
         </div>
       </div>
     );
