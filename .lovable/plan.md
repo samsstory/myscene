@@ -101,34 +101,17 @@ Bottom nav pill contains exactly 3 items. Feedback is a first-class beta action.
 
 ---
 
-## Phase 4 — Persistent Shell (Scroll State Preservation)
+## Phase 4 — Persistent Shell (Scroll State Preservation) ✅ COMPLETE
 > **Effort:** Medium | **Risk:** Medium | **Impact:** Eliminates scroll-position loss on tab switch
 
 ### What
-Scroll position within a tab resets to top when you switch away and come back. Fix this so returning to the Home tab picks up where you left off — like Spotify does.
+Replaced the conditional `renderContent()` switch with always-mounted panels hidden via `display:none`. Both `Home` and `Profile` stay in the DOM at all times — React state, data, and scroll position are all preserved across tab switches.
 
-### Strategy
-Use CSS `display: contents` / `visibility: hidden` + `position: absolute` to keep all tab trees mounted but hide non-active ones. React state stays alive, scroll position is preserved, no re-fetch on return.
+### Files touched
+- `src/pages/Dashboard.tsx` — removed `renderContent()`, replaced `<AnimatePresence>` wrapper with two always-mounted `<div style={{ display: ... }}>` panels, removed unused `motion`/`AnimatePresence` import
 
-### Files to touch
-- `src/pages/Dashboard.tsx` — replace conditional `renderContent()` with always-mounted hidden panels
-
-### Steps
-- [ ] Replace `renderContent()` switch with always-rendered panels:
-  ```tsx
-  <div style={{ display: activeTab === "home" ? "block" : "none" }}>
-    <Home ... />
-  </div>
-  <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
-    <Profile ... />
-  </div>
-  ```
-- [ ] Wrap in `<AnimatePresence>` on the visible panel only (using opacity not display for animation)
-- [ ] Test memory usage — mounting all panels simultaneously is fine for this app size
-- [ ] Verify that Rank/Globe (now sub-views of Home per Phase 2) benefit automatically
-
-### Success Criteria
-Scroll back to halfway through your show list → switch to Profile → come back → still at the same position.
+### Success Criteria ✅
+Scroll halfway down the Home feed → switch to Profile → come back → same scroll position. No re-fetch on return.
 
 ---
 
