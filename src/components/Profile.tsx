@@ -250,6 +250,7 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
   const [saving, setSaving] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCount, setReferralCount] = useState(0);
+  const [referralRank, setReferralRank] = useState<{ rank: number; total: number } | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [totalShows, setTotalShows] = useState(0);
 
@@ -268,10 +269,10 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
       setEmail(user.email || "");
       setUserId(user.id);
 
-      const [profileRes, countRes, showCountRes] = await Promise.all([
+      const [profileRes, showCountRes, rankRes] = await Promise.all([
         supabase.from("profiles").select("avatar_url, referral_code, username, full_name, phone_number, bio").eq("id", user.id).single(),
-        supabase.from("referrals").select("*", { count: "exact", head: true }).eq("referrer_id", user.id),
         supabase.from("shows").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.rpc("get_referral_rank", { _user_id: user.id }),
       ]);
 
       if (profileRes.data) {
@@ -282,8 +283,14 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
         setPhoneNumber((profileRes.data as any).phone_number || "");
         setBio((profileRes.data as any).bio || "");
       }
-      if (!countRes.error && countRes.count !== null) setReferralCount(countRes.count);
       if (!showCountRes.error && showCountRes.count !== null) setTotalShows(showCountRes.count);
+      if (rankRes.data?.[0]) {
+        const row = rankRes.data[0];
+        setReferralCount(Number(row.invite_count));
+        if (Number(row.invite_count) > 0) {
+          setReferralRank({ rank: Number(row.user_rank), total: Number(row.total_inviters) });
+        }
+      }
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -471,12 +478,31 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
                 <p className="text-xs text-white/50 leading-relaxed">
                   The more friends who log shows, the better the compare game gets.
                 </p>
-                {referralCount > 0 && (
-                  <p className="text-xs text-primary/70 font-medium">
-                    {referralCount} {referralCount === 1 ? "friend" : "friends"} joined via your link ✦
-                  </p>
-                )}
               </div>
+
+              {/* Stats row */}
+              {referralCount > 0 && (
+                <div className="flex items-stretch gap-2">
+                  <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                    <span className="text-xl font-black text-white/90" style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}>
+                      {referralCount}
+                    </span>
+                    <span className="text-[9px] uppercase tracking-[0.15em] text-white/35 mt-0.5">
+                      {referralCount === 1 ? "Friend" : "Friends"} Invited
+                    </span>
+                  </div>
+                  {referralRank && (
+                    <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-3 rounded-xl bg-primary/[0.08] border border-primary/[0.18]">
+                      <span className="text-xl font-black text-primary" style={{ filter: "drop-shadow(0 0 8px hsl(var(--primary)/0.6))" }}>
+                        #{referralRank.rank}
+                      </span>
+                      <span className="text-[9px] uppercase tracking-[0.15em] text-primary/50 mt-0.5">
+                        of {referralRank.total} inviters
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <button
                 onClick={shareInviteLink}
