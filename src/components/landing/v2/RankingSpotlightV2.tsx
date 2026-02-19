@@ -67,7 +67,7 @@ const leftShow = {
   date: "Aug 2024"
 };
 const rightShow = {
-  photo: "/images/rufus-du-sol-red-rocks.png",
+  photo: "/images/rufus-du-sol-red-rocks.webp",
   artist: "Rufus Du Sol",
   venue: "Red Rocks",
   city: "CO",
