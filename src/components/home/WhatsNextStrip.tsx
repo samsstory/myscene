@@ -471,9 +471,8 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFriendShow, setSelectedFriendShow] = useState<FriendShow | null>(null);
   const [friendDetailOpen, setFriendDetailOpen] = useState(false);
-  const [friendsGoingShow, setFriendsGoingShow] = useState<UpcomingShow | null>(null);
+  // goingWith for the currently-open detail sheet
   const [friendsGoingWith, setFriendsGoingWith] = useState<FriendShow[]>([]);
-  const [friendsGoingOpen, setFriendsGoingOpen] = useState(false);
   // Track which friend shows the user has added (by source show id → own show id)
   const [addedFriendShowIds, setAddedFriendShowIds] = useState<Map<string, string>>(new Map());
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
@@ -487,14 +486,10 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   };
 
   const handleChipTap = (show: UpcomingShow, goingWith: FriendShow[]) => {
-    if (goingWith.length > 0) {
-      setFriendsGoingShow(show);
-      setFriendsGoingWith(goingWith);
-      setFriendsGoingOpen(true);
-    } else {
-      setSelectedShow(show);
-      setDetailOpen(true);
-    }
+    setSelectedShow(show);
+    setDetailOpen(true);
+    // Store goingWith so the detail sheet can display the friends section
+    setFriendsGoingWith(goingWith);
   };
 
   const handleFriendChipTap = (show: FriendShow) => {
@@ -747,9 +742,13 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
       <UpcomingShowDetailSheet
         show={selectedShow}
         open={detailOpen}
-        onOpenChange={setDetailOpen}
+        onOpenChange={(v) => {
+          setDetailOpen(v);
+          if (!v) setFriendsGoingWith([]);
+        }}
         onDelete={deleteUpcomingShow}
         onRsvpChange={updateRsvpStatus}
+        goingWith={friendsGoingWith}
       />
 
       <FriendShowDetailSheet
@@ -763,13 +762,6 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         }
         isToggling={selectedFriendShow ? togglingIds.has(selectedFriendShow.id) : false}
         onToggle={(s) => handleToggleFriendShow(s)}
-      />
-
-      <FriendsGoingSheet
-        show={friendsGoingShow}
-        goingWith={friendsGoingWith}
-        open={friendsGoingOpen}
-        onOpenChange={setFriendsGoingOpen}
       />
 
       {!onPlanShow && (

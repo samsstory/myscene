@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
+import type { FriendShow } from "@/hooks/useFriendUpcomingShows";
 
 type RsvpStatus = "going" | "maybe" | "not_going";
 
@@ -24,6 +25,7 @@ interface UpcomingShowDetailSheetProps {
   onOpenChange: (open: boolean) => void;
   onDelete: (id: string) => void;
   onRsvpChange: (id: string, status: "going" | "maybe" | "not_going") => Promise<void>;
+  goingWith?: FriendShow[];
 }
 
 const RSVP_OPTIONS: { value: RsvpStatus; label: string; icon: React.ReactNode; activeClass: string }[] = [
@@ -53,6 +55,7 @@ export default function UpcomingShowDetailSheet({
   onOpenChange,
   onDelete,
   onRsvpChange,
+  goingWith = [],
 }: UpcomingShowDetailSheetProps) {
   const [rsvp, setRsvp] = useState<RsvpStatus>(show?.rsvp_status ?? "going");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -171,32 +174,73 @@ export default function UpcomingShowDetailSheet({
                     {opt.label}
                   </button>
                 ))}
-              </div>
             </div>
+          </div>
 
-            {/* Invite a friend */}
-            <button
-              className="w-full flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] rounded-xl px-4 py-3 transition-all group"
-              onClick={() =>
-                shareShow({
-                  showId: show.id,
-                  type: "upcoming",
-                  artistName: show.artist_name,
-                  venueName: show.venue_name ?? undefined,
-                })
-              }
-            >
-              <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
-                <UserPlus className="h-4 w-4 text-primary/70" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-medium text-foreground/90">Invite a friend</p>
-                <p className="text-[11px] text-muted-foreground">
-                  Invite them to join you at {show.artist_name}
+          {/* Who's Going — social section */}
+          {goingWith.length > 0 && (() => {
+            // Prioritise friends with profile pictures
+            const sorted = [...goingWith].sort((a, b) => {
+              const aHas = a.friend.avatar_url ? 1 : 0;
+              const bHas = b.friend.avatar_url ? 1 : 0;
+              return bHas - aHas;
+            });
+            return (
+              <div className="space-y-3">
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+                  {goingWith.length === 1 ? "1 Friend Going" : `${goingWith.length} Friends Going`}
                 </p>
+                <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+                  {sorted.map((fs) => {
+                    const name = fs.friend.full_name?.split(" ")[0] ?? fs.friend.username ?? "Friend";
+                    const initial = (fs.friend.username ?? fs.friend.full_name ?? "?")[0].toUpperCase();
+                    return (
+                      <div key={fs.friend.id} className="flex flex-col items-center gap-1.5 flex-shrink-0 w-14">
+                        {fs.friend.avatar_url ? (
+                          <img
+                            src={fs.friend.avatar_url}
+                            alt={name}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-primary/40 ring-2 ring-primary/20"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center">
+                            <span className="text-base font-bold text-primary/90">{initial}</span>
+                          </div>
+                        )}
+                        <span className="text-[10px] text-muted-foreground text-center leading-tight truncate w-full text-center">
+                          {name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
-            </button>
+            );
+          })()}
+
+          {/* Invite a friend */}
+          <button
+            className="w-full flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] rounded-xl px-4 py-3 transition-all group"
+            onClick={() =>
+              shareShow({
+                showId: show.id,
+                type: "upcoming",
+                artistName: show.artist_name,
+                venueName: show.venue_name ?? undefined,
+              })
+            }
+          >
+            <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
+              <UserPlus className="h-4 w-4 text-primary/70" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium text-foreground/90">Invite a friend</p>
+              <p className="text-[11px] text-muted-foreground">
+                Invite them to join you at {show.artist_name}
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+          </button>
 
             {/* Remove */}
             <Button
