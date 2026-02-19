@@ -262,6 +262,7 @@ const Dashboard = () => {
             onShowOpened={() => setOpenShowId(null)}
             showsTourActive={showsTourActive}
             showsRef={showsStatRef}
+            onViewChange={(v) => setHomeView(v)}
           />
         </div>
         <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
@@ -287,7 +288,13 @@ const Dashboard = () => {
             <motion.button
               whileTap={{ scale: 0.88 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              onClick={() => { haptic(); setActiveTab("home"); setHomeView("home"); }}
+              onClick={() => {
+                haptic();
+                setActiveTab("home");
+                // Force the effect to fire even if homeView is already "home"
+                setHomeView(prev => prev === "home" ? "" as ContentView : prev);
+                requestAnimationFrame(() => setHomeView("home"));
+              }}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-colors py-1.5",
                 activeTab === "home" && homeView === "home"
