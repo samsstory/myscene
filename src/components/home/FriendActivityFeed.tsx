@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { format, parseISO, formatDistanceToNow, isPast } from "date-fns";
+import { format, parseISO, formatDistanceToNow, isPast, getYear } from "date-fns";
 import { Calendar, Users, Zap, Music2, UserPlus, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,31 @@ interface FriendActivityFeedProps {
   isLoading: boolean;
   hasFollowing: boolean;
   onFindFriends?: () => void;
+}
+
+// ─── Date formatting ──────────────────────────────────────────────────────────
+
+/**
+ * Smart date label:
+ * - Festivals → just the year (event name IS the context)
+ * - Upcoming → "MMM d" or "MMM d, yyyy" (people need exact dates)
+ * - Logged, current year → "MMM d"
+ * - Logged, past year → just the year
+ */
+function formatActivityDate(
+  showDate: string | null,
+  showType: string | null | undefined,
+  itemType: "upcoming" | "logged"
+): string | null {
+  if (!showDate) return null;
+  const date = parseISO(showDate);
+  const currentYear = getYear(new Date());
+  const showYear = getYear(date);
+
+  if (showType === "festival") return String(showYear);
+  if (itemType === "upcoming") return format(date, showYear === currentYear ? "MMM d" : "MMM d, yyyy");
+  if (showYear < currentYear) return String(showYear);
+  return format(date, "MMM d");
 }
 
 // ─── Narrative string builder ─────────────────────────────────────────────────
@@ -26,7 +51,6 @@ function buildActivityString(item: FriendActivityItem): string {
   const venue = item.venueName;
   const at = venue ? ` at ${venue}` : "";
 
-  // Tense: if show date is in the future, use present/future
   const showDate = item.showDate ? parseISO(item.showDate) : null;
   const isInPast = showDate ? isPast(showDate) : true;
 
@@ -38,8 +62,7 @@ function buildActivityString(item: FriendActivityItem): string {
 
   if (item.signal === "multi-friend") {
     const count = (item.sharedFriends?.length ?? 0) + 1;
-    const friendWord = count === 2 ? "friends" : "friends";
-    return `${count} ${friendWord} are going to ${artist}${at}`;
+    return `${count} friends are going to ${artist}${at}`;
   }
 
   if (item.type === "upcoming") {
@@ -49,18 +72,13 @@ function buildActivityString(item: FriendActivityItem): string {
   }
 
   // Logged shows
-  if (item.rankPosition === 1) {
-    return `${firstName} ranked ${artist} their #1 show${at}`;
-  }
-
-  if (item.rankPosition) {
-    return `${firstName} ranked ${artist} #${item.rankPosition}${at}`;
-  }
-
+  if (item.rankPosition === 1) return `${firstName} ranked ${artist} their #1 show${at}`;
+  if (item.rankPosition) return `${firstName} ranked ${artist} #${item.rankPosition}${at}`;
   return `${firstName} just logged ${artist}${at}`;
 }
 
-/** Small signal icon hint — shown on avatar corner dot */
+// ─── Signal icon for avatar dot ───────────────────────────────────────────────
+
 function getSignalMeta(item: FriendActivityItem) {
   if (item.signal === "shared") return { icon: Zap, color: "bg-primary/80" };
   if (item.signal === "multi-friend") return { icon: Users, color: "bg-violet-500/80" };
@@ -77,12 +95,12 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
   const narrative = buildActivityString(item);
   const friendInitial = (item.friend.full_name || item.friend.username || "?").charAt(0).toUpperCase();
 
-  const dateStr = item.showDate
-    ? format(parseISO(item.showDate), "MMM d, yyyy")
-    : null;
+  const dateStr = formatActivityDate(item.showDate, item.showType, item.type);
   const timeAgo = formatDistanceToNow(parseISO(item.createdAt), { addSuffix: true });
-
   const isTopRanked = item.rankPosition === 1;
+
+  // Venue already in narrative — secondary shows location + date only
+  const secondaryParts = [item.venueLocation, dateStr].filter(Boolean);
 
   return (
     <motion.div
@@ -91,17 +109,14 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
       className="relative rounded-2xl overflow-hidden border border-white/[0.10]"
       style={{ aspectRatio: "4/3" }}
     >
-      {/* Full-bleed background */}
       <img
         src={imageUrl!}
         alt={item.artistName}
         className="absolute inset-0 w-full h-full object-cover"
       />
-
-      {/* Gradient overlays */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/50" />
 
-      {/* Top: narrative string */}
+      {/* Top: narrative */}
       <div className="absolute top-3 left-3 right-3 flex items-start gap-2">
         <Avatar className="h-7 w-7 flex-shrink-0 border border-white/20 shadow-md mt-0.5">
           <AvatarImage src={item.friend.avatar_url ?? undefined} />
@@ -114,9 +129,8 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
         </p>
       </div>
 
-      {/* Bottom content */}
+      {/* Bottom: artist + secondary info */}
       <div className="absolute bottom-0 left-0 right-0 p-4">
-        {/* Artist name — big */}
         <div className="flex items-end justify-between gap-2">
           <h3 className="text-xl font-bold text-white leading-tight truncate drop-shadow-md">
             {item.artistName}
@@ -129,11 +143,12 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
           )}
         </div>
 
-        <p className="text-xs text-white/55 mt-1 truncate">
-          {[item.venueName, item.venueLocation, dateStr].filter(Boolean).join(" · ")}
-        </p>
+        {secondaryParts.length > 0 && (
+          <p className="text-xs text-white/55 mt-1 truncate">
+            {secondaryParts.join(" · ")}
+          </p>
+        )}
 
-        {/* Shared friends avatars */}
         {item.sharedFriends && item.sharedFriends.length > 0 && (
           <div className="flex items-center gap-1.5 mt-2">
             <div className="flex -space-x-1.5">
@@ -166,10 +181,11 @@ function CompactCard({ item }: { item: FriendActivityItem }) {
   const meta = getSignalMeta(item);
   const MetaIcon = meta.icon;
 
-  const dateStr = item.showDate
-    ? format(parseISO(item.showDate), "MMM d")
-    : null;
+  const dateStr = formatActivityDate(item.showDate, item.showType, item.type);
   const timeAgo = formatDistanceToNow(parseISO(item.createdAt), { addSuffix: true });
+
+  // Venue already in narrative — secondary shows location + date only
+  const secondaryParts = [item.venueLocation, dateStr].filter(Boolean);
 
   const isShared = item.signal === "shared";
   const isMultiFriend = item.signal === "multi-friend";
@@ -191,7 +207,6 @@ function CompactCard({ item }: { item: FriendActivityItem }) {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
       )}
 
-      {/* Avatar with signal dot */}
       <div className="relative flex-shrink-0 mt-0.5">
         <Avatar className="h-9 w-9 border border-white/10">
           <AvatarImage src={item.friend.avatar_url ?? undefined} />
@@ -207,17 +222,16 @@ function CompactCard({ item }: { item: FriendActivityItem }) {
         </span>
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Narrative headline */}
         <p className="text-sm font-semibold text-white/90 leading-snug">
           {narrative}
         </p>
 
-        {/* Secondary: venue · location · date */}
-        <p className="text-xs text-white/40 truncate mt-1">
-          {[item.venueLocation, dateStr].filter(Boolean).join(" · ")}
-        </p>
+        {secondaryParts.length > 0 && (
+          <p className="text-xs text-white/40 truncate mt-1">
+            {secondaryParts.join(" · ")}
+          </p>
+        )}
 
         <p className="text-[10px] text-white/25 mt-1.5">{timeAgo}</p>
       </div>
@@ -298,11 +312,7 @@ export default function FriendActivityFeed({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.035 }}
             >
-              {useRichCard ? (
-                <RichImageCard item={item} />
-              ) : (
-                <CompactCard item={item} />
-              )}
+              {useRichCard ? <RichImageCard item={item} /> : <CompactCard item={item} />}
             </motion.div>
           );
         })}

@@ -15,6 +15,7 @@ export interface FriendActivityItem {
   venueName: string | null;
   venueLocation: string | null;
   showDate: string | null;
+  showType?: string | null; // 'show' | 'showcase' | 'festival'
   rating?: number | null;
   photoUrl?: string | null;
   createdAt: string;
@@ -71,7 +72,7 @@ export function useFriendActivity(followingIds: string[], myUpcomingArtistDates?
           .limit(50),
         supabase
           .from("shows")
-          .select("id, show_date, venue_name, venue_location, rating, photo_url, user_id, created_at")
+          .select("id, show_date, venue_name, venue_location, rating, photo_url, user_id, created_at, show_type")
           .in("user_id", followingIds)
           .order("created_at", { ascending: false })
           .limit(50),
@@ -195,6 +196,7 @@ export function useFriendActivity(followingIds: string[], myUpcomingArtistDates?
           venueName: row.venue_name,
           venueLocation: row.venue_location,
           showDate: row.show_date,
+          showType: row.show_type ?? null,
           rating: row.rating,
           photoUrl: row.photo_url,
           createdAt: row.created_at,
