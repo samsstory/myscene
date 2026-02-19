@@ -15,7 +15,7 @@ export interface FriendActivityItem {
   venueName: string | null;
   venueLocation: string | null;
   showDate: string | null;
-  showType?: string | null; // 'show' | 'showcase' | 'festival'
+  showType?: string | null; // 'set' | 'show' | 'festival'
   rating?: number | null;
   photoUrl?: string | null;
   createdAt: string;

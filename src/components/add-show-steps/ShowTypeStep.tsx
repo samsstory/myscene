@@ -1,7 +1,7 @@
 import { Music, Layers, Tent } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ShowType = 'show' | 'showcase' | 'festival';
+export type ShowType = 'set' | 'show' | 'festival';
 
 interface ShowTypeStepProps {
   onSelect: (type: ShowType) => void;
@@ -9,22 +9,22 @@ interface ShowTypeStepProps {
 
 const types = [
   {
-    value: 'show' as ShowType,
+    value: 'set' as ShowType,
     icon: Music,
-    label: 'Show',
-    description: 'One artist, one show.',
+    label: 'Set',
+    description: '1 artist, 1 performance.',
   },
   {
-    value: 'showcase' as ShowType,
+    value: 'show' as ShowType,
     icon: Layers,
-    label: 'Showcase',
-    description: 'Multiple artists, one event.',
+    label: 'Show',
+    description: 'Multiple sets, different artists, 1 event.',
   },
   {
     value: 'festival' as ShowType,
     icon: Tent,
     label: 'Festival',
-    description: 'Multiple artists, multiple days.',
+    description: 'Multiple artists, multiple sets, multiple stages.',
   },
 ];
 

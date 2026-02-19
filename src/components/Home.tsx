@@ -118,7 +118,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   }, [initialView]);
   const [sortMode, setSortMode] = useState<"best" | "worst" | "newest" | "oldest">("best");
   const [attentionFilterActive, setAttentionFilterActive] = useState(false);
-  const [showTypeFilter, setShowTypeFilter] = useState<"all" | "show" | "showcase" | "festival">("all");
+  const [showTypeFilter, setShowTypeFilter] = useState<"all" | "set" | "show" | "festival">("all");
   const [rankingsSearch, setRankingsSearch] = useState("");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
@@ -609,16 +609,16 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         {/* Show type filter pills */}
         {(() => {
           const typeCounts = {
+            set: shows.filter(s => s.showType === "set").length,
             show: shows.filter(s => s.showType === "show").length,
-            showcase: shows.filter(s => s.showType === "showcase").length,
             festival: shows.filter(s => s.showType === "festival").length,
           };
-          const hasMultipleTypes = [typeCounts.show > 0, typeCounts.showcase > 0, typeCounts.festival > 0].filter(Boolean).length > 1;
+          const hasMultipleTypes = [typeCounts.set > 0, typeCounts.show > 0, typeCounts.festival > 0].filter(Boolean).length > 1;
           if (!hasMultipleTypes) return null;
           const pills: { value: typeof showTypeFilter; label: string; count: number }[] = [
             { value: "all", label: "All", count: shows.length },
+            ...(typeCounts.set > 0 ? [{ value: "set" as const, label: "Sets", count: typeCounts.set }] : []),
             ...(typeCounts.show > 0 ? [{ value: "show" as const, label: "Shows", count: typeCounts.show }] : []),
-            ...(typeCounts.showcase > 0 ? [{ value: "showcase" as const, label: "Showcases", count: typeCounts.showcase }] : []),
             ...(typeCounts.festival > 0 ? [{ value: "festival" as const, label: "Festivals", count: typeCounts.festival }] : []),
           ];
           return (

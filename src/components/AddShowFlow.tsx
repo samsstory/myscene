@@ -76,7 +76,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     venue: "",
     venueLocation: "",
     venueId: null,
-    showType: 'show',
+    showType: 'set',
     eventName: "",
     eventDescription: "",
     date: undefined,
@@ -113,7 +113,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venue: editShow.venue.name,
         venueLocation: editShow.venue.location,
         venueId: editShow.venueId || null,
-        showType: (editShow.showType as ShowType) || 'show',
+        showType: (editShow.showType as ShowType) || 'set',
         eventName: "",
         eventDescription: "",
         date: editShow.datePrecision === 'exact' ? showDate : undefined,
@@ -256,7 +256,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   // Handle unified search selection — behavior depends on showType
   const handleUnifiedSelect = (result: {type: SearchResultType;id: string;name: string;imageUrl?: string;location?: string;latitude?: number;longitude?: number;}) => {
     setHasUnsavedChanges(true);
-    const isEventMode = showData.showType === 'showcase' || showData.showType === 'festival';
+    const isEventMode = showData.showType === 'show' || showData.showType === 'festival';
 
     if (!isEventMode && result.type === 'artist') {
       // Solo Show: artist selected → go to venue step
@@ -625,7 +625,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       venue: "",
       venueLocation: "",
       venueId: null,
-      showType: 'show',
+      showType: 'set',
       eventName: "",
       eventDescription: "",
       date: undefined,
@@ -735,7 +735,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               <div>
                 <div className="font-semibold">Show Type</div>
                 <div className="text-sm text-muted-foreground capitalize">
-                  {{ show: "Solo Show", showcase: "Showcase", festival: "Festival" }[showData.showType] || "Solo Show"}
+                  {{ set: "Set", show: "Show", festival: "Festival" }[showData.showType] || "Set"}
                 </div>
               </div>
             </div>
