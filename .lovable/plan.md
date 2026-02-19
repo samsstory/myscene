@@ -39,31 +39,40 @@ Switching tabs feels like a snappy content slide, not a page reload. Header neve
 ### What
 Add a horizontally scrollable pill row near the top of the Home content — like Spotify's "All / Music / Podcasts" row. Globe and Rank become sub-views within Home rather than separate bottom-nav destinations.
 
+### Finalised Pill Nav Design
+
+**Order (locked):** `Home → Schedule → Rank → All Shows → Globe`
+
+| Pill | Internal ID | Rationale |
+|---|---|---|
+| **Home** | `home` | Anchor — always first |
+| **Schedule** | `calendar` | Renamed from "Calendar". Elevated to #2 as the social hub for shared concert calendars and friend coordination — core product priority |
+| **Rank** | `rank` | Head-to-head ELO ranker — primary engagement mechanic |
+| **All Shows** | `rankings` | Personal leaderboard/library — payoff view after ranking |
+| **Globe** | `globe` | Exploratory map — lowest frequency, earns last spot |
+
+**Nudge dot:** Appears on the **Rank** pill when shows are unranked.
+
+**Stat pills (Home view):**
+- `Improve` — only visible when tasks exist (unranked shows, missing photos, incomplete tags, profile incomplete). Hidden when everything is done. Serves as a catch-all for profile completion, future account connections, etc.
+
 ### Design spec
 ```
-[ Mine ]  [ Friends ]  [ Globe ]  [ Rank ]   ← scrollable, glassmorphic
+[ Home ]  [ Schedule ]  [ Rank ]  [ All Shows ]  [ Globe ]   ← scrollable, glassmorphic
 ```
 - Pill: `bg-white/[0.06] border border-white/10 rounded-full px-4 py-1.5 text-sm`
 - Active pill: `bg-primary/20 border-primary/40 text-primary font-semibold`
 - Active pill slides with a `layoutId="pill-indicator"` shared layout animation
-- Horizontal scroll, `scrollbar-width: none`, `scroll-snap-type: x mandatory`
-- Sticky below the dashboard header
+- Horizontal scroll, `scrollbar-width: none`
 
-### Files to create/touch
-- `src/components/home/ContentPillNav.tsx` — new scrollable pill row component
-- `src/components/Home.tsx` — add pill nav + wire sub-view state
-- `src/pages/Dashboard.tsx` — remove Globe/Rank as separate bottom-nav tabs; simplify `activeTab` to `"home" | "profile"`
+### Files created/touched
+- `src/components/home/ContentPillNav.tsx` — scrollable pill row component
+- `src/components/Home.tsx` — pill nav + sub-view state + inline `Rank` and `MapView`
+- `src/pages/Dashboard.tsx` — simplified to `home | profile` bottom nav
+- `src/hooks/useHomeStats.ts` — removed redundant "All Shows" stat pill; renamed "Finish Up" → "Improve"
 
-### Steps
-- [ ] Create `ContentPillNav.tsx` with props: `views`, `activeView`, `onViewChange`
-- [ ] Mount it at the top of `Home.tsx` content area (below stat pills, above highlight reel)
-- [ ] Add `subView` state to `Home.tsx`: `"mine" | "friends" | "globe" | "rank"`
-- [ ] Render `<Rank>` and `<MapView>` inline inside Home when their sub-view is active
-- [ ] Remove Globe + Rank from `Dashboard.tsx` `renderContent()` and bottom nav
-- [ ] Animate sub-view content with `AnimatePresence` keyed to `subView`
-
-### Success Criteria
-User can reach Globe and Rank without the bottom nav changing. Bottom nav becomes macro-level only.
+### Success Criteria ✅
+User can reach Globe, Rank, Schedule, and All Shows without the bottom nav changing. Bottom nav is macro-level only (Home + Profile).
 
 ---
 
