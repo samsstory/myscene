@@ -6,6 +6,7 @@ import { UsersTab } from "@/components/admin/UsersTab";
 import { BugReportsTab } from "@/components/admin/BugReportsTab";
 import { AnnouncementsPanel } from "@/components/admin/AnnouncementsPanel";
 import { QuotesTab } from "@/components/admin/QuotesTab";
+import { FeatureRequestsTab } from "@/components/admin/FeatureRequestsTab";
 import { Shield } from "lucide-react";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function Admin() {
   const { isAdmin, loading } = useAdminCheck();
   const [newBugCount, setNewBugCount] = useState(0);
+  const [newFeatureCount, setNewFeatureCount] = useState(0);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -60,6 +62,7 @@ export default function Admin() {
               { value: "waitlist", label: "Waitlist" },
               { value: "users", label: "Users" },
               { value: "bugs", label: "Bug Reports", badge: newBugCount > 0 ? newBugCount : undefined },
+              { value: "features", label: "Feature Requests", badge: newFeatureCount > 0 ? newFeatureCount : undefined },
               { value: "announcements", label: "Announcements" },
               { value: "quotes", label: "Quotes" },
             ].map((tab) => (
@@ -86,6 +89,9 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="bugs">
             <BugReportsTab onCountChange={setNewBugCount} />
+          </TabsContent>
+          <TabsContent value="features">
+            <FeatureRequestsTab onCountChange={setNewFeatureCount} />
           </TabsContent>
           <TabsContent value="announcements">
             <AnnouncementsPanel />
