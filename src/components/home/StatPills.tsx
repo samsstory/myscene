@@ -7,7 +7,7 @@ import { ChevronRight } from "lucide-react";
 
 import { RefObject } from "react";
 
-export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | 'todo-sheet' | null;
+export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | 'todo-sheet' | 'rankings-attention' | null;
 
 export interface StatPill {
   id: string;

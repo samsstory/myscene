@@ -360,7 +360,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
           label: 'Needs Attention',
           value: totalTodos,
           icon: Target,
-          action: 'todo-sheet' as StatPillAction,
+          action: 'rankings-attention' as StatPillAction,
           isTodo: true,
           todoItems,
         }];
