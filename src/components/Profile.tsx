@@ -404,14 +404,6 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
             </div>
           </div>
 
-          {/* Sign out */}
-          <button
-            onClick={handleLogout}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/40 text-xs hover:bg-white/[0.07] hover:text-white/60 transition-all"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Out
-          </button>
         </div>
 
         <Input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleAvatarUpload} />
@@ -545,6 +537,15 @@ const Profile = ({ onStartTour, onAddShow }: { onStartTour?: () => void; onAddSh
             />
           </GlassPanel>
         </div>
+
+        {/* Sign Out */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/40 text-sm hover:bg-white/[0.07] hover:text-white/60 transition-all"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
 
       </div>
 
