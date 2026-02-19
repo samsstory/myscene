@@ -136,7 +136,15 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
     return (
       <Card className="border-border">
         <CardContent className="py-12 text-center">
-          <Music2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+          <div className="relative inline-flex mb-3">
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+            <span
+              className="relative text-4xl font-black tracking-[0.25em] select-none"
+              style={{ textShadow: "0 0 12px rgba(255,255,255,0.7), 0 0 30px rgba(255,255,255,0.4), 0 0 60px rgba(255,255,255,0.2)" }}
+            >
+              ✦
+            </span>
+          </div>
           <p className="text-muted-foreground">No shows yet. Add your first concert!</p>
         </CardContent>
       </Card>
