@@ -62,8 +62,8 @@ function buildActivityString(item: FriendActivityItem): string {
   }
 
   // Logged shows
-  if (item.rankPosition === 1) return `${firstName} ranked ${artist} their #1 show${at}`;
-  if (item.rankPosition) return `${firstName} ranked ${artist} #${item.rankPosition}${at}`;
+  if (item.rankPosition === 1) return `${firstName} ranked ${artist}${at} their #1 all time`;
+  if (item.rankPosition) return `${firstName} ranked ${artist}${at} their #${item.rankPosition} all time`;
   return `${firstName} added ${artist}${at} to their Scene`;
 }
 
