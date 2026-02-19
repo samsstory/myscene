@@ -20,7 +20,9 @@ function buildHeadline(item: FriendActivityItem, friendName: string): string {
 
   if (item.signal === "shared")    return `You and ${friendName} are both going to ${artist}${at}`;
   if (item.signal === "multi-friend") return `${friendCount} friends are going to ${artist}${at}`;
-  if (item.signal === "high-rating") return `${friendName} ranked ${artist}${at} among their best`;
+  if (item.signal === "high-rating") return item.rankPosition === 1
+    ? `${friendName} ranked ${artist}${at} their #1 all time`
+    : `${friendName} ranked ${artist}${at} their #${item.rankPosition} all time`;
   if (item.type === "upcoming")    return `${friendName} is going to ${artist}${at}`;
   return `${friendName} added ${artist}${at} to their Scene`;
 }
