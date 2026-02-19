@@ -421,6 +421,7 @@ export default function ScheduleView({
             getCellLabel={getCellLabel}
             getCellType={getCellType}
             onSelectDay={setSelectedDay}
+            viewMonth={viewMonth}
           />
         )}
       </div>
@@ -630,13 +631,14 @@ export default function ScheduleView({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SparseGrid — renders only days with events on a 7-column weekday grid.
-// Columns without any events in the month are omitted entirely.
+// SparseGrid — Full 7-column calendar grid preserving all weeks.
+// Weeks with no events collapse into a slim "void" row.
+// Weeks that have events show: art cells for show-days, ghost cells for empty days.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SparseGridProps {
   activeDays: Date[];
-  activeWeekdayCols: Set<number>;
+  activeWeekdayCols: Set<number>; // kept for compat but not used to filter cols
   selectedDay: Date | null;
   today: Date;
   myShowsByDate: Map<string, Show[]>;
@@ -648,59 +650,67 @@ interface SparseGridProps {
   getCellLabel: (iso: string) => string;
   getCellType: (iso: string) => "mine-past" | "mine-upcoming" | "friend-only" | "overlap";
   onSelectDay: (d: Date) => void;
+  viewMonth: Date;
 }
 
 function SparseGrid({
   activeDays,
-  activeWeekdayCols,
   selectedDay,
-  today,
   getCellImage,
   getCellLabel,
   getCellType,
   onSelectDay,
+  viewMonth,
 }: SparseGridProps) {
-  // Build ordered list of only the weekday columns that appear
-  const colOrder = useMemo(() => {
-    return [0, 1, 2, 3, 4, 5, 6].filter(d => activeWeekdayCols.has(d));
-  }, [activeWeekdayCols]);
+  // Build the full calendar grid for the month (all days, all weeks, 7 cols)
+  type WeekRow = {
+    weekIndex: number;
+    hasEvents: boolean;
+    cells: Array<{ day: Date; iso: string; hasEvent: boolean } | null>;
+  };
 
-  // Map: weekday index (0-6) → column index in our sparse grid
-  const colIndexMap = useMemo(() => {
-    const map = new Map<number, number>();
-    colOrder.forEach((wd, idx) => map.set(wd, idx));
-    return map;
-  }, [colOrder]);
+  const allWeeks = useMemo<WeekRow[]>(() => {
+    const activeSet = new Set(activeDays.map(d => toISO(d)));
 
-  const numCols = colOrder.length;
+    const firstDay = startOfMonth(viewMonth);
+    const lastDay = endOfMonth(viewMonth);
+    const startCol = getDay(firstDay); // 0=Sun
 
-  // Build grid rows. We iterate weeks of the month (by actual calendar weeks).
-  // Each week row only appears if it has at least one active day.
-  type GridCell = { day: Date; iso: string } | null;
-  const gridRows = useMemo(() => {
-    // Group active days by week (Sunday-anchored ISO week within the month)
-    // We define "week" as the floor(dayOfMonth-1 + startWeekday) / 7
-    const byWeek = new Map<number, Date[]>();
-    for (const day of activeDays) {
-      const firstDayOfMonth = new Date(day.getFullYear(), day.getMonth(), 1);
-      const firstWeekday = getDay(firstDayOfMonth);
-      const weekIndex = Math.floor((day.getDate() - 1 + firstWeekday) / 7);
-      if (!byWeek.has(weekIndex)) byWeek.set(weekIndex, []);
-      byWeek.get(weekIndex)!.push(day);
-    }
+    // All days in month
+    const monthDays = eachDayOfInterval({ start: firstDay, end: lastDay });
 
-    const rows: GridCell[][] = [];
-    const sortedWeeks = [...byWeek.keys()].sort((a, b) => a - b);
-    for (const weekIdx of sortedWeeks) {
-      const row: GridCell[] = Array(numCols).fill(null);
-      for (const day of byWeek.get(weekIdx)!) {
-        const colIdx = colIndexMap.get(getDay(day));
-        if (colIdx !== undefined) row[colIdx] = { day, iso: toISO(day) };
+    // Group into weeks
+    const weeks: WeekRow[] = [];
+    let weekCells: Array<{ day: Date; iso: string; hasEvent: boolean } | null> = Array(7).fill(null);
+    let weekIdx = 0;
+    let hasEventsInWeek = false;
+
+    // Pad the first week
+    for (let i = 0; i < startCol; i++) weekCells[i] = null;
+
+    for (const day of monthDays) {
+      const col = getDay(day);
+      const iso = toISO(day);
+      const hasEvent = activeSet.has(iso);
+      if (hasEvent) hasEventsInWeek = true;
+
+      weekCells[col] = { day, iso, hasEvent };
+
+      if (col === 6) {
+        // End of week row — push and reset
+        weeks.push({ weekIndex: weekIdx, hasEvents: hasEventsInWeek, cells: weekCells });
+        weekCells = Array(7).fill(null);
+        hasEventsInWeek = false;
+        weekIdx++;
       }
-      rows.push(row);
     }
-    return rows;
-  }, [activeDays, colIndexMap, numCols]);
+    // Push the last partial week if non-empty
+    if (weekCells.some(c => c !== null)) {
+      weeks.push({ weekIndex: weekIdx, hasEvents: hasEventsInWeek, cells: weekCells });
+    }
+
+    return weeks;
+  }, [activeDays, viewMonth]);
 
   const cellTypeColors: Record<string, string> = {
     "mine-past": "border-primary/40",
@@ -725,90 +735,125 @@ function SparseGrid({
 
   return (
     <div>
-      {/* Weekday column headers — only for active columns */}
-      <div className="grid mb-2" style={{ gridTemplateColumns: `repeat(${numCols}, minmax(0, 1fr))`, gap: "6px" }}>
-        {colOrder.map(wd => (
-          <div key={wd} className="text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/35">
-            {WEEKDAY_LABELS[wd]}
+      {/* Weekday column headers — always all 7 */}
+      <div className="grid grid-cols-7 mb-2" style={{ gap: "4px" }}>
+        {WEEKDAY_LABELS.map(wd => (
+          <div key={wd} className="text-center text-[9px] font-semibold uppercase tracking-[0.10em] text-muted-foreground/35">
+            {wd}
           </div>
         ))}
       </div>
 
-      {/* Rows */}
-      <div className="space-y-2">
-        {gridRows.map((row, rowIdx) => (
-          <div
-            key={rowIdx}
-            className="grid"
-            style={{ gridTemplateColumns: `repeat(${numCols}, minmax(0, 1fr))`, gap: "6px" }}
-          >
-            {row.map((cell, colIdx) => {
-              if (!cell) {
-                // Empty cell — render invisible spacer
-                return <div key={colIdx} className="aspect-square" />;
-              }
-
-              const { day, iso } = cell;
-              const img = getCellImage(iso);
-              const label = getCellLabel(iso);
-              const type = getCellType(iso);
-              const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
-              const isTodayCell = isToday(day);
-              const isPastDay = isPast(day) && !isTodayCell;
-
-              return (
-                <motion.button
-                  key={iso}
-                  onClick={() => onSelectDay(day)}
-                  whileTap={{ scale: 0.92 }}
-                  className={cn(
-                    "relative aspect-square rounded-2xl overflow-hidden border-[1.5px] transition-all duration-200",
-                    cellTypeColors[type],
-                    isSelected && `ring-2 ring-offset-1 ring-offset-background ${selectedRingColors[type]}`
-                  )}
-                >
-                  {/* Art background */}
-                  {img ? (
-                    <img
-                      src={img}
-                      alt={label}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      style={{ filter: isPastDay && type !== "overlap" ? "brightness(0.65) saturate(0.7)" : undefined }}
-                    />
-                  ) : (
-                    <div className={cn(
-                      "absolute inset-0 flex items-center justify-center",
-                      type === "friend-only" ? "bg-violet-500/10" : "bg-primary/8"
-                    )}>
-                      <Music2 className={cn("w-4 h-4", type === "friend-only" ? "text-violet-400/30" : "text-primary/30")} />
-                    </div>
-                  )}
-
-                  {/* Gradient scrim */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-
-                  {/* Today ring */}
-                  {isTodayCell && !isSelected && (
-                    <div className="absolute inset-0 rounded-2xl ring-2 ring-cyan-400/60 pointer-events-none" />
-                  )}
-
-                  {/* Day number */}
-                  <div className="absolute bottom-0 left-0 right-0 p-1.5 flex items-end justify-between">
-                    <span className={cn(
-                      "text-[11px] font-black leading-none tabular-nums",
-                      isTodayCell ? "text-cyan-300" : "text-white/90"
-                    )}>
-                      {format(day, "d")}
-                    </span>
-                    {/* Type dot */}
-                    <div className={cn("w-1.5 h-1.5 rounded-full", dotColors[type])} />
+      {/* Week rows */}
+      <div className="space-y-1">
+        {allWeeks.map((week, rowIdx) => {
+          if (!week.hasEvents) {
+            // Empty week — render a slim void row that implies time passing
+            return (
+              <div key={rowIdx} className="grid grid-cols-7 h-5" style={{ gap: "4px" }}>
+                {week.cells.map((cell, colIdx) => (
+                  <div
+                    key={colIdx}
+                    className="flex items-center justify-center"
+                  >
+                    {cell ? (
+                      <span className="text-[8px] text-muted-foreground/15 font-medium tabular-nums leading-none">
+                        {format(cell.day, "d")}
+                      </span>
+                    ) : null}
                   </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        ))}
+                ))}
+              </div>
+            );
+          }
+
+          // Week with events — full-height row
+          return (
+            <div key={rowIdx} className="grid grid-cols-7" style={{ gap: "4px" }}>
+              {week.cells.map((cell, colIdx) => {
+                if (!cell) {
+                  // Out-of-month padding cell
+                  return <div key={colIdx} className="aspect-square" />;
+                }
+
+                if (!cell.hasEvent) {
+                  // In-month day, no event — ghost cell: just a tiny date number
+                  const isTodayCell = isToday(cell.day);
+                  return (
+                    <div
+                      key={colIdx}
+                      className="aspect-square flex items-end justify-center pb-1"
+                    >
+                      <span className={cn(
+                        "text-[9px] font-medium tabular-nums leading-none",
+                        isTodayCell ? "text-cyan-400/50" : "text-muted-foreground/20"
+                      )}>
+                        {format(cell.day, "d")}
+                      </span>
+                    </div>
+                  );
+                }
+
+                // Event day — full art card
+                const { day, iso } = cell;
+                const img = getCellImage(iso);
+                const label = getCellLabel(iso);
+                const type = getCellType(iso);
+                const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
+                const isTodayCell = isToday(day);
+                const isPastDay = isPast(day) && !isTodayCell;
+
+                return (
+                  <motion.button
+                    key={iso}
+                    onClick={() => onSelectDay(day)}
+                    whileTap={{ scale: 0.92 }}
+                    className={cn(
+                      "relative aspect-square rounded-xl overflow-hidden border-[1.5px] transition-all duration-200",
+                      cellTypeColors[type],
+                      isSelected && `ring-2 ring-offset-1 ring-offset-background ${selectedRingColors[type]}`
+                    )}
+                  >
+                    {/* Art background */}
+                    {img ? (
+                      <img
+                        src={img}
+                        alt={label}
+                        className="absolute inset-0 w-full h-full object-cover object-top"
+                        style={{ filter: isPastDay && type !== "overlap" ? "brightness(0.65) saturate(0.7)" : undefined }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+                        <Music2 className="w-3 h-3 text-muted-foreground/30" />
+                      </div>
+                    )}
+
+                    {/* Gradient scrim */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
+
+                    {/* Today ring */}
+                    {isTodayCell && !isSelected && (
+                      <div className="absolute inset-0 rounded-xl ring-2 ring-cyan-400/60 pointer-events-none" />
+                    )}
+
+                    {/* Day number + dot */}
+                    <div className="absolute bottom-0 left-0 right-0 px-1 pb-1 flex items-end justify-between">
+                      <span className={cn(
+                        "text-[10px] font-black leading-none tabular-nums drop-shadow-sm",
+                        isTodayCell ? "text-cyan-300" : "text-white/90"
+                      )}>
+                        {format(day, "d")}
+                      </span>
+                      <div className={cn("w-1 h-1 rounded-full flex-shrink-0", dotColors[type])} />
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
+
