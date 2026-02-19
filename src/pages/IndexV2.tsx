@@ -1,13 +1,15 @@
+import { lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import LandingHeroV2 from "@/components/landing/v2/LandingHeroV2";
-import LogShowcaseV2 from "@/components/landing/v2/LogShowcaseV2";
-import CaptureShowcaseV2 from "@/components/landing/v2/CaptureShowcaseV2";
-import RankingSpotlightV2 from "@/components/landing/v2/RankingSpotlightV2";
-import ShareExperienceV2 from "@/components/landing/v2/ShareExperienceV2";
-import GlobeShowcaseV2 from "@/components/landing/v2/GlobeShowcaseV2";
-import LandingCTAV2 from "@/components/landing/v2/LandingCTAV2";
 import { useReferralCapture } from "@/hooks/useReferralCapture";
 import ShowInviteHero from "@/components/landing/ShowInviteHero";
+
+const LogShowcaseV2 = lazy(() => import("@/components/landing/v2/LogShowcaseV2"));
+const CaptureShowcaseV2 = lazy(() => import("@/components/landing/v2/CaptureShowcaseV2"));
+const RankingSpotlightV2 = lazy(() => import("@/components/landing/v2/RankingSpotlightV2"));
+const ShareExperienceV2 = lazy(() => import("@/components/landing/v2/ShareExperienceV2"));
+const GlobeShowcaseV2 = lazy(() => import("@/components/landing/v2/GlobeShowcaseV2"));
+const LandingCTAV2 = lazy(() => import("@/components/landing/v2/LandingCTAV2"));
 
 const IndexV2 = () => {
   useReferralCapture();
@@ -29,12 +31,14 @@ const IndexV2 = () => {
   return (
     <div className="min-h-screen bg-background">
       <LandingHeroV2 />
-      <LogShowcaseV2 />
-      <CaptureShowcaseV2 />
-      <RankingSpotlightV2 />
-      <ShareExperienceV2 />
-      <GlobeShowcaseV2 />
-      <LandingCTAV2 />
+      <Suspense fallback={<div className="py-24 md:py-32" />}>
+        <LogShowcaseV2 />
+        <CaptureShowcaseV2 />
+        <RankingSpotlightV2 />
+        <ShareExperienceV2 />
+        <GlobeShowcaseV2 />
+        <LandingCTAV2 />
+      </Suspense>
     </div>
   );
 };
