@@ -286,50 +286,8 @@ export default function ScheduleView({
 
       {/* ── Single compact header row ── */}
       <div className="flex items-center justify-between mb-3">
-        {/* Left: prev month OR Today shortcut */}
-        <AnimatePresence mode="wait" initial={false}>
-          {format(viewMonth, "yyyy-MM") !== format(startOfMonth(today), "yyyy-MM") ? (
-            <motion.button
-              key="today"
-              onClick={() => { setViewMonth(startOfMonth(today)); setSelectedDay(today); }}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -6 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.10] text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-white/[0.10] transition-all duration-200"
-            >
-              <CalendarDays className="h-3 w-3" />
-              Today
-            </motion.button>
-          ) : (
-            <motion.button
-              key="prev"
-              onClick={() => { setViewMonth(m => subMonths(m, 1)); setSelectedDay(null); }}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -6 }}
-              transition={{ duration: 0.15 }}
-              className="w-7 h-7 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-white/[0.10] transition-colors"
-            >
-              <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
-            </motion.button>
-          )}
-        </AnimatePresence>
 
-        {/* Center: month + year + next arrow */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-foreground tracking-wide">
-            {format(viewMonth, "MMMM yyyy")}
-          </span>
-          <button
-            onClick={() => { setViewMonth(m => addMonths(m, 1)); setSelectedDay(null); }}
-            className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-white/[0.10] transition-colors"
-          >
-            <ChevronRight className="h-3 w-3 text-muted-foreground" />
-          </button>
-        </div>
-
-        {/* Right: Friends toggle */}
+        {/* Left: Friends toggle */}
         <button
           onClick={onToggleFriendsMode}
           className={cn(
@@ -350,7 +308,49 @@ export default function ScheduleView({
             </span>
           )}
         </button>
+
+        {/* Center: ‹ Month Year › with optional Today shortcut below */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setViewMonth(m => subMonths(m, 1)); setSelectedDay(null); }}
+              className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-white/[0.10] transition-colors"
+            >
+              <ChevronLeft className="h-3 w-3 text-muted-foreground" />
+            </button>
+            <span className="text-sm font-semibold text-foreground tracking-wide min-w-[100px] text-center">
+              {format(viewMonth, "MMMM yyyy")}
+            </span>
+            <button
+              onClick={() => { setViewMonth(m => addMonths(m, 1)); setSelectedDay(null); }}
+              className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-white/[0.10] transition-colors"
+            >
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Today pill — appears when browsing away from current month */}
+          <AnimatePresence>
+            {format(viewMonth, "yyyy-MM") !== format(startOfMonth(today), "yyyy-MM") && (
+              <motion.button
+                onClick={() => { setViewMonth(startOfMonth(today)); setSelectedDay(today); }}
+                initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.10] text-[9px] font-semibold text-muted-foreground hover:text-foreground hover:bg-white/[0.10] transition-all duration-200"
+              >
+                <CalendarDays className="h-2.5 w-2.5" />
+                Today
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Right: spacer to balance Friends toggle width */}
+        <div className="w-[70px]" />
       </div>
+
 
       {/* ── Sparse Month Grid ── */}
       <div className="mb-4">
