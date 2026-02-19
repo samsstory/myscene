@@ -654,9 +654,14 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         ) : sortedShows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="relative mb-4">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <div className="relative w-16 h-16 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
-                <Music2 className="h-8 w-8 text-white/40" />
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+              <div className="relative flex items-center justify-center">
+                <span
+                  className="text-4xl font-black tracking-[0.25em] select-none"
+                  style={{ textShadow: "0 0 12px rgba(255,255,255,0.7), 0 0 30px rgba(255,255,255,0.4), 0 0 60px rgba(255,255,255,0.2)" }}
+                >
+                  ✦
+                </span>
               </div>
             </div>
             <h3 className="text-lg font-semibold text-white/80 mb-1" style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}>
