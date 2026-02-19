@@ -620,11 +620,18 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     return ids;
   }, [friendOverlapByShowId]);
 
-  /** Friend shows filtered to exclude those already surfaced on Mine cards */
-  const filteredFriendShows = useMemo(
-    () => friendShows.filter(fs => !overlappingFriendShowIds.has(fs.id)),
-    [friendShows, overlappingFriendShowIds]
-  );
+  /** Friend shows deduplicated by artist+date, filtered to exclude Mine overlaps */
+  const filteredFriendShows = useMemo(() => {
+    const filtered = friendShows.filter(fs => !overlappingFriendShowIds.has(fs.id));
+    // Deduplicate by artist_name + show_date — keep first occurrence only
+    const seen = new Set<string>();
+    return filtered.filter(fs => {
+      const key = `${fs.artist_name.toLowerCase()}__${fs.show_date ?? ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [friendShows, overlappingFriendShowIds]);
 
   return (
     <>
