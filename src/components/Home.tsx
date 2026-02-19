@@ -700,8 +700,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
     return (
       <div className="space-y-4">
-        {/* Header row: month/year selectors + nav + friends toggle */}
-        <div className="flex items-center justify-between gap-2">
+        {/* Header row: [month+year] [friends pill] [‹ ›] */}
+        <div className="flex items-center gap-2">
+          {/* Left: month + year selectors */}
           <div className="flex items-center gap-1.5">
             <Select value={months[currentMonthIndex]} onValueChange={value => {
               const monthIndex = months.indexOf(value);
@@ -727,8 +728,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             </Select>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {/* Friends toggle pill */}
+          {/* Center: Friends toggle pill */}
+          <div className="flex-1 flex justify-center">
             <button
               onClick={() => setCalendarFriendsMode(v => !v)}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.1em] transition-all border ${
@@ -747,7 +748,10 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 </span>
               )}
             </button>
+          </div>
 
+          {/* Right: prev/next nav */}
+          <div className="flex items-center gap-1">
             <Button onClick={() => setCurrentMonth(new Date(currentYear, currentMonthIndex - 1))} size="sm" variant="default" className="h-8 w-8 p-0">
               <ChevronLeft className="h-4 w-4" />
             </Button>
