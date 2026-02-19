@@ -707,8 +707,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               const monthIndex = months.indexOf(value);
               setCurrentMonth(new Date(currentYear, monthIndex));
             }}>
-              <SelectTrigger className="w-[120px] h-8 text-xs">
-                <SelectValue />
+              <SelectTrigger className="w-[82px] h-8 text-xs">
+                <SelectValue>{months[currentMonthIndex].slice(0, 3)}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {months.map(month => <SelectItem key={month} value={month}>{month}</SelectItem>)}
