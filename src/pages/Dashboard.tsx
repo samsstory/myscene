@@ -12,6 +12,8 @@ import Profile from "@/components/Profile";
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
+import AddChoiceSheet from "@/components/AddChoiceSheet";
+import PlanShowSheet from "@/components/home/PlanShowSheet";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
@@ -36,6 +38,8 @@ const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showUnifiedAdd, setShowUnifiedAdd] = useState(false);
+  const [showAddChoice, setShowAddChoice] = useState(false);
+  const [showPlanShow, setShowPlanShow] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [quoteHoldActive, setQuoteHoldActive] = useState(false);
   const [dataReady, setDataReady] = useState(false);
@@ -396,7 +400,8 @@ const Dashboard = () => {
           <button
             onClick={() => {
               if (showSpotlightTour) return;
-              setShowUnifiedAdd(true);
+              haptic();
+              setShowAddChoice(true);
             }}
             data-tour="fab"
             className={cn(
@@ -427,6 +432,18 @@ const Dashboard = () => {
         onNavigateToFeed={() => setActiveTab("home")}
         onNavigateToRank={() => setActiveTab("rank")}
         onAddManually={() => setShowAddDialog(true)}
+      />
+
+      <AddChoiceSheet
+        open={showAddChoice}
+        onOpenChange={setShowAddChoice}
+        onLogShow={() => setShowUnifiedAdd(true)}
+        onPlanShow={() => setShowPlanShow(true)}
+      />
+
+      <PlanShowSheet
+        open={showPlanShow}
+        onOpenChange={setShowPlanShow}
       />
 
       {/* API error / prompt banner — now opens FeedbackSheet */}
