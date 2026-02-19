@@ -80,6 +80,7 @@ interface ShowRanking {
 type ViewMode = ContentView;
 
 interface HomeProps {
+  onViewChange?: (view: ViewMode) => void;
   onNavigateToRank?: () => void;
   onNavigateToProfile?: () => void;
   onAddFromPhotos?: () => void;
@@ -92,7 +93,7 @@ interface HomeProps {
   showsRef?: React.RefObject<HTMLButtonElement>;
 }
 
-const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef }: HomeProps) => {
+const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef, onViewChange }: HomeProps) => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
@@ -102,6 +103,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
   const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "last-year" | "this-month">("all-time");
+
+  // Notify parent when view changes internally
+  useEffect(() => {
+    onViewChange?.(viewMode);
+  }, [viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync viewMode when initialView prop changes
   useEffect(() => {
