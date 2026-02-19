@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
-import { Calendar, Star, Users, Zap, Music2, UserPlus, Trophy, ArrowUp } from "lucide-react";
+import { Calendar, Users, Zap, Music2, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { FriendActivityItem } from "@/hooks/useFriendActivity";
@@ -31,9 +31,9 @@ function getSignalConfig(signal: FriendActivityItem["signal"], type: FriendActiv
   }
   if (signal === "high-rating") {
     return {
-      label: "Loved it",
-      icon: Star,
-      pill: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+      label: "Top ranked",
+      icon: Music2,
+      pill: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
     };
   }
   // Standard — differentiate by type
@@ -49,22 +49,6 @@ function getSignalConfig(signal: FriendActivityItem["signal"], type: FriendActiv
     icon: Music2,
     pill: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
   };
-}
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={cn(
-            "h-2.5 w-2.5",
-            i < rating ? "fill-amber-400 text-amber-400" : "fill-white/10 text-white/10"
-          )}
-        />
-      ))}
-    </span>
-  );
 }
 
 /** Full-bleed image card for items with a user photo or strong artist image */
@@ -132,9 +116,6 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
           <p className="text-xs text-white/60 truncate">
             {[item.venueName, item.venueLocation, dateStr].filter(Boolean).join(" · ")}
           </p>
-          {item.type === "logged" && item.rating != null && (
-            <StarRating rating={item.rating} />
-          )}
         </div>
 
         {/* Shared friends stack */}
@@ -232,9 +213,6 @@ function CompactCard({ item }: { item: FriendActivityItem }) {
 
         <div className="flex items-center gap-2 mt-1.5">
           <span className="text-[10px] text-white/30">{timeAgo}</span>
-          {item.type === "logged" && item.rating != null && (
-            <StarRating rating={item.rating} />
-          )}
         </div>
       </div>
     </motion.div>
