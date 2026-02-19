@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,6 +65,7 @@ interface Show {
   latitude?: number;
   longitude?: number;
   photo_url?: string | null;
+  photo_declined?: boolean;
   eventName?: string | null;
   eventDescription?: string | null;
 }
@@ -107,6 +109,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     }
   }, [initialView]);
   const [sortMode, setSortMode] = useState<"best" | "worst" | "newest" | "oldest">("best");
+  const [attentionFilterActive, setAttentionFilterActive] = useState(false);
   const [rankingsSearch, setRankingsSearch] = useState("");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
@@ -292,6 +295,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           latitude: show.venues?.latitude,
           longitude: show.venues?.longitude,
           photo_url: show.photo_url,
+          photo_declined: show.photo_declined,
           eventName: show.event_name,
           eventDescription: (show as any).event_description,
         };
@@ -451,31 +455,104 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   };
 
   const renderRankingsView = () => {
-    const sortedShows = getSortedShows();
+    const rankingMap = new Map(rankings.map(r => [r.show_id, r]));
+
+    // Compute attention status per show
+    const getAttentionNeeds = (show: Show) => {
+      const needs: string[] = [];
+      const ranking = rankingMap.get(show.id);
+      if (!ranking || ranking.comparisons_count === 0) needs.push("unranked");
+      if (!show.photo_url && !show.photo_declined) needs.push("no moment");
+      return needs;
+    };
+
+    const attentionShows = shows.filter(s => getAttentionNeeds(s).length > 0);
+
+    // Apply attention filter on top of the normal sorted list
+    let sortedShows = getSortedShows();
+    if (attentionFilterActive) {
+      const attentionIds = new Set(attentionShows.map(s => s.id));
+      sortedShows = sortedShows.filter(s => attentionIds.has(s.id));
+    }
     const filteredShowIds = sortedShows.map(s => s.id);
 
     return (
       <div className="space-y-4">
 
-        {/* Search bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-          <input
-            type="text"
-            placeholder="Search artist, venue, or city..."
-            value={rankingsSearch}
-            onChange={(e) => setRankingsSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-9 rounded-lg text-sm bg-white/[0.05] border border-white/[0.08] text-foreground placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
-          />
-          {rankingsSearch && (
-            <button
-              onClick={() => setRankingsSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        {/* Needs Attention strip — only show when there are shows needing attention */}
+        {!loading && attentionShows.length > 0 && (
+          <button
+            onClick={() => {
+              setAttentionFilterActive(prev => !prev);
+              setRankingsSearch(""); // clear any active search
+            }}
+            className={cn(
+              "w-full text-left rounded-2xl border px-4 py-3 transition-all duration-200",
+              attentionFilterActive
+                ? "bg-amber-500/[0.10] border-amber-500/30"
+                : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06]"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0",
+                  attentionFilterActive ? "bg-amber-500/20" : "bg-white/[0.06]"
+                )}>
+                  <span className="text-sm">✦</span>
+                </div>
+                <div>
+                  <p className={cn(
+                    "text-sm font-semibold leading-snug",
+                    attentionFilterActive ? "text-amber-300" : "text-white/80"
+                  )}>
+                    {attentionFilterActive
+                      ? `Showing ${attentionShows.length} show${attentionShows.length === 1 ? "" : "s"} needing attention`
+                      : `${attentionShows.length} show${attentionShows.length === 1 ? "" : "s"} need${attentionShows.length === 1 ? "s" : ""} attention`}
+                  </p>
+                  {!attentionFilterActive && (
+                    <p className="text-[11px] text-white/35 mt-0.5">
+                      {[
+                        rankings.filter(r => r.comparisons_count === 0).length > 0 && `${rankings.filter(r => r.comparisons_count === 0).length} unranked`,
+                        shows.filter(s => !s.photo_url && !s.photo_declined).length > 0 && `${shows.filter(s => !s.photo_url && !s.photo_declined).length} without a moment`,
+                      ].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <span className={cn(
+                "text-xs font-semibold px-2.5 py-1 rounded-full transition-colors",
+                attentionFilterActive
+                  ? "bg-amber-500/20 text-amber-300"
+                  : "bg-white/[0.06] text-white/40"
+              )}>
+                {attentionFilterActive ? "Clear" : "Review"}
+              </span>
+            </div>
+          </button>
+        )}
+
+        {/* Search bar — hidden when attention filter active */}
+        {!attentionFilterActive && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+            <input
+              type="text"
+              placeholder="Search artist, venue, or city..."
+              value={rankingsSearch}
+              onChange={(e) => setRankingsSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-9 rounded-lg text-sm bg-white/[0.05] border border-white/[0.08] text-foreground placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
+            />
+            {rankingsSearch && (
+              <button
+                onClick={() => setRankingsSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Filter bar */}
         <div className="flex items-center justify-between gap-4">
@@ -513,7 +590,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             ))}
           </div>
         ) : sortedShows.length === 0 ? (
-          /* Empty state */
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="relative mb-4">
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
@@ -521,24 +597,21 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 <Music2 className="h-8 w-8 text-white/40" />
               </div>
             </div>
-            <h3
-              className="text-lg font-semibold text-white/80 mb-1"
-              style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
-            >
-              {rankingsSearch.trim() ? "No shows match your search" : "No shows match this filter"}
+            <h3 className="text-lg font-semibold text-white/80 mb-1" style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}>
+              {attentionFilterActive ? "Nothing needs attention right now" : rankingsSearch.trim() ? "No shows match your search" : "No shows match this filter"}
             </h3>
             <p className="text-sm text-white/50">
-              {rankingsSearch.trim() ? "Try a different artist, venue, or city" : "Try selecting a different time period"}
+              {attentionFilterActive ? "All your shows are ranked and have moments." : rankingsSearch.trim() ? "Try a different artist, venue, or city" : "Try selecting a different time period"}
             </p>
           </div>
         ) : (
-          /* Unified show list */
           <div className="flex flex-col gap-3">
             {sortedShows.map((show) => {
               const baseRankInfo = getShowRankInfo(show.id, filteredShowIds);
               const rankInfo = sortMode === "worst" && baseRankInfo.position
                 ? { ...baseRankInfo, position: baseRankInfo.total - baseRankInfo.position + 1 }
                 : baseRankInfo;
+              const attentionNeeds = getAttentionNeeds(show);
               return (
                 <SwipeableRankingCard
                   key={show.id}
@@ -573,10 +646,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
                         <div className="min-w-0 flex-1 space-y-1">
                           {/* Artist name */}
-                          <div
-                            className="font-bold text-base leading-tight truncate"
-                            style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}
-                          >
+                          <div className="font-bold text-base leading-tight truncate" style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}>
                             {show.artists.slice(0, 2).map((artist, idx) => (
                               <span key={idx}>
                                 {artist.name}
@@ -588,19 +658,36 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                             )}
                           </div>
                           {/* Venue */}
-                          <div
-                            className="text-sm text-white/60 truncate"
-                            style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}
-                          >
+                          <div className="text-sm text-white/60 truncate" style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}>
                             {show.venue.name}
                           </div>
                           {/* Date */}
-                          <div
-                            className="text-sm text-white/60"
-                            style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}
-                          >
+                          <div className="text-sm text-white/60" style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}>
                             {format(parseISO(show.date), parseISO(show.date).getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM yyyy")}
                           </div>
+
+                          {/* Attention chips — always visible for incomplete shows */}
+                          {attentionNeeds.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                              {attentionNeeds.includes("unranked") && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/[0.12] border border-amber-500/25 text-amber-400/80">
+                                  Unranked
+                                </span>
+                              )}
+                              {attentionNeeds.includes("no moment") && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.10] text-white/40 cursor-pointer hover:border-primary/30 hover:text-primary/70 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setQuickPhotoShow(show);
+                                    setQuickPhotoOpen(true);
+                                  }}
+                                >
+                                  + Add moment
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -617,6 +704,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       </div>
     );
   };
+
+
 
   const getUpcomingShowsForDate = (date: Date) =>
     upcomingShows.filter(s => s.show_date && isSameDay(parseISO(s.show_date), date));
