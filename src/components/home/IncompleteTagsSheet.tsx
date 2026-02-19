@@ -22,12 +22,14 @@ interface IncompleteTagsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete?: () => void;
+  focusShowId?: string | null;
 }
 
 export const IncompleteTagsSheet = ({ 
   open, 
   onOpenChange,
-  onComplete 
+  onComplete,
+  focusShowId,
 }: IncompleteTagsSheetProps) => {
   const [shows, setShows] = useState<IncompleteShow[]>([]);
   const [edits, setEdits] = useState<Record<string, string[]>>({});
@@ -86,7 +88,17 @@ export const IncompleteTagsSheet = ({
       const initialEdits: Record<string, string[]> = {};
       showsWithArtists.forEach(s => { initialEdits[s.id] = []; });
       setEdits(initialEdits);
-      setExpandedId(showsWithArtists[0]?.id ?? null);
+      // If a specific show is focused, expand it first (and sort it to top)
+      if (focusShowId && showsWithArtists.some(s => s.id === focusShowId)) {
+        setExpandedId(focusShowId);
+        setShows(prev => {
+          const focused = prev.find(s => s.id === focusShowId);
+          const rest = prev.filter(s => s.id !== focusShowId);
+          return focused ? [focused, ...rest] : prev;
+        });
+      } else {
+        setExpandedId(showsWithArtists[0]?.id ?? null);
+      }
     } catch (error) {
       console.error('Error fetching incomplete shows:', error);
       toast.error('Failed to load shows');
@@ -158,7 +170,11 @@ export const IncompleteTagsSheet = ({
             <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-9 w-9">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <SheetTitle className="text-lg font-bold">Add Highlights</SheetTitle>
+            <SheetTitle className="text-lg font-bold">
+              {focusShowId && shows.find(s => s.id === focusShowId)
+                ? `Add highlights — ${shows.find(s => s.id === focusShowId)!.artistName}`
+                : "Add Highlights"}
+            </SheetTitle>
           </div>
           
           {!loading && shows.length > 0 && (

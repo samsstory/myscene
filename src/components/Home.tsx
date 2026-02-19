@@ -133,6 +133,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   
   // Incomplete tags sheet state
   const [incompleteTagsOpen, setIncompleteTagsOpen] = useState(false);
+  const [incompleteTagsFocusId, setIncompleteTagsFocusId] = useState<string | null>(null);
   
   // Missing photos sheet state
   const [missingPhotosOpen, setMissingPhotosOpen] = useState(false);
@@ -747,9 +748,12 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                           {attentionNeeds.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 pt-0.5">
                               {attentionNeeds.includes("unranked") && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/[0.15] border border-amber-500/30 text-amber-300">
-                                  ↕ Unranked
-                                </span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setFocusedRankingOpen(true); }}
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/[0.15] border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400/50 transition-colors cursor-pointer"
+                                >
+                                  ↕ Rank it
+                                </button>
                               )}
                               {attentionNeeds.includes("no moment") && (
                                 <span
@@ -764,9 +768,12 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                                 </span>
                               )}
                               {attentionNeeds.includes("no highlights") && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/[0.12] border border-violet-500/25 text-violet-300/80">
-                                  ✦ No highlights
-                                </span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setIncompleteTagsFocusId(show.id); setIncompleteTagsOpen(true); }}
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/[0.12] border border-violet-500/25 text-violet-300/80 hover:bg-violet-500/20 hover:border-violet-400/40 hover:text-violet-200 transition-colors cursor-pointer"
+                                >
+                                  ✦ Add highlights
+                                </button>
                               )}
                             </div>
                           )}
@@ -1198,7 +1205,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       {/* Incomplete Tags Sheet */}
       <IncompleteTagsSheet
         open={incompleteTagsOpen}
-        onOpenChange={setIncompleteTagsOpen}
+        onOpenChange={(open) => { setIncompleteTagsOpen(open); if (!open) setIncompleteTagsFocusId(null); }}
+        focusShowId={incompleteTagsFocusId}
         onComplete={() => {
           refetchStats();
           fetchShows();
