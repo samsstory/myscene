@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Home as HomeIcon, Globe, Scale, Plus, Music } from "lucide-react";
+import { Home as HomeIcon, Plus, Music } from "lucide-react";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/components/Home";
 import Profile from "@/components/Profile";
-import Rank from "@/components/Rank";
+
 import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
 import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
@@ -47,8 +47,6 @@ const Dashboard = () => {
   const [inviteNote, setInviteNote] = useState("");
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
 
-  const rankButtonRef = useRef<HTMLButtonElement | null>(null);
-  const globeButtonRef = useRef<HTMLButtonElement | null>(null);
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
   const pendingAddFlowRef = useRef(false);
 
@@ -60,14 +58,10 @@ const Dashboard = () => {
   const { prompt, dismissPrompt, openReport, reportOpen, setReportOpen } = useBugReportPrompt();
   const { stats } = useHomeStats();
 
-  // Only elevate z-index for FAB during tour steps 0 and 4 (first and last)
-  const shouldElevateNavZ = showSpotlightTour && (tourStepIndex === 0 || tourStepIndex === 4);
+  // Only elevate z-index for FAB during tour step 0 (first step)
+  const shouldElevateNavZ = showSpotlightTour && tourStepIndex === 0;
   // Step 3 (index 2) targets the Shows stat pill
   const showsTourActive = showSpotlightTour && tourStepIndex === 2;
-  // Step 4 (index 3) targets the Globe icon
-  const globeTourActive = showSpotlightTour && tourStepIndex === 3;
-  // Step 2 (index 1) targets the Rank icon
-  const rankTourActive = showSpotlightTour && tourStepIndex === 1;
 
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
@@ -229,8 +223,8 @@ const Dashboard = () => {
     switch (activeTab) {
       case "home":
         return (
-          <Home 
-            onNavigateToRank={() => setActiveTab("rank")} 
+          <Home
+            onNavigateToRank={() => setActiveTab("home")}
             onNavigateToProfile={() => setActiveTab("profile")}
             onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
@@ -240,30 +234,17 @@ const Dashboard = () => {
             showsRef={showsStatRef}
           />
         );
-      case "globe":
+      case "profile":
         return (
-          <Home 
-            initialView="globe"
-            onNavigateToRank={() => setActiveTab("rank")} 
-            onNavigateToProfile={() => setActiveTab("profile")}
-            onAddFromPhotos={() => setShowUnifiedAdd(true)}
-            onAddSingleShow={() => setShowAddDialog(true)}
+          <Profile
+            onStartTour={() => { setActiveTab("home"); setShowSpotlightTour(true); }}
+            onAddShow={() => { setActiveTab("home"); setShowUnifiedAdd(true); }}
           />
         );
-      case "rank":
-        return <Rank onAddShow={() => setShowUnifiedAdd(true)} onViewAllShows={() => setActiveTab("home")} />;
-      case "profile":
-        return <Profile onStartTour={() => {
-          setActiveTab("home");
-          setShowSpotlightTour(true);
-        }} onAddShow={() => {
-          setActiveTab("home");
-          setShowUnifiedAdd(true);
-        }} />;
       default:
         return (
-          <Home 
-            onNavigateToRank={() => setActiveTab("rank")} 
+          <Home
+            onNavigateToRank={() => setActiveTab("home")}
             onNavigateToProfile={() => setActiveTab("profile")}
             onAddFromPhotos={() => setShowUnifiedAdd(true)}
             onAddSingleShow={() => setShowAddDialog(true)}
@@ -315,84 +296,41 @@ const Dashboard = () => {
         {/* Left spacer to balance FAB for centering pill */}
         <div className="w-0 shrink-0" />
         
-        {/* Glass Pill Navigation */}
-        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-8 py-3 shadow-2xl">
-          <div className="flex items-center gap-10">
+        {/* Glass Pill Navigation — simplified to Home + Profile */}
+        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-10 py-3 shadow-2xl">
+          <div className="flex items-center gap-14">
             {/* Home */}
             <button
               onClick={() => setActiveTab("home")}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1.5",
-                activeTab === "home" 
-                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
+                activeTab === "home"
+                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
                   : "text-white/60"
               )}
             >
               <HomeIcon className="h-6 w-6" />
             </button>
 
-            {/* Globe */}
+            {/* Profile */}
             <button
-              onClick={() => setActiveTab("globe")}
-              ref={globeButtonRef}
-              data-tour={globeTourActive ? undefined : "nav-globe"}
+              onClick={() => setActiveTab("profile")}
               className={cn(
                 "flex flex-col items-center gap-0.5 transition-all py-1.5",
-                globeTourActive && "opacity-0",
-                activeTab === "globe" 
-                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
+                activeTab === "profile"
+                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
                   : "text-white/60"
               )}
             >
-              <Globe className="h-6 w-6" />
-            </button>
-
-            {/* Rank */}
-            <button
-              onClick={() => setActiveTab("rank")}
-              ref={rankButtonRef}
-              data-tour={rankTourActive ? undefined : "nav-rank"}
-              className={cn(
-                "relative flex flex-col items-center gap-0.5 transition-all py-1.5",
-                rankTourActive && "opacity-0",
-                activeTab === "rank" 
-                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" 
-                  : "text-white/60"
-              )}
-            >
-              <Scale className="h-6 w-6" />
-              {/* Nudge dot for unranked shows or incomplete tags */}
-              {activeTab !== "rank" && (stats.unrankedCount > 0 || stats.incompleteTagsCount > 0) && (
-                <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.8)]" />
-              )}
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
             </button>
           </div>
         </nav>
 
         {/* Floating Rank target for tour step 2 (index 1) */}
-        <FloatingTourTarget active={rankTourActive} targetRef={rankButtonRef} dataTour="nav-rank">
-          <Scale
-            className="h-7 w-7 text-primary"
-            strokeWidth={2.75}
-            style={{
-              filter:
-                "drop-shadow(0 0 10px hsl(var(--primary) / 0.95)) drop-shadow(0 0 26px hsl(var(--primary) / 0.7))",
-            }}
-          />
-        </FloatingTourTarget>
-
-        {/* Floating Globe target for tour step 4 (index 3) */}
-        <FloatingTourTarget active={globeTourActive} targetRef={globeButtonRef} dataTour="nav-globe">
-          <Globe
-            className="h-7 w-7 text-primary"
-            strokeWidth={2.75}
-            style={{
-              filter:
-                "drop-shadow(0 0 10px hsl(var(--primary) / 0.95)) drop-shadow(0 0 26px hsl(var(--primary) / 0.7))",
-            }}
-          />
-        </FloatingTourTarget>
-
         {/* Floating Shows stat pill target for tour step 3 (index 2) */}
         <FloatingTourTarget active={showsTourActive} targetRef={showsStatRef} dataTour="stat-shows">
           <div 
