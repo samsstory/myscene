@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Music2, CheckCircle2, AlertCircle, X, Users, Check, Loader2, PartyPopper } from "lucide-react";
+import { Plus, Music2, CheckCircle2, AlertCircle, X, Users, Check, Loader2 } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomingShows";
@@ -79,6 +79,49 @@ function FriendAvatarStack({ friends }: { friends: FollowerProfile[] }) {
   );
 }
 
+/** Stacked avatar row shown on Mine chips when friends are going to the same show */
+function GoingWithAvatarStack({ goingWith }: { goingWith: FriendShow[] }) {
+  if (goingWith.length === 0) return null;
+  const visible = goingWith.slice(0, 3);
+  const overflow = goingWith.length - visible.length;
+
+  return (
+    <div className="flex items-center gap-1 mb-1">
+      <div className="flex items-center">
+        {visible.map((fs, i) => (
+          fs.friend.avatar_url ? (
+            <img
+              key={fs.friend.id}
+              src={fs.friend.avatar_url}
+              alt={fs.friend.username ?? "Friend"}
+              className="w-5 h-5 rounded-full border border-black/70 object-cover"
+              style={{ marginLeft: i === 0 ? 0 : -6, zIndex: visible.length - i }}
+            />
+          ) : (
+            <div
+              key={fs.friend.id}
+              className="w-5 h-5 rounded-full border border-black/70 bg-primary flex items-center justify-center"
+              style={{ marginLeft: i === 0 ? 0 : -6, zIndex: visible.length - i }}
+            >
+              <span className="text-[7px] font-bold text-primary-foreground leading-none">
+                {(fs.friend.username ?? fs.friend.full_name ?? "?")[0].toUpperCase()}
+              </span>
+            </div>
+          )
+        ))}
+        {overflow > 0 && (
+          <div
+            className="w-5 h-5 rounded-full border border-black/70 bg-white/20 flex items-center justify-center"
+            style={{ marginLeft: -6, zIndex: 0 }}
+          >
+            <span className="text-[7px] font-bold text-white/90 leading-none">+{overflow}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function UpcomingChip({
   show,
   friendsHere,
@@ -88,7 +131,7 @@ function UpcomingChip({
   show: UpcomingShow;
   friendsHere: FollowerProfile[];
   goingWith: FriendShow[];
-  onTap: (show: UpcomingShow) => void;
+  onTap: (show: UpcomingShow, goingWith: FriendShow[]) => void;
 }) {
   const dateLabel = show.show_date
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
@@ -103,21 +146,10 @@ function UpcomingChip({
   const badge = RSVP_BADGE[show.rsvp_status ?? "going"];
   const BadgeIcon = badge.Icon;
 
-  // Build "Going with" label from matched friends
-  const goingWithLabel = useMemo(() => {
-    if (goingWith.length === 0) return null;
-    const names = goingWith.map(f =>
-      f.friend.username ? `@${f.friend.username}` : (f.friend.full_name?.split(" ")[0] ?? "Friend")
-    );
-    if (names.length === 1) return names[0];
-    if (names.length === 2) return `${names[0]} & ${names[1]}`;
-    return `${names[0]} +${names.length - 1}`;
-  }, [goingWith]);
-
   return (
     <button
       className="relative flex-shrink-0 w-32 h-36 rounded-2xl overflow-hidden cursor-pointer select-none text-left"
-      onClick={() => onTap(show)}
+      onClick={() => onTap(show, goingWith)}
     >
       {show.artist_image_url ? (
         <>
@@ -140,18 +172,8 @@ function UpcomingChip({
       <FriendAvatarStack friends={friendsHere} />
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
-        {/* Going-with badge */}
-        {goingWithLabel && (
-          <div className="flex items-center gap-0.5 mb-1 max-w-full">
-            <PartyPopper className="h-2.5 w-2.5 text-amber-300 flex-shrink-0" />
-            <span
-              className="text-[9px] font-semibold text-amber-300 truncate leading-none"
-              style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
-            >
-              {goingWithLabel}
-            </span>
-          </div>
-        )}
+        {/* Stacked friend avatars when friends are going to same show */}
+        <GoingWithAvatarStack goingWith={goingWith} />
         <p
           className="text-xs font-bold text-white leading-tight line-clamp-2"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
@@ -294,6 +316,73 @@ function AddShowChip({ onClick }: { onClick: () => void }) {
   );
 }
 
+/** Bottom sheet listing all friends going to a Mine show */
+function FriendsGoingSheet({
+  show,
+  goingWith,
+  open,
+  onOpenChange,
+}: {
+  show: UpcomingShow | null;
+  goingWith: FriendShow[];
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  if (!show) return null;
+  const dateLabel = show.show_date
+    ? (() => { try { return format(parseISO(show.show_date), "EEEE, MMMM d"); } catch { return ""; } })()
+    : "Date TBD";
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="rounded-t-3xl bg-background border-white/10 pb-safe">
+        <SheetHeader className="pb-4">
+          <SheetTitle className="text-left text-base font-semibold">
+            {show.artist_name}
+          </SheetTitle>
+          <p className="text-xs text-muted-foreground text-left">{dateLabel}{show.venue_name ? ` · ${show.venue_name}` : ""}</p>
+        </SheetHeader>
+
+        <div className="mb-4 flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary/70" />
+          <span className="text-sm font-semibold text-foreground">
+            {goingWith.length} {goingWith.length === 1 ? "friend" : "friends"} going
+          </span>
+        </div>
+
+        <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+          {goingWith.map((fs) => {
+            const name = fs.friend.full_name ?? fs.friend.username ?? "Friend";
+            const username = fs.friend.username;
+            const initial = (username ?? name ?? "?")[0].toUpperCase();
+            return (
+              <div key={fs.friend.id} className="flex items-center gap-3 py-1">
+                {fs.friend.avatar_url ? (
+                  <img
+                    src={fs.friend.avatar_url}
+                    alt={name}
+                    className="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-primary/90">{initial}</span>
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                  {username && (
+                    <p className="text-xs text-muted-foreground truncate">@{username}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function FriendShowDetailSheet({
   show,
   open,
@@ -349,7 +438,6 @@ function FriendShowDetailSheet({
           )}
         </div>
 
-        {/* I'm going too / Remove CTA */}
         <button
           onClick={() => onToggle(show)}
           disabled={isToggling}
@@ -390,6 +478,9 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFriendShow, setSelectedFriendShow] = useState<FriendShow | null>(null);
   const [friendDetailOpen, setFriendDetailOpen] = useState(false);
+  const [friendsGoingShow, setFriendsGoingShow] = useState<UpcomingShow | null>(null);
+  const [friendsGoingWith, setFriendsGoingWith] = useState<FriendShow[]>([]);
+  const [friendsGoingOpen, setFriendsGoingOpen] = useState(false);
   // Track which friend shows the user has added (by source show id → own show id)
   const [addedFriendShowIds, setAddedFriendShowIds] = useState<Map<string, string>>(new Map());
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
@@ -402,9 +493,15 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     }
   };
 
-  const handleChipTap = (show: UpcomingShow) => {
-    setSelectedShow(show);
-    setDetailOpen(true);
+  const handleChipTap = (show: UpcomingShow, goingWith: FriendShow[]) => {
+    if (goingWith.length > 0) {
+      setFriendsGoingShow(show);
+      setFriendsGoingWith(goingWith);
+      setFriendsGoingOpen(true);
+    } else {
+      setSelectedShow(show);
+      setDetailOpen(true);
+    }
   };
 
   const handleFriendChipTap = (show: FriendShow) => {
@@ -673,6 +770,13 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         }
         isToggling={selectedFriendShow ? togglingIds.has(selectedFriendShow.id) : false}
         onToggle={(s) => handleToggleFriendShow(s)}
+      />
+
+      <FriendsGoingSheet
+        show={friendsGoingShow}
+        goingWith={friendsGoingWith}
+        open={friendsGoingOpen}
+        onOpenChange={setFriendsGoingOpen}
       />
 
       {!onPlanShow && (
