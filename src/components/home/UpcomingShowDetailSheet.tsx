@@ -33,13 +33,13 @@ interface UpcomingShowDetailSheetProps {
 const RSVP_OPTIONS: { value: RsvpStatus; label: string; icon: React.ReactNode; activeClass: string }[] = [
   {
     value: "going",
-    label: "Going",
+    label: "I'm in",
     icon: <CheckCircle2 className="h-4 w-4" />,
     activeClass: "bg-emerald-500/20 border-emerald-500/50 text-emerald-400",
   },
   {
     value: "maybe",
-    label: "Maybe",
+    label: "Idk yet",
     icon: <AlertCircle className="h-4 w-4" />,
     activeClass: "bg-amber-500/20 border-amber-500/50 text-amber-400",
   },
