@@ -98,6 +98,53 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          event_type: string
+          id: string
+          name: string
+          updated_at: string
+          venue_id: string | null
+          venue_location: string | null
+          venue_name: string | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          event_type?: string
+          id?: string
+          name: string
+          updated_at?: string
+          venue_id?: string | null
+          venue_location?: string | null
+          venue_name?: string | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          event_type?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          venue_id?: string | null
+          venue_location?: string | null
+          venue_name?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_requests: {
         Row: {
           created_at: string
@@ -861,6 +908,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      title_case: { Args: { input: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
