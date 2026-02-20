@@ -11,6 +11,7 @@ import ArtistsStep from "./add-show-steps/ArtistsStep";
 import RatingStep from "./add-show-steps/RatingStep";
 import QuickCompareStep from "./add-show-steps/QuickCompareStep";
 import SuccessStep from "./add-show-steps/SuccessStep";
+import GroupShowPrompt from "./home/GroupShowPrompt";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -99,6 +100,13 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null);
   const [editPhotoUploading, setEditPhotoUploading] = useState(false);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  // Group show prompt state
+  const [groupPromptOpen, setGroupPromptOpen] = useState(false);
+  const [groupingSiblings, setGroupingSiblings] = useState<Array<{ id: string; artistName: string; artistImageUrl?: string | null }>>([]);
+  const [groupingNewShowId, setGroupingNewShowId] = useState<string | null>(null);
+  const [groupingMeta, setGroupingMeta] = useState<{ venueName: string; showDate: string; venueLocation: string | null; venueId: string | null; datePrecision: string; userId: string } | null>(null);
+  const [isGrouping, setIsGrouping] = useState(false);
 
   // Populate form with edit data - only run ONCE when dialog opens with editShow
   useEffect(() => {
@@ -530,16 +538,66 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         toast.success("Show updated successfully! 🎉");
         resetAndClose();
       } else {
-        // For new shows, go to success step
+        // For new shows, check for sibling sets at same venue+date
         const newShowData: AddedShowData = {
           id: show.id,
           artists: showData.artists,
           venue: { name: showData.venue, location: showData.venueLocation },
           date: showDate,
-          rating: null, // No rating in new system
+          rating: null,
           tags: showData.tags
         };
         setAddedShow(newShowData);
+
+        // Only check siblings for sets (not shows/festivals)
+        if (showData.showType === 'set') {
+          try {
+            const { data: siblings } = await supabase
+              .from("shows")
+              .select("id, show_artists(artist_name, artist_image_url, is_headliner)")
+              .eq("user_id", user.id)
+              .eq("show_date", showDate)
+              .ilike("venue_name", showData.venue)
+              .eq("show_type", "set")
+              .is("parent_show_id", null)
+              .neq("id", show.id);
+
+            if (siblings && siblings.length > 0) {
+              // Build sibling list including the new show
+              const siblingList = [
+                ...siblings.map((s: any) => {
+                  const headliner = s.show_artists?.find((a: any) => a.is_headliner) || s.show_artists?.[0];
+                  return {
+                    id: s.id,
+                    artistName: headliner?.artist_name || "Unknown",
+                    artistImageUrl: headliner?.artist_image_url || null,
+                  };
+                }),
+                {
+                  id: show.id,
+                  artistName: showData.artists[0]?.name || "Unknown",
+                  artistImageUrl: showData.artists[0]?.imageUrl || null,
+                },
+              ];
+              setGroupingSiblings(siblingList);
+              setGroupingNewShowId(show.id);
+              setGroupingMeta({
+                venueName: showData.venue,
+                showDate,
+                venueLocation: showData.venueLocation || null,
+                venueId: venueIdToUse,
+                datePrecision: showData.datePrecision,
+                userId: user.id,
+              });
+              setStep(5); // Go to success step
+              setGroupPromptOpen(true); // Show group prompt on top
+              return; // Don't go to success step yet — prompt is shown
+            }
+          } catch (err) {
+            console.error("Error checking siblings:", err);
+          }
+        }
+
         setStep(5); // Success step
       }
     } catch (error) {
@@ -620,6 +678,56 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     }
   };
 
+  const handleGroupShows = async () => {
+    if (!groupingMeta || !groupingNewShowId) return;
+    setIsGrouping(true);
+    try {
+      // Create parent Show record
+      const { data: parentShow, error: parentError } = await supabase
+        .from("shows")
+        .insert({
+          user_id: groupingMeta.userId,
+          venue_name: groupingMeta.venueName,
+          venue_location: groupingMeta.venueLocation,
+          venue_id: groupingMeta.venueId,
+          show_date: groupingMeta.showDate,
+          date_precision: groupingMeta.datePrecision,
+          show_type: "show",
+        } as any)
+        .select("id")
+        .single();
+
+      if (parentError) throw parentError;
+
+      // Link all children
+      const childIds = groupingSiblings.map((s) => s.id);
+      const { error: linkError } = await supabase
+        .from("shows")
+        .update({ parent_show_id: parentShow.id } as any)
+        .in("id", childIds);
+
+      if (linkError) throw linkError;
+
+      toast.success("Sets grouped into a Show! 🎉");
+    } catch (err) {
+      console.error("Error grouping shows:", err);
+      toast.error("Failed to group shows");
+    } finally {
+      setIsGrouping(false);
+      setGroupPromptOpen(false);
+      setGroupingSiblings([]);
+      setGroupingNewShowId(null);
+      setGroupingMeta(null);
+    }
+  };
+
+  const handleDismissGroup = () => {
+    setGroupPromptOpen(false);
+    setGroupingSiblings([]);
+    setGroupingNewShowId(null);
+    setGroupingMeta(null);
+  };
+
   const resetAndClose = () => {
     setShowData({
       venue: "",
@@ -644,6 +752,10 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     setHasUnsavedChanges(false);
     setAddedShow(null);
     setEditPhotoUrl(null);
+    setGroupPromptOpen(false);
+    setGroupingSiblings([]);
+    setGroupingNewShowId(null);
+    setGroupingMeta(null);
     onOpenChange(false);
   };
 
@@ -976,6 +1088,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[65vh] sm:max-h-[85vh] flex flex-col fixed top-[max(4.5rem,env(safe-area-inset-top,4.5rem))] sm:top-[50%] left-[50%] translate-x-[-50%] sm:translate-y-[-50%] translate-y-0 overflow-hidden">
         {/* Mesh gradient background - Scene aesthetic */}
@@ -1037,7 +1150,20 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           </div>
         }
       </DialogContent>
-    </Dialog>);
+    </Dialog>
+
+    <GroupShowPrompt
+      open={groupPromptOpen}
+      onOpenChange={setGroupPromptOpen}
+      venueName={groupingMeta?.venueName || ""}
+      showDate={groupingMeta?.showDate || ""}
+      siblingShows={groupingSiblings}
+      onGroup={handleGroupShows}
+      onDismiss={handleDismissGroup}
+      isGrouping={isGrouping}
+    />
+    </>
+  );
 
 };
 
