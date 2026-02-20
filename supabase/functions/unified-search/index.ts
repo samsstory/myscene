@@ -18,6 +18,9 @@ interface UnifiedSearchResult {
   userShowCount?: number;
   sceneUsersCount?: number;
   tier?: 'primary' | 'other';
+  eventId?: string;
+  eventType?: string;
+  venueName?: string;
 }
 
 // ─── Category Whitelists (ported from search-venues) ─────────────────
@@ -183,10 +186,11 @@ serve(async (req) => {
       }
     }
 
-    const [artistResults, venueResults, userShowsResults] = await Promise.all([
+    const [artistResults, venueResults, userShowsResults, eventResults] = await Promise.all([
       searchSpotify(searchTerm),
       searchVenues(searchTerm.trim(), searchLower, lat, lon),
       userId && supabaseClient ? searchUserHistory(searchTerm, userId, supabaseClient) : Promise.resolve({ artists: [], venues: [] }),
+      supabaseClient ? searchEvents(searchTerm, supabaseClient) : Promise.resolve([]),
     ]);
 
     // Add user's own artists first (highest priority)
@@ -231,6 +235,14 @@ serve(async (req) => {
           tier: 'primary',
         });
       }
+    }
+
+    // Add event registry results (before external venues)
+    for (const event of eventResults) {
+      if (results.some(r => r.type === 'venue' && r.name.toLowerCase() === event.name.toLowerCase())) {
+        continue;
+      }
+      results.push(event);
     }
 
     // Add primary tier venues
@@ -489,6 +501,42 @@ async function searchFoursquare(
     return data.results || [];
   } catch (error) {
     console.error('[unified-search] Foursquare error:', error);
+    return [];
+  }
+}
+
+// ─── Events Registry Search ──────────────────────────────────────────
+
+async function searchEvents(searchTerm: string, supabaseClient: any): Promise<UnifiedSearchResult[]> {
+  try {
+    const { data } = await supabaseClient
+      .from('events')
+      .select('id, name, venue_name, venue_location, venue_id, event_type, year')
+      .ilike('name', `%${searchTerm}%`)
+      .order('year', { ascending: false })
+      .limit(5);
+
+    const seen = new Set<string>();
+    const results: UnifiedSearchResult[] = [];
+    for (const event of (data || [])) {
+      const key = event.name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({
+        type: 'venue',
+        id: event.venue_id || `event-${event.id}`,
+        name: event.name,
+        location: event.venue_location || event.venue_name || '',
+        tier: 'primary',
+        eventId: event.id,
+        eventType: event.event_type,
+        venueName: event.venue_name,
+      });
+    }
+    console.log(`[unified-search] Events registry returned ${results.length} results`);
+    return results;
+  } catch (error) {
+    console.error('[unified-search] Events search error:', error);
     return [];
   }
 }
