@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Users, UserPlus } from "lucide-react";
+import { Users, UserPlus, Hand } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PopularItem, PopularArtist, PopularEvent, ShowTypeFilter } from "@/hooks/usePopularShows";
 
@@ -24,18 +24,14 @@ const TYPE_PILLS: { id: ShowTypeFilter; label: string }[] = [
 
 function ArtistCard({ item, onQuickAdd, index }: { item: PopularArtist; onQuickAdd: () => void; index: number }) {
   return (
-    <motion.button
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.04 }}
-      onClick={onQuickAdd}
-      className="relative group rounded-2xl overflow-hidden border border-white/[0.08] aspect-square"
+      className="relative rounded-2xl overflow-hidden border border-white/[0.08] aspect-square"
     >
       <img src={item.artistImageUrl!} alt={item.artistName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
-        <Plus className="h-3 w-3 text-white" />
-      </div>
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
         <p className="text-xs font-bold text-white leading-tight truncate drop-shadow-md">{item.artistName}</p>
         {item.userCount > 0 && (
@@ -44,25 +40,29 @@ function ArtistCard({ item, onQuickAdd, index }: { item: PopularArtist; onQuickA
             {item.userCount} {item.userCount === 1 ? "user" : "users"}
           </p>
         )}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
+          className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-white/80 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1 hover:bg-white/15 transition-colors"
+        >
+          <Hand className="h-2.5 w-2.5" />
+          I was there
+        </motion.button>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
 function EventCard({ item, onQuickAdd, index }: { item: PopularEvent; onQuickAdd: () => void; index: number }) {
   return (
-    <motion.button
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.04 }}
-      onClick={onQuickAdd}
-      className="relative group rounded-2xl overflow-hidden border border-white/[0.08] aspect-[4/3]"
+      className="relative rounded-2xl overflow-hidden border border-white/[0.08] aspect-[4/3]"
     >
       <img src={item.imageUrl!} alt={item.eventName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
-        <Plus className="h-3 w-3 text-white" />
-      </div>
       <div className="absolute bottom-0 left-0 right-0 p-3">
         <p className="text-sm font-bold text-white leading-tight truncate drop-shadow-md">{item.eventName}</p>
         {item.topArtists.length > 0 && (
@@ -71,13 +71,21 @@ function EventCard({ item, onQuickAdd, index }: { item: PopularEvent; onQuickAdd
           </p>
         )}
         {item.userCount > 0 && (
-          <p className="text-[9px] text-white/40 mt-1 flex items-center gap-1">
+          <p className="text-[9px] text-white/40 mt-0.5 flex items-center gap-1">
             <Users className="h-2.5 w-2.5 inline" />
             {item.userCount} {item.userCount === 1 ? "user" : "users"}
           </p>
         )}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
+          className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-white/80 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1 hover:bg-white/15 transition-colors"
+        >
+          <Hand className="h-2.5 w-2.5" />
+          I was there
+        </motion.button>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
