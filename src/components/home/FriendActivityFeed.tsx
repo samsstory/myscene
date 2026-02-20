@@ -10,6 +10,7 @@ export interface IWasTherePayload {
   artistName: string;
   venueName: string | null;
   showType: string | null;
+  showDate?: string | null;
 }
 
 interface FriendActivityFeedProps {
@@ -172,7 +173,7 @@ function RichImageCard({ item, onIWasThere }: { item: FriendActivityItem; onIWas
           {isLogged && onIWasThere && (
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={(e) => { e.stopPropagation(); onIWasThere({ artistName: item.artistName, venueName: item.venueName, showType: item.showType ?? null }); }}
+              onClick={(e) => { e.stopPropagation(); onIWasThere({ artistName: item.artistName, venueName: item.venueName, showType: item.showType ?? null, showDate: item.showDate ?? null }); }}
               className="flex items-center gap-1 text-[10px] font-semibold text-white/70 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1 hover:bg-white/15 transition-colors"
             >
               <Hand className="h-2.5 w-2.5" />
@@ -253,7 +254,7 @@ function CompactCard({ item, onIWasThere }: { item: FriendActivityItem; onIWasTh
           {isLogged && onIWasThere && (
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={(e) => { e.stopPropagation(); onIWasThere({ artistName: item.artistName, venueName: item.venueName, showType: item.showType ?? null }); }}
+              onClick={(e) => { e.stopPropagation(); onIWasThere({ artistName: item.artistName, venueName: item.venueName, showType: item.showType ?? null, showDate: item.showDate ?? null }); }}
               className="text-[10px] font-semibold text-white/40 hover:text-white/60 transition-colors flex items-center gap-1"
             >
               <Hand className="h-2.5 w-2.5" />

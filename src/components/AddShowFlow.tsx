@@ -21,6 +21,7 @@ export interface AddShowPrefill {
   artistImageUrl?: string | null;
   venueName?: string | null;
   venueLocation?: string | null;
+  showDate?: string | null;
 }
 
 interface AddShowFlowProps {
@@ -149,17 +150,28 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setEntryPoint(null);
       setEditInitialized(true);
     } else if (open && !editShow && prefill) {
-      // "I was there" / quick-add: pre-fill type + artist, skip ahead
+      // "I was there" / quick-add: pre-fill type + artist + optional venue/date
+      const prefillDate = prefill.showDate ? new Date(prefill.showDate) : undefined;
       setShowData(prev => ({
         ...prev,
         showType: prefill.showType,
         artists: [{ name: prefill.artistName, isHeadliner: true, imageUrl: prefill.artistImageUrl || undefined }],
         venue: prefill.venueName || "",
         venueLocation: prefill.venueLocation || "",
+        date: prefillDate,
+        datePrecision: prefillDate ? "exact" : prev.datePrecision,
       }));
       setEntryPoint('artist');
-      // If venue is already known from prefill, skip venue step entirely → go to date
-      setStep(prefill.venueName ? 3 : 2);
+      // Skip steps that are already filled
+      const hasVenue = !!prefill.venueName;
+      const hasDate = !!prefill.showDate;
+      if (hasVenue && hasDate) {
+        setStep(4); // Skip to rating/details
+      } else if (hasVenue) {
+        setStep(3); // Skip to date
+      } else {
+        setStep(2); // Go to venue
+      }
       setShowStepSelector(false);
       setEditInitialized(true);
     } else if (open && !editShow) {
