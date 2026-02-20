@@ -5,16 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { FriendActivityItem } from "@/hooks/useFriendActivity";
 import type { FollowerProfile } from "@/hooks/useFollowers";
-import { usePopularShows } from "@/hooks/usePopularShows";
-import type { PopularArtist } from "@/hooks/usePopularShows";
-import PopularShowsGrid from "./PopularShowsGrid";
 
 interface FriendActivityFeedProps {
   items: FriendActivityItem[];
   isLoading: boolean;
   hasFollowing: boolean;
   onFindFriends?: () => void;
-  onQuickAddArtist?: (artist: PopularArtist) => void;
 }
 
 // ─── Date formatting ──────────────────────────────────────────────────────────
@@ -244,11 +240,7 @@ export default function FriendActivityFeed({
   isLoading,
   hasFollowing,
   onFindFriends,
-  onQuickAddArtist,
 }: FriendActivityFeedProps) {
-  const showPopular = !hasFollowing || items.length === 0;
-  const { artists: popularArtists, totalUsers, isLoading: popularLoading } = usePopularShows(showPopular);
-
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -260,40 +252,29 @@ export default function FriendActivityFeed({
     );
   }
 
-  if (!hasFollowing) {
-    return (
-      <PopularShowsGrid
-        artists={popularArtists}
-        totalUsers={totalUsers}
-        isLoading={popularLoading}
-        onQuickAdd={(artist) => onQuickAddArtist?.(artist)}
-        onFindFriends={onFindFriends}
-      />
-    );
-  }
-
-  if (items.length === 0) {
-    if (popularArtists.length > 0 || popularLoading) {
-      return (
-        <PopularShowsGrid
-          artists={popularArtists}
-          totalUsers={totalUsers}
-          isLoading={popularLoading}
-          onQuickAdd={(artist) => onQuickAddArtist?.(artist)}
-          onFindFriends={onFindFriends}
-        />
-      );
-    }
+  if (!hasFollowing || items.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-10 text-center">
         <div className="w-14 h-14 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center">
           <Music2 className="h-6 w-6 text-white/25" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white/50">No recent activity</p>
-          <p className="text-xs text-white/30 mt-1 max-w-[220px] leading-relaxed">
-            Your friends haven't logged or planned any shows recently
+          <p className="text-sm font-semibold text-white/50">
+            {!hasFollowing ? "Follow friends to see their activity" : "No recent activity"}
           </p>
+          <p className="text-xs text-white/30 mt-1 max-w-[220px] leading-relaxed">
+            {!hasFollowing
+              ? "Find friends on Scene to see what shows they're going to"
+              : "Your friends haven't logged or planned any shows recently"}
+          </p>
+          {!hasFollowing && onFindFriends && (
+            <button
+              onClick={onFindFriends}
+              className="mt-3 text-xs font-semibold text-primary border border-primary/30 rounded-full px-4 py-2 hover:bg-primary/10 transition-colors"
+            >
+              Find friends
+            </button>
+          )}
         </div>
       </div>
     );
