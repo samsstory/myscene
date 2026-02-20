@@ -20,6 +20,9 @@ interface UnifiedSearchResult {
   userShowCount?: number;
   sceneUsersCount?: number;
   tier?: 'primary' | 'other';
+  eventId?: string;
+  eventType?: string;
+  venueName?: string;
 }
 
 interface UnifiedSearchStepProps {

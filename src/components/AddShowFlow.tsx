@@ -284,7 +284,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   };
 
   // Handle unified search selection — behavior depends on showType
-  const handleUnifiedSelect = (result: {type: SearchResultType;id: string;name: string;imageUrl?: string;location?: string;latitude?: number;longitude?: number;}) => {
+  const handleUnifiedSelect = (result: {type: SearchResultType;id: string;name: string;imageUrl?: string;location?: string;latitude?: number;longitude?: number;eventId?: string;eventType?: string;venueName?: string;}) => {
     setHasUnsavedChanges(true);
     const isEventMode = showData.showType === 'show' || showData.showType === 'festival';
 
@@ -295,18 +295,30 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         artists: [{ name: result.name, isHeadliner: true, imageUrl: result.imageUrl, spotifyId: result.id }]
       });
       setStep(2); // Go to venue step
+    } else if (result.eventId && result.venueName) {
+      // Event from registry: pre-fill venue info and skip venue step
+      setEntryPoint('venue');
+      updateShowData({
+        eventName: result.name,
+        venue: result.venueName,
+        venueLocation: result.location || '',
+        venueId: result.id.startsWith('event-') ? null : result.id,
+        venueLatitude: result.latitude,
+        venueLongitude: result.longitude
+      });
+      setStep(3); // Skip venue step, go directly to date
     } else {
       // Showcase/Festival: event/venue selected → stores eventName, go to venue step (optional)
       setEntryPoint('venue');
       updateShowData({
         eventName: result.name,
-        venue: result.location ? result.name : showData.venue, // pre-fill venue if it has location
+        venue: result.location ? result.name : showData.venue,
         venueLocation: result.location || '',
         venueId: result.id.startsWith('manual-') ? null : result.id,
         venueLatitude: result.latitude,
         venueLongitude: result.longitude
       });
-      setStep(2); // Go to venue step (optional for showcase/festival)
+      setStep(2); // Go to venue step
     }
   };
 
@@ -505,6 +517,26 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
         if (showError) throw showError;
         show = newShow;
+
+        // Auto-populate events registry for festivals/shows
+        if (showData.eventName && (showData.showType === 'festival' || showData.showType === 'show')) {
+          try {
+            const showYear = new Date(showDate).getFullYear();
+            await supabase
+              .from('events')
+              .upsert({
+                name: showData.eventName,
+                venue_name: showData.venue,
+                venue_location: showData.venueLocation || null,
+                venue_id: venueIdToUse,
+                event_type: showData.showType,
+                year: showYear,
+                created_by_user_id: user.id,
+              }, { onConflict: 'name,year', ignoreDuplicates: true });
+          } catch (eventErr) {
+            console.error('Error upserting event:', eventErr);
+          }
+        }
       }
 
       if (venueIdToUse) {
