@@ -484,30 +484,7 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
     );
   }
 
-  if (!effectivePair) {
-    return (
-      <>
-        {debugBar}
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 px-6">
-          <SceneLogo size="md" />
-          <div className="text-center space-y-2">
-            <h2 className="text-lg font-bold" style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}>
-              All ranked!
-            </h2>
-            <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
-              You've compared all your shows. Add more to keep ranking head-to-head.
-            </p>
-          </div>
-          <button
-            onClick={() => onAddShow?.()}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
-          >
-            + Add more shows
-          </button>
-        </div>
-      </>
-    );
-  }
+  // "All ranked" is now rendered inline below instead of early-returning
 
   // Calculate pool-scoped confirmation percentage
   const calculateGlobalConfirmation = () => {
@@ -568,85 +545,102 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
         />
       </div>
 
-      {/* VS Battle Cards */}
-      <div className="relative flex gap-3 items-start pt-4">
-        {/* Left Card */}
-        <RankingCard
-          show={showPair[0]}
-          onClick={() => handleChoice(showPair[0].id)}
-          disabled={comparing}
-          position="left"
-          isWinner={selectedWinner === showPair[0].id}
-          isLoser={selectedWinner !== null && selectedWinner !== showPair[0].id}
-          animationKey={pairKey}
-          isExpanded={showDetails}
-        />
-
-        {/* VS Badge */}
-        <div className="absolute left-1/2 -translate-x-1/2 z-20 top-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="w-7 h-7 rounded-full bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] flex items-center justify-center">
-            <span className="text-[10px] font-medium text-white/50">VS</span>
+      {!effectivePair ? (
+        /* All Ranked State - inline */
+        <div className="flex flex-col items-center justify-center space-y-5 py-8">
+          <SceneLogo size="md" />
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-bold" style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}>
+              All ranked!
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
+              You've compared all your shows. Add more to keep ranking head-to-head.
+            </p>
           </div>
+          <button
+            onClick={() => onAddShow?.()}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-primary/50 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
+          >
+            + Add more shows
+          </button>
         </div>
+      ) : (
+        <>
+          {/* VS Battle Cards */}
+          <div className="relative flex gap-3 items-start pt-4">
+            <RankingCard
+              show={effectivePair[0]}
+              onClick={() => handleChoice(effectivePair[0].id)}
+              disabled={comparing}
+              position="left"
+              isWinner={selectedWinner === effectivePair[0].id}
+              isLoser={selectedWinner !== null && selectedWinner !== effectivePair[0].id}
+              animationKey={pairKey}
+              isExpanded={showDetails}
+            />
 
-        {/* Right Card */}
-        <RankingCard
-          show={showPair[1]}
-          onClick={() => handleChoice(showPair[1].id)}
-          disabled={comparing}
-          position="right"
-          isWinner={selectedWinner === showPair[1].id}
-          isLoser={selectedWinner !== null && selectedWinner !== showPair[1].id}
-          animationKey={pairKey}
-          isExpanded={showDetails}
-        />
-      </div>
+            <div className="absolute left-1/2 -translate-x-1/2 z-20 top-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="w-7 h-7 rounded-full bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] flex items-center justify-center">
+                <span className="text-[10px] font-medium text-white/50">VS</span>
+              </div>
+            </div>
 
-      {/* Instruction Text */}
-      <div className="text-center space-y-3">
-        {/* See Full Details Toggle */}
-        <button
-          onClick={() => setShowDetails(!showDetails)}
-          className="flex items-center justify-center gap-1 mx-auto text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
-        >
-          {showDetails ? "Hide details" : "See full details"}
-          <ChevronDown className={cn(
-            "h-3 w-3 transition-transform duration-200",
-            showDetails && "rotate-180"
-          )} />
-        </button>
-        
-        {/* Can't Compare */}
-        <button
-          onClick={() => handleChoice(null)}
-          disabled={comparing}
-          className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors underline-offset-4 hover:underline"
-        >
-          {comparing ? (
-            <span className="flex items-center gap-2 justify-center">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Got it
-            </span>
-          ) : (
-            "Can't compare these"
-          )}
-        </button>
-      </div>
+            <RankingCard
+              show={effectivePair[1]}
+              onClick={() => handleChoice(effectivePair[1].id)}
+              disabled={comparing}
+              position="right"
+              isWinner={selectedWinner === effectivePair[1].id}
+              isLoser={selectedWinner !== null && selectedWinner !== effectivePair[1].id}
+              animationKey={pairKey}
+              isExpanded={showDetails}
+            />
+          </div>
 
-      {/* See Current Rankings - Liquid Glass Button - positioned in gap below content */}
-      <div className="flex-1 flex items-start justify-center pt-4">
-        <button
-          onClick={() => onViewAllShows?.()}
-          className="px-4 py-2 rounded-full text-xs font-medium text-foreground/90 backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-            boxShadow: '0 4px 24px -4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
-        >
-          See current rankings
-        </button>
-      </div>
+          {/* Instruction Text */}
+          <div className="text-center space-y-3">
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className="flex items-center justify-center gap-1 mx-auto text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+            >
+              {showDetails ? "Hide details" : "See full details"}
+              <ChevronDown className={cn(
+                "h-3 w-3 transition-transform duration-200",
+                showDetails && "rotate-180"
+              )} />
+            </button>
+            
+            <button
+              onClick={() => handleChoice(null)}
+              disabled={comparing}
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors underline-offset-4 hover:underline"
+            >
+              {comparing ? (
+                <span className="flex items-center gap-2 justify-center">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Got it
+                </span>
+              ) : (
+                "Can't compare these"
+              )}
+            </button>
+          </div>
+
+          <div className="flex-1 flex items-start justify-center pt-4">
+            <button
+              onClick={() => onViewAllShows?.()}
+              className="px-4 py-2 rounded-full text-xs font-medium text-foreground/90 backdrop-blur-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                boxShadow: '0 4px 24px -4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              See current rankings
+            </button>
+          </div>
+        </>
+      )}
     </div>
     </>
   );
