@@ -39,6 +39,7 @@ import WhatsNextStrip from "./home/WhatsNextStrip";
 import FriendActivityFeed from "./home/FriendActivityFeed";
 import PopularShowsGrid from "./home/PopularShowsGrid";
 import { usePopularShows } from "@/hooks/usePopularShows";
+import { usePopularNearMe } from "@/hooks/usePopularNearMe";
 import { useFriendActivity } from "@/hooks/useFriendActivity";
 import PlanShowSheet from "./home/PlanShowSheet";
 import { useHomeStats } from "@/hooks/useHomeStats";
@@ -155,8 +156,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [selectedUpcomingShow, setSelectedUpcomingShow] = useState<import("@/hooks/usePlanUpcomingShow").UpcomingShow | null>(null);
   const [upcomingDetailOpen, setUpcomingDetailOpen] = useState(false);
 
-  // Feed toggle: "scene" (friends activity) vs "popular" (popular on scene)
-  const [feedMode, setFeedMode] = useState<"scene" | "popular">("scene");
+  // Feed toggle: scene feed / near me / explore
+  const [feedMode, setFeedMode] = useState<"scene" | "near-me" | "explore">("scene");
 
   // Calendar: Friends overlay toggle + friends-on-day sheet
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
@@ -170,6 +171,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
   const { items: activityItems, isLoading: activityLoading } = useFriendActivity(followingIds);
   const { artists: popularArtists, totalUsers: popularTotalUsers, isLoading: popularLoading } = usePopularShows(true);
+  const { artists: nearMeArtists, totalUsers: nearMeTotalUsers, isLoading: nearMeLoading, hasLocation: nearMeHasLocation } = usePopularNearMe(true);
   
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -463,45 +465,57 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         <WhatsNextStrip onPlanShow={() => setPlanShowOpen(true)} />
 
 
-        {/* Scene Feed / Popular on Scene — toggle */}
+        {/* Scene Feed / Popular Near Me / Explore — toggle */}
         <div className="space-y-3">
           {/* Tab headers */}
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setFeedMode("scene")}
-              className={cn(
-                "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
-                feedMode === "scene"
-                  ? "text-white/80"
-                  : "text-white/30 hover:text-white/50"
-              )}
-              style={feedMode === "scene" ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
-            >
-              Scene Feed
-            </button>
-            <button
-              onClick={() => setFeedMode("popular")}
-              className={cn(
-                "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
-                feedMode === "popular"
-                  ? "text-white/80"
-                  : "text-white/30 hover:text-white/50"
-              )}
-              style={feedMode === "popular" ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
-            >
-              Popular on Scene
-            </button>
+            {(["scene", "near-me", "explore"] as const).map((mode) => {
+              const labels = { scene: "Scene Feed", "near-me": "Popular Near Me", explore: "Explore" };
+              const isActive = feedMode === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setFeedMode(mode)}
+                  className={cn(
+                    "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
+                    isActive ? "text-white/80" : "text-white/30 hover:text-white/50"
+                  )}
+                  style={isActive ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
+                >
+                  {labels[mode]}
+                </button>
+              );
+            })}
           </div>
 
           {/* Content */}
-          {feedMode === "scene" ? (
+          {feedMode === "scene" && (
             <FriendActivityFeed
               items={activityItems}
               isLoading={activityLoading}
               hasFollowing={following.length > 0}
               onFindFriends={() => setViewMode("friends")}
             />
-          ) : (
+          )}
+          {feedMode === "near-me" && (
+            nearMeHasLocation === false ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <p>Set your home city in your profile to see what's popular near you.</p>
+              </div>
+            ) : (
+              <PopularShowsGrid
+                artists={nearMeArtists}
+                totalUsers={nearMeTotalUsers}
+                isLoading={nearMeLoading}
+                onQuickAdd={(artist) => {
+                  setEditShow(null);
+                  setEditDialogOpen(true);
+                }}
+                onFindFriends={() => setViewMode("friends")}
+              />
+            )
+          )}
+          {feedMode === "explore" && (
             <PopularShowsGrid
               artists={popularArtists}
               totalUsers={popularTotalUsers}
