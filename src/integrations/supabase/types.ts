@@ -497,6 +497,7 @@ export type Database = {
           id: string
           lighting: number | null
           notes: string | null
+          parent_show_id: string | null
           photo_declined: boolean
           photo_url: string | null
           rating: number | null
@@ -520,6 +521,7 @@ export type Database = {
           id?: string
           lighting?: number | null
           notes?: string | null
+          parent_show_id?: string | null
           photo_declined?: boolean
           photo_url?: string | null
           rating?: number | null
@@ -543,6 +545,7 @@ export type Database = {
           id?: string
           lighting?: number | null
           notes?: string | null
+          parent_show_id?: string | null
           photo_declined?: boolean
           photo_url?: string | null
           rating?: number | null
@@ -557,6 +560,13 @@ export type Database = {
           venue_vibe?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shows_parent_show_id_fkey"
+            columns: ["parent_show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shows_venue_id_fkey"
             columns: ["venue_id"]
