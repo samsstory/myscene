@@ -505,6 +505,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   showType: (payload.showType as any) || 'set',
                   artistName: payload.artistName,
                   venueName: payload.venueName,
+                  showDate: payload.showDate,
                 });
                 setEditDialogOpen(true);
               }}
@@ -524,6 +525,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
                   artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
                   venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
+                  showDate: item.sampleShowDate,
                 });
                 setEditDialogOpen(true);
               }}
@@ -545,6 +547,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
                   artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
                   venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
+                  showDate: item.sampleShowDate,
                 });
                 setEditDialogOpen(true);
               }}
