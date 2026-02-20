@@ -979,6 +979,16 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
                 venueId: null,
               });
               setStep(3);
+            }}
+            onEventRegistrySelect={(event) => {
+              updateShowData({
+                eventName: event.eventName,
+                venue: event.venueName || event.eventName,
+                venueLocation: event.venueLocation || '',
+                venueId: event.venueId,
+              });
+              setHasUnsavedChanges(true);
+              setStep(3); // Skip to date step
             }} />);
 
 
