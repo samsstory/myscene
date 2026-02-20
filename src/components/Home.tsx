@@ -19,7 +19,7 @@ import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import { QuickPhotoAddSheet } from "./QuickPhotoAddSheet";
 import MapView from "./MapView";
 import Rank from "./Rank";
-import AddShowFlow from "./AddShowFlow";
+import AddShowFlow, { type AddShowPrefill } from "./AddShowFlow";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
 import SwipeableRankingCard from "./rankings/SwipeableRankingCard";
 import ShowsBarChart from "./rankings/ShowsBarChart";
@@ -105,6 +105,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editShow, setEditShow] = useState<Show | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addShowPrefill, setAddShowPrefill] = useState<AddShowPrefill | null>(null);
   const [reviewShow, setReviewShow] = useState<Show | null>(null);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
   const [topRatedFilter, setTopRatedFilter] = useState<"all-time" | "this-year" | "last-year" | "this-month">("all-time");
@@ -500,6 +501,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onFindFriends={() => setViewMode("friends")}
               onIWasThere={(payload: IWasTherePayload) => {
                 setEditShow(null);
+                setAddShowPrefill({
+                  showType: (payload.showType as any) || 'set',
+                  artistName: payload.artistName,
+                  venueName: payload.venueName,
+                });
                 setEditDialogOpen(true);
               }}
             />
@@ -513,6 +519,12 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onShowTypeChange={setNearMeShowType}
               onQuickAdd={(item) => {
                 setEditShow(null);
+                setAddShowPrefill({
+                  showType: item.type === 'artist' ? 'set' : (item as any).showType || 'set',
+                  artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
+                  artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
+                  venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
+                });
                 setEditDialogOpen(true);
               }}
               onFindFriends={() => setViewMode("friends")}
@@ -528,6 +540,12 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onShowTypeChange={setExploreShowType}
               onQuickAdd={(item) => {
                 setEditShow(null);
+                setAddShowPrefill({
+                  showType: item.type === 'artist' ? 'set' : (item as any).showType || 'set',
+                  artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
+                  artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
+                  venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
+                });
                 setEditDialogOpen(true);
               }}
               onFindFriends={() => setViewMode("friends")}
@@ -1514,7 +1532,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
       <AddShowFlow
         open={editDialogOpen} 
-        onOpenChange={setEditDialogOpen} 
+        onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setAddShowPrefill(null); }}
+        prefill={addShowPrefill}
         editShow={editShow ? {
           id: editShow.id,
           venue: editShow.venue,
