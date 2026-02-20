@@ -11,6 +11,8 @@ export interface Show {
   show_date: string;
   photo_url: string | null;
   notes: string | null;
+  show_type?: string;
+  parent_show_id?: string | null;
   tags?: string[];
   artists: Array<{ artist_name: string; is_headliner: boolean; artist_image_url?: string | null }>;
   // Legacy fields kept for backward compat (ignored)
