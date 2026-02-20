@@ -46,7 +46,7 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
     return { data, maxCount };
   }, [shows, timeFilter]);
 
-  if (!monthData || monthData.data.length <= 1) return null;
+  if (!monthData || monthData.data.length === 0) return null;
 
   const MAX_BAR_H = 64;
 
