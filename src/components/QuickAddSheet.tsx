@@ -257,7 +257,7 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
           show_date: showDate,
           date_precision: datePrecision,
           notes: notes || null,
-          show_type: prefill.showType,
+          show_type: (prefill.showType === "set" && extraArtists.length > 0) ? "show" : prefill.showType,
           event_name: prefill.eventName || null,
           photo_url: photoUrl,
         })
