@@ -37,8 +37,8 @@ import RankingProgressCard from "./home/RankingProgressCard";
 import FriendTeaser from "./home/FriendTeaser";
 import WhatsNextStrip from "./home/WhatsNextStrip";
 import FriendActivityFeed from "./home/FriendActivityFeed";
-import PopularShowsGrid from "./home/PopularShowsGrid";
-import { usePopularShows } from "@/hooks/usePopularShows";
+import PopularFeedGrid from "./home/PopularFeedGrid";
+import { usePopularShows, type ShowTypeFilter, type PopularItem } from "@/hooks/usePopularShows";
 import { usePopularNearMe } from "@/hooks/usePopularNearMe";
 import { useFriendActivity } from "@/hooks/useFriendActivity";
 import PlanShowSheet from "./home/PlanShowSheet";
@@ -158,6 +158,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
   // Feed toggle: scene feed / near me / explore
   const [feedMode, setFeedMode] = useState<"scene" | "near-me" | "explore">("scene");
+  // Sub-tab show type for near-me and explore
+  const [nearMeShowType, setNearMeShowType] = useState<ShowTypeFilter>("set");
+  const [exploreShowType, setExploreShowType] = useState<ShowTypeFilter>("set");
 
   // Calendar: Friends overlay toggle + friends-on-day sheet
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
@@ -170,8 +173,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
   const { items: activityItems, isLoading: activityLoading } = useFriendActivity(followingIds);
-  const { artists: popularArtists, totalUsers: popularTotalUsers, isLoading: popularLoading } = usePopularShows(true);
-  const { artists: nearMeArtists, totalUsers: nearMeTotalUsers, isLoading: nearMeLoading, hasLocation: nearMeHasLocation } = usePopularNearMe(true);
+  const { items: exploreItems, totalUsers: exploreTotalUsers, isLoading: exploreLoading } = usePopularShows(true, exploreShowType);
+  const { items: nearMeItems, totalUsers: nearMeTotalUsers, isLoading: nearMeLoading, hasLocation: nearMeHasLocation } = usePopularNearMe(true, nearMeShowType);
   
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -498,29 +501,28 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             />
           )}
           {feedMode === "near-me" && (
-            nearMeHasLocation === false ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                <p>Set your home city in your profile to see what's popular near you.</p>
-              </div>
-            ) : (
-              <PopularShowsGrid
-                artists={nearMeArtists}
-                totalUsers={nearMeTotalUsers}
-                isLoading={nearMeLoading}
-                onQuickAdd={(artist) => {
-                  setEditShow(null);
-                  setEditDialogOpen(true);
-                }}
-                onFindFriends={() => setViewMode("friends")}
-              />
-            )
+            <PopularFeedGrid
+              items={nearMeItems}
+              totalUsers={nearMeTotalUsers}
+              isLoading={nearMeLoading}
+              showType={nearMeShowType}
+              onShowTypeChange={setNearMeShowType}
+              onQuickAdd={(item) => {
+                setEditShow(null);
+                setEditDialogOpen(true);
+              }}
+              onFindFriends={() => setViewMode("friends")}
+              emptyMessage={nearMeHasLocation === false ? "Set your home city in your profile to see what's popular near you." : undefined}
+            />
           )}
           {feedMode === "explore" && (
-            <PopularShowsGrid
-              artists={popularArtists}
-              totalUsers={popularTotalUsers}
-              isLoading={popularLoading}
-              onQuickAdd={(artist) => {
+            <PopularFeedGrid
+              items={exploreItems}
+              totalUsers={exploreTotalUsers}
+              isLoading={exploreLoading}
+              showType={exploreShowType}
+              onShowTypeChange={setExploreShowType}
+              onQuickAdd={(item) => {
                 setEditShow(null);
                 setEditDialogOpen(true);
               }}
