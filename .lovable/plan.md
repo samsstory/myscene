@@ -1,113 +1,97 @@
 
 
-# Integrate Events Registry Into Search and Auto-Populate
+# QuickAddSheet: Single-Screen "I Was There" Component
 
 ## Overview
 
-Two changes:
-1. **Unified search** returns matching events from the `events` table so users see "Float Fest" with its venue/location pre-filled
-2. **After saving** a festival/show-type entry, auto-upsert into the `events` table so future users benefit
+Replace the multi-step `AddShowFlow` wizard with a dedicated `QuickAddSheet` bottom drawer for the "I was there" flow. This component is used exclusively when core data (artist, venue, date) is already known from another user's show. It renders everything on a single scrollable screen.
 
----
+## UI Layout (top to bottom)
 
-## 1. Edge Function: `unified-search/index.ts`
+1. **Hero Section** -- Artist image (from Spotify via prefill) displayed as a wide banner with gradient overlay. Falls back to a branded gradient when no image is available.
 
-Add an `events` table query alongside Spotify, Google, and Foursquare searches.
+2. **Show Info Row** -- Read-only display:
+   - Artist name (bold, large)
+   - "Add artist" pill button (opens inline artist search to add openers)
+   - Event/Venue name and date beneath
 
-### New function: `searchEvents`
+3. **Editable Fields (only when data is missing)**
+   - **Missing venue**: Inline venue search input appears (same search logic as `VenueStep` but as a single field, not a full step). Not required -- user can leave blank.
+   - **Missing date**: Inline date picker appears (reuse `Calendar` component from shadcn). Not required -- defaults to "unknown" precision if left empty.
 
-Query the `events` table using trigram similarity:
+4. **Tag Selection** -- Reuse the existing `TAG_CATEGORIES` tag pills from `RatingStep`. Compact layout, same styling.
 
-```typescript
-async function searchEvents(searchTerm: string, supabaseClient: any): Promise<UnifiedSearchResult[]> {
-  const { data } = await supabaseClient
-    .from('events')
-    .select('id, name, venue_name, venue_location, venue_id, event_type, year')
-    .ilike('name', `%${searchTerm}%`)
-    .order('year', { ascending: false })
-    .limit(5);
+5. **My Take** -- Optional textarea, 500 char limit (same as current).
 
-  // Deduplicate by name (keep most recent year)
-  const seen = new Set<string>();
-  const results: UnifiedSearchResult[] = [];
-  for (const event of (data || [])) {
-    const key = event.name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    results.push({
-      type: 'venue',
-      id: event.venue_id || `event-${event.id}`,
-      name: event.name,
-      location: event.venue_location || event.venue_name || '',
-      tier: 'primary',
-      // Pass event metadata through for downstream use
-      eventId: event.id,
-      eventType: event.event_type,
-      venueName: event.venue_name,
-    });
+6. **"Add to My Scene" Button** -- Primary CTA. Saves the show.
+
+## Data Flow
+
+```text
+PopularFeedGrid / FriendActivityFeed
+  -- "I was there" click -->
+Home.tsx (checks: has artist + venue + date?)
+  -- all present --> QuickAddSheet (new)
+  -- missing data --> QuickAddSheet still opens, shows inline fields for missing data
+```
+
+The existing `AddShowFlow` is no longer invoked for "I was there" actions. The `QuickAddSheet` handles its own save logic (insert into `shows`, `show_artists`, `show_tags`, `venues`, `user_venues` tables -- same as the submit handler in `AddShowFlow`).
+
+## Edge Cases
+
+| Edge Case | Solution |
+|-----------|----------|
+| No artist image (small/indie artist) | Gradient fallback hero (e.g. dark-to-primary gradient). Artist image always attempts Spotify lookup via prefill -- this only fails for very obscure artists. |
+| Missing date | Inline calendar appears below show info. If user skips, `date_precision` is set to `"unknown"` and defaults to Jan 1 of current year. |
+| Missing venue | Inline venue search field appears. Uses same `search-venues` edge function. Field is optional -- show can be saved without venue. |
+| Duplicate show | Before saving, query `shows` for matching artist + venue + date for this user. If found, show a toast warning and prevent double-add. |
+| Adding extra artists | "Add artist" pill opens a small inline search (reuses Spotify search from `search-artists` edge function). Added artists appear as removable pills. First artist remains headliner. |
+
+## Technical Details
+
+### New File
+- `src/components/QuickAddSheet.tsx` -- The single-screen bottom sheet component
+
+### Modified Files
+- `src/components/Home.tsx` -- Route "I was there" clicks to `QuickAddSheet` instead of `AddShowFlow`
+  - Add state: `quickAddOpen`, `quickAddPrefill`
+  - Render `<QuickAddSheet>` alongside existing `<AddShowFlow>`
+  - The three `onQuickAdd` / `onIWasThere` handlers set `quickAddPrefill` and open the sheet instead of `setEditDialogOpen`
+
+### Props Interface
+```text
+QuickAddSheetProps:
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  prefill: {
+    artistName: string
+    artistImageUrl?: string | null
+    venueName?: string | null
+    venueLocation?: string | null
+    showDate?: string | null
+    showType: 'set' | 'show' | 'festival'
+    eventName?: string | null
   }
-  return results;
-}
+  onShowAdded?: (show: AddedShowData) => void
 ```
 
-### Wire into main handler
+### Save Logic
+Extracted from the existing `handleSubmit` in `AddShowFlow.tsx`. The QuickAddSheet will:
+1. Get the authenticated user
+2. Resolve/create venue in `venues` table (if venue provided)
+3. Insert into `shows` table
+4. Insert into `show_artists` table (headliner + any added artists)
+5. Insert into `show_tags` table (if tags selected)
+6. Upsert `user_venues` (if venue resolved)
+7. Check for sibling sets at same venue/date and show `GroupShowPrompt` if applicable
+8. Show success toast and close sheet
 
-Add `searchEvents` to the `Promise.all` alongside Spotify/venues/userHistory. Insert event results **before** Google/Foursquare venues with `tier: 'primary'` so they appear at the top of the venue section.
-
-### Interface update
-
-Add optional fields to `UnifiedSearchResult`: `eventId`, `eventType`, `venueName` (the physical venue name, separate from the event name).
-
----
-
-## 2. Frontend: `UnifiedSearchStep.tsx`
-
-Update the `UnifiedSearchResult` interface to include optional `eventId?: string`, `eventType?: string`, `venueName?: string` fields passed through from the edge function. No other changes needed here -- results already render as venue cards.
-
----
-
-## 3. Frontend: `AddShowFlow.tsx` -- handle event selection
-
-In `handleUnifiedSelect`, when a result has `eventId` set (meaning it came from the events registry):
-
-- Set `eventName` to the event name
-- Set `venue` to the event's physical venue name
-- Set `venueLocation` to the event's location
-- This means the user can **skip the venue step** since venue is already known
-- Jump directly to the **Date step** instead of the Venue step
-
----
-
-## 4. Frontend: `AddShowFlow.tsx` -- auto-populate events table on save
-
-After successfully inserting a new show with `show_type = 'festival'` or `show_type = 'show'` and an `event_name`:
-
-```typescript
-if (!isEditing && showData.eventName && (showData.showType === 'festival' || showData.showType === 'show')) {
-  const showYear = new Date(showDate).getFullYear();
-  await supabase
-    .from('events')
-    .upsert({
-      name: showData.eventName,
-      venue_name: showData.venue,
-      venue_location: showData.venueLocation || null,
-      venue_id: venueIdToUse,
-      event_type: showData.showType,
-      year: showYear,
-      created_by_user_id: user.id,
-    }, { onConflict: 'name,year', ignoreDuplicates: true });
-}
-```
-
-This fires after the show insert, using `ignoreDuplicates: true` so the first uploader's data is preserved. The `title_case` trigger standardizes the name automatically.
-
----
-
-## Files to modify
-
-| File | Change |
-|------|--------|
-| `supabase/functions/unified-search/index.ts` | Add `searchEvents` function, wire into `Promise.all`, merge results before external venues |
-| `src/components/add-show-steps/UnifiedSearchStep.tsx` | Add `eventId`, `eventType`, `venueName` to interface |
-| `src/components/AddShowFlow.tsx` | Handle event-registry selection (skip venue step), auto-upsert events on save |
+### Dependencies
+No new packages needed. Reuses:
+- `Sheet` / `SheetContent` from shadcn (bottom variant)
+- `Calendar` from shadcn for inline date picker
+- `TAG_CATEGORIES` from `tag-constants.ts`
+- `search-venues` edge function for venue search
+- `search-artists` edge function for adding extra artists
+- Existing Supabase client for all DB operations
 
