@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronDown } from "lucide-react";
+import { Loader2, ChevronDown, Undo2, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
@@ -42,6 +42,14 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
   const [pairKey, setPairKey] = useState(0);
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Undo state — stores the last comparison's snapshot for reversal
+  const [lastAction, setLastAction] = useState<{
+    comparisonId: string;
+    pair: [Show, Show];
+    previousRankings: ShowRanking[];
+    pairKey: string;
+  } | null>(null);
 
   // Derived: shows filtered to the active pool
   const shows = allShows.filter(s => s.show_type === activePool);
@@ -293,6 +301,10 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
     
     setComparing(true);
     
+    // Save pre-comparison state for undo
+    const previousRankings = [...rankings];
+    const currentPair: [Show, Show] = [showPair[0], showPair[1]];
+    
     // Wait for animation to play
     await new Promise(resolve => setTimeout(resolve, 400));
     
@@ -302,14 +314,16 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
 
       const [show1Id, show2Id] = [showPair[0].id, showPair[1].id].sort();
 
-      const { error } = await supabase
+      const { data: insertedComparison, error } = await supabase
         .from("show_comparisons")
         .insert({
           user_id: user.id,
           show1_id: show1Id,
           show2_id: show2Id,
           winner_id: winnerId,
-        });
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
@@ -412,6 +426,14 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
       const newComparisons = [...comparisons, newComparison];
       setComparisons(newComparisons);
 
+      // Save undo state
+      setLastAction({
+        comparisonId: insertedComparison.id,
+        pair: currentPair,
+        previousRankings,
+        pairKey: newPairKey,
+      });
+
       // Reset animation states and select next pair
       setSelectedWinner(null);
       getNextPair(shows, rankings, newComparisons, newComparedPairs, true);
@@ -421,6 +443,115 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
       toast.error("Failed to save comparison");
       setComparing(false);
       setSelectedWinner(null);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!lastAction || comparing) return;
+    
+    if (navigator.vibrate) navigator.vibrate(30);
+    setComparing(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete the comparison from DB
+      const { error } = await supabase
+        .from("show_comparisons")
+        .delete()
+        .eq("id", lastAction.comparisonId);
+
+      if (error) throw error;
+
+      // Restore previous rankings to DB
+      const show1Ranking = lastAction.previousRankings.find(r => r.show_id === lastAction.pair[0].id);
+      const show2Ranking = lastAction.previousRankings.find(r => r.show_id === lastAction.pair[1].id);
+      
+      if (show1Ranking && show2Ranking) {
+        await supabase
+          .from("show_rankings")
+          .upsert([
+            {
+              id: show1Ranking.id,
+              user_id: user.id,
+              show_id: show1Ranking.show_id,
+              elo_score: show1Ranking.elo_score,
+              comparisons_count: show1Ranking.comparisons_count,
+            },
+            {
+              id: show2Ranking.id,
+              user_id: user.id,
+              show_id: show2Ranking.show_id,
+              elo_score: show2Ranking.elo_score,
+              comparisons_count: show2Ranking.comparisons_count,
+            }
+          ]);
+      }
+
+      // Restore local state
+      setRankings(lastAction.previousRankings);
+      
+      // Remove the pair from compared set
+      const restoredPairs = new Set(comparedPairs);
+      restoredPairs.delete(lastAction.pairKey);
+      setComparedPairs(restoredPairs);
+      
+      // Remove the last comparison
+      setComparisons(prev => prev.slice(0, -1));
+      setTotalComparisons(prev => prev - 1);
+
+      // Restore the previous pair
+      setShowPair(lastAction.pair);
+      setPairKey(prev => prev + 1);
+      setLastAction(null);
+      
+      toast.success("Undone!");
+    } catch (error) {
+      console.error("Error undoing comparison:", error);
+      toast.error("Failed to undo");
+    } finally {
+      setComparing(false);
+    }
+  };
+
+  const handleSkip = () => {
+    if (!showPair || comparing) return;
+    
+    if (navigator.vibrate) navigator.vibrate(30);
+    
+    // Just get a new pair without recording anything
+    const poolRankings = rankings.filter(r => shows.some(s => s.id === r.show_id));
+    
+    // Temporarily add this pair to compared set to avoid getting same pair
+    const [id1, id2] = [showPair[0].id, showPair[1].id].sort();
+    const skipKey = `${id1}-${id2}`;
+    const tempComparedPairs = new Set([...comparedPairs, skipKey]);
+    
+    const nextPair = selectSmartPairUtil({
+      shows,
+      rankings: poolRankings,
+      comparisons,
+      comparedPairs: tempComparedPairs,
+    });
+    
+    if (nextPair) {
+      setShowPair(nextPair);
+      setPairKey(prev => prev + 1);
+    } else {
+      // No other pairs available, just re-pair with smart pairing from scratch
+      const fallbackPair = selectSmartPairUtil({
+        shows,
+        rankings: poolRankings,
+        comparisons,
+        comparedPairs,
+      });
+      if (fallbackPair && (fallbackPair[0].id !== showPair[0].id || fallbackPair[1].id !== showPair[1].id)) {
+        setShowPair(fallbackPair);
+        setPairKey(prev => prev + 1);
+      } else {
+        toast("No other pairs available right now");
+      }
     }
   };
 
@@ -597,8 +728,52 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
             />
           </div>
 
-          {/* Instruction Text */}
-          <div className="text-center space-y-3">
+          {/* Action Bar — Undo | Too tough | Skip */}
+          <div className="flex items-center justify-between px-2 pt-2">
+            {/* Undo */}
+            <button
+              onClick={handleUndo}
+              disabled={!lastAction || comparing}
+              className={cn(
+                "flex items-center gap-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.95]",
+                lastAction && !comparing
+                  ? "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Undo
+            </button>
+
+            {/* Too tough (center pill) */}
+            <button
+              onClick={() => handleChoice(null)}
+              disabled={comparing}
+              className="px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] hover:border-white/[0.2] text-muted-foreground hover:text-foreground"
+            >
+              {comparing ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Got it
+                </span>
+              ) : (
+                "Too tough"
+              )}
+            </button>
+
+            {/* Skip */}
+            <button
+              onClick={handleSkip}
+              disabled={comparing}
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-[0.95] disabled:text-muted-foreground/30 disabled:cursor-not-allowed"
+            >
+              Skip
+              <SkipForward className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* See full details toggle */}
+          <div className="text-center">
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="flex items-center justify-center gap-1 mx-auto text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
@@ -608,21 +783,6 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
                 "h-3 w-3 transition-transform duration-200",
                 showDetails && "rotate-180"
               )} />
-            </button>
-            
-            <button
-              onClick={() => handleChoice(null)}
-              disabled={comparing}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors underline-offset-4 hover:underline"
-            >
-              {comparing ? (
-                <span className="flex items-center gap-2 justify-center">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Got it
-                </span>
-              ) : (
-                "Can't compare these"
-              )}
             </button>
           </div>
 
