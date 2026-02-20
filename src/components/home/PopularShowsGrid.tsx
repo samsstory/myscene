@@ -71,16 +71,7 @@ export default function PopularShowsGrid({
   if (artists.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Header with social proof */}
-      <div className="text-center space-y-1.5">
-        <p className="text-sm font-semibold text-white/70">
-          Popular on Scene
-        </p>
-        <p className="text-xs text-white/35 max-w-[260px] mx-auto leading-relaxed">
-          {totalUsers} Scene {totalUsers === 1 ? "user has" : "users have"} logged shows below — tap to add yours
-        </p>
-      </div>
+    <div className="space-y-3">
 
       {/* Artist grid */}
       <div className="grid grid-cols-3 gap-2">

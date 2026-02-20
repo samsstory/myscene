@@ -37,6 +37,8 @@ import RankingProgressCard from "./home/RankingProgressCard";
 import FriendTeaser from "./home/FriendTeaser";
 import WhatsNextStrip from "./home/WhatsNextStrip";
 import FriendActivityFeed from "./home/FriendActivityFeed";
+import PopularShowsGrid from "./home/PopularShowsGrid";
+import { usePopularShows } from "@/hooks/usePopularShows";
 import { useFriendActivity } from "@/hooks/useFriendActivity";
 import PlanShowSheet from "./home/PlanShowSheet";
 import { useHomeStats } from "@/hooks/useHomeStats";
@@ -166,6 +168,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
   const { items: activityItems, isLoading: activityLoading } = useFriendActivity(followingIds);
+  const { artists: popularArtists, totalUsers: popularTotalUsers, isLoading: popularLoading } = usePopularShows(true);
   
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -459,24 +462,40 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         <WhatsNextStrip onPlanShow={() => setPlanShowOpen(true)} />
 
 
-        {/* Scene Feed — social-first */}
+        {/* Scene Feed + Popular on Scene side-by-side */}
         <div className="space-y-3">
-          <h3
-            className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
-            style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-          >
-            Scene Feed
-          </h3>
-          <FriendActivityFeed
-            items={activityItems}
-            isLoading={activityLoading}
-            hasFollowing={following.length > 0}
-            onFindFriends={() => setViewMode("friends")}
-            onQuickAddArtist={(artist) => {
-              setEditShow(null);
-              setEditDialogOpen(true);
-            }}
-          />
+          <div className="flex items-center justify-between">
+            <h3
+              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+            >
+              Scene Feed
+            </h3>
+            <h3
+              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+            >
+              Popular on Scene
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FriendActivityFeed
+              items={activityItems}
+              isLoading={activityLoading}
+              hasFollowing={following.length > 0}
+              onFindFriends={() => setViewMode("friends")}
+            />
+            <PopularShowsGrid
+              artists={popularArtists}
+              totalUsers={popularTotalUsers}
+              isLoading={popularLoading}
+              onQuickAdd={(artist) => {
+                setEditShow(null);
+                setEditDialogOpen(true);
+              }}
+              onFindFriends={() => setViewMode("friends")}
+            />
+          </div>
         </div>
       </div>
     );
