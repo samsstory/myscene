@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Plus, X, MapPin, CalendarIcon, Loader2, Search, Music2 } from "lucide-react";
+import { Plus, X, MapPin, CalendarIcon, Loader2, Search, Music2, Camera } from "lucide-react";
 import { TAG_CATEGORIES, getCategoryForTag } from "@/lib/tag-constants";
 import type { AddedShowData } from "./AddShowFlow";
 
@@ -330,13 +330,10 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
             <div className="w-full h-full bg-gradient-to-br from-primary/40 via-primary/20 to-background" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          {/* Close button */}
-          <button
-            onClick={() => onOpenChange(false)}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {/* Photo hint icon */}
+          <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+            <Camera className="h-4 w-4 text-white/70" />
+          </div>
         </div>
 
         <div className="px-5 pb-8 -mt-10 relative z-10 space-y-5">
