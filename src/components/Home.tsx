@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -128,6 +128,20 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [rankingsSearch, setRankingsSearch] = useState("");
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
+  const [floatingSearchOpen, setFloatingSearchOpen] = useState(false);
+  const [searchBarHidden, setSearchBarHidden] = useState(false);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+
+  // Track when the search bar scrolls out of view
+  useEffect(() => {
+    if (!searchBarRef.current || viewMode !== 'rankings') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setSearchBarHidden(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(searchBarRef.current);
+    return () => observer.disconnect();
+  }, [viewMode]);
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Direct photo editor state for feed cards
@@ -651,7 +665,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
         {/* Search bar — hidden when attention filter active */}
         {!attentionFilterActive && (
-          <div className="relative">
+          <div className="relative" ref={searchBarRef}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
             <input
               type="text"
@@ -1324,6 +1338,55 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           {viewMode === 'friends' && renderFriendsView()}
         </motion.div>
       </AnimatePresence>
+
+      {/* Floating search button — appears when search bar scrolls out of view in My Shows */}
+      <AnimatePresence>
+        {viewMode === 'rankings' && searchBarHidden && !attentionFilterActive && !floatingSearchOpen && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            onClick={() => setFloatingSearchOpen(true)}
+            className="fixed bottom-24 right-5 z-40 w-12 h-12 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.16] flex items-center justify-center shadow-lg hover:bg-white/[0.14] hover:border-white/[0.22] transition-colors active:scale-95"
+          >
+            <Search className="h-5 w-5 text-foreground/80" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Floating search sheet */}
+      <Sheet open={floatingSearchOpen} onOpenChange={setFloatingSearchOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl border-t border-white/[0.12] bg-background/95 backdrop-blur-xl px-4 pb-8 pt-4">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Search Shows</SheetTitle>
+          </SheetHeader>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <input
+              type="text"
+              autoFocus
+              placeholder="Search artist, venue, or city..."
+              value={rankingsSearch}
+              onChange={(e) => setRankingsSearch(e.target.value)}
+              className="w-full h-11 pl-9 pr-9 rounded-xl text-sm bg-white/[0.05] border border-white/[0.08] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
+            />
+            {rankingsSearch && (
+              <button
+                onClick={() => setRankingsSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground/70 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {rankingsSearch.trim() && (
+            <p className="text-xs text-muted-foreground/50 mt-2 text-center">
+              Results are filtered in your list below
+            </p>
+          )}
+        </SheetContent>
+      </Sheet>
 
       
       {/* Incomplete Tags Sheet */}
