@@ -20,6 +20,7 @@ import { QuickPhotoAddSheet } from "./QuickPhotoAddSheet";
 import MapView from "./MapView";
 import Rank from "./Rank";
 import AddShowFlow, { type AddShowPrefill } from "./AddShowFlow";
+import QuickAddSheet, { type QuickAddPrefill } from "./QuickAddSheet";
 import { ShowRankBadge } from "./feed/ShowRankBadge";
 import SwipeableRankingCard from "./rankings/SwipeableRankingCard";
 import ShowsBarChart from "./rankings/ShowsBarChart";
@@ -149,6 +150,10 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
   // Plan a show sheet state
   const [planShowOpen, setPlanShowOpen] = useState(false);
+
+  // Quick add sheet state (for "I was there" flow)
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddPrefill, setQuickAddPrefill] = useState<QuickAddPrefill | null>(null);
   
   // Todo action sheet state
   const [todoSheetOpen, setTodoSheetOpen] = useState(false);
@@ -500,14 +505,15 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               hasFollowing={following.length > 0}
               onFindFriends={() => setViewMode("friends")}
               onIWasThere={(payload: IWasTherePayload) => {
-                setEditShow(null);
-                setAddShowPrefill({
+                setQuickAddPrefill({
                   showType: (payload.showType as any) || 'set',
                   artistName: payload.artistName,
+                  artistImageUrl: (payload as any).artistImageUrl || null,
                   venueName: payload.venueName,
+                  venueLocation: (payload as any).venueLocation || null,
                   showDate: payload.showDate,
                 });
-                setEditDialogOpen(true);
+                setQuickAddOpen(true);
               }}
             />
           )}
@@ -519,15 +525,15 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               showType={nearMeShowType}
               onShowTypeChange={setNearMeShowType}
               onQuickAdd={(item) => {
-                setEditShow(null);
-                setAddShowPrefill({
+                setQuickAddPrefill({
                   showType: item.type === 'artist' ? 'set' : (item as any).showType || 'set',
                   artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
                   artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
                   venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
+                  venueLocation: item.type === 'artist' ? (item as any).sampleVenueLocation : (item as any).venueLocation,
                   showDate: item.sampleShowDate,
                 });
-                setEditDialogOpen(true);
+                setQuickAddOpen(true);
               }}
               onFindFriends={() => setViewMode("friends")}
               emptyMessage={nearMeHasLocation === false ? "Set your home city in your profile to see what's popular near you." : undefined}
@@ -541,15 +547,15 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               showType={exploreShowType}
               onShowTypeChange={setExploreShowType}
               onQuickAdd={(item) => {
-                setEditShow(null);
-                setAddShowPrefill({
+                setQuickAddPrefill({
                   showType: item.type === 'artist' ? 'set' : (item as any).showType || 'set',
                   artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
                   artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
                   venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
+                  venueLocation: item.type === 'artist' ? (item as any).sampleVenueLocation : (item as any).venueLocation,
                   showDate: item.sampleShowDate,
                 });
-                setEditDialogOpen(true);
+                setQuickAddOpen(true);
               }}
               onFindFriends={() => setViewMode("friends")}
             />
@@ -1549,6 +1555,13 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           photo_url: editShow.photo_url,
           showType: editShow.showType,
         } : null}
+      />
+
+      <QuickAddSheet
+        open={quickAddOpen}
+        onOpenChange={(open) => { setQuickAddOpen(open); if (!open) setQuickAddPrefill(null); }}
+        prefill={quickAddPrefill}
+        onShowAdded={() => { fetchShows(); refetchStats(); }}
       />
 
       <AlertDialog open={!!deleteConfirmShow} onOpenChange={(open) => !open && setDeleteConfirmShow(null)}>
