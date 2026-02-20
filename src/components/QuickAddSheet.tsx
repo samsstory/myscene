@@ -49,6 +49,7 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [customPhotoUrl, setCustomPhotoUrl] = useState<string | null>(null);
 
   // Extra artists
   const [extraArtists, setExtraArtists] = useState<ExtraArtist[]>([]);
@@ -84,6 +85,7 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
       setVenueSearchTerm("");
       setVenueSuggestions([]);
       setSelectedDate(prefill.showDate ? new Date(prefill.showDate) : undefined);
+      setCustomPhotoUrl(null);
     }
   }, [open, prefill]);
 
@@ -224,6 +226,26 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
         }
       }
 
+      // Upload custom photo if provided
+      let photoUrl: string | null = null;
+      if (customPhotoUrl && customPhotoUrl.startsWith("blob:")) {
+        try {
+          const resp = await fetch(customPhotoUrl);
+          const blob = await resp.blob();
+          const ext = blob.type.split("/")[1] || "jpg";
+          const filePath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from("show-photos")
+            .upload(filePath, blob, { contentType: blob.type });
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage.from("show-photos").getPublicUrl(filePath);
+            photoUrl = urlData.publicUrl;
+          }
+        } catch {
+          // Continue without photo
+        }
+      }
+
       // Insert show
       const { data: show, error: showError } = await supabase
         .from("shows")
@@ -237,6 +259,7 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
           notes: notes || null,
           show_type: prefill.showType,
           event_name: prefill.eventName || null,
+          photo_url: photoUrl,
         })
         .select()
         .single();
@@ -320,7 +343,13 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
       <SheetContent side="bottom" className="rounded-t-3xl bg-background border-white/10 pb-safe max-h-[92vh] overflow-y-auto p-0">
         {/* Hero Section */}
         <div className="relative w-full h-44 overflow-hidden rounded-t-3xl">
-          {prefill.artistImageUrl ? (
+          {customPhotoUrl ? (
+            <img
+              src={customPhotoUrl}
+              alt="Your photo"
+              className="w-full h-full object-cover"
+            />
+          ) : prefill.artistImageUrl ? (
             <img
               src={prefill.artistImageUrl}
               alt={prefill.artistName}
@@ -330,10 +359,31 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
             <div className="w-full h-full bg-gradient-to-br from-primary/40 via-primary/20 to-background" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          {/* Photo hint icon */}
-          <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          {/* Photo upload trigger */}
+          <input
+            type="file"
+            accept="image/*"
+            id="quick-add-photo-input"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                  toast.error("Photo must be under 5MB");
+                  return;
+                }
+                const url = URL.createObjectURL(file);
+                setCustomPhotoUrl(url);
+              }
+              e.target.value = "";
+            }}
+          />
+          <label
+            htmlFor="quick-add-photo-input"
+            className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:bg-black/60 transition-colors"
+          >
             <Camera className="h-4 w-4 text-white/70" />
-          </div>
+          </label>
         </div>
 
         <div className="px-5 pb-8 -mt-10 relative z-10 space-y-5">
