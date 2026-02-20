@@ -155,7 +155,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [selectedUpcomingShow, setSelectedUpcomingShow] = useState<import("@/hooks/usePlanUpcomingShow").UpcomingShow | null>(null);
   const [upcomingDetailOpen, setUpcomingDetailOpen] = useState(false);
 
-  // (feedTab removed — Scene Feed replaces the tab switcher)
+  // Feed toggle: "scene" (friends activity) vs "popular" (popular on scene)
+  const [feedMode, setFeedMode] = useState<"scene" | "popular">("scene");
 
   // Calendar: Friends overlay toggle + friends-on-day sheet
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
@@ -462,43 +463,45 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         <WhatsNextStrip onPlanShow={() => setPlanShowOpen(true)} />
 
 
-        {/* Scene Feed + Popular on Scene */}
-        <div className="space-y-5">
-          {/* Header row */}
-          <div className="flex items-center justify-between">
-            <h3
-              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
-              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+        {/* Scene Feed / Popular on Scene — toggle */}
+        <div className="space-y-3">
+          {/* Tab headers */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setFeedMode("scene")}
+              className={cn(
+                "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
+                feedMode === "scene"
+                  ? "text-white/80"
+                  : "text-white/30 hover:text-white/50"
+              )}
+              style={feedMode === "scene" ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
             >
               Scene Feed
-            </h3>
+            </button>
             <button
-              onClick={() => {
-                const el = document.getElementById("popular-on-scene");
-                el?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-primary/70 hover:text-primary transition-colors"
+              onClick={() => setFeedMode("popular")}
+              className={cn(
+                "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
+                feedMode === "popular"
+                  ? "text-white/80"
+                  : "text-white/30 hover:text-white/50"
+              )}
+              style={feedMode === "popular" ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
             >
-              Popular on Scene ↓
+              Popular on Scene
             </button>
           </div>
 
-          {/* Feed */}
-          <FriendActivityFeed
-            items={activityItems}
-            isLoading={activityLoading}
-            hasFollowing={following.length > 0}
-            onFindFriends={() => setViewMode("friends")}
-          />
-
-          {/* Popular on Scene section */}
-          <div id="popular-on-scene" className="space-y-3 pt-2">
-            <h3
-              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
-              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-            >
-              Popular on Scene
-            </h3>
+          {/* Content */}
+          {feedMode === "scene" ? (
+            <FriendActivityFeed
+              items={activityItems}
+              isLoading={activityLoading}
+              hasFollowing={following.length > 0}
+              onFindFriends={() => setViewMode("friends")}
+            />
+          ) : (
             <PopularShowsGrid
               artists={popularArtists}
               totalUsers={popularTotalUsers}
@@ -509,7 +512,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               }}
               onFindFriends={() => setViewMode("friends")}
             />
-          </div>
+          )}
         </div>
       </div>
     );
