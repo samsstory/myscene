@@ -23,7 +23,7 @@ interface RankProps {
 }
 
 export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
-  const [shows, setShows] = useState<Show[]>([]);
+  const [allShows, setAllShows] = useState<Show[]>([]);
   const [rankings, setRankings] = useState<ShowRanking[]>([]);
   const [comparisons, setComparisons] = useState<Comparison[]>([]);
   const [showPair, setShowPair] = useState<[Show, Show] | null>(null);
@@ -32,6 +32,9 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
   const [comparedPairs, setComparedPairs] = useState<Set<string>>(new Set());
   const [totalComparisons, setTotalComparisons] = useState(0);
   
+  // Pool filtering
+  const [activePool, setActivePool] = useState<'set' | 'show' | 'festival'>('set');
+  
   // Debug: preview empty states
   const [debugState, setDebugState] = useState<'none' | 'no-shows' | 'one-show' | 'all-ranked'>('none');
   
@@ -39,6 +42,9 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
   const [pairKey, setPairKey] = useState(0);
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Derived: shows filtered to the active pool
+  const shows = allShows.filter(s => s.show_type === activePool);
 
   const K_BASE = 32;
   const K_MIN_COMPARISONS = 10;
@@ -76,6 +82,20 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
   useEffect(() => {
     fetchShows();
   }, []);
+
+  // Re-select pair when pool changes
+  useEffect(() => {
+    if (loading || shows.length < 2) return;
+    const poolRankings = rankings.filter(r => shows.some(s => s.id === r.show_id));
+    const nextPair = selectSmartPairUtil({
+      shows,
+      rankings: poolRankings,
+      comparisons,
+      comparedPairs,
+    });
+    setShowPair(nextPair);
+    setPairKey(prev => prev + 1);
+  }, [activePool, allShows.length]); // only re-run on pool switch or data load
 
   const fetchShows = async () => {
     try {
@@ -166,7 +186,16 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
         })
       );
 
-      setShows(showsWithArtists);
+      setAllShows(showsWithArtists);
+      
+      // Auto-select the pool with the most shows
+      const poolCounts = { set: 0, show: 0, festival: 0 } as Record<string, number>;
+      showsWithArtists.forEach(s => {
+        const t = s.show_type || 'set';
+        if (t in poolCounts) poolCounts[t]++;
+      });
+      const bestPool = ([...(['set', 'show', 'festival'] as const)]).sort((a, b) => poolCounts[b] - poolCounts[a])[0];
+      setActivePool(bestPool);
       
       const updatedRankingsData = rankingsData?.length ? rankingsData : 
         newShows.map(show => ({
@@ -176,9 +205,10 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
           comparisons_count: 0
         }));
       
-      // Use smart pairing utility
+      // Use smart pairing utility — filter to the best pool
+      const poolShows = showsWithArtists.filter(s => (s.show_type || 'set') === bestPool);
       const nextPair = selectSmartPairUtil({
-        shows: showsWithArtists,
+        shows: poolShows,
         rankings: updatedRankingsData || [],
         comparisons: formattedComparisons,
         comparedPairs: comparedSet,
@@ -186,7 +216,6 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
       
       if (!nextPair) {
         setShowPair(null);
-        toast.success("That's all for now! Your rankings are up to date");
       } else {
         setShowPair(nextPair);
         setPairKey(prev => prev + 1);
@@ -480,11 +509,13 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
     );
   }
 
-  // Calculate global confirmation percentage
+  // Calculate pool-scoped confirmation percentage
   const calculateGlobalConfirmation = () => {
     if (shows.length === 0) return 0;
     const MAX_BACK_TO_BACKS = 10;
-    const totalCapped = rankings.reduce((sum, r) => sum + Math.min(r.comparisons_count, MAX_BACK_TO_BACKS), 0);
+    const poolShowIds = new Set(shows.map(s => s.id));
+    const poolRankings = rankings.filter(r => poolShowIds.has(r.show_id));
+    const totalCapped = poolRankings.reduce((sum, r) => sum + Math.min(r.comparisons_count, MAX_BACK_TO_BACKS), 0);
     return (totalCapped / (shows.length * MAX_BACK_TO_BACKS)) * 100;
   };
 
@@ -495,13 +526,36 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
     {debugBar}
     <div className="max-w-md mx-auto px-4 py-6 space-y-8 animate-fade-in">
       {/* Page Header */}
-      <div className="text-center space-y-1">
+      <div className="text-center space-y-3">
         <h3
           className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60"
           style={{ textShadow: "0 0 12px hsl(var(--primary) / 0.3)" }}
         >
           Head To Head
         </h3>
+
+        {/* Pool Tabs */}
+        <div className="flex items-center justify-center gap-1">
+          {(['set', 'show', 'festival'] as const).map(pool => {
+            const count = allShows.filter(s => (s.show_type || 'set') === pool).length;
+            if (count === 0) return null;
+            return (
+              <button
+                key={pool}
+                onClick={() => setActivePool(pool)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200",
+                  activePool === pool
+                    ? "bg-white/[0.12] text-foreground border border-white/[0.16]"
+                    : "text-muted-foreground/50 hover:text-muted-foreground/80"
+                )}
+              >
+                {pool === 'set' ? 'Sets' : pool === 'show' ? 'Shows' : 'Festivals'}
+                <span className="ml-1 text-[10px] opacity-60">{count}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Confirmation Ring */}
