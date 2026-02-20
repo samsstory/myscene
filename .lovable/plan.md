@@ -1,43 +1,66 @@
 
 
-# Mini Bar Chart on My Shows Page
+# "I Was There" Button for Discovery Cards
 
-## What We're Building
-A minimal, rounded bar chart (inspired by the reference image) showing the number of shows per month, positioned between the "needs attention" banner and the search bar on the My Shows (rankings) page. The chart updates dynamically based on the selected timeline filter (All Time, This Year, Last Year, This Month).
+## The Problem
+Currently, the Popular Near Me and Explore grids use a generic `+` icon on cards, which is the same pattern used for adding upcoming shows. Since the core goal is helping users **log past shows they've already attended**, the interaction should feel more personal and intentional -- "I was there" communicates this perfectly.
 
-## Design
-- Pure CSS/HTML bars (no charting library) for minimal footprint
-- Rounded-pill shaped bars matching the reference image aesthetic
-- Count labels above each bar
-- Month abbreviations below (Feb, Mar, Apr, etc.)
-- Uses the app's primary color for bars with subtle opacity variations
-- Compact height (~100px chart area)
-- Horizontal scroll if many months are shown
-- Smooth transitions when the timeline filter changes
+The Scene Feed cards (friend activity) currently have no add-to-profile action at all, which is a missed opportunity since seeing a friend's show is a strong trigger for "oh yeah, I was at that one too."
 
-## Implementation
+## Where "I Was There" Should Appear
 
-### 1. New Component: `src/components/rankings/ShowsBarChart.tsx`
-- Accepts `shows` array and `timeFilter` as props
-- Groups shows by month using `date-fns` (`format(date, 'yyyy-MM')`), then counts per month
-- Determines the visible month range based on the active time filter:
-  - **All Time**: all months from first show to current month
-  - **This Year / Last Year**: Jan-Dec of the relevant year
-  - **This Month**: just the current month (chart hidden since single bar is not useful)
-- Renders a row of flex items, each containing: count label, a rounded bar (height proportional to max count), and month abbreviation
-- Bars use `bg-primary` with rounded-full styling to match the pill shape in the reference
-- Zero-count months render as a tiny dot/stub
+### 1. Popular Near Me and Explore Cards (ArtistCard + EventCard in PopularFeedGrid)
+- **Current**: Hidden `+` circle icon in top-right, only visible on hover/active
+- **Change**: Replace with a visible pill-style button at the bottom of the card: `"I was there"` with a small hand/checkmark icon
+- Always visible (not hidden behind hover), since this is the primary call-to-action
+- Tapping triggers the existing `onQuickAdd` flow with show type pre-filled
 
-### 2. Integration in `Home.tsx`
-- Import `ShowsBarChart`
-- Place it in the rankings view, directly after the attention banner block (around line 557) and before the search bar (line 560)
-- Pass the `shows` array and `topRatedFilter` value
-- Also respect `showTypeFilter` so the chart reflects the active type filter
+### 2. Scene Feed Cards (FriendActivityFeed -- RichImageCard + CompactCard)
+- **Current**: No add action exists on these cards
+- **Change**: Add an `"I was there"` button
+  - **RichImageCard** (image cards): A frosted-glass pill overlaid at the bottom-right of the card
+  - **CompactCard** (text-only cards): A subtle text button aligned to the right side
+- Only show this on **logged** show cards (not upcoming shows -- those would use a different "I'm going" pattern)
+- Tapping opens the AddShowFlow pre-filled with the artist name, venue, and show type from the friend's activity item
 
-### Technical Details
-- No new dependencies needed -- pure Tailwind CSS bars
-- Bar height calculated as `(count / maxCount) * maxBarHeight` where `maxBarHeight` is ~64px
-- Months with zero shows get a 4px minimum height bar (the dot effect from the reference)
-- The chart container has `overflow-x-auto` for long timelines with horizontal scroll
-- Wrapped in a subtle card-like container: `bg-white/[0.03] border border-white/[0.06] rounded-xl p-3`
+## Design Language
+- The button text: **"I was there"** -- short, personal, low-friction
+- Icon: A small raised-hand or checkmark icon (using Lucide's `Hand` or `Check` icon)
+- Style: Frosted glass pill (`bg-white/10 backdrop-blur-sm border border-white/15`) to match the existing card design language
+- On tap: brief scale animation via `motion.button` with `whileTap={{ scale: 0.95 }}`
+
+## Technical Details
+
+### Files to Modify
+
+**`src/components/home/PopularFeedGrid.tsx`**
+- Update `ArtistCard` and `EventCard` components
+- Replace the hidden `+` circle with a visible `"I was there"` pill button at the bottom of each card, positioned next to the artist/event name area
+- Keep `onQuickAdd` callback unchanged -- the button just becomes more visible and labeled
+
+**`src/components/home/FriendActivityFeed.tsx`**
+- Add an `onIWasThere` callback prop to `FriendActivityFeedProps`
+- In `RichImageCard`: add a bottom-right frosted pill button for logged shows
+- In `CompactCard`: add a right-aligned text button for logged shows
+- Only render the button when `item.type === "logged"` (past shows, not upcoming)
+- The callback passes the activity item's artist name, venue, and show type to the parent
+
+**`src/components/Home.tsx`**
+- Pass an `onIWasThere` handler to `FriendActivityFeed`
+- The handler opens `AddShowFlow` pre-filled with the artist, venue, and show type from the tapped activity item
+- Reuse the existing `editShow` / `editDialogOpen` state to trigger the flow with pre-filled data
+
+### Data Flow
+```text
+User taps "I was there" on a card
+  --> Parent receives artist name, venue name, show type
+  --> Opens AddShowFlow with pre-filled data
+  --> User confirms/adjusts details
+  --> Show is saved to their profile
+```
+
+### Edge Cases
+- If the user has already logged the same show, the AddShowFlow's existing duplicate detection will handle it
+- For compact feed cards without images, the button stays subtle so it doesn't dominate the card
+- The button should stop event propagation so it doesn't also trigger the card's own tap handler (e.g., opening a detail view in the future)
 
