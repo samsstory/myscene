@@ -246,7 +246,10 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
         }
       }
 
-      // Insert show
+      const isMultiArtist = extraArtists.length > 0;
+      const resolvedShowType = (prefill.showType === "set" && isMultiArtist) ? "show" : prefill.showType;
+
+      // Insert the main show
       const { data: show, error: showError } = await supabase
         .from("shows")
         .insert({
@@ -257,7 +260,7 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
           show_date: showDate,
           date_precision: datePrecision,
           notes: notes || null,
-          show_type: (prefill.showType === "set" && extraArtists.length > 0) ? "show" : prefill.showType,
+          show_type: resolvedShowType,
           event_name: prefill.eventName || null,
           photo_url: photoUrl,
         })
@@ -266,8 +269,8 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
 
       if (showError) throw showError;
 
-      // Insert artists
-      const allArtists = [
+      // All artists for the parent show
+      const allArtistRows = [
         {
           show_id: show.id,
           artist_name: prefill.artistName,
@@ -283,10 +286,49 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
         })),
       ];
 
-      const { error: artistsError } = await supabase.from("show_artists").insert(allArtists);
+      const { error: artistsError } = await supabase.from("show_artists").insert(allArtistRows);
       if (artistsError) throw artistsError;
 
-      // Insert tags
+      // If multi-artist, create child sets so each artist is independently rankable
+      if (isMultiArtist) {
+        const allArtistsForChildren = [
+          { name: prefill.artistName, imageUrl: prefill.artistImageUrl || null, spotifyId: null as string | null },
+          ...extraArtists.map((a) => ({ name: a.name, imageUrl: a.imageUrl || null, spotifyId: a.spotifyId || null })),
+        ];
+
+        for (const artist of allArtistsForChildren) {
+          const { data: childSet, error: childError } = await supabase
+            .from("shows")
+            .insert({
+              user_id: user.id,
+              venue_name: venueName,
+              venue_location: venueLocation || null,
+              venue_id: venueIdToUse,
+              show_date: showDate,
+              date_precision: datePrecision,
+              show_type: "set",
+              event_name: prefill.eventName || null,
+              parent_show_id: show.id,
+            })
+            .select("id")
+            .single();
+
+          if (childError) {
+            console.error("Error creating child set:", childError);
+            continue;
+          }
+
+          await supabase.from("show_artists").insert({
+            show_id: childSet.id,
+            artist_name: artist.name,
+            is_headliner: true,
+            artist_image_url: artist.imageUrl,
+            spotify_artist_id: artist.spotifyId,
+          });
+        }
+      }
+
+      // Insert tags (on parent show)
       if (tags.length > 0) {
         const tagsToInsert = tags.map((tag) => ({
           show_id: show.id,
