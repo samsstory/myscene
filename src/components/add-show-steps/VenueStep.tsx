@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2, Home, Globe, Map, Building2, Sparkles, History } from "lucide-react";
+import { MapPin, Loader2, Home, Globe, Map, Building2, Sparkles, History, PartyPopper } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+interface EventRegistryMatch {
+  eventId: string;
+  eventName: string;
+  venueName: string;
+  venueLocation: string;
+  venueId: string | null;
+  eventType: string;
+}
 
 interface VenueStepProps {
   value: string;
@@ -25,6 +34,7 @@ interface VenueStepProps {
   onSkip?: () => void;
   selectedArtistName?: string;
   onSelectAsEvent?: (eventName: string, eventDescription: string) => void;
+  onEventRegistrySelect?: (event: EventRegistryMatch) => void;
 }
 
 interface VenueSuggestion {
@@ -47,7 +57,7 @@ interface AddressSuggestion {
   coordinates: [number, number];
 }
 
-const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave, onSkip, selectedArtistName, onSelectAsEvent }: VenueStepProps) => {
+const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilterChange, onShowTypeChange, isLoadingDefaultCity, isEditing, onSave, onSkip, selectedArtistName, onSelectAsEvent, onEventRegistrySelect }: VenueStepProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -67,6 +77,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showEventDescriptionInput, setShowEventDescriptionInput] = useState(false);
   const [eventDescription, setEventDescription] = useState("");
+  const [eventMatches, setEventMatches] = useState<EventRegistryMatch[]>([]);
 
   // Fetch user's recent venues on mount
   useEffect(() => {
@@ -115,34 +126,58 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
     fetchRecentVenues();
   }, []);
 
-  // Debounced venue search
+  // Debounced venue search + events registry
   useEffect(() => {
     const searchVenues = async () => {
       if (searchTerm.trim().length < 2) {
         setVenueSuggestions([]);
+        setEventMatches([]);
         return;
       }
 
       setIsSearching(true);
 
       try {
-        const { data, error } = await supabase.functions.invoke('search-venues', {
-          body: { 
-            searchTerm: searchTerm.trim(),
-            showType: showType 
-          }
-        });
+        // Search venues and events registry in parallel
+        const [venueResult, eventsResult] = await Promise.all([
+          supabase.functions.invoke('search-venues', {
+            body: { searchTerm: searchTerm.trim(), showType: showType }
+          }),
+          supabase.from('events')
+            .select('id, name, venue_name, venue_location, venue_id, event_type, year')
+            .ilike('name', `%${searchTerm.trim()}%`)
+            .order('year', { ascending: false })
+            .limit(5),
+        ]);
 
-        if (error) throw error;
+        if (venueResult.error) throw venueResult.error;
+        setVenueSuggestions(venueResult.data?.suggestions || []);
 
-        setVenueSuggestions(data?.suggestions || []);
+        // Deduplicate events by name (keep most recent year)
+        const seen = new Set<string>();
+        const events: EventRegistryMatch[] = [];
+        for (const event of (eventsResult.data || [])) {
+          const key = event.name.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          events.push({
+            eventId: event.id,
+            eventName: event.name,
+            venueName: event.venue_name || '',
+            venueLocation: event.venue_location || '',
+            venueId: event.venue_id,
+            eventType: event.event_type,
+          });
+        }
+        setEventMatches(events);
       } catch (error) {
         console.error('Error searching venues:', error);
         setVenueSuggestions([]);
+        setEventMatches([]);
       } finally {
         setIsSearching(false);
       }
-  };
+    };
 
     const timer = setTimeout(searchVenues, 300);
     return () => clearTimeout(timer);
@@ -549,6 +584,38 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
                 <div className="text-sm text-muted-foreground">{getManualEntryLabel()}</div>
               </button>
             )}
+          </div>
+        )}
+
+        {/* Event registry matches — shown before regular venues */}
+        {eventMatches.length > 0 && onEventRegistrySelect && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+              <PartyPopper className="h-3.5 w-3.5" />
+              <span>Known events</span>
+            </div>
+            {eventMatches.map((event) => (
+              <button
+                key={event.eventId}
+                onClick={() => onEventRegistrySelect(event)}
+                className="w-full text-left p-4 rounded-lg bg-primary/[0.06] backdrop-blur-sm border border-primary/20 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)] transition-all duration-200"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <PartyPopper className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-base">{event.eventName}</div>
+                    {event.venueName && (
+                      <div className="text-sm text-muted-foreground truncate">{event.venueName}</div>
+                    )}
+                    {event.venueLocation && (
+                      <div className="text-xs text-muted-foreground truncate">{event.venueLocation}</div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         )}
 
