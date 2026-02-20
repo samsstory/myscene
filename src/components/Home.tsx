@@ -472,6 +472,10 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             isLoading={activityLoading}
             hasFollowing={following.length > 0}
             onFindFriends={() => setViewMode("friends")}
+            onQuickAddArtist={(artist) => {
+              setEditShow(null);
+              setEditDialogOpen(true);
+            }}
           />
         </div>
       </div>
