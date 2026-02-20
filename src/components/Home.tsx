@@ -463,28 +463,28 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
 
         {/* Scene Feed + Popular on Scene side-by-side */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-3">
             <h3
               className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
               style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
             >
               Scene Feed
             </h3>
-            <h3
-              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
-              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-            >
-              Popular on Scene
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FriendActivityFeed
               items={activityItems}
               isLoading={activityLoading}
               hasFollowing={following.length > 0}
               onFindFriends={() => setViewMode("friends")}
             />
+          </div>
+          <div className="space-y-3">
+            <h3
+              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+              style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
+            >
+              Popular on Scene
+            </h3>
             <PopularShowsGrid
               artists={popularArtists}
               totalUsers={popularTotalUsers}
