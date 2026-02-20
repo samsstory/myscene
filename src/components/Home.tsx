@@ -36,7 +36,7 @@ import FocusedRankingSession from "./home/FocusedRankingSession";
 import RankingProgressCard from "./home/RankingProgressCard";
 import FriendTeaser from "./home/FriendTeaser";
 import WhatsNextStrip from "./home/WhatsNextStrip";
-import FriendActivityFeed from "./home/FriendActivityFeed";
+import FriendActivityFeed, { type IWasTherePayload } from "./home/FriendActivityFeed";
 import PopularFeedGrid from "./home/PopularFeedGrid";
 import { usePopularShows, type ShowTypeFilter, type PopularItem } from "@/hooks/usePopularShows";
 import { usePopularNearMe } from "@/hooks/usePopularNearMe";
@@ -498,6 +498,10 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               isLoading={activityLoading}
               hasFollowing={following.length > 0}
               onFindFriends={() => setViewMode("friends")}
+              onIWasThere={(payload: IWasTherePayload) => {
+                setEditShow(null);
+                setEditDialogOpen(true);
+              }}
             />
           )}
           {feedMode === "near-me" && (

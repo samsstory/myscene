@@ -1,16 +1,23 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, formatDistanceToNow, isPast, getYear } from "date-fns";
-import { Calendar, Users, Zap, Music2, UserPlus, Trophy } from "lucide-react";
+import { Calendar, Users, Zap, Music2, UserPlus, Trophy, Hand } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { FriendActivityItem } from "@/hooks/useFriendActivity";
 import type { FollowerProfile } from "@/hooks/useFollowers";
+
+export interface IWasTherePayload {
+  artistName: string;
+  venueName: string | null;
+  showType: string | null;
+}
 
 interface FriendActivityFeedProps {
   items: FriendActivityItem[];
   isLoading: boolean;
   hasFollowing: boolean;
   onFindFriends?: () => void;
+  onIWasThere?: (payload: IWasTherePayload) => void;
 }
 
 // ─── Date formatting ──────────────────────────────────────────────────────────
@@ -80,7 +87,7 @@ function getSignalMeta(item: FriendActivityItem) {
 
 // ─── Rich full-bleed image card ───────────────────────────────────────────────
 
-function RichImageCard({ item }: { item: FriendActivityItem }) {
+function RichImageCard({ item, onIWasThere }: { item: FriendActivityItem; onIWasThere?: (payload: IWasTherePayload) => void }) {
   const imageUrl = item.photoUrl || item.artistImageUrl;
   const narrative = buildActivityString(item);
   const friendInitial = (item.friend.full_name || item.friend.username || "?").charAt(0).toUpperCase();
@@ -88,6 +95,7 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
   const dateStr = formatUpcomingDate(item.showDate);
   const timeAgo = formatDistanceToNow(parseISO(item.createdAt), { addSuffix: true });
   const isTopRanked = item.rankPosition === 1;
+  const isLogged = item.type === "logged";
 
   // Logged: venue name gives "where" context; Upcoming: date gives "when" context
   const secondaryParts = item.type === "logged"
@@ -159,7 +167,19 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
           </div>
         )}
 
-        <p className="text-[10px] text-white/30 mt-1.5">{timeAgo}</p>
+        <div className="flex items-center justify-between mt-1.5">
+          <p className="text-[10px] text-white/30">{timeAgo}</p>
+          {isLogged && onIWasThere && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => { e.stopPropagation(); onIWasThere({ artistName: item.artistName, venueName: item.venueName, showType: item.showType ?? null }); }}
+              className="flex items-center gap-1 text-[10px] font-semibold text-white/70 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1 hover:bg-white/15 transition-colors"
+            >
+              <Hand className="h-2.5 w-2.5" />
+              I was there
+            </motion.button>
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -167,7 +187,7 @@ function RichImageCard({ item }: { item: FriendActivityItem }) {
 
 // ─── Compact text card ────────────────────────────────────────────────────────
 
-function CompactCard({ item }: { item: FriendActivityItem }) {
+function CompactCard({ item, onIWasThere }: { item: FriendActivityItem; onIWasThere?: (payload: IWasTherePayload) => void }) {
   const narrative = buildActivityString(item);
   const friendInitial = (item.friend.full_name || item.friend.username || "?").charAt(0).toUpperCase();
   const meta = getSignalMeta(item);
@@ -183,6 +203,7 @@ function CompactCard({ item }: { item: FriendActivityItem }) {
 
   const isShared = item.signal === "shared";
   const isMultiFriend = item.signal === "multi-friend";
+  const isLogged = item.type === "logged";
 
   return (
     <motion.div
@@ -227,7 +248,19 @@ function CompactCard({ item }: { item: FriendActivityItem }) {
           </p>
         )}
 
-        <p className="text-[10px] text-white/25 mt-1.5">{timeAgo}</p>
+        <div className="flex items-center justify-between mt-1.5">
+          <p className="text-[10px] text-white/25">{timeAgo}</p>
+          {isLogged && onIWasThere && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => { e.stopPropagation(); onIWasThere({ artistName: item.artistName, venueName: item.venueName, showType: item.showType ?? null }); }}
+              className="text-[10px] font-semibold text-white/40 hover:text-white/60 transition-colors flex items-center gap-1"
+            >
+              <Hand className="h-2.5 w-2.5" />
+              I was there
+            </motion.button>
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -240,6 +273,7 @@ export default function FriendActivityFeed({
   isLoading,
   hasFollowing,
   onFindFriends,
+  onIWasThere,
 }: FriendActivityFeedProps) {
   if (isLoading) {
     return (
@@ -293,7 +327,7 @@ export default function FriendActivityFeed({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.035 }}
             >
-              {useRichCard ? <RichImageCard item={item} /> : <CompactCard item={item} />}
+              {useRichCard ? <RichImageCard item={item} onIWasThere={onIWasThere} /> : <CompactCard item={item} onIWasThere={onIWasThere} />}
             </motion.div>
           );
         })}
