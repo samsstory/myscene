@@ -15,11 +15,20 @@ import GroupShowPrompt from "./home/GroupShowPrompt";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface AddShowPrefill {
+  showType: ShowType;
+  artistName: string;
+  artistImageUrl?: string | null;
+  venueName?: string | null;
+  venueLocation?: string | null;
+}
+
 interface AddShowFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onShowAdded?: (show: AddedShowData) => void;
   onViewShowDetails?: (showId: string) => void;
+  prefill?: AddShowPrefill | null;
   editShow?: {
     id: string;
     venue: {name: string;location: string;};
@@ -67,7 +76,7 @@ export interface ShowData {
 
 type EntryPoint = 'artist' | 'venue' | null;
 
-const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editShow }: AddShowFlowProps) => {
+const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editShow, prefill }: AddShowFlowProps) => {
   const [step, setStep] = useState(0);
   const [entryPoint, setEntryPoint] = useState<EntryPoint>(null);
   const [showStepSelector, setShowStepSelector] = useState(false);
@@ -139,6 +148,19 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setStep(0);
       setEntryPoint(null);
       setEditInitialized(true);
+    } else if (open && !editShow && prefill) {
+      // "I was there" / quick-add: pre-fill type + artist, skip to venue step
+      setShowData(prev => ({
+        ...prev,
+        showType: prefill.showType,
+        artists: [{ name: prefill.artistName, isHeadliner: true, imageUrl: prefill.artistImageUrl || undefined }],
+        venue: prefill.venueName || "",
+        venueLocation: prefill.venueLocation || "",
+      }));
+      setEntryPoint('artist');
+      setStep(2); // Go directly to venue step
+      setShowStepSelector(false);
+      setEditInitialized(true);
     } else if (open && !editShow) {
       setShowStepSelector(false);
       setStep(0);
@@ -146,7 +168,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setEditPhotoUrl(null);
       setEditInitialized(false);
     }
-  }, [editShow, open, editInitialized]);
+  }, [editShow, open, editInitialized, prefill]);
 
   // Reset editInitialized when dialog closes
   useEffect(() => {
