@@ -149,7 +149,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setEntryPoint(null);
       setEditInitialized(true);
     } else if (open && !editShow && prefill) {
-      // "I was there" / quick-add: pre-fill type + artist, skip to venue step
+      // "I was there" / quick-add: pre-fill type + artist, skip ahead
       setShowData(prev => ({
         ...prev,
         showType: prefill.showType,
@@ -158,7 +158,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venueLocation: prefill.venueLocation || "",
       }));
       setEntryPoint('artist');
-      setStep(2); // Go directly to venue step
+      // If venue is already known from prefill, skip venue step entirely → go to date
+      setStep(prefill.venueName ? 3 : 2);
       setShowStepSelector(false);
       setEditInitialized(true);
     } else if (open && !editShow) {
