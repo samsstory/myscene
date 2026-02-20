@@ -400,17 +400,20 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
               </button>
             </div>
 
-            {/* Extra artist pills */}
+            {/* Extra artist pills — inline with heading */}
             {extraArtists.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {extraArtists.map((a) => (
                   <span
                     key={a.name}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-primary/15 border border-primary/30 text-primary-foreground"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.06] border border-white/[0.1] text-white/70"
                   >
+                    {a.imageUrl && (
+                      <img src={a.imageUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
+                    )}
                     {a.name}
-                    <button onClick={() => setExtraArtists((prev) => prev.filter((x) => x.name !== a.name))}>
-                      <X className="h-3 w-3" />
+                    <button onClick={() => setExtraArtists((prev) => prev.filter((x) => x.name !== a.name))} className="text-white/40 hover:text-white/70 transition-colors">
+                      <X className="h-2.5 w-2.5" />
                     </button>
                   </span>
                 ))}
