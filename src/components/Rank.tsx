@@ -666,14 +666,23 @@ export default function Rank({ onAddShow, onViewAllShows }: RankProps) {
         </div>
       </div>
 
-      {/* Confirmation Ring */}
+      {/* Confirmation Ring or Complete badge */}
       <div className="flex justify-center">
-        <ConfirmationRing 
-          percentage={globalConfirmation} 
-          size="md" 
-          showLabel={true}
-          labelPosition="right"
-        />
+        {!effectivePair ? (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
+              <span className="text-primary text-sm">✓</span>
+            </div>
+            <span className="text-sm font-medium text-muted-foreground">Complete</span>
+          </div>
+        ) : (
+          <ConfirmationRing 
+            percentage={globalConfirmation} 
+            size="md" 
+            showLabel={true}
+            labelPosition="right"
+          />
+        )}
       </div>
 
       {!effectivePair ? (
