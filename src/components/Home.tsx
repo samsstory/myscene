@@ -462,23 +462,37 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         <WhatsNextStrip onPlanShow={() => setPlanShowOpen(true)} />
 
 
-        {/* Scene Feed + Popular on Scene side-by-side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-3">
+        {/* Scene Feed + Popular on Scene */}
+        <div className="space-y-5">
+          {/* Header row */}
+          <div className="flex items-center justify-between">
             <h3
               className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
               style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
             >
               Scene Feed
             </h3>
-            <FriendActivityFeed
-              items={activityItems}
-              isLoading={activityLoading}
-              hasFollowing={following.length > 0}
-              onFindFriends={() => setViewMode("friends")}
-            />
+            <button
+              onClick={() => {
+                const el = document.getElementById("popular-on-scene");
+                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="text-[11px] uppercase tracking-[0.2em] font-semibold text-primary/70 hover:text-primary transition-colors"
+            >
+              Popular on Scene ↓
+            </button>
           </div>
-          <div className="space-y-3">
+
+          {/* Feed */}
+          <FriendActivityFeed
+            items={activityItems}
+            isLoading={activityLoading}
+            hasFollowing={following.length > 0}
+            onFindFriends={() => setViewMode("friends")}
+          />
+
+          {/* Popular on Scene section */}
+          <div id="popular-on-scene" className="space-y-3 pt-2">
             <h3
               className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
               style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
