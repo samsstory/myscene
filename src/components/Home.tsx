@@ -10,6 +10,7 @@ import { ChevronRight, ArrowUpDown, ArrowLeft, Plus, Search, X, UserCircle, Tag,
 import ContentPillNav, { type ContentView } from "./home/ContentPillNav";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
+import { useShows, type Show, type ShowRanking } from "@/hooks/useShows";
 import { usePlanUpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import UpcomingShowDetailSheet from "@/components/home/UpcomingShowDetailSheet";
 import ScheduleView from "@/components/home/ScheduleView";
@@ -49,39 +50,7 @@ import { useFriendUpcomingShows } from "@/hooks/useFriendUpcomingShows";
 import { Skeleton } from "./ui/skeleton";
 import FriendsPanelView from "./home/FriendsPanelView";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-  imageUrl?: string;
-  spotifyId?: string;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: {
-    name: string;
-    location: string;
-  };
-  date: string;
-  datePrecision?: string;
-  tags?: string[];
-  notes?: string | null;
-  venueId?: string | null;
-  latitude?: number;
-  longitude?: number;
-  photo_url?: string | null;
-  photo_declined?: boolean;
-  eventName?: string | null;
-  eventDescription?: string | null;
-  showType?: string;
-}
-
-interface ShowRanking {
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+// Types are now imported from @/hooks/useShows
 
 type ViewMode = ContentView;
 
@@ -100,8 +69,8 @@ interface HomeProps {
 }
 
 const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef, onViewChange }: HomeProps) => {
-  const [shows, setShows] = useState<Show[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { stats, statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
+  const { shows, loading, rankings, fetchShows, deleteShow: handleDeleteShow, deleteConfirmShow, setDeleteConfirmShow, isDeleting, getShowRankInfo } = useShows({ onRealtimeChange: refetchStats });
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
   const [editShow, setEditShow] = useState<Show | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -125,8 +94,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [attentionFilterActive, setAttentionFilterActive] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState<"all" | "set" | "show" | "festival">("all");
   const [rankingsSearch, setRankingsSearch] = useState("");
-  const [rankings, setRankings] = useState<ShowRanking[]>([]);
-  const [deleteConfirmShow, setDeleteConfirmShow] = useState<Show | null>(null);
   const [floatingSearchOpen, setFloatingSearchOpen] = useState(false);
   const [searchBarHidden, setSearchBarHidden] = useState(false);
   const searchBarRef = useRef<HTMLDivElement>(null);
@@ -158,7 +125,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       setSearchBarHidden(false);
     }
   }, [viewMode]);
-  const [isDeleting, setIsDeleting] = useState(false);
+  
 
   // Direct photo editor state for feed cards
   const [directEditShow, setDirectEditShow] = useState<Show | null>(null);
@@ -201,7 +168,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   // Calendar: Friends overlay toggle + friends-on-day sheet
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
 
-  const { stats, statPills, insights, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   const { upcomingShows, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
   const { following, followers } = useFollowers();
   const followingIds = useMemo(() => following.map((f) => f.id), [following]);
@@ -256,141 +222,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     }
   };
 
-  useEffect(() => {
-    fetchShows();
-
-    const channel = supabase.channel('shows_changes').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'shows'
-    }, () => {
-      fetchShows();
-      refetchStats();
-    }).subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetchStats]);
-
-  // Effect to open ShowReviewSheet when openShowId is provided
-  useEffect(() => {
-    if (openShowId && shows.length > 0) {
-      const showToOpen = shows.find((s) => s.id === openShowId);
-      if (showToOpen) {
-        setReviewShow(showToOpen);
-        setReviewSheetOpen(true);
-        onShowOpened?.();
-      }
-    }
-  }, [openShowId, shows, onShowOpened]);
-
-  const handleDeleteShow = async () => {
-    if (!deleteConfirmShow) return;
-
-    setIsDeleting(true);
-    try {
-      await supabase.from('show_artists').delete().eq('show_id', deleteConfirmShow.id);
-      await supabase.from('show_rankings').delete().eq('show_id', deleteConfirmShow.id);
-      await supabase.from('show_comparisons').delete().or(`show1_id.eq.${deleteConfirmShow.id},show2_id.eq.${deleteConfirmShow.id}`);
-
-      const { error } = await supabase.from('shows').delete().eq('id', deleteConfirmShow.id);
-      if (error) throw error;
-
-      toast.success('Show deleted');
-      setShows((prev) => prev.filter((s) => s.id !== deleteConfirmShow.id));
-    } catch (error) {
-      console.error('Error deleting show:', error);
-      toast.error('Failed to delete show');
-    } finally {
-      setIsDeleting(false);
-      setDeleteConfirmShow(null);
-    }
-  };
-
-  const fetchShows = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setShows([]);
-        setLoading(false);
-        return;
-      }
-
-      const { data: showsData, error: showsError } = await supabase.
-      from('shows').
-      select(`*, venues (latitude, longitude)`).
-      eq('user_id', user.id).
-      order('show_date', { ascending: false });
-
-      if (showsError) throw showsError;
-
-      const { data: rankingsData, error: rankingsError } = await supabase.
-      from('show_rankings').
-      select('show_id, elo_score, comparisons_count').
-      eq('user_id', user.id);
-
-      if (!rankingsError) {
-        setRankings(rankingsData || []);
-      }
-
-      const showsWithArtists = await Promise.all((showsData || []).map(async (show) => {
-        const { data: artistsData } = await supabase.from('show_artists').select('*').eq('show_id', show.id);
-        const { data: tagsData } = await supabase.from('show_tags').select('tag').eq('show_id', show.id);
-        return {
-          id: show.id,
-          artists: (artistsData || []).map((a) => ({ name: a.artist_name, isHeadliner: a.is_headliner, imageUrl: (a as any).artist_image_url || undefined, spotifyId: (a as any).spotify_artist_id || undefined })),
-          venue: { name: show.venue_name, location: show.venue_location || '' },
-          date: show.show_date,
-          datePrecision: show.date_precision,
-          tags: (tagsData || []).map((t) => t.tag),
-          notes: show.notes,
-          venueId: show.venue_id,
-          latitude: show.venues?.latitude,
-          longitude: show.venues?.longitude,
-          photo_url: show.photo_url,
-          photo_declined: show.photo_declined,
-          eventName: show.event_name,
-          eventDescription: (show as any).event_description,
-          showType: show.show_type
-        };
-      }));
-
-      setShows(showsWithArtists);
-    } catch (error) {
-      console.error('Error fetching shows:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getAllShowsSortedByElo = useCallback(() => {
-    const rankingMap = new Map(rankings.map((r) => [r.show_id, r.elo_score]));
-    return [...shows].sort((a, b) => {
-      const eloA = rankingMap.get(a.id) || 1200;
-      const eloB = rankingMap.get(b.id) || 1200;
-      if (eloB !== eloA) return eloB - eloA;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    }).map((s) => s.id);
-  }, [shows, rankings]);
-
-  const getShowRankInfo = useCallback((showId: string, sortedShowIds?: string[]) => {
-    const rankingMap = new Map(rankings.map((r) => [r.show_id, r]));
-    const ranking = rankingMap.get(showId);
-    const effectiveSortedIds = sortedShowIds || getAllShowsSortedByElo();
-    const position = effectiveSortedIds.indexOf(showId) + 1;
-    const total = effectiveSortedIds.length;
-
-    if (!ranking || ranking.comparisons_count === 0) {
-      return { position: null, total, comparisonsCount: 0 };
-    }
-
-    return {
-      position: position > 0 ? position : null,
-      total,
-      comparisonsCount: ranking.comparisons_count
-    };
-  }, [rankings, getAllShowsSortedByElo]);
 
   const getSortedShows = useCallback(() => {
     let filteredShows = shows;
@@ -1145,7 +976,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             const { error } = await supabase.from('shows').delete().eq('id', showId);
             if (error) throw error;
             toast.success('Show deleted');
-            setShows((prev) => prev.filter((s) => s.id !== showId));
+            fetchShows();
           } catch (error) {
             console.error('Error deleting show:', error);
             toast.error('Failed to delete show');
