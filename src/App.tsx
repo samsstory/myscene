@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
 import IndexV2 from "./pages/IndexV2";
 import InstallBanner from "./components/pwa/InstallBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -32,7 +31,6 @@ const App = () => (
             <Suspense fallback={null}>
               <Routes>
                 <Route path="/" element={<IndexV2 />} />
-                <Route path="/landing-v1" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/demo" element={<Demo />} />
