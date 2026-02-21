@@ -826,26 +826,47 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
                     <CardContent className="p-4 relative">
                       <div className="flex gap-4 pr-2">
-                        {/* Thumbnail */}
-                        {show.photo_url ?
-                      <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/10">
-                            <img src={show.photo_url} alt="Show photo" className="w-full h-full object-cover" />
-                          </div> :
-
-                      <div
-                        className="relative w-20 h-20 rounded-xl bg-white/[0.05] flex items-center justify-center flex-shrink-0 border border-white/[0.08] group cursor-pointer hover:bg-white/[0.08] transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQuickPhotoShow(show);
-                          setQuickPhotoOpen(true);
-                        }}>
-
-                            <span className="text-2xl text-white/40 select-none" style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}>✦</span>
-                            <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-primary/80 flex items-center justify-center shadow-lg opacity-70 group-hover:opacity-100 transition-opacity">
-                              <Plus className="h-3 w-3 text-primary-foreground" />
+                        {/* Thumbnail - three-tier fallback: user photo > artist image > placeholder */}
+                        {(() => {
+                          const headliner = show.artists?.find(a => a.isHeadliner) || show.artists?.[0];
+                          const displayImage = show.photo_url || headliner?.imageUrl;
+                          
+                          if (displayImage) {
+                            return (
+                              <div
+                                className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/10 group cursor-pointer"
+                                onClick={(e) => {
+                                  if (!show.photo_url) {
+                                    e.stopPropagation();
+                                    setQuickPhotoShow(show);
+                                    setQuickPhotoOpen(true);
+                                  }
+                                }}>
+                                <img src={displayImage} alt="Show photo" className={cn("w-full h-full object-cover", !show.photo_url && "scale-110")} />
+                                {!show.photo_url && (
+                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Plus className="h-4 w-4 text-white/80" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div
+                              className="relative w-20 h-20 rounded-xl bg-white/[0.05] flex items-center justify-center flex-shrink-0 border border-white/[0.08] group cursor-pointer hover:bg-white/[0.08] transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuickPhotoShow(show);
+                                setQuickPhotoOpen(true);
+                              }}>
+                              <span className="text-2xl text-white/40 select-none" style={{ textShadow: "0 0 8px rgba(255,255,255,0.3)" }}>✦</span>
+                              <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-primary/80 flex items-center justify-center shadow-lg opacity-70 group-hover:opacity-100 transition-opacity">
+                                <Plus className="h-3 w-3 text-primary-foreground" />
+                              </div>
                             </div>
-                          </div>
-                      }
+                          );
+                        })()}
 
                         <div className="min-w-0 flex-1 space-y-1">
                           {/* Artist name */}
