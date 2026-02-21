@@ -131,16 +131,33 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [floatingSearchOpen, setFloatingSearchOpen] = useState(false);
   const [searchBarHidden, setSearchBarHidden] = useState(false);
   const searchBarRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Track when the search bar scrolls out of view
+  // Callback ref to attach IntersectionObserver when the search bar mounts
+  const searchBarCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    // Disconnect previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    searchBarRef.current = node;
+    if (node) {
+      const observer = new IntersectionObserver(
+        ([entry]) => setSearchBarHidden(!entry.isIntersecting),
+        { threshold: 0 }
+      );
+      observer.observe(node);
+      observerRef.current = observer;
+    } else {
+      setSearchBarHidden(false);
+    }
+  }, []);
+
+  // Reset when leaving rankings view
   useEffect(() => {
-    if (!searchBarRef.current || viewMode !== 'rankings') return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setSearchBarHidden(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-    observer.observe(searchBarRef.current);
-    return () => observer.disconnect();
+    if (viewMode !== 'rankings') {
+      setSearchBarHidden(false);
+    }
   }, [viewMode]);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -665,7 +682,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
         {/* Search bar — hidden when attention filter active */}
         {!attentionFilterActive && (
-          <div className="relative" ref={searchBarRef}>
+          <div className="relative" ref={searchBarCallbackRef}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
             <input
               type="text"
