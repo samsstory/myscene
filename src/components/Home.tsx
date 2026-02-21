@@ -1365,7 +1365,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             onClick={() => setFloatingSearchOpen(true)}
-            className="fixed bottom-24 left-5 z-40 w-12 h-12 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.16] flex items-center justify-center shadow-lg hover:bg-white/[0.14] hover:border-white/[0.22] transition-colors active:scale-95"
+            className="fixed bottom-36 right-5 z-40 w-12 h-12 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.16] flex items-center justify-center shadow-lg hover:bg-white/[0.14] hover:border-white/[0.22] transition-colors active:scale-95"
           >
             <Search className="h-5 w-5 text-foreground/80" />
           </motion.button>
