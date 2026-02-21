@@ -21,7 +21,3 @@ export function formatShowDate(dateStr: string, datePrecision?: string | null): 
   return format(date, isCurrentYear ? "MMM d" : "MMM d, yyyy");
 }
 
-// Legacy: calculateShowScore and getScoreGradient are deprecated.
-// The tag-based system replaces numerical ratings.
-export const calculateShowScore = (): number => 0;
-export const getScoreGradient = (): string => "from-primary to-primary/70";
