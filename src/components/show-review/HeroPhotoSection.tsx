@@ -7,10 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatShowDate } from "@/lib/utils";
 
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
+import type { BaseArtist as Artist } from "@/types/show";
 
 interface HeroPhotoSectionProps {
   photoUrl: string | null;

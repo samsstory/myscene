@@ -24,34 +24,7 @@ import { useDemoData } from "@/hooks/useDemoData";
 import { useDemoMode } from "@/contexts/DemoContext";
 import { Music, Calendar, Trophy, Globe, Flame } from "lucide-react";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: {
-    name: string;
-    location: string;
-  };
-  date: string;
-  datePrecision?: string;
-  tags?: string[];
-  notes?: string | null;
-  venueId?: string | null;
-  latitude?: number;
-  longitude?: number;
-  photo_url?: string | null;
-  isLocalDemo?: boolean; // Flag for demo-created shows
-}
-
-interface ShowRanking {
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+import type { Show, ShowRanking } from "@/types/show";
 
 type ViewMode = 'home' | 'calendar' | 'rankings' | 'globe';
 

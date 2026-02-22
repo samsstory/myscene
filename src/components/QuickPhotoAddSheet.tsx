@@ -6,22 +6,7 @@ import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-  imageUrl?: string;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: {
-    name: string;
-    location: string;
-  };
-  date: string;
-  photo_url?: string | null;
-}
+import type { Show } from "@/types/show";
 
 interface QuickPhotoAddSheetProps {
   show: Show | null;

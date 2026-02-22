@@ -3,10 +3,7 @@ import { X, Loader2, Music } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
+import type { BaseArtist as Artist } from "@/types/show";
 
 interface SearchResult {
   type: 'artist' | 'venue';

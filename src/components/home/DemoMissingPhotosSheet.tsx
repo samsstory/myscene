@@ -9,21 +9,7 @@ import { cn } from "@/lib/utils";
 import { format, parseISO, isSameDay, differenceInDays } from "date-fns";
 import { extractExifData } from "@/lib/exif-utils";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: {
-    name: string;
-    location: string;
-  };
-  date: string;
-  photo_url?: string | null;
-}
+import type { Show } from "@/types/show";
 
 interface ShowWithoutPhoto {
   id: string;

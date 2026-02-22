@@ -10,12 +10,7 @@ import ArtistTagInput from "./ArtistTagInput";
 import CompactDateSelector, { DatePrecision } from "./CompactDateSelector";
 import { ParsedShow } from "./TextImportStep";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-  imageUrl?: string;
-  spotifyId?: string;
-}
+import type { Artist } from "@/types/show";
 
 interface ReviewedTextShow {
   id: string;

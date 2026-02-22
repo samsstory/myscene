@@ -11,26 +11,7 @@ import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import type { FriendShow } from "@/hooks/useFriendUpcomingShows";
 import type { FollowerProfile } from "@/hooks/useFollowers";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-  imageUrl?: string;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: { name: string; location: string };
-  date: string;
-  photo_url?: string | null;
-  tags?: string[];
-}
-
-interface ShowRanking {
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+import type { Show, ShowRanking } from "@/types/show";
 
 interface ScheduleViewProps {
   shows: Show[];

@@ -4,33 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Music2 } from "lucide-react";
 import StackedShowCard from "./StackedShowCard";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: {
-    name: string;
-    location: string;
-  };
-  date: string;
-  datePrecision?: string | null;
-  rating?: number | null;
-  photo_url?: string | null;
-  tags?: string[];
-  isLocalDemo?: boolean;
-  eventName?: string | null;
-  eventDescription?: string | null;
-}
-
-interface RankInfo {
-  position: number | null;
-  total: number;
-  comparisonsCount: number;
-}
+import type { Show, RankInfo } from "@/types/show";
 
 interface StackedShowListProps {
   shows: Show[];

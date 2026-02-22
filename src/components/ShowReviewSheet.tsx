@@ -23,29 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: { name: string; location: string };
-  date: string;
-  rating?: number | null;
-  datePrecision?: string;
-  tags?: string[];
-  notes?: string | null;
-  venueId?: string | null;
-  photo_url?: string | null;
-}
-
-interface ShowRanking {
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+import type { Show, ShowRanking } from "@/types/show";
 
 interface ShowReviewSheetProps {
   show: Show | null;
