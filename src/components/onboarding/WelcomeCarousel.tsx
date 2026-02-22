@@ -38,10 +38,10 @@ const HeroMockup = () => (
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
 
-      {/* Friends going badge */}
+      {/* Friends badge */}
       <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-white/90 text-black text-[9px] font-semibold px-2 py-0.5 rounded-full">
         <Users className="w-2.5 h-2.5" />
-        3 friends going
+        3 friends were there
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -68,7 +68,7 @@ const HeroMockup = () => (
         ))}
       </div>
       <span className="text-[9px] text-muted-foreground/50">
-        Sarah, Mike + 1 more also went
+        Sarah, Mike + 1 more were there too
       </span>
     </div>
   </div>
