@@ -17,10 +17,10 @@ interface ContentPillNavProps {
 }
 
 const PILLS: PillNavItem[] = [
-  { id: "home", label: "My Scene" },
+  { id: "home", label: "Home" },
   { id: "calendar", label: "Schedule" },
   { id: "rankings", label: "My Shows" },
-  { id: "rank", label: "H2H" },
+  { id: "rank", label: "Rank" },
   { id: "friends", label: "Friends" },
   { id: "globe", label: "Globe" },
 ];
@@ -41,7 +41,7 @@ export default function ContentPillNav({ activeView, onViewChange, rankNudge }: 
             <motion.button
               key={pill.id}
               whileTap={{ scale: 0.93 }}
-              onClick={() => onViewChange(pill.id)}
+              onClick={() => { navigator.vibrate?.(6); onViewChange(pill.id); }}
               className={cn(
                 "relative flex-shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 border",
                 isActive
