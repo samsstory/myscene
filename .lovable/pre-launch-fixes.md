@@ -90,7 +90,7 @@ Phase 1A (SpotlightTour)  →  1B (BulkUpload nav)  →  1C (Dual calendar)
 | 1A. SpotlightTour | ⬜ Todo |
 | 1B. BulkUpload → Rank nav | ✅ Done |
 | 1C. Dual calendar removal | ✅ Done (resolved during Home decomposition) |
-| 2A. WelcomeCarousel rewrite | ⬜ Todo |
+| 2A. WelcomeCarousel rewrite | ✅ Done |
 | 2B. Empty state messaging | ✅ Done |
 | 3A. Remove hardcoded demo data | ⬜ Todo |
 | 3B. Fix FriendTeaser direction | ⬜ Todo |
