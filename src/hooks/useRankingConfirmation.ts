@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface ShowRanking {
-  show_id: string;
-  comparisons_count: number;
-}
+type ShowRanking = Pick<import("@/types/show").ShowRanking, "show_id" | "comparisons_count">;
 
 interface RankingConfirmationData {
   globalPercentage: number;

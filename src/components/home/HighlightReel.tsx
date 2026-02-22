@@ -1,31 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn, formatShowDate } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
-
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-  imageUrl?: string;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: {
-    name: string;
-    location: string;
-  };
-  date: string;
-  datePrecision?: string | null;
-  photo_url?: string | null;
-  tags?: string[];
-}
-
-interface RankInfo {
-  position: number | null;
-  total: number;
-  comparisonsCount: number;
-}
+import type { Show, RankInfo } from "@/types/show";
 
 interface HighlightReelProps {
   shows: Show[];

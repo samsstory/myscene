@@ -6,9 +6,11 @@ import { X, Loader2, Music } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
+import type { Artist } from "@/types/show";
+
 interface ArtistsStepProps {
-  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string; spotifyId?: string }>;
-  onArtistsChange: (artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string; spotifyId?: string }>) => void;
+  artists: Artist[];
+  onArtistsChange: (artists: Artist[]) => void;
   onContinue: () => void;
   isEditing?: boolean;
   onSave?: () => void;

@@ -2,40 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { deleteShowById } from "@/lib/delete-show";
+import type { Artist, Show, ShowRanking } from "@/types/show";
 
-export interface Artist {
-  name: string;
-  isHeadliner: boolean;
-  imageUrl?: string;
-  spotifyId?: string;
-}
-
-export interface Show {
-  id: string;
-  artists: Artist[];
-  venue: {
-    name: string;
-    location: string;
-  };
-  date: string;
-  datePrecision?: string;
-  tags?: string[];
-  notes?: string | null;
-  venueId?: string | null;
-  latitude?: number;
-  longitude?: number;
-  photo_url?: string | null;
-  photo_declined?: boolean;
-  eventName?: string | null;
-  eventDescription?: string | null;
-  showType?: string;
-}
-
-export interface ShowRanking {
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+export type { Artist, Show, ShowRanking };
 
 interface UseShowsOptions {
   /** Called after realtime changes to refresh external stats */

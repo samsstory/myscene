@@ -13,10 +13,7 @@ import { Button } from "@/components/ui/button";
 import ArtistTagInput from "./ArtistTagInput";
 import CompactDateSelector from "./CompactDateSelector";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
+import type { BaseArtist as Artist } from "@/types/show";
 
 export type DatePrecision = "exact" | "approximate" | "unknown";
 

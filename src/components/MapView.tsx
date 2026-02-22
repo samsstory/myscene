@@ -26,16 +26,7 @@ import MapRightPanel from "./map/MapRightPanel";
 import MapYearToggle from "./map/MapYearToggle";
 import MapStatsCard from "./map/MapStatsCard";
 
-interface Show {
-  id: string;
-  artists: Array<{ name: string; isHeadliner: boolean; imageUrl?: string }>;
-  venue: { name: string; location: string };
-  date: string;
-  rating?: number | null;
-  latitude?: number;
-  longitude?: number;
-  photo_url?: string | null;
-}
+import type { Show } from "@/types/show";
 
 interface VenueGroup {
   venueKey: string;

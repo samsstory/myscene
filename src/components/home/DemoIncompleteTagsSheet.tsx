@@ -7,20 +7,7 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { TAG_CATEGORIES } from "@/lib/tag-constants";
 
-interface Artist {
-  name: string;
-  isHeadliner: boolean;
-}
-
-interface Show {
-  id: string;
-  artists: Artist[];
-  venue: { name: string; location: string };
-  date: string;
-  rating?: number | null;
-  tags?: string[];
-  photo_url?: string | null;
-}
+import type { Show } from "@/types/show";
 
 interface DemoIncompleteTagsSheetProps {
   open: boolean;
