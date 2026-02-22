@@ -7,28 +7,24 @@ import { useMultiTouchTransform } from "@/hooks/useMultiTouchTransform";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import html2canvas from "html2canvas";
-interface Artist {
+interface OverlayArtist {
   name: string;
   is_headliner: boolean;
 }
-interface Show {
+interface OverlayShow {
   id: string;
-  artists: Artist[];
+  artists: OverlayArtist[];
   venue_name: string;
   show_date: string;
   notes?: string;
   photo_url?: string;
   tags?: string[];
 }
-interface ShowRanking {
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+import type { ShowRanking } from "@/types/show";
 interface PhotoOverlayEditorProps {
-  show: Show;
+  show: OverlayShow;
   onClose: () => void;
-  allShows?: Show[];
+  allShows?: OverlayShow[];
   rankings?: ShowRanking[];
 }
 // Neutral overlay gradient (no longer rating-based)
@@ -194,7 +190,7 @@ export const PhotoOverlayEditor = ({
   };
 
   // Helper: Filter shows by time period
-  const filterShowsByTime = (shows: Show[], timeFilter: string) => {
+  const filterShowsByTime = (shows: OverlayShow[], timeFilter: string) => {
     if (timeFilter === "all-time") return shows;
     const now = new Date();
     const currentYear = now.getFullYear();

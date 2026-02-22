@@ -5,27 +5,10 @@
  * by 40-60% while focusing on high-information matchups.
  */
 
-export interface Show {
-  id: string;
-  venue_name: string;
-  show_date: string;
-  photo_url: string | null;
-  notes: string | null;
-  show_type?: string;
-  parent_show_id?: string | null;
-  tags?: string[];
-  artists: Array<{ artist_name: string; is_headliner: boolean; artist_image_url?: string | null }>;
-  // Legacy fields kept for backward compat (ignored)
-  rating?: number | null;
-  venue_location?: string;
-}
+import type { DbShow, DbShowRanking } from "@/types/show";
 
-export interface ShowRanking {
-  id: string;
-  show_id: string;
-  elo_score: number;
-  comparisons_count: number;
-}
+export type Show = DbShow;
+export type ShowRanking = DbShowRanking;
 
 export interface Comparison {
   show1_id: string;
