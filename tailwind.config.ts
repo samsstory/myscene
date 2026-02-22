@@ -137,7 +137,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Montserrat',
+  				'Source Sans Pro',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
