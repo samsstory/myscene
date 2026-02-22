@@ -8,7 +8,7 @@ import ContentPillNav, { type ContentView } from "./home/ContentPillNav";
 import MyShowsView from "./home/MyShowsView";
 import SceneView from "./home/SceneView";
 import TodoActionSheet from "./home/TodoActionSheet";
-import { supabase } from "@/integrations/supabase/client";
+import { deleteShowById } from "@/lib/delete-show";
 import { useShows, type Show } from "@/hooks/useShows";
 import { useHomeSheets } from "@/hooks/useHomeSheets";
 import { usePlanUpcomingShow } from "@/hooks/usePlanUpcomingShow";
@@ -266,12 +266,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         onShareToEditor={(show) => { sheets.setDirectEditShow(show); sheets.setDirectEditOpen(true); }}
         onDelete={async (showId) => {
           try {
-            await supabase.from('show_tags').delete().eq('show_id', showId);
-            await supabase.from('show_artists').delete().eq('show_id', showId);
-            await supabase.from('show_rankings').delete().eq('show_id', showId);
-            await supabase.from('show_comparisons').delete().or(`show1_id.eq.${showId},show2_id.eq.${showId}`);
-            const { error } = await supabase.from('shows').delete().eq('id', showId);
-            if (error) throw error;
+            await deleteShowById(showId);
             toast.success('Show deleted');
             fetchShows();
           } catch (error) {
