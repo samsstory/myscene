@@ -1,37 +1,29 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Home as HomeIcon, Plus, Music, CalendarDays, Bell } from "lucide-react";
-import { useHomeStats } from "@/hooks/useHomeStats";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Bell } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import Home from "@/components/Home";
 import type { ContentView } from "@/components/home/ContentPillNav";
 import Profile from "@/components/Profile";
 
-import AddShowFlow, { AddedShowData } from "@/components/AddShowFlow";
+import AddShowFlow from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
-import { AddedShowData as BulkAddedShowData } from "@/hooks/useBulkShowUpload";
 import AddChoiceSheet from "@/components/AddChoiceSheet";
 import PlanShowSheet from "@/components/home/PlanShowSheet";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
-import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
 import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 import CompareShowSheet from "@/components/CompareShowSheet";
+import BottomNav from "@/components/BottomNav";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
-import { cn } from "@/lib/utils";
 import SceneLogo from "@/components/ui/SceneLogo";
 import FeedbackSheet from "@/components/FeedbackSheet";
 import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
 import BugPromptBanner from "@/components/BugPromptBanner";
 import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
-
-// Soft haptic tap — silently ignored on desktop / unsupported browsers
-const haptic = () => { try { navigator.vibrate?.(6); } catch {} };
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -67,13 +59,7 @@ const Dashboard = () => {
   const showLoader = !dataReady;
 
   const { showReassurance, showPrompt, elapsedMs, dismiss: dismissSlowLoad } = useSlowLoadDetector(showLoader);
-  const { prompt, dismissPrompt, openReport: _openReport, reportOpen, setReportOpen } = useBugReportPrompt();
-  const { stats } = useHomeStats();
-
-  // Only elevate z-index for FAB during tour step 0 (first step)
-  const shouldElevateNavZ = showSpotlightTour && tourStepIndex === 0;
-  // Step 3 (index 2) targets the Shows stat pill
-  const showsTourActive = showSpotlightTour && tourStepIndex === 2;
+  const { prompt, dismissPrompt, promptBugReport } = useBugReportPrompt();
 
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
@@ -178,7 +164,6 @@ const Dashboard = () => {
   }, [loading]);
 
   // Listen for API error events from data hooks
-  const { promptBugReport } = useBugReportPrompt();
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -264,7 +249,7 @@ const Dashboard = () => {
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
-            showsTourActive={showsTourActive}
+            showsTourActive={showSpotlightTour && tourStepIndex === 2}
             showsRef={showsStatRef}
             onViewChange={(v) => setHomeView(v)}
           />
@@ -277,144 +262,23 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* Floating Navigation */}
-      <div className={cn(
-        "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4 pb-safe",
-        shouldElevateNavZ ? "z-[10001]" : "z-50"
-      )}>
-        {/* Left spacer */}
-        <div className="w-0 shrink-0" />
-
-        {/* Glass Pill Navigation — Home | Schedule | Feedback | Profile */}
-        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-3 shadow-2xl">
-          <div className="flex items-center gap-8">
-            {/* Home */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              onClick={() => {
-                haptic();
-                setActiveTab("home");
-                // Force the effect to fire even if homeView is already "home"
-                setHomeView(prev => prev === "home" ? "" as ContentView : prev);
-                requestAnimationFrame(() => setHomeView("home"));
-              }}
-              className={cn(
-                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
-                activeTab === "home" && homeView === "home"
-                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
-                  : "text-white/60"
-              )}
-            >
-              <HomeIcon className="h-6 w-6" />
-            </motion.button>
-
-            {/* Schedule */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              onClick={() => { haptic(); setActiveTab("home"); setHomeView("calendar"); }}
-              className={cn(
-                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
-                activeTab === "home" && homeView === "calendar"
-                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
-                  : "text-white/60"
-              )}
-              aria-label="Schedule"
-            >
-              <CalendarDays className="h-6 w-6" />
-            </motion.button>
-
-            {/* Feedback */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              onClick={() => { haptic(); setFeedbackOpen(true); }}
-              className={cn(
-                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
-                feedbackOpen
-                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
-                  : "text-white/60 hover:text-white/90"
-              )}
-              aria-label="Share feedback"
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </motion.button>
-
-            {/* Profile */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              onClick={() => { haptic(); setActiveTab("profile"); }}
-              className={cn(
-                "flex flex-col items-center gap-0.5 transition-colors py-1.5",
-                activeTab === "profile"
-                  ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]"
-                  : "text-white/60"
-              )}
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-            </motion.button>
-          </div>
-        </nav>
-
-        {/* Floating Rank target for tour step 2 (index 1) */}
-        {/* Floating Shows stat pill target for tour step 3 (index 2) */}
-        <FloatingTourTarget active={showsTourActive} targetRef={showsStatRef} dataTour="stat-shows">
-          <div 
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.08] border border-white/20"
-            style={{
-              boxShadow: "0 0 12px hsl(var(--primary) / 0.4), 0 0 24px hsl(var(--primary) / 0.2)",
-            }}
-          >
-            <Music 
-              className="h-4 w-4 text-primary" 
-              style={{ 
-                filter: "drop-shadow(0 0 6px hsl(var(--primary) / 0.9))" 
-              }} 
-            />
-            <div className="flex flex-col items-start">
-              <span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">
-                Shows
-              </span>
-              <span 
-                className="text-lg font-bold text-white/90"
-                style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}
-              >
-                {/* Use placeholder; the actual count comes from the original pill */}
-                –
-              </span>
-            </div>
-          </div>
-        </FloatingTourTarget>
-
-        {/* FAB — add show */}
-        <div className={cn("flex flex-col items-center gap-3", showSpotlightTour && "z-[10001]")}>
-          <button
-            onClick={() => {
-              if (showSpotlightTour) return;
-              haptic();
-              setShowAddChoice(true);
-            }}
-            data-tour="fab"
-            className={cn(
-              "relative overflow-hidden backdrop-blur-xl rounded-full p-5 shadow-[0_0_30px_hsl(189_94%_55%/0.4),0_0_60px_hsl(189_94%_55%/0.15)] transition-all hover:scale-110 active:scale-95 hover:shadow-[0_0_40px_hsl(189_94%_55%/0.6),0_0_80px_hsl(189_94%_55%/0.25)]",
-              "bg-gradient-to-br from-primary via-primary to-[hsl(250,80%,60%)] border border-white/20",
-              showSpotlightTour ? "z-[10001]" : "z-50"
-            )}
-          >
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-500" />
-            <Plus className="h-9 w-9 text-primary-foreground relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" />
-          </button>
-        </div>
-      </div>
+      <BottomNav
+        activeTab={activeTab}
+        homeView={homeView}
+        feedbackOpen={feedbackOpen}
+        showSpotlightTour={showSpotlightTour}
+        tourStepIndex={tourStepIndex}
+        showsStatRef={showsStatRef}
+        onHomePress={() => {
+          setActiveTab("home");
+          setHomeView(prev => prev === "home" ? "" as ContentView : prev);
+          requestAnimationFrame(() => setHomeView("home"));
+        }}
+        onCalendarPress={() => { setActiveTab("home"); setHomeView("calendar"); }}
+        onFeedbackPress={() => setFeedbackOpen(true)}
+        onProfilePress={() => setActiveTab("profile")}
+        onAddPress={() => setShowAddChoice(true)}
+      />
 
       <AddShowFlow 
         open={showAddDialog} 
