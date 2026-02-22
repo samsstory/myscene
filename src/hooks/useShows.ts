@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { deleteShowById } from "@/lib/delete-show";
 
 export interface Artist {
   name: string;
@@ -114,12 +115,7 @@ export function useShows({ onRealtimeChange }: UseShowsOptions = {}) {
 
     setIsDeleting(true);
     try {
-      await supabase.from('show_artists').delete().eq('show_id', deleteConfirmShow.id);
-      await supabase.from('show_rankings').delete().eq('show_id', deleteConfirmShow.id);
-      await supabase.from('show_comparisons').delete().or(`show1_id.eq.${deleteConfirmShow.id},show2_id.eq.${deleteConfirmShow.id}`);
-
-      const { error } = await supabase.from('shows').delete().eq('id', deleteConfirmShow.id);
-      if (error) throw error;
+      await deleteShowById(deleteConfirmShow.id);
 
       toast.success('Show deleted');
       setShows((prev) => prev.filter((s) => s.id !== deleteConfirmShow.id));
