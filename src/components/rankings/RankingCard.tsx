@@ -1,21 +1,8 @@
 import { cn } from "@/lib/utils";
-
-interface Artist {
-  artist_name: string;
-  is_headliner: boolean;
-  artist_image_url?: string | null;
-}
+import type { DbArtist, DbShow } from "@/types/show";
 
 interface RankingCardProps {
-  show: {
-    id: string;
-    venue_name: string;
-    show_date: string;
-    photo_url: string | null;
-    notes?: string | null;
-    tags?: string[];
-    artists: Artist[];
-  };
+  show: DbShow;
   onClick: () => void;
   disabled?: boolean;
   position?: "left" | "right";
