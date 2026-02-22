@@ -41,7 +41,7 @@ const HeroMockup = () => (
       {/* Friends badge */}
       <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-white/90 text-black text-[9px] font-semibold px-2 py-0.5 rounded-full">
         <Users className="w-2.5 h-2.5" />
-        3 friends were there
+        3 friends going
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -52,7 +52,7 @@ const HeroMockup = () => (
           Fred again..
         </div>
         <div className="text-white/70 text-[11px]">Alexandra Palace · London</div>
-        <div className="text-white/40 text-[9px] mt-0.5">September 2023</div>
+        <div className="text-white/40 text-[9px] mt-0.5">March 2025</div>
       </div>
     </div>
 
@@ -68,7 +68,7 @@ const HeroMockup = () => (
         ))}
       </div>
       <span className="text-[9px] text-muted-foreground/50">
-        Sarah, Mike + 1 more were there too
+        Sarah, Mike + 1 more are going too
       </span>
     </div>
   </div>
