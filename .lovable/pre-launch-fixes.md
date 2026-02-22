@@ -93,7 +93,7 @@ Phase 1A (SpotlightTour)  →  1B (BulkUpload nav)  →  1C (Dual calendar)
 | 2A. WelcomeCarousel rewrite | ✅ Done |
 | 2B. Empty state messaging | ✅ Done |
 | 3A. Remove hardcoded demo data | ⬜ Todo |
-| 3B. Fix FriendTeaser direction | ⬜ Todo |
+| 3B. Fix FriendTeaser direction | ✅ Done |
 | 3C. Remove dead code | ⬜ Todo |
 | 4A. Pill naming review | ⬜ Todo |
 | 4B. Micro-interactions | ⬜ Todo |
