@@ -119,7 +119,8 @@ const StackedShowList = ({ shows, getRankInfo, onShowTap, onShowShare }: Stacked
               ✦
             </span>
           </div>
-          <p className="text-muted-foreground">No shows yet. Add your first concert!</p>
+          <p className="text-muted-foreground font-medium mb-1">Your scene starts here</p>
+          <p className="text-sm text-muted-foreground/60">Add a show and invite friends to see what they're going to</p>
         </CardContent>
       </Card>
     );

@@ -341,11 +341,12 @@ export default function ScheduleView({
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <CalendarDays className="w-8 h-8 text-muted-foreground/20 mb-2" />
             <p className="text-sm text-muted-foreground/40">No shows this month</p>
+            <p className="text-xs text-muted-foreground/30 mt-1">Add upcoming shows and share your schedule with friends</p>
             <button
               onClick={onPlanShow}
-              className="mt-2 text-xs text-primary/50 hover:text-primary transition-colors font-medium"
+              className="mt-3 text-xs text-primary/50 hover:text-primary transition-colors font-medium"
             >
-              + Plan one
+              + Plan a show
             </button>
           </div>
         ) : (
@@ -564,9 +565,12 @@ export default function ScheduleView({
                     {isDayPast ? "No shows this day" : isDayToday ? "Nothing planned today" : "Nothing planned yet"}
                   </p>
                   {isDayFuture && (
-                    <button onClick={onPlanShow} className="mt-3 text-xs text-primary/60 hover:text-primary transition-colors font-medium">
-                      + Add a show for this day
-                    </button>
+                    <>
+                      <p className="text-xs text-muted-foreground/40 mt-1">Share your plans so friends can join</p>
+                      <button onClick={onPlanShow} className="mt-3 text-xs text-primary/60 hover:text-primary transition-colors font-medium">
+                        + Add a show for this day
+                      </button>
+                    </>
                   )}
                 </div>
               )}
