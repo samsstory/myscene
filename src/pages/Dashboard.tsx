@@ -1,29 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Bell } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import Home from "@/components/Home";
 import type { ContentView } from "@/components/home/ContentPillNav";
+import Home from "@/components/Home";
 import Profile from "@/components/Profile";
-
-import AddShowFlow from "@/components/AddShowFlow";
-import BulkUploadFlow from "@/components/BulkUploadFlow";
-import AddChoiceSheet from "@/components/AddChoiceSheet";
-import PlanShowSheet from "@/components/home/PlanShowSheet";
-import SpotlightTour from "@/components/onboarding/SpotlightTour";
-import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
-import BrandedLoader from "@/components/ui/BrandedLoader";
-import CompareShowSheet from "@/components/CompareShowSheet";
 import BottomNav from "@/components/BottomNav";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import DashboardLoadingState from "@/components/dashboard/DashboardLoadingState";
+import DashboardSheets from "@/components/dashboard/DashboardSheets";
+import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
-import SceneLogo from "@/components/ui/SceneLogo";
-import FeedbackSheet from "@/components/FeedbackSheet";
 import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
-import BugPromptBanner from "@/components/BugPromptBanner";
-import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -54,10 +43,7 @@ const Dashboard = () => {
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
   const pendingAddFlowRef = useRef(false);
 
-  // Loading = data not ready, or quote is being held for readability
-  const loading = !dataReady || quoteHoldActive;
   const showLoader = !dataReady;
-
   const { showReassurance, showPrompt, elapsedMs, dismiss: dismissSlowLoad } = useSlowLoadDetector(showLoader);
   const { prompt, dismissPrompt, promptBugReport } = useBugReportPrompt();
 
@@ -71,24 +57,19 @@ const Dashboard = () => {
     const showId = searchParams.get("show");
     const showType = (searchParams.get("type") as "logged" | "upcoming") || "logged";
     if (isInvite && showId) {
-      // Read from localStorage — survives magic link new-tab navigation
       const highlights = JSON.parse(localStorage.getItem("invite_highlights") || "[]");
       const note = localStorage.getItem("invite_note") || "";
       setInviteShowId(showId);
       setInviteShowType(showType);
       setInviteHighlights(highlights);
       setInviteNote(note);
-      // Clean up localStorage now that we've consumed the invite context
       localStorage.removeItem("invite_show_id");
       localStorage.removeItem("invite_show_type");
       localStorage.removeItem("invite_highlights");
       localStorage.removeItem("invite_note");
       localStorage.removeItem("invite_ref");
-      // Cancel any pending onboarding add-show flow so it doesn't race with compare sheet
       pendingAddFlowRef.current = false;
-      // Small delay so dashboard has rendered
       setTimeout(() => setShowCompareSheet(true), 600);
-      // Clean up URL params
       setSearchParams({}, { replace: true });
     }
   }, [dataReady, searchParams, setSearchParams]);
@@ -110,7 +91,6 @@ const Dashboard = () => {
       }
     };
 
-    // Listener for ONGOING auth changes — skip INITIAL_SESSION (handled by initializeAuth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
@@ -124,12 +104,10 @@ const Dashboard = () => {
       }
     );
 
-    // Safety valve: force loading off after 10s
     const timeout = setTimeout(() => {
-      if (isMounted) { setDataReady(true); }
+      if (isMounted) setDataReady(true);
     }, 10000);
 
-    // INITIAL load (controls loading)
     const initializeAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -157,11 +135,12 @@ const Dashboard = () => {
 
   // Open add flow once dashboard has rendered for new users
   useEffect(() => {
+    const loading = !dataReady || quoteHoldActive;
     if (!loading && pendingAddFlowRef.current) {
       pendingAddFlowRef.current = false;
       setShowUnifiedAdd(true);
     }
-  }, [loading]);
+  }, [dataReady, quoteHoldActive]);
 
   // Listen for API error events from data hooks
   useEffect(() => {
@@ -173,72 +152,29 @@ const Dashboard = () => {
     return () => window.removeEventListener("bug-report-api-error", handler);
   }, [promptBugReport]);
 
-
-
   if (!dataReady || quoteHoldActive) {
     return (
-      <>
-        <BrandedLoader fullScreen showReassurance={showReassurance} onQuoteVisible={() => setQuoteHoldActive(true)} onReadyToDismiss={() => setQuoteHoldActive(false)} />
-        <BugPromptBanner
-          visible={showPrompt}
-          message={`Things are taking longer than usual (${(elapsedMs / 1000).toFixed(1)}s). Want to let us know?`}
-          onReport={() => {
-            dismissSlowLoad();
-            setFeedbackOpen(true);
-          }}
-          onDismiss={dismissSlowLoad}
-        />
-        <FeedbackSheet
-          open={feedbackOpen}
-          onOpenChange={setFeedbackOpen}
-          prefillDescription={`Page took ${(elapsedMs / 1000).toFixed(1)}s to load on ${window.location.pathname}`}
-          errorContext={{ duration_ms: elapsedMs, page: window.location.pathname }}
-        />
-      </>
+      <DashboardLoadingState
+        showReassurance={showReassurance}
+        showPrompt={showPrompt}
+        elapsedMs={elapsedMs}
+        onQuoteVisible={() => setQuoteHoldActive(true)}
+        onReadyToDismiss={() => setQuoteHoldActive(false)}
+        onDismissSlowLoad={dismissSlowLoad}
+        feedbackOpen={feedbackOpen}
+        onFeedbackOpenChange={setFeedbackOpen}
+      />
     );
   }
 
-  if (!session) {
-    return null;
-  }
-
-  const handleSpotlightTourComplete = async () => {
-    if (session) {
-      await supabase
-        .from("profiles")
-        .update({ onboarding_step: "completed" })
-        .eq("id", session.user.id);
-    }
-    setShowSpotlightTour(false);
-  };
-
+  if (!session) return null;
 
   return (
     <div className="min-h-screen bg-gradient-accent pb-24">
-      {/* Dev overlay */}
       {import.meta.env.DEV && <DynamicIslandOverlay />}
 
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 pt-safe">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <SceneLogo size="lg" className="text-white" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] transition-colors"
-                aria-label="Notifications"
-              >
-                <Bell className="h-4 w-4 text-white/60" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              No notifications yet
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </header>
+      <DashboardHeader />
 
-      {/* Main Content — always mounted, toggled via display to preserve scroll */}
       <main className="container mx-auto px-4 py-4">
         <div style={{ display: activeTab === "home" ? "block" : "none" }}>
           <Home
@@ -280,99 +216,37 @@ const Dashboard = () => {
         onAddPress={() => setShowAddChoice(true)}
       />
 
-      <AddShowFlow 
-        open={showAddDialog} 
-        onOpenChange={setShowAddDialog} 
-        onShowAdded={() => {}}
-        onViewShowDetails={(showId) => {
-          setActiveTab("home");
-          setOpenShowId(showId);
-        }}
+      <DashboardSheets
+        session={session}
+        showAddDialog={showAddDialog}
+        setShowAddDialog={setShowAddDialog}
+        showUnifiedAdd={showUnifiedAdd}
+        setShowUnifiedAdd={setShowUnifiedAdd}
+        showAddChoice={showAddChoice}
+        setShowAddChoice={setShowAddChoice}
+        showPlanShow={showPlanShow}
+        setShowPlanShow={setShowPlanShow}
+        setActiveTab={setActiveTab}
+        setOpenShowId={setOpenShowId}
+        prompt={prompt}
+        dismissPrompt={dismissPrompt}
+        feedbackOpen={feedbackOpen}
+        setFeedbackOpen={setFeedbackOpen}
+        announcementsOpen={announcementsOpen}
+        setAnnouncementsOpen={setAnnouncementsOpen}
+        showSpotlightTour={showSpotlightTour}
+        setShowSpotlightTour={setShowSpotlightTour}
+        tourStepIndex={tourStepIndex}
+        setTourStepIndex={setTourStepIndex}
+        showWelcomeCarousel={showWelcomeCarousel}
+        setShowWelcomeCarousel={setShowWelcomeCarousel}
+        showCompareSheet={showCompareSheet}
+        setShowCompareSheet={setShowCompareSheet}
+        inviteShowId={inviteShowId}
+        inviteShowType={inviteShowType}
+        inviteHighlights={inviteHighlights}
+        inviteNote={inviteNote}
       />
-
-      <BulkUploadFlow
-        open={showUnifiedAdd}
-        onOpenChange={setShowUnifiedAdd}
-        onNavigateToFeed={() => setActiveTab("home")}
-        onNavigateToRank={() => setActiveTab("rank")}
-        onAddManually={() => setShowAddDialog(true)}
-      />
-
-      <AddChoiceSheet
-        open={showAddChoice}
-        onOpenChange={setShowAddChoice}
-        onLogShow={() => setShowUnifiedAdd(true)}
-        onPlanShow={() => setShowPlanShow(true)}
-      />
-
-      <PlanShowSheet
-        open={showPlanShow}
-        onOpenChange={setShowPlanShow}
-      />
-
-      {/* API error / prompt banner — now opens FeedbackSheet */}
-      <BugPromptBanner
-        visible={prompt.open}
-        message={prompt.prefillDescription || "Something went wrong. Want to report this?"}
-        onReport={() => {
-          dismissPrompt();
-          setFeedbackOpen(true);
-        }}
-        onDismiss={dismissPrompt}
-      />
-
-      {/* Announcements Sheet — placeholder for feature announcements */}
-      <FeedbackSheet
-        open={announcementsOpen}
-        onOpenChange={setAnnouncementsOpen}
-        prefillDescription="Feature announcement / notification"
-      />
-
-      {/* Unified Feedback Sheet */}
-      <FeedbackSheet
-        open={feedbackOpen}
-        onOpenChange={setFeedbackOpen}
-        prefillDescription={prompt.prefillDescription}
-        errorContext={prompt.errorContext}
-      />
-
-
-      {/* Spotlight Tour */}
-      <SpotlightTour
-        run={showSpotlightTour}
-        onComplete={handleSpotlightTourComplete}
-        onStepChange={setTourStepIndex}
-      />
-
-      {/* Welcome Carousel — shown after invite show is saved */}
-      {showWelcomeCarousel && (
-        <WelcomeCarousel
-          onComplete={() => {
-            setShowWelcomeCarousel(false);
-            setShowUnifiedAdd(true);
-          }}
-          onTakeTour={() => {
-            setShowWelcomeCarousel(false);
-            setShowSpotlightTour(true);
-          }}
-        />
-      )}
-
-      {/* Compare Show Sheet — opens after invite magic link redirect */}
-      {inviteShowId && (
-        <CompareShowSheet
-          open={showCompareSheet}
-          onOpenChange={setShowCompareSheet}
-          showId={inviteShowId}
-          showType={inviteShowType}
-          myHighlights={inviteHighlights}
-          myNote={inviteNote}
-          onContinueToAddShow={() => {
-            setShowWelcomeCarousel(true);
-          }}
-        />
-      )}
-
     </div>
   );
 };
