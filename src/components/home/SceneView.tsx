@@ -1,0 +1,125 @@
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import StatPills, { StatPillAction } from "./StatPills";
+import WhatsNextStrip from "./WhatsNextStrip";
+import FriendActivityFeed, { type IWasTherePayload } from "./FriendActivityFeed";
+import PopularFeedGrid from "./PopularFeedGrid";
+import { type ShowTypeFilter } from "@/hooks/usePopularShows";
+
+interface SceneViewProps {
+  statPills: Parameters<typeof StatPills>[0]["stats"];
+  statsLoading: boolean;
+  onPillTap: (action: StatPillAction, payload?: string) => void;
+  showsTourActive?: boolean;
+  showsRef?: React.RefObject<HTMLButtonElement>;
+  onPlanShow: () => void;
+  // Scene Feed
+  activityItems: Parameters<typeof FriendActivityFeed>[0]["items"];
+  activityLoading: boolean;
+  followingCount: number;
+  onFindFriends: () => void;
+  onIWasThere: (payload: IWasTherePayload) => void;
+  // Near Me
+  nearMeItems: Parameters<typeof PopularFeedGrid>[0]["items"];
+  nearMeTotalUsers: number;
+  nearMeLoading: boolean;
+  nearMeHasLocation?: boolean;
+  // Explore
+  exploreItems: Parameters<typeof PopularFeedGrid>[0]["items"];
+  exploreTotalUsers: number;
+  exploreLoading: boolean;
+  // Quick add callback for popular grids
+  onQuickAdd: (item: any) => void;
+}
+
+type FeedMode = "scene" | "near-me" | "explore";
+
+export default function SceneView({
+  statPills,
+  statsLoading,
+  onPillTap,
+  showsTourActive,
+  showsRef,
+  onPlanShow,
+  activityItems,
+  activityLoading,
+  followingCount,
+  onFindFriends,
+  onIWasThere,
+  nearMeItems,
+  nearMeTotalUsers,
+  nearMeLoading,
+  nearMeHasLocation,
+  exploreItems,
+  exploreTotalUsers,
+  exploreLoading,
+  onQuickAdd,
+}: SceneViewProps) {
+  const [feedMode, setFeedMode] = useState<FeedMode>("scene");
+  const [nearMeShowType, setNearMeShowType] = useState<ShowTypeFilter>("set");
+  const [exploreShowType, setExploreShowType] = useState<ShowTypeFilter>("set");
+
+  return (
+    <div className="space-y-5">
+      <StatPills stats={statPills} isLoading={statsLoading} onPillTap={onPillTap} showsTourActive={showsTourActive} showsRef={showsRef} />
+
+      <WhatsNextStrip onPlanShow={onPlanShow} />
+
+      <div className="space-y-3">
+        {/* Tab headers */}
+        <div className="flex items-center gap-4">
+          {(["scene", "near-me", "explore"] as const).map((mode) => {
+            const labels = { scene: "Scene Feed", "near-me": "Popular Near Me", explore: "Explore" };
+            const isActive = feedMode === mode;
+            return (
+              <button
+                key={mode}
+                onClick={() => setFeedMode(mode)}
+                className={cn(
+                  "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
+                  isActive ? "text-white/80" : "text-white/30 hover:text-white/50"
+                )}
+                style={isActive ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
+              >
+                {labels[mode]}
+              </button>
+            );
+          })}
+        </div>
+
+        {feedMode === "scene" && (
+          <FriendActivityFeed
+            items={activityItems}
+            isLoading={activityLoading}
+            hasFollowing={followingCount > 0}
+            onFindFriends={onFindFriends}
+            onIWasThere={onIWasThere}
+          />
+        )}
+        {feedMode === "near-me" && (
+          <PopularFeedGrid
+            items={nearMeItems}
+            totalUsers={nearMeTotalUsers}
+            isLoading={nearMeLoading}
+            showType={nearMeShowType}
+            onShowTypeChange={setNearMeShowType}
+            onQuickAdd={onQuickAdd}
+            onFindFriends={onFindFriends}
+            emptyMessage={nearMeHasLocation === false ? "Set your home city in your profile to see what's popular near you." : undefined}
+          />
+        )}
+        {feedMode === "explore" && (
+          <PopularFeedGrid
+            items={exploreItems}
+            totalUsers={exploreTotalUsers}
+            isLoading={exploreLoading}
+            showType={exploreShowType}
+            onShowTypeChange={setExploreShowType}
+            onQuickAdd={onQuickAdd}
+            onFindFriends={onFindFriends}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,14 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ArrowUpDown, ArrowLeft, Plus, UserCircle, Tag, Camera } from "lucide-react";
+import { ChevronRight, ArrowUpDown, ArrowLeft, UserCircle, Tag, Camera } from "lucide-react";
 import ContentPillNav, { type ContentView } from "./home/ContentPillNav";
 import MyShowsView from "./home/MyShowsView";
+import SceneView from "./home/SceneView";
 import { supabase } from "@/integrations/supabase/client";
-import { useShows, type Show, type ShowRanking } from "@/hooks/useShows";
+import { useShows, type Show } from "@/hooks/useShows";
 import { usePlanUpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import UpcomingShowDetailSheet from "@/components/home/UpcomingShowDetailSheet";
 import ScheduleView from "@/components/home/ScheduleView";
@@ -23,27 +24,20 @@ import QuickAddSheet, { type QuickAddPrefill } from "./QuickAddSheet";
 import { toast } from "sonner";
 
 // Home components
-import StatPills, { StatPillAction } from "./home/StatPills";
-import DynamicInsight, { InsightAction } from "./home/DynamicInsight";
-import StackedShowList from "./home/StackedShowList";
+import { type StatPillAction } from "./home/StatPills";
+import { type IWasTherePayload } from "./home/FriendActivityFeed";
 
 import IncompleteTagsSheet from "./home/IncompleteTagsSheet";
 import MissingPhotosSheet from "./home/MissingPhotosSheet";
 import FocusedRankingSession from "./home/FocusedRankingSession";
-import RankingProgressCard from "./home/RankingProgressCard";
-import FriendTeaser from "./home/FriendTeaser";
-import WhatsNextStrip from "./home/WhatsNextStrip";
-import FriendActivityFeed, { type IWasTherePayload } from "./home/FriendActivityFeed";
-import PopularFeedGrid from "./home/PopularFeedGrid";
-import { usePopularShows, type ShowTypeFilter, type PopularItem } from "@/hooks/usePopularShows";
-import { usePopularNearMe } from "@/hooks/usePopularNearMe";
-import { useFriendActivity } from "@/hooks/useFriendActivity";
 import PlanShowSheet from "./home/PlanShowSheet";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows } from "@/hooks/useFriendUpcomingShows";
-import { Skeleton } from "./ui/skeleton";
 import FriendsPanelView from "./home/FriendsPanelView";
+import { usePopularShows } from "@/hooks/usePopularShows";
+import { usePopularNearMe } from "@/hooks/usePopularNearMe";
+import { useFriendActivity } from "@/hooks/useFriendActivity";
 
 // Types are now imported from @/hooks/useShows
 
@@ -120,11 +114,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const [selectedUpcomingShow, setSelectedUpcomingShow] = useState<import("@/hooks/usePlanUpcomingShow").UpcomingShow | null>(null);
   const [upcomingDetailOpen, setUpcomingDetailOpen] = useState(false);
 
-  // Feed toggle: scene feed / near me / explore
-  const [feedMode, setFeedMode] = useState<"scene" | "near-me" | "explore">("scene");
-  // Sub-tab show type for near-me and explore
-  const [nearMeShowType, setNearMeShowType] = useState<ShowTypeFilter>("set");
-  const [exploreShowType, setExploreShowType] = useState<ShowTypeFilter>("set");
+  // Feed toggle state removed — now inside SceneView
 
   // Calendar: Friends overlay toggle + friends-on-day sheet
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
@@ -134,8 +124,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const followingIds = useMemo(() => following.map((f) => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
   const { items: activityItems, isLoading: activityLoading } = useFriendActivity(followingIds);
-  const { items: exploreItems, totalUsers: exploreTotalUsers, isLoading: exploreLoading } = usePopularShows(true, exploreShowType);
-  const { items: nearMeItems, totalUsers: nearMeTotalUsers, isLoading: nearMeLoading, hasLocation: nearMeHasLocation } = usePopularNearMe(true, nearMeShowType);
+  const { items: exploreItems, totalUsers: exploreTotalUsers, isLoading: exploreLoading } = usePopularShows(true);
+  const { items: nearMeItems, totalUsers: nearMeTotalUsers, isLoading: nearMeLoading, hasLocation: nearMeHasLocation } = usePopularNearMe(true);
 
   // Normalizer for PhotoOverlayEditor show format
   const normalizeShowForEditor = (show: Show) => ({
@@ -224,107 +214,30 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     setViewMode('home');
   };
 
-  // Render functions for sub-views
-  const renderHomeView = () => {
+  // renderHomeView removed — now SceneView component
 
-    return (
-      <div className="space-y-5">
-        {/* Stat Pills */}
-        <StatPills stats={statPills} isLoading={statsLoading} onPillTap={handlePillTap} showsTourActive={showsTourActive} showsRef={showsRef} />
+  const handleQuickAddFromPopular = (item: any) => {
+    setQuickAddPrefill({
+      showType: item.type === 'artist' ? 'set' : (item as any).showType || 'set',
+      artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
+      artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
+      venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
+      venueLocation: item.type === 'artist' ? (item as any).sampleVenueLocation : (item as any).venueLocation,
+      showDate: item.sampleShowDate
+    });
+    setQuickAddOpen(true);
+  };
 
-        {/* What's Next Strip */}
-        <WhatsNextStrip onPlanShow={() => setPlanShowOpen(true)} />
-
-
-        {/* Scene Feed / Popular Near Me / Explore — toggle */}
-        <div className="space-y-3">
-          {/* Tab headers */}
-          <div className="flex items-center gap-4">
-            {(["scene", "near-me", "explore"] as const).map((mode) => {
-              const labels = { scene: "Scene Feed", "near-me": "Popular Near Me", explore: "Explore" };
-              const isActive = feedMode === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => setFeedMode(mode)}
-                  className={cn(
-                    "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
-                    isActive ? "text-white/80" : "text-white/30 hover:text-white/50"
-                  )}
-                  style={isActive ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}>
-
-                  {labels[mode]}
-                </button>);
-
-            })}
-          </div>
-
-          {/* Content */}
-          {feedMode === "scene" &&
-          <FriendActivityFeed
-            items={activityItems}
-            isLoading={activityLoading}
-            hasFollowing={following.length > 0}
-            onFindFriends={() => setViewMode("friends")}
-            onIWasThere={(payload: IWasTherePayload) => {
-              setQuickAddPrefill({
-                showType: payload.showType as any || 'set',
-                artistName: payload.artistName,
-                artistImageUrl: (payload as any).artistImageUrl || null,
-                venueName: payload.venueName,
-                venueLocation: (payload as any).venueLocation || null,
-                showDate: payload.showDate
-              });
-              setQuickAddOpen(true);
-            }} />
-
-          }
-          {feedMode === "near-me" &&
-          <PopularFeedGrid
-            items={nearMeItems}
-            totalUsers={nearMeTotalUsers}
-            isLoading={nearMeLoading}
-            showType={nearMeShowType}
-            onShowTypeChange={setNearMeShowType}
-            onQuickAdd={(item) => {
-              setQuickAddPrefill({
-                showType: item.type === 'artist' ? 'set' : (item as any).showType || 'set',
-                artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
-                artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
-                venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
-                venueLocation: item.type === 'artist' ? (item as any).sampleVenueLocation : (item as any).venueLocation,
-                showDate: item.sampleShowDate
-              });
-              setQuickAddOpen(true);
-            }}
-            onFindFriends={() => setViewMode("friends")}
-            emptyMessage={nearMeHasLocation === false ? "Set your home city in your profile to see what's popular near you." : undefined} />
-
-          }
-          {feedMode === "explore" &&
-          <PopularFeedGrid
-            items={exploreItems}
-            totalUsers={exploreTotalUsers}
-            isLoading={exploreLoading}
-            showType={exploreShowType}
-            onShowTypeChange={setExploreShowType}
-            onQuickAdd={(item) => {
-              setQuickAddPrefill({
-                showType: item.type === 'artist' ? 'set' : (item as any).showType || 'set',
-                artistName: item.type === 'artist' ? item.artistName : (item as any).topArtists?.[0] || (item as any).eventName,
-                artistImageUrl: item.type === 'artist' ? item.artistImageUrl : (item as any).imageUrl,
-                venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
-                venueLocation: item.type === 'artist' ? (item as any).sampleVenueLocation : (item as any).venueLocation,
-                showDate: item.sampleShowDate
-              });
-              setQuickAddOpen(true);
-            }}
-            onFindFriends={() => setViewMode("friends")} />
-
-          }
-        </div>
-      </div>);
-
+  const handleIWasThere = (payload: IWasTherePayload) => {
+    setQuickAddPrefill({
+      showType: payload.showType as any || 'set',
+      artistName: payload.artistName,
+      artistImageUrl: (payload as any).artistImageUrl || null,
+      venueName: payload.venueName,
+      venueLocation: (payload as any).venueLocation || null,
+      showDate: payload.showDate
+    });
+    setQuickAddOpen(true);
   };
 
   // renderRankingsView removed — now MyShowsView component
@@ -360,7 +273,29 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: "easeOut" }}>
 
-          {viewMode === 'home' && renderHomeView()}
+          {viewMode === 'home' && (
+            <SceneView
+              statPills={statPills}
+              statsLoading={statsLoading}
+              onPillTap={handlePillTap}
+              showsTourActive={showsTourActive}
+              showsRef={showsRef}
+              onPlanShow={() => setPlanShowOpen(true)}
+              activityItems={activityItems}
+              activityLoading={activityLoading}
+              followingCount={following.length}
+              onFindFriends={() => setViewMode("friends")}
+              onIWasThere={handleIWasThere}
+              nearMeItems={nearMeItems}
+              nearMeTotalUsers={nearMeTotalUsers}
+              nearMeLoading={nearMeLoading}
+              nearMeHasLocation={nearMeHasLocation}
+              exploreItems={exploreItems}
+              exploreTotalUsers={exploreTotalUsers}
+              exploreLoading={exploreLoading}
+              onQuickAdd={handleQuickAddFromPopular}
+            />
+          )}
 
           {viewMode === 'calendar' &&
           <ScheduleView
