@@ -60,7 +60,7 @@ export function useShows({ onRealtimeChange }: UseShowsOptions = {}) {
 
       const { data: showsData, error: showsError } = await supabase
         .from('shows')
-        .select(`*, venues (latitude, longitude)`)
+        .select(`*, venues (latitude, longitude), show_artists (*), show_tags (tag)`)
         .eq('user_id', user.id)
         .order('show_date', { ascending: false });
 
@@ -75,31 +75,27 @@ export function useShows({ onRealtimeChange }: UseShowsOptions = {}) {
         setRankings(rankingsData || []);
       }
 
-      const showsWithArtists = await Promise.all((showsData || []).map(async (show) => {
-        const { data: artistsData } = await supabase.from('show_artists').select('*').eq('show_id', show.id);
-        const { data: tagsData } = await supabase.from('show_tags').select('tag').eq('show_id', show.id);
-        return {
-          id: show.id,
-          artists: (artistsData || []).map((a) => ({
-            name: a.artist_name,
-            isHeadliner: a.is_headliner,
-            imageUrl: (a as any).artist_image_url || undefined,
-            spotifyId: (a as any).spotify_artist_id || undefined,
-          })),
-          venue: { name: show.venue_name, location: show.venue_location || '' },
-          date: show.show_date,
-          datePrecision: show.date_precision,
-          tags: (tagsData || []).map((t) => t.tag),
-          notes: show.notes,
-          venueId: show.venue_id,
-          latitude: show.venues?.latitude,
-          longitude: show.venues?.longitude,
-          photo_url: show.photo_url,
-          photo_declined: show.photo_declined,
-          eventName: show.event_name,
-          eventDescription: (show as any).event_description,
-          showType: show.show_type,
-        };
+      const showsWithArtists = (showsData || []).map((show) => ({
+        id: show.id,
+        artists: ((show as any).show_artists || []).map((a: any) => ({
+          name: a.artist_name,
+          isHeadliner: a.is_headliner,
+          imageUrl: a.artist_image_url || undefined,
+          spotifyId: a.spotify_artist_id || undefined,
+        })),
+        venue: { name: show.venue_name, location: show.venue_location || '' },
+        date: show.show_date,
+        datePrecision: show.date_precision,
+        tags: ((show as any).show_tags || []).map((t: any) => t.tag),
+        notes: show.notes,
+        venueId: show.venue_id,
+        latitude: show.venues?.latitude,
+        longitude: show.venues?.longitude,
+        photo_url: show.photo_url,
+        photo_declined: show.photo_declined,
+        eventName: show.event_name,
+        eventDescription: (show as any).event_description,
+        showType: show.show_type,
       }));
 
       setShows(showsWithArtists);
