@@ -9,6 +9,7 @@ import BugPromptBanner from "@/components/BugPromptBanner";
 import FeedbackSheet from "@/components/FeedbackSheet";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import type { ContentView } from "@/components/home/ContentPillNav";
 
 interface DashboardSheetsProps {
   session: Session;
@@ -23,6 +24,7 @@ interface DashboardSheetsProps {
   setShowPlanShow: (v: boolean) => void;
   // Tab navigation callbacks
   setActiveTab: (tab: string) => void;
+  setHomeView: (view: ContentView) => void;
   setOpenShowId: (id: string | null) => void;
   // Bug prompt
   prompt: { open: boolean; prefillDescription?: string; errorContext?: Record<string, unknown> };
@@ -60,6 +62,7 @@ const DashboardSheets = ({
   showPlanShow,
   setShowPlanShow,
   setActiveTab,
+  setHomeView,
   setOpenShowId,
   prompt,
   dismissPrompt,
@@ -104,7 +107,7 @@ const DashboardSheets = ({
         open={showUnifiedAdd}
         onOpenChange={setShowUnifiedAdd}
         onNavigateToFeed={() => setActiveTab("home")}
-        onNavigateToRank={() => setActiveTab("rank")}
+        onNavigateToRank={() => { setActiveTab("home"); setHomeView("rank"); }}
         onAddManually={() => setShowAddDialog(true)}
       />
 

@@ -88,7 +88,7 @@ Phase 1A (SpotlightTour)  →  1B (BulkUpload nav)  →  1C (Dual calendar)
 | Item | Status |
 |------|--------|
 | 1A. SpotlightTour | ⬜ Todo |
-| 1B. BulkUpload → Rank nav | ⬜ Todo |
+| 1B. BulkUpload → Rank nav | ✅ Done |
 | 1C. Dual calendar removal | ⬜ Todo |
 | 2A. WelcomeCarousel rewrite | ⬜ Todo |
 | 2B. Empty state messaging | ⬜ Todo |

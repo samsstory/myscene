@@ -227,6 +227,7 @@ const Dashboard = () => {
         showPlanShow={showPlanShow}
         setShowPlanShow={setShowPlanShow}
         setActiveTab={setActiveTab}
+        setHomeView={setHomeView}
         setOpenShowId={setOpenShowId}
         prompt={prompt}
         dismissPrompt={dismissPrompt}
