@@ -1,0 +1,183 @@
+import AddShowFlow from "@/components/AddShowFlow";
+import BulkUploadFlow from "@/components/BulkUploadFlow";
+import AddChoiceSheet from "@/components/AddChoiceSheet";
+import PlanShowSheet from "@/components/home/PlanShowSheet";
+import CompareShowSheet from "@/components/CompareShowSheet";
+import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import WelcomeCarousel from "@/components/onboarding/WelcomeCarousel";
+import BugPromptBanner from "@/components/BugPromptBanner";
+import FeedbackSheet from "@/components/FeedbackSheet";
+import { Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+
+interface DashboardSheetsProps {
+  session: Session;
+  // Add show dialogs
+  showAddDialog: boolean;
+  setShowAddDialog: (v: boolean) => void;
+  showUnifiedAdd: boolean;
+  setShowUnifiedAdd: (v: boolean) => void;
+  showAddChoice: boolean;
+  setShowAddChoice: (v: boolean) => void;
+  showPlanShow: boolean;
+  setShowPlanShow: (v: boolean) => void;
+  // Tab navigation callbacks
+  setActiveTab: (tab: string) => void;
+  setOpenShowId: (id: string | null) => void;
+  // Bug prompt
+  prompt: { open: boolean; prefillDescription?: string; errorContext?: Record<string, unknown> };
+  dismissPrompt: () => void;
+  // Feedback
+  feedbackOpen: boolean;
+  setFeedbackOpen: (v: boolean) => void;
+  announcementsOpen: boolean;
+  setAnnouncementsOpen: (v: boolean) => void;
+  // Tour
+  showSpotlightTour: boolean;
+  setShowSpotlightTour: (v: boolean) => void;
+  tourStepIndex: number;
+  setTourStepIndex: (i: number) => void;
+  // Welcome carousel
+  showWelcomeCarousel: boolean;
+  setShowWelcomeCarousel: (v: boolean) => void;
+  // Compare sheet
+  showCompareSheet: boolean;
+  setShowCompareSheet: (v: boolean) => void;
+  inviteShowId: string | null;
+  inviteShowType: "logged" | "upcoming";
+  inviteHighlights: string[];
+  inviteNote: string;
+}
+
+const DashboardSheets = ({
+  session,
+  showAddDialog,
+  setShowAddDialog,
+  showUnifiedAdd,
+  setShowUnifiedAdd,
+  showAddChoice,
+  setShowAddChoice,
+  showPlanShow,
+  setShowPlanShow,
+  setActiveTab,
+  setOpenShowId,
+  prompt,
+  dismissPrompt,
+  feedbackOpen,
+  setFeedbackOpen,
+  announcementsOpen,
+  setAnnouncementsOpen,
+  showSpotlightTour,
+  setShowSpotlightTour,
+  tourStepIndex,
+  setTourStepIndex,
+  showWelcomeCarousel,
+  setShowWelcomeCarousel,
+  showCompareSheet,
+  setShowCompareSheet,
+  inviteShowId,
+  inviteShowType,
+  inviteHighlights,
+  inviteNote,
+}: DashboardSheetsProps) => {
+  const handleSpotlightTourComplete = async () => {
+    await supabase
+      .from("profiles")
+      .update({ onboarding_step: "completed" })
+      .eq("id", session.user.id);
+    setShowSpotlightTour(false);
+  };
+
+  return (
+    <>
+      <AddShowFlow
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onShowAdded={() => {}}
+        onViewShowDetails={(showId) => {
+          setActiveTab("home");
+          setOpenShowId(showId);
+        }}
+      />
+
+      <BulkUploadFlow
+        open={showUnifiedAdd}
+        onOpenChange={setShowUnifiedAdd}
+        onNavigateToFeed={() => setActiveTab("home")}
+        onNavigateToRank={() => setActiveTab("rank")}
+        onAddManually={() => setShowAddDialog(true)}
+      />
+
+      <AddChoiceSheet
+        open={showAddChoice}
+        onOpenChange={setShowAddChoice}
+        onLogShow={() => setShowUnifiedAdd(true)}
+        onPlanShow={() => setShowPlanShow(true)}
+      />
+
+      <PlanShowSheet open={showPlanShow} onOpenChange={setShowPlanShow} />
+
+      {/* API error / prompt banner */}
+      <BugPromptBanner
+        visible={prompt.open}
+        message={prompt.prefillDescription || "Something went wrong. Want to report this?"}
+        onReport={() => {
+          dismissPrompt();
+          setFeedbackOpen(true);
+        }}
+        onDismiss={dismissPrompt}
+      />
+
+      {/* Announcements Sheet */}
+      <FeedbackSheet
+        open={announcementsOpen}
+        onOpenChange={setAnnouncementsOpen}
+        prefillDescription="Feature announcement / notification"
+      />
+
+      {/* Unified Feedback Sheet */}
+      <FeedbackSheet
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        prefillDescription={prompt.prefillDescription}
+        errorContext={prompt.errorContext}
+      />
+
+      {/* Spotlight Tour */}
+      <SpotlightTour
+        run={showSpotlightTour}
+        onComplete={handleSpotlightTourComplete}
+        onStepChange={setTourStepIndex}
+      />
+
+      {/* Welcome Carousel */}
+      {showWelcomeCarousel && (
+        <WelcomeCarousel
+          onComplete={() => {
+            setShowWelcomeCarousel(false);
+            setShowUnifiedAdd(true);
+          }}
+          onTakeTour={() => {
+            setShowWelcomeCarousel(false);
+            setShowSpotlightTour(true);
+          }}
+        />
+      )}
+
+      {/* Compare Show Sheet */}
+      {inviteShowId && (
+        <CompareShowSheet
+          open={showCompareSheet}
+          onOpenChange={setShowCompareSheet}
+          showId={inviteShowId}
+          showType={inviteShowType}
+          myHighlights={inviteHighlights}
+          myNote={inviteNote}
+          onContinueToAddShow={() => setShowWelcomeCarousel(true)}
+        />
+      )}
+    </>
+  );
+};
+
+export default DashboardSheets;
