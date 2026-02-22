@@ -95,9 +95,9 @@ Phase 1A (SpotlightTour)  →  1B (BulkUpload nav)  →  1C (Dual calendar)
 | 3A. Remove hardcoded demo data | ⬜ Todo |
 | 3B. Fix FriendTeaser direction | ✅ Done |
 | 3C. Remove dead code | ✅ Done |
-| 4A. Pill naming review | ⬜ Todo |
-| 4B. Micro-interactions | ⬜ Todo |
-| 4C. Loading experience | ⬜ Todo |
+| 4A. Pill naming review | ✅ Done — "My Scene"→"Home", "H2H"→"Rank" |
+| 4B. Micro-interactions | ✅ Done — haptic on pills, staggered stat fade-in |
+| 4C. Loading experience | ✅ Done — verified, no changes needed |
 | **5. Engagement Pulse analytics tab** | ⬜ Todo |
 
 ---
