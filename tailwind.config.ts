@@ -137,7 +137,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Outfit',
+  				'Montserrat',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
