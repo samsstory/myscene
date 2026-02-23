@@ -87,7 +87,7 @@ export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onC
       )}
 
       {/* Bottom content */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10">
         {reasonLabel && (
           <span className="inline-block text-[9px] bg-white/10 backdrop-blur-sm rounded-full px-2 py-0.5 text-white/70 mb-1.5">
             {reasonLabel}
@@ -100,33 +100,6 @@ export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onC
         <p className="text-[10px] text-white/50 truncate mt-1">
           {event.venue_name} · {dateStr}
         </p>
-
-        {/* Bottom row: Ticket + Edmtrain logo */}
-        <div className="flex items-center justify-between mt-2">
-          <a
-            href={event.event_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 backdrop-blur-sm border border-white/15 text-white/70 text-[10px] font-medium hover:bg-white/20 hover:text-white active:scale-95 transition-all"
-          >
-            <Ticket className="w-3 h-3" />
-            Tickets
-          </a>
-          <a
-            href={event.event_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="opacity-40 hover:opacity-70 transition-opacity"
-          >
-            <img
-              src="https://edmtrain.s3.amazonaws.com/img/logo/logo-web.svg"
-              alt="Edmtrain"
-              className="h-[12px] w-auto invert"
-            />
-          </a>
-        </div>
       </div>
     </div>
   );
