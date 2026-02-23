@@ -132,6 +132,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Reset per-request state (module-level vars persist across requests in same isolate)
+    spotifyRateLimited = false;
+    cachedSpotifyToken = null;
+    tokenExpiry = 0;
+
     const EDMTRAIN_API_KEY = Deno.env.get("EDMTRAIN_API_KEY");
     if (!EDMTRAIN_API_KEY) {
       throw new Error("EDMTRAIN_API_KEY is not configured");
