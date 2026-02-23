@@ -21,6 +21,7 @@ interface SceneViewProps {
   userArtistNames?: string[];
   friendShows?: FriendShow[];
   onAddFriendShowToSchedule?: (show: FriendShow) => void;
+  onFriendShowTap?: (show: FriendShow) => void;
   hasNoUpcoming?: boolean;
   hasNoFollowing?: boolean;
 }
@@ -37,6 +38,7 @@ export default function SceneView({
   userArtistNames = [],
   friendShows = [],
   onAddFriendShowToSchedule,
+  onFriendShowTap,
   hasNoUpcoming = false,
   hasNoFollowing = false,
 }: SceneViewProps) {
@@ -101,6 +103,7 @@ export default function SceneView({
               <FriendsGoingSection
                 friendShows={friendShows}
                 onAddToSchedule={onAddFriendShowToSchedule ?? (() => {})}
+                onShowTap={onFriendShowTap}
               />
             </section>
           )}

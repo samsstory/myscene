@@ -148,6 +148,15 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 });
                 if (!saved) toast.error("Failed to add to schedule");
               }}
+              onFriendShowTap={(fs) => {
+                const asUpcoming: import("@/hooks/usePlanUpcomingShow").UpcomingShow = {
+                  id: fs.id, artist_name: fs.artist_name, venue_name: fs.venue_name,
+                  venue_location: fs.venue_location, show_date: fs.show_date,
+                  ticket_url: null, artist_image_url: fs.artist_image_url,
+                  rsvp_status: "going", created_at: ""
+                };
+                sheets.openUpcomingDetail(asUpcoming);
+              }}
               hasNoUpcoming={upcomingShows.length === 0}
               hasNoFollowing={following.length === 0}
             />
