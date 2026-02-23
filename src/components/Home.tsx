@@ -22,7 +22,7 @@ import AddShowFlow from "./AddShowFlow";
 import QuickAddSheet from "./QuickAddSheet";
 import { toast } from "sonner";
 
-import { type StatPillAction } from "./home/StatPills";
+
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 import IncompleteTagsSheet from "./home/IncompleteTagsSheet";
@@ -51,7 +51,7 @@ interface HomeProps {
 }
 
 const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef, onViewChange }: HomeProps) => {
-  const { stats, statPills, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
+  const { stats, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   const { shows, loading, rankings, fetchShows, deleteShow: handleDeleteShow, deleteConfirmShow, setDeleteConfirmShow, isDeleting, getShowRankInfo } = useShows({ onRealtimeChange: refetchStats });
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
   const sheets = useHomeSheets();
@@ -74,22 +74,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     show_date: show.date || ""
   });
 
-  const handlePillTap = (action: StatPillAction, payload?: string) => {
-    switch (action) {
-      case 'rankings': setViewMode('rankings'); break;
-      case 'calendar': setViewMode('calendar'); break;
-      case 'globe': setViewMode('globe'); break;
-      case 'rank-tab': setViewMode('rank'); break;
-      case 'todo-sheet': sheets.setTodoSheetOpen(true); break;
-      case 'rankings-attention': setViewMode('rankings'); break;
-      case 'show-detail':
-        if (payload) {
-          const show = shows.find((s) => s.id === payload);
-          if (show) sheets.handleShowTap(show);
-        }
-        break;
-    }
-  };
 
   const handleQuickAddFromPopular = (item: any) => {
     sheets.setQuickAddPrefill({
@@ -217,9 +201,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onAddPhoto={(show) => { sheets.setQuickPhotoShow(show); sheets.setQuickPhotoOpen(true); }}
               onAddTags={(showId) => { sheets.setIncompleteTagsFocusId(showId); sheets.setIncompleteTagsOpen(true); }}
               onRankShow={() => sheets.setFocusedRankingOpen(true)}
-              statPills={statPills}
-              statsLoading={statsLoading}
-              onPillTap={handlePillTap}
             />
           )}
 

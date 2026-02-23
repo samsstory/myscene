@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
-import { StatPill, StatPillAction } from "@/components/home/StatPills";
-import { Target } from "lucide-react";
+import { StatPill } from "@/components/home/StatPills";
 
 interface TopShow {
   id: string;
@@ -343,31 +342,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     fetchStats();
   }, [fetchStats]);
 
-  const statPills: StatPill[] = [
-    // To-Do pill -> aggregates pending actions
-    ...(() => {
-      const todoItems: string[] = [];
-      if (stats.profileIncomplete) todoItems.push('complete your profile');
-      if (stats.unrankedCount > 0) todoItems.push(`${stats.unrankedCount} to rank`);
-      if (stats.incompleteTagsCount > 0) todoItems.push(`${stats.incompleteTagsCount} need highlights`);
-      if (stats.missingPhotosCount > 0) todoItems.push(`${stats.missingPhotosCount} need photos`);
-      const totalTodos = todoItems.length > 0 
-        ? (stats.profileIncomplete ? 1 : 0) + stats.unrankedCount + stats.incompleteTagsCount + stats.missingPhotosCount 
-        : 0;
-      if (totalTodos > 0) {
-        return [{
-          id: 'todo',
-          label: 'Needs Attention',
-          value: totalTodos,
-          icon: Target,
-          action: 'rankings-attention' as StatPillAction,
-          isTodo: true,
-          todoItems,
-        }];
-      }
-      return [];
-    })(),
-  ];
+  const statPills: StatPill[] = [];
 
   return {
     stats,
