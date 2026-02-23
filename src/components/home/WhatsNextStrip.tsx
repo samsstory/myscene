@@ -180,6 +180,12 @@ function UpcomingChip({
         <BadgeIcon className={`h-3 w-3 ${badge.color}`} />
       </div>
 
+      {show.raw_input === "festival" && (
+        <span className="absolute top-2 left-2 text-[7px] uppercase tracking-widest font-bold text-primary bg-primary/20 backdrop-blur-sm px-1.5 py-0.5 rounded-full border border-primary/30 z-10">
+          Festival
+        </span>
+      )}
+
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
         {/* Stacked friend avatars when friends are going to same show */}
         <GoingWithAvatarStack goingWith={goingWith} />

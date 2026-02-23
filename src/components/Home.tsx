@@ -103,8 +103,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       venue_name: event.venue_name || undefined,
       venue_location: event.venue_location || undefined,
       show_date: event.event_date || undefined,
-      ticket_url: event.event_link, // Edmtrain event link as ticket URL (required attribution)
+      ticket_url: event.event_link,
       rsvp_status: rsvpStatus,
+      raw_input: event.festival_ind ? "festival" : undefined,
     });
     if (!saved) {
       toast.error("Failed to add to schedule");
@@ -154,7 +155,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   id: fs.id, artist_name: fs.artist_name, venue_name: fs.venue_name,
                   venue_location: fs.venue_location, show_date: fs.show_date,
                   ticket_url: null, artist_image_url: fs.artist_image_url,
-                  rsvp_status: "going", created_at: ""
+                  rsvp_status: "going", created_at: "", raw_input: null
                 };
                 sheets.openUpcomingDetail(asUpcoming);
               }}
@@ -178,7 +179,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                   id: fs.id, artist_name: fs.artist_name, venue_name: fs.venue_name,
                   venue_location: fs.venue_location, show_date: fs.show_date,
                   ticket_url: null, artist_image_url: fs.artist_image_url,
-                  rsvp_status: "going", created_at: ""
+                  rsvp_status: "going", created_at: "", raw_input: null
                 };
                 sheets.openUpcomingDetail(asUpcoming);
               }}
