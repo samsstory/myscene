@@ -12,7 +12,6 @@ import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 
 interface SceneViewProps {
   onPlanShow: () => void;
-  onLogShow?: () => void;
   onNavigateToFriends?: () => void;
   nearMeItems: Parameters<typeof PopularFeedGrid>[0]["items"];
   nearMeTotalUsers: number;
@@ -31,7 +30,6 @@ interface SceneViewProps {
 
 export default function SceneView({
   onPlanShow,
-  onLogShow,
   onNavigateToFriends,
   nearMeItems,
   nearMeTotalUsers,
@@ -98,7 +96,7 @@ export default function SceneView({
         </section>
       ) : (
         <>
-          <WhatsNextStrip onPlanShow={onPlanShow} onLogShow={onLogShow} />
+          <WhatsNextStrip onPlanShow={onPlanShow} />
 
           {friendShows.length > 0 && (
             <section className="space-y-2">

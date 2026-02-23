@@ -7,6 +7,7 @@ import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomi
 import type { FollowerProfile } from "@/hooks/useFollowers";
 import PlanShowSheet from "./PlanShowSheet";
 import UpcomingShowDetailSheet from "./UpcomingShowDetailSheet";
+import LogPastShowsSheet from "./LogPastShowsSheet";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 // ─── DEMO OVERRIDE ───────────────────────────────────────────────────────────
@@ -41,7 +42,6 @@ const DEMO_10_FRIENDS: FriendShow[] = Array.from({ length: 10 }, (_, i) => ({
 
 interface WhatsNextStripProps {
   onPlanShow?: () => void;
-  onLogShow?: () => void;
 }
 
 const RSVP_BADGE = {
@@ -535,8 +535,8 @@ function FriendShowDetailSheet({
   );
 }
 
-export default function WhatsNextStrip({ onPlanShow, onLogShow }: WhatsNextStripProps) {
-  const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus, saveUpcomingShow } = usePlanUpcomingShow();
+export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
+  const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus, saveUpcomingShow, refetch } = usePlanUpcomingShow();
   const { following } = useFollowers();
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
@@ -559,6 +559,7 @@ export default function WhatsNextStrip({ onPlanShow, onLogShow }: WhatsNextStrip
   // Track which friend shows the user has added (by source show id → own show id)
   const [addedFriendShowIds, setAddedFriendShowIds] = useState<Map<string, string>>(new Map());
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [logPastOpen, setLogPastOpen] = useState(false);
 
   const handlePlanShow = () => {
     if (onPlanShow) {
@@ -893,7 +894,7 @@ export default function WhatsNextStrip({ onPlanShow, onLogShow }: WhatsNextStrip
         {/* Unlogged past shows nudge */}
         {activeTab === "mine" && !isLoading && pastShowsCount > 0 && (
           <button
-            onClick={onLogShow}
+            onClick={() => setLogPastOpen(true)}
             className="w-full rounded-2xl border border-primary/15 bg-primary/[0.06] px-4 py-2.5 flex items-center gap-3 hover:bg-primary/[0.10] transition-colors"
           >
             <NotebookPen className="h-4 w-4 text-primary/60 flex-shrink-0" />
@@ -973,6 +974,13 @@ export default function WhatsNextStrip({ onPlanShow, onLogShow }: WhatsNextStrip
       {!onPlanShow && (
         <PlanShowSheet open={sheetOpen} onOpenChange={setSheetOpen} />
       )}
+
+      <LogPastShowsSheet
+        open={logPastOpen}
+        onOpenChange={setLogPastOpen}
+        upcomingShows={upcomingShows}
+        onShowLogged={refetch}
+      />
     </>
   );
 }
