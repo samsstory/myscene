@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { parseISO, isThisWeek, isThisMonth, addMonths, isAfter, startOfToday } from "date-fns";
 import { Plus, Music2, Users, NotebookPen } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
+import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { useFriendShowToggle } from "@/hooks/useFriendShowToggle";
@@ -16,6 +17,7 @@ import UpcomingChip from "./upcoming/UpcomingChip";
 import FriendChip from "./upcoming/FriendChip";
 import AddShowChip from "./upcoming/AddShowChip";
 import FriendShowDetailSheet from "./upcoming/FriendShowDetailSheet";
+import DiscoverFeed from "./DiscoverFeed";
 
 // ─── DEMO OVERRIDE ───────────────────────────────────────────────────────────
 // Temporary: shows 10 dummy friends on the first Mine card to preview the UI
@@ -48,9 +50,11 @@ const DEMO_10_FRIENDS: FriendShow[] = Array.from({ length: 10 }, (_, i) => ({
 
 interface WhatsNextStripProps {
   onPlanShow?: () => void;
+  userArtistNames?: string[];
+  onAddEdmtrainToSchedule?: (event: EdmtrainEvent, rsvpStatus?: string) => void;
 }
 
-export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
+export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAddEdmtrainToSchedule }: WhatsNextStripProps) {
   const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus, saveUpcomingShow, refetch } = usePlanUpcomingShow();
   const { following } = useFollowers();
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
@@ -221,14 +225,11 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
               onClick={() => setActiveTab("discover")}
               className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.12em] transition-all ${
                 activeTab === "discover"
-                  ? "bg-white/[0.10] text-white/50 border border-white/15"
-                  : "text-white/25 hover:text-white/40"
+                  ? "bg-white/[0.14] text-white border border-white/20"
+                  : "text-white/40 hover:text-white/60"
               }`}
             >
               Discover
-              <span className="text-[8px] font-bold leading-none px-1 py-0.5 rounded-full bg-white/10 text-white/35 tracking-wide normal-case">
-                Soon
-              </span>
             </button>
           </div>
 
@@ -351,15 +352,12 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
           </div>
         )}
 
-        {/* ── DISCOVER TAB — coming soon ── */}
+        {/* ── DISCOVER TAB ── */}
         {activeTab === "discover" && (
-          <div className="w-full rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-5 flex flex-col items-center gap-2 text-center">
-            <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center mb-1">
-              <Music2 className="h-4 w-4 text-white/30" />
-            </div>
-            <p className="text-sm font-medium text-white/40">Discover is coming soon</p>
-            <p className="text-xs text-white/25 max-w-[200px]">Find upcoming shows from artists you love, near you</p>
-          </div>
+          <DiscoverFeed
+            userArtistNames={userArtistNames}
+            onAddToSchedule={onAddEdmtrainToSchedule}
+          />
         )}
       </div>
 

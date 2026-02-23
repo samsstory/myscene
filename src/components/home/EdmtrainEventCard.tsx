@@ -10,6 +10,7 @@ interface EdmtrainEventCardProps {
   onAddToSchedule: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   onClick?: () => void;
   scheduledStatus?: ScheduledStatus;
+  reasonLabel?: string;
 }
 
 function formatDateRange(startIso: string, endIso?: string): string {
@@ -22,7 +23,7 @@ function formatDateRange(startIso: string, endIso?: string): string {
   return `${format(start, "MMM d")}–${format(end, "MMM d")}`;
 }
 
-export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onClick, scheduledStatus }: EdmtrainEventCardProps) {
+export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onClick, scheduledStatus, reasonLabel }: EdmtrainEventCardProps) {
   const artistNames = event.artists.map((a) => a.name).join(", ");
   const displayName = event.event_name || artistNames || "Event";
   const dateStr = formatDateRange(event.event_date, endDate);
@@ -87,6 +88,11 @@ export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onC
 
       {/* Bottom content */}
       <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+        {reasonLabel && (
+          <span className="inline-block text-[9px] bg-white/10 backdrop-blur-sm rounded-full px-2 py-0.5 text-white/70 mb-1.5">
+            {reasonLabel}
+          </span>
+        )}
         <h4 className="text-[13px] font-semibold text-white leading-tight line-clamp-2">{displayName}</h4>
         {event.event_name && artistNames && (
           <p className="text-[10px] text-white/60 truncate mt-0.5">{artistNames}</p>
