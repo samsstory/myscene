@@ -48,9 +48,9 @@ Deno.serve(async (req) => {
     }
 
     const { latitude, longitude, state } = await req.json();
-    if (!latitude || !longitude) {
+    if (!latitude || !longitude || !state) {
       return new Response(
-        JSON.stringify({ error: "latitude and longitude are required" }),
+        JSON.stringify({ error: "latitude, longitude, and state are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -82,13 +82,35 @@ Deno.serve(async (req) => {
     const params = new URLSearchParams({
       latitude: String(latitude),
       longitude: String(longitude),
+      state: state,
       client: EDMTRAIN_API_KEY,
     });
-    if (state) params.set("state", state);
 
     console.log(`Fetching Edmtrain events for ${locationKey}`);
-    const edmResponse = await fetch(`${EDMTRAIN_BASE}?${params}`);
-    const edmData = await edmResponse.json();
+    const edmUrl = `${EDMTRAIN_BASE}?${params}`;
+    console.log(`Edmtrain URL: ${edmUrl}`);
+    const edmResponse = await fetch(edmUrl);
+
+    const responseText = await edmResponse.text();
+    console.log(`Edmtrain response status: ${edmResponse.status}, content-type: ${edmResponse.headers.get('content-type')}, body preview: ${responseText.substring(0, 200)}`);
+
+    if (!edmResponse.ok || responseText.startsWith('<!') || responseText.startsWith('<html')) {
+      console.error("Edmtrain returned non-JSON response");
+      return new Response(
+        JSON.stringify({ error: "Edmtrain API returned an error page. The API key may be invalid or expired.", status: edmResponse.status }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    let edmData;
+    try {
+      edmData = JSON.parse(responseText);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Failed to parse Edmtrain response" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!edmData.success) {
       console.error("Edmtrain API error:", edmData.message);
