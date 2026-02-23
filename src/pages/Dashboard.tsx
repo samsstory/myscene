@@ -10,6 +10,7 @@ import DashboardSheets from "@/components/dashboard/DashboardSheets";
 import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 import { supabase } from "@/integrations/supabase/client";
+import { truncateArtists } from "@/lib/utils";
 import { Session } from "@supabase/supabase-js";
 import { useSlowLoadDetector } from "@/hooks/useSlowLoadDetector";
 import { useBugReportPrompt } from "@/hooks/useBugReportPrompt";
@@ -84,7 +85,7 @@ const Dashboard = () => {
             const rsvpParam = searchParams.get("rsvp") || "going";
             await supabase.from("upcoming_shows").insert({
               created_by_user_id: user.id,
-              artist_name: event.event_name || event.artist_names || "Event",
+              artist_name: event.event_name || truncateArtists(event.artist_names || "Event", 3),
               venue_name: event.venue_name,
               venue_location: event.venue_location,
               show_date: event.event_date,
@@ -93,7 +94,7 @@ const Dashboard = () => {
               source_url: event.event_link,
             });
             const { toast } = await import("sonner");
-            const artistLabel = event.event_name || event.artist_names || "Event";
+            const artistLabel = event.event_name || truncateArtists(event.artist_names || "Event", 3);
             const dateLabel = event.event_date
               ? await (async () => { try { const { format, parseISO } = await import("date-fns"); return format(parseISO(event.event_date), "MMM d, yyyy"); } catch { return event.event_date; } })()
               : null;
