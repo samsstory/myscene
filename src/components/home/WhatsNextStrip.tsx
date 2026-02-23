@@ -1,13 +1,15 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { format, parseISO, isThisWeek, isThisMonth, addMonths, isAfter, startOfToday } from "date-fns";
 import { Plus, Music2, CheckCircle2, CircleHelp, X, Users, Check, Loader2, NotebookPen } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import type { FollowerProfile } from "@/hooks/useFollowers";
 import PlanShowSheet from "./PlanShowSheet";
 import UpcomingShowDetailSheet from "./UpcomingShowDetailSheet";
-import LogPastShowsSheet from "./LogPastShowsSheet";
+import QuickAddSheet, { type QuickAddPrefill } from "@/components/QuickAddSheet";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 // ─── DEMO OVERRIDE ───────────────────────────────────────────────────────────
@@ -559,7 +561,10 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   // Track which friend shows the user has added (by source show id → own show id)
   const [addedFriendShowIds, setAddedFriendShowIds] = useState<Map<string, string>>(new Map());
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
-  const [logPastOpen, setLogPastOpen] = useState(false);
+  // Past-show logging queue via QuickAddSheet
+  const [pastLogPrefill, setPastLogPrefill] = useState<QuickAddPrefill | null>(null);
+  const [pastLogOpen, setPastLogOpen] = useState(false);
+  const pastLogQueueRef = useRef<UpcomingShow[]>([]);
 
   const handlePlanShow = () => {
     if (onPlanShow) {
@@ -688,23 +693,69 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
       .sort((a, b) => (a.show_date ?? "").localeCompare(b.show_date ?? ""));
   }, [upcomingShows]);
 
-  // Count past (unlogged) upcoming shows
-  const pastShowsCount = useMemo(() => {
+  // Past (unlogged) upcoming shows
+  const pastShows = useMemo(() => {
     const today = startOfToday();
     const norm = (s: string) => s.trim().toLowerCase();
-    const seen = new Set<string>();
-    let count = 0;
+    const seen = new Map<string, UpcomingShow>();
     for (const show of upcomingShows) {
       const key = `${norm(show.artist_name)}|${show.show_date ?? ""}`;
       if (seen.has(key)) continue;
-      seen.add(key);
       if (!show.show_date) continue;
       try {
-        if (isAfter(today, parseISO(show.show_date))) count++;
+        if (isAfter(today, parseISO(show.show_date))) seen.set(key, show);
       } catch { /* skip */ }
     }
-    return count;
+    return Array.from(seen.values());
   }, [upcomingShows]);
+
+  const pastShowsCount = pastShows.length;
+
+  const startPastLogQueue = useCallback(() => {
+    if (pastShows.length === 0) return;
+    pastLogQueueRef.current = [...pastShows];
+    const first = pastLogQueueRef.current.shift()!;
+    const isFestival = first.raw_input === "festival";
+    setPastLogPrefill({
+      artistName: first.artist_name,
+      artistImageUrl: first.artist_image_url,
+      venueName: first.venue_name,
+      venueLocation: first.venue_location,
+      showDate: first.show_date,
+      showType: isFestival ? "festival" : "set",
+    });
+    setPastLogOpen(true);
+  }, [pastShows]);
+
+  const handlePastLogShowAdded = useCallback(async (_showData?: any) => {
+    // Delete the upcoming show that was just logged
+    const justLogged = pastShows.find(
+      (s) => s.artist_name === pastLogPrefill?.artistName && s.show_date === pastLogPrefill?.showDate
+    );
+    if (justLogged) {
+      await supabase.from("upcoming_shows" as any).delete().eq("id", justLogged.id);
+      refetch();
+    }
+
+    // Advance to next in queue
+    const next = pastLogQueueRef.current.shift();
+    if (next) {
+      const isFestival = next.raw_input === "festival";
+      setPastLogPrefill({
+        artistName: next.artist_name,
+        artistImageUrl: next.artist_image_url,
+        venueName: next.venue_name,
+        venueLocation: next.venue_location,
+        showDate: next.show_date,
+        showType: isFestival ? "festival" : "set",
+      });
+      // Re-open after a brief delay so the sheet animates fresh
+      setPastLogOpen(false);
+      setTimeout(() => setPastLogOpen(true), 300);
+    } else {
+      toast.success("All past shows logged! 🎉");
+    }
+  }, [pastShows, pastLogPrefill, refetch]);
 
   const filteredMineShows = useMemo(() => {
     if (timeFilter === "all") return deduplicatedMineShows;
@@ -894,7 +945,7 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         {/* Unlogged past shows nudge */}
         {activeTab === "mine" && !isLoading && pastShowsCount > 0 && (
           <button
-            onClick={() => setLogPastOpen(true)}
+            onClick={startPastLogQueue}
             className="w-full rounded-2xl border border-primary/15 bg-primary/[0.06] px-4 py-2.5 flex items-center gap-3 hover:bg-primary/[0.10] transition-colors"
           >
             <NotebookPen className="h-4 w-4 text-primary/60 flex-shrink-0" />
@@ -975,11 +1026,11 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         <PlanShowSheet open={sheetOpen} onOpenChange={setSheetOpen} />
       )}
 
-      <LogPastShowsSheet
-        open={logPastOpen}
-        onOpenChange={setLogPastOpen}
-        upcomingShows={upcomingShows}
-        onShowLogged={refetch}
+      <QuickAddSheet
+        open={pastLogOpen}
+        onOpenChange={setPastLogOpen}
+        prefill={pastLogPrefill}
+        onShowAdded={handlePastLogShowAdded}
       />
     </>
   );
