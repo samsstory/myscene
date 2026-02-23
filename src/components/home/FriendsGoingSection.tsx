@@ -19,9 +19,10 @@ interface GroupedEvent {
 interface FriendsGoingSectionProps {
   friendShows: FriendShow[];
   onAddToSchedule: (show: FriendShow) => void;
+  onShowTap?: (show: FriendShow) => void;
 }
 
-export default function FriendsGoingSection({ friendShows, onAddToSchedule }: FriendsGoingSectionProps) {
+export default function FriendsGoingSection({ friendShows, onAddToSchedule, onShowTap }: FriendsGoingSectionProps) {
   const [addingKeys, setAddingKeys] = useState<Set<string>>(new Set());
   const [addedKeys, setAddedKeys] = useState<Set<string>>(new Set());
 
@@ -109,7 +110,7 @@ export default function FriendsGoingSection({ friendShows, onAddToSchedule }: Fr
           <div
             key={group.key}
             className="relative rounded-2xl overflow-hidden h-40 cursor-pointer select-none"
-            onClick={(e) => handleToggle(group, e)}
+            onClick={() => onShowTap?.(group.representative)}
           >
             {/* Background */}
             {group.artistImageUrl ? (
