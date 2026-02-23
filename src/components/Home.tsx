@@ -96,7 +96,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     return Array.from(names);
   }, [shows]);
 
-  const handleEdmtrainAddToSchedule = async (event: EdmtrainEvent) => {
+  const handleEdmtrainAddToSchedule = async (event: EdmtrainEvent, rsvpStatus: string = "going") => {
     const artistName = event.event_name || truncateArtists(event.artists.map(a => a.name), 3);
     const saved = await saveUpcomingShow({
       artist_name: artistName,
@@ -104,6 +104,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       venue_location: event.venue_location || undefined,
       show_date: event.event_date || undefined,
       ticket_url: event.event_link, // Edmtrain event link as ticket URL (required attribution)
+      rsvp_status: rsvpStatus,
     });
     if (!saved) {
       toast.error("Failed to add to schedule");

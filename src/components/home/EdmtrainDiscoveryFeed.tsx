@@ -6,7 +6,7 @@ import EdmtrainEventCard from "./EdmtrainEventCard";
 import EdmtrainEventDetailSheet from "./EdmtrainEventDetailSheet";
 
 interface EdmtrainDiscoveryFeedProps {
-  onAddToSchedule: (event: EdmtrainEvent) => void;
+  onAddToSchedule: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   matchedArtistNames?: string[];
   overrideLat?: number | null;
   overrideLng?: number | null;

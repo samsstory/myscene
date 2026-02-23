@@ -17,7 +17,7 @@ interface SceneViewProps {
   nearMeLoading: boolean;
   nearMeHasLocation?: boolean;
   onQuickAdd: (item: any) => void;
-  onAddEdmtrainToSchedule?: (event: EdmtrainEvent) => void;
+  onAddEdmtrainToSchedule?: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   userArtistNames?: string[];
   friendShows?: FriendShow[];
   onAddFriendShowToSchedule?: (show: FriendShow) => void;

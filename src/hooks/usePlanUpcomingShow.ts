@@ -32,6 +32,7 @@ export interface SaveUpcomingShowData {
   ticket_url?: string;
   artist_image_url?: string;
   raw_input?: string;
+  rsvp_status?: string;
 }
 
 export function usePlanUpcomingShow() {
@@ -195,6 +196,7 @@ export function usePlanUpcomingShow() {
           ticket_url: data.ticket_url || null,
           artist_image_url: data.artist_image_url || null,
           raw_input: data.raw_input || null,
+          rsvp_status: data.rsvp_status || "going",
         });
 
       if (insertError) throw insertError;
