@@ -1,12 +1,15 @@
-import { CalendarPlus, Music, Ticket } from "lucide-react";
+import { CalendarPlus, Music, Ticket, CheckCircle2, CircleHelp } from "lucide-react";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { format } from "date-fns";
+
+export type ScheduledStatus = "going" | "maybe" | null;
 
 interface EdmtrainEventCardProps {
   event: EdmtrainEvent;
   endDate?: string;
   onAddToSchedule: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   onClick?: () => void;
+  scheduledStatus?: ScheduledStatus;
 }
 
 function formatDateRange(startIso: string, endIso?: string): string {
@@ -19,7 +22,7 @@ function formatDateRange(startIso: string, endIso?: string): string {
   return `${format(start, "MMM d")}–${format(end, "MMM d")}`;
 }
 
-export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onClick }: EdmtrainEventCardProps) {
+export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onClick, scheduledStatus }: EdmtrainEventCardProps) {
   const artistNames = event.artists.map((a) => a.name).join(", ");
   const displayName = event.event_name || artistNames || "Event";
   const dateStr = formatDateRange(event.event_date, endDate);
@@ -54,16 +57,33 @@ export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onC
         </span>
       )}
 
-      {/* Add to schedule - top right */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onAddToSchedule(event);
-        }}
-        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:bg-primary/30 hover:border-primary/40 hover:text-primary active:scale-90 transition-all z-10"
-      >
-        <CalendarPlus className="w-3.5 h-3.5" />
-      </button>
+      {/* Add to schedule / status badge - top right */}
+      {scheduledStatus ? (
+        <div
+          className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-sm border z-10 text-[9px] font-bold uppercase tracking-wider ${
+            scheduledStatus === "going"
+              ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300"
+              : "bg-amber-500/25 border-amber-500/40 text-amber-300"
+          }`}
+        >
+          {scheduledStatus === "going" ? (
+            <CheckCircle2 className="w-3 h-3" />
+          ) : (
+            <CircleHelp className="w-3 h-3" />
+          )}
+          {scheduledStatus === "going" ? "Going" : "Maybe"}
+        </div>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToSchedule(event);
+          }}
+          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:bg-primary/30 hover:border-primary/40 hover:text-primary active:scale-90 transition-all z-10"
+        >
+          <CalendarPlus className="w-3.5 h-3.5" />
+        </button>
+      )}
 
       {/* Bottom content */}
       <div className="absolute bottom-0 left-0 right-0 p-3 z-10">

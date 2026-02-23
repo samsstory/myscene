@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin } from "lucide-react";
 import { useEdmtrainEvents, type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
-import EdmtrainEventCard from "./EdmtrainEventCard";
+import EdmtrainEventCard, { type ScheduledStatus } from "./EdmtrainEventCard";
 import EdmtrainEventDetailSheet from "./EdmtrainEventDetailSheet";
+import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 
 interface EdmtrainDiscoveryFeedProps {
   onAddToSchedule: (event: EdmtrainEvent, rsvpStatus?: string) => void;
@@ -11,6 +12,7 @@ interface EdmtrainDiscoveryFeedProps {
   overrideLat?: number | null;
   overrideLng?: number | null;
   overrideCity?: string | null;
+  upcomingShows?: UpcomingShow[];
 }
 
 interface GroupedEvent {
@@ -59,6 +61,7 @@ export default function EdmtrainDiscoveryFeed({
   overrideLat,
   overrideLng,
   overrideCity,
+  upcomingShows = [],
 }: EdmtrainDiscoveryFeedProps) {
   const { events, isLoading, error } = useEdmtrainEvents({
     overrideLat,
@@ -68,6 +71,24 @@ export default function EdmtrainDiscoveryFeed({
 
   const [selectedEvent, setSelectedEvent] = useState<{ event: EdmtrainEvent; endDate?: string } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Build a lookup: normalised artist name + date → rsvp status
+  const scheduledLookup = useMemo(() => {
+    const map = new Map<string, ScheduledStatus>();
+    for (const s of upcomingShows) {
+      if (!s.artist_name || !s.show_date) continue;
+      const key = `${s.artist_name.toLowerCase()}::${s.show_date}`;
+      map.set(key, (s.rsvp_status === "going" || s.rsvp_status === "maybe") ? s.rsvp_status : null);
+    }
+    return map;
+  }, [upcomingShows]);
+
+  const getScheduledStatus = (event: EdmtrainEvent): ScheduledStatus => {
+    // Check by artist name match + date
+    const artistKey = (event.event_name || event.artists.map(a => a.name).join(", ")).toLowerCase();
+    const key = `${artistKey}::${event.event_date}`;
+    return scheduledLookup.get(key) ?? null;
+  };
 
   const grouped = groupMultiDayEvents(events);
   const matchSet = new Set(matchedArtistNames.map((n) => n.toLowerCase()));
@@ -115,6 +136,7 @@ export default function EdmtrainDiscoveryFeed({
             event={event}
             endDate={endDate}
             onAddToSchedule={onAddToSchedule}
+            scheduledStatus={getScheduledStatus(event)}
             onClick={() => {
               setSelectedEvent({ event, endDate });
               setDetailOpen(true);

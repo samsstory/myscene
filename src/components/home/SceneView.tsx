@@ -8,6 +8,7 @@ import InlineCityPicker from "./InlineCityPicker";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { supabase } from "@/integrations/supabase/client";
+import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 
 interface SceneViewProps {
   onPlanShow: () => void;
@@ -24,6 +25,7 @@ interface SceneViewProps {
   onFriendShowTap?: (show: FriendShow) => void;
   hasNoUpcoming?: boolean;
   hasNoFollowing?: boolean;
+  upcomingShows?: UpcomingShow[];
 }
 
 export default function SceneView({
@@ -41,6 +43,7 @@ export default function SceneView({
   onFriendShowTap,
   hasNoUpcoming = false,
   hasNoFollowing = false,
+  upcomingShows = [],
 }: SceneViewProps) {
   const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
     console.log("Add to schedule:", event);
@@ -129,6 +132,7 @@ export default function SceneView({
           overrideLat={cityOverride?.lat}
           overrideLng={cityOverride?.lng}
           overrideCity={cityOverride?.name}
+          upcomingShows={upcomingShows}
         />
       </section>
 
