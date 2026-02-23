@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { CalendarPlus, Users } from "lucide-react";
 import WhatsNextStrip from "./WhatsNextStrip";
+import SectionLabel from "./SectionLabel";
 import PopularFeedGrid from "./PopularFeedGrid";
 import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
 import FriendsGoingSection from "./FriendsGoingSection";
@@ -104,9 +105,7 @@ export default function SceneView({
 
           {friendShows.length > 0 && (
             <section className="space-y-2">
-              <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">
-                Friends Going
-              </h3>
+              <SectionLabel>Friends Going</SectionLabel>
               <FriendsGoingSection
                 friendShows={friendShows}
                 onAddToSchedule={onAddFriendShowToSchedule ?? (() => {})}
@@ -120,9 +119,7 @@ export default function SceneView({
       {/* Section 3: Personalized recommendations with city toggle */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">
-            Upcoming Near You
-          </h3>
+           <SectionLabel>Upcoming Near You</SectionLabel>
           {displayCity && (
             <InlineCityPicker
               currentCity={displayCity}
@@ -142,9 +139,7 @@ export default function SceneView({
 
       {/* Section 4: Popular near me */}
       <section className="space-y-2">
-        <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">
-          Popular Near You
-        </h3>
+        <SectionLabel>Popular Near You</SectionLabel>
         <PopularFeedGrid
           items={nearMeItems}
           totalUsers={nearMeTotalUsers}
