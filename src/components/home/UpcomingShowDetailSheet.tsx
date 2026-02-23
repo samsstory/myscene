@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
-import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X, UserPlus, ChevronRight, Link, Send } from "lucide-react";
+import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, CircleHelp, X, UserPlus, ChevronRight, Link, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useShareShow } from "@/hooks/useShareShow";
@@ -41,7 +41,7 @@ const RSVP_OPTIONS: { value: RsvpStatus; label: string; icon: React.ReactNode; a
   {
     value: "maybe",
     label: "Idk yet",
-    icon: <AlertCircle className="h-4 w-4" />,
+    icon: <CircleHelp className="h-4 w-4" />,
     activeClass: "bg-amber-500/20 border-amber-500/50 text-amber-400",
   },
   {
