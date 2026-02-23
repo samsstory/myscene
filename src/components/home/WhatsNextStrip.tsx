@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Music2, CheckCircle2, AlertCircle, X, Users, Check, Loader2 } from "lucide-react";
+import { Plus, Music2, CheckCircle2, CircleHelp, X, Users, Check, Loader2 } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomingShows";
@@ -45,7 +45,7 @@ interface WhatsNextStripProps {
 
 const RSVP_BADGE = {
   going:     { Icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/20 border-emerald-500/30" },
-  maybe:     { Icon: AlertCircle,  color: "text-amber-400",   bg: "bg-amber-500/20 border-amber-500/30"   },
+  maybe:     { Icon: CircleHelp,  color: "text-amber-400",   bg: "bg-amber-500/20 border-amber-500/30"   },
   not_going: { Icon: X,            color: "text-red-400",     bg: "bg-red-500/20 border-red-500/30"        },
 } as const;
 
