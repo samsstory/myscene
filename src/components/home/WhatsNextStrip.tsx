@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isThisWeek, isThisMonth, addMonths, isAfter } from "date-fns";
 import { Plus, Music2, CheckCircle2, CircleHelp, X, Users, Check, Loader2 } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -541,6 +541,8 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
 
   const [activeTab, setActiveTab] = useState<"mine" | "friends" | "discover">("mine");
+  type TimeFilter = "all" | "week" | "month" | "later";
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedShow, setSelectedShow] = useState<UpcomingShow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -675,6 +677,21 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
     );
   }, [upcomingShows]);
 
+  const filteredMineShows = useMemo(() => {
+    if (timeFilter === "all") return deduplicatedMineShows;
+    const now = new Date();
+    return deduplicatedMineShows.filter((show) => {
+      if (!show.show_date) return timeFilter === "later";
+      try {
+        const d = parseISO(show.show_date);
+        if (timeFilter === "week") return isThisWeek(d, { weekStartsOn: 1 });
+        if (timeFilter === "month") return isThisMonth(d);
+        // "later" = beyond this month
+        return isAfter(d, addMonths(new Date(now.getFullYear(), now.getMonth() + 1, 0), 0));
+      } catch { return false; }
+    });
+  }, [deduplicatedMineShows, timeFilter]);
+
   /** Set of friend show IDs already shown as badges on Mine cards — hide from Friends tab */
   const overlappingFriendShowIds = useMemo(() => {
     const ids = new Set<string>();
@@ -776,6 +793,25 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
           )}
         </div>
 
+        {/* Time filter pills — only on Mine tab with shows */}
+        {activeTab === "mine" && !isLoading && deduplicatedMineShows.length > 3 && (
+          <div className="flex items-center gap-1.5">
+            {([["all", "All"], ["week", "This Week"], ["month", "This Month"], ["later", "Later"]] as const).map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setTimeFilter(val)}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium transition-all ${
+                  timeFilter === val
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "text-white/30 hover:text-white/50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Loading skeleton */}
         {isLoading && activeTab === "mine" && (
           <div className="flex gap-3 overflow-hidden">
@@ -804,9 +840,16 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
           </button>
         )}
 
-        {activeTab === "mine" && !isLoading && deduplicatedMineShows.length > 0 && (
+        {activeTab === "mine" && !isLoading && deduplicatedMineShows.length > 0 && filteredMineShows.length === 0 && (
+          <div className="w-full rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-3 flex items-center gap-2.5">
+            <Music2 className="h-4 w-4 text-white/25 flex-shrink-0" />
+            <p className="text-xs text-white/35">No shows {timeFilter === "week" ? "this week" : timeFilter === "month" ? "this month" : "later"}</p>
+          </div>
+        )}
+
+        {activeTab === "mine" && !isLoading && filteredMineShows.length > 0 && (
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-            {deduplicatedMineShows.map((show, idx) => (
+            {filteredMineShows.map((show, idx) => (
               <UpcomingChip
                 key={show.id}
                 show={show}
