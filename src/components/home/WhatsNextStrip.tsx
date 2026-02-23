@@ -229,7 +229,7 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
                   : "text-white/40 hover:text-white/60"
               }`}
             >
-              Discover
+              For You
             </button>
           </div>
 
