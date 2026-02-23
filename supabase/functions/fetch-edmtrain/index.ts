@@ -273,21 +273,8 @@ Deno.serve(async (req) => {
     await supabase.from("edmtrain_events").delete().eq("location_key", locationKey);
     await supabase.from("edmtrain_events").delete().lt("event_date", today);
 
-    // Resolve images: local DB first, then Spotify (with budget)
-    let token: string | null = null;
-    try {
-      token = await getSpotifyToken();
-    } catch (err) {
-      console.warn("Spotify auth failed, continuing without Spotify images:", err);
-    }
-
-    const spotifyCache: Record<string, string | null> = {};
-    let spotifyCallCount = 0;
-    const MAX_SPOTIFY_CALLS = 150; // Budget to stay within timeout
-
+    // STEP 1: Resolve images from local DB only (instant, no API calls)
     const eventImages: Record<number, string | null> = {};
-
-    // First pass: resolve from local DB (instant, no API calls)
     for (const e of events) {
       const artistList = (e.artistList || []) as { name: string }[];
       for (const artist of artistList) {
@@ -302,66 +289,33 @@ Deno.serve(async (req) => {
     const localResolved = Object.values(eventImages).filter(Boolean).length;
     console.log(`Resolved ${localResolved}/${events.length} images from local DB`);
 
-    // Second pass: resolve remaining from Spotify (with budget)
-    if (token) {
-      const unresolved = events.filter((e: any) => !eventImages[e.id]);
-      console.log(`Resolving ${unresolved.length} remaining events via Spotify (budget: ${MAX_SPOTIFY_CALLS})`);
+    // STEP 2: Upsert ALL events immediately (with whatever images we have from local DB)
+    const rows = events.map((e: any) => ({
+      edmtrain_id: e.id,
+      event_name: e.name || null,
+      event_link: e.link,
+      event_date: e.date,
+      festival_ind: e.festivalInd || false,
+      ages: e.ages || null,
+      venue_name: e.venue?.name || null,
+      venue_location: e.venue?.location || null,
+      venue_address: e.venue?.address || null,
+      venue_latitude: e.venue?.latitude || null,
+      venue_longitude: e.venue?.longitude || null,
+      artists: JSON.stringify(
+        (e.artistList || []).map((a: any) => ({
+          id: a.id,
+          name: a.name,
+          link: a.link,
+          b2b: a.b2bInd || false,
+        }))
+      ),
+      artist_image_url: eventImages[e.id] ?? null,
+      fetched_at: new Date().toISOString(),
+      location_key: locationKey,
+    }));
 
-      for (let i = 0; i < unresolved.length && spotifyCallCount < MAX_SPOTIFY_CALLS; i += 5) {
-        const batch = unresolved.slice(i, i + 5);
-        await Promise.all(
-          batch.map(async (e: any) => {
-            if (spotifyCallCount >= MAX_SPOTIFY_CALLS) return;
-            const artistList = (e.artistList || []).map((a: any) => ({ name: a.name }));
-            // Only try top 2 artists per event to conserve budget
-            for (const artist of artistList.slice(0, 2)) {
-              if (spotifyCallCount >= MAX_SPOTIFY_CALLS) break;
-              const key = artist.name.toLowerCase();
-              if (spotifyCache[key] !== undefined) {
-                if (spotifyCache[key]) { eventImages[e.id] = spotifyCache[key]; break; }
-                continue;
-              }
-              spotifyCallCount++;
-              const url = await resolveArtistImageFromSpotify(artist.name, token!);
-              spotifyCache[key] = url;
-              if (url) { eventImages[e.id] = url; break; }
-            }
-          })
-        );
-      }
-      console.log(`Spotify calls used: ${spotifyCallCount}/${MAX_SPOTIFY_CALLS}`);
-    }
-
-    const totalResolved = Object.values(eventImages).filter(Boolean).length;
-    console.log(`Total resolved: ${totalResolved}/${events.length}`);
-
-    // Upsert fresh events
-    if (events.length > 0) {
-      const rows = events.map((e: any) => ({
-        edmtrain_id: e.id,
-        event_name: e.name || null,
-        event_link: e.link,
-        event_date: e.date,
-        festival_ind: e.festivalInd || false,
-        ages: e.ages || null,
-        venue_name: e.venue?.name || null,
-        venue_location: e.venue?.location || null,
-        venue_address: e.venue?.address || null,
-        venue_latitude: e.venue?.latitude || null,
-        venue_longitude: e.venue?.longitude || null,
-        artists: JSON.stringify(
-          (e.artistList || []).map((a: any) => ({
-            id: a.id,
-            name: a.name,
-            link: a.link,
-            b2b: a.b2bInd || false,
-          }))
-        ),
-        artist_image_url: eventImages[e.id] ?? null,
-        fetched_at: new Date().toISOString(),
-        location_key: locationKey,
-      }));
-
+    if (rows.length > 0) {
       const { error: upsertError } = await supabase
         .from("edmtrain_events")
         .upsert(rows, { onConflict: "edmtrain_id" });
@@ -370,10 +324,70 @@ Deno.serve(async (req) => {
         console.error("Upsert error:", upsertError);
         throw new Error(`Failed to cache events: ${upsertError.message}`);
       }
+      console.log(`Upserted ${rows.length} events`);
+    }
+
+    // STEP 3: Spotify image resolution as best-effort UPDATE pass (won't block data availability)
+    const unresolved = events.filter((e: any) => !eventImages[e.id] && (e.artistList || []).length > 0);
+    let spotifyResolved = 0;
+
+    if (unresolved.length > 0) {
+      let token: string | null = null;
+      try {
+        token = await getSpotifyToken();
+      } catch (err) {
+        console.warn("Spotify auth failed:", err);
+      }
+
+      if (token) {
+        const spotifyCache: Record<string, string | null> = {};
+        let callCount = 0;
+        const MAX_CALLS = 80; // Conservative budget to avoid rate limits + timeout
+        const startTime = Date.now();
+        const TIME_BUDGET_MS = 15000; // 15 seconds max for Spotify
+
+        console.log(`Resolving ${unresolved.length} remaining via Spotify (budget: ${MAX_CALLS} calls, 15s)`);
+
+        for (const e of unresolved) {
+          if (callCount >= MAX_CALLS || (Date.now() - startTime) > TIME_BUDGET_MS) break;
+
+          const artistList = (e.artistList || []).map((a: any) => ({ name: a.name }));
+          // Only try the first artist to conserve budget
+          const firstArtist = artistList[0];
+          if (!firstArtist) continue;
+
+          const key = firstArtist.name.toLowerCase();
+          let url: string | null = null;
+
+          if (spotifyCache[key] !== undefined) {
+            url = spotifyCache[key];
+          } else {
+            callCount++;
+            url = await resolveArtistImageFromSpotify(firstArtist.name, token);
+            spotifyCache[key] = url;
+          }
+
+          if (url) {
+            spotifyResolved++;
+            await supabase
+              .from("edmtrain_events")
+              .update({ artist_image_url: url })
+              .eq("edmtrain_id", e.id);
+          }
+        }
+        console.log(`Spotify: resolved ${spotifyResolved}, calls used: ${callCount}/${MAX_CALLS}`);
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: true, cached: false, count: events.length, resolved: totalResolved, locationKey }),
+      JSON.stringify({
+        success: true,
+        cached: false,
+        count: events.length,
+        localResolved,
+        spotifyResolved,
+        locationKey,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
