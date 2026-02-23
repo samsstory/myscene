@@ -47,13 +47,51 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
         return;
       }
 
+      // Extract state from home_city (e.g. "Austin, TX" → "Texas", "Los Angeles, CA" → "California")
+      const stateAbbrevToFull: Record<string, string> = {
+        AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+        CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
+        HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+        KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
+        MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri",
+        MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+        NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
+        OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina",
+        SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
+        VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+        DC: "District of Columbia",
+      };
+
+      let state: string | null = null;
+      if (profile.home_city) {
+        // Try to match "City, ST" or "City, State" pattern
+        const parts = profile.home_city.split(",").map((p: string) => p.trim());
+        if (parts.length >= 2) {
+          const lastPart = parts[parts.length - 1].toUpperCase();
+          if (stateAbbrevToFull[lastPart]) {
+            state = stateAbbrevToFull[lastPart];
+          } else {
+            // Check if it's already a full state name
+            const fullMatch = Object.values(stateAbbrevToFull).find(
+              s => s.toLowerCase() === parts[parts.length - 1].toLowerCase()
+            );
+            if (fullMatch) state = fullMatch;
+          }
+        }
+      }
+
+      if (!state) {
+        console.warn("Could not determine state from home_city:", profile.home_city);
+        setEvents([]);
+        return;
+      }
+
       // Trigger cache refresh (edge function checks freshness internally)
-      // Extract state from home_city if possible (e.g. "Los Angeles, CA" → "California")
       await supabase.functions.invoke("fetch-edmtrain", {
         body: {
           latitude: profile.home_latitude,
           longitude: profile.home_longitude,
-          state: null, // The Nearby Events API works with just lat/lng
+          state,
         },
       });
 
