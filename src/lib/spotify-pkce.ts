@@ -1,6 +1,8 @@
 // Spotify PKCE OAuth utilities — runs entirely client-side, no secret needed
+// Client ID is fetched from the backend to avoid env var issues
 
-const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "";
+import { supabase } from "@/integrations/supabase/client";
+
 const REDIRECT_URI = `${window.location.origin}/auth/spotify/callback`;
 const SCOPES = "user-top-read";
 
@@ -30,16 +32,21 @@ export async function initiateSpotifyAuth() {
   // Store verifier for the callback
   sessionStorage.setItem("spotify_code_verifier", codeVerifier);
 
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: SPOTIFY_CLIENT_ID,
-    scope: SCOPES,
-    redirect_uri: REDIRECT_URI,
-    code_challenge_method: "S256",
-    code_challenge: codeChallenge,
+  // Fetch the auth URL from the edge function (which has access to the client ID)
+  const { data, error } = await supabase.functions.invoke("spotify-auth-url", {
+    body: { code_challenge: codeChallenge, redirect_uri: REDIRECT_URI },
   });
 
-  window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  if (error || !data?.url) {
+    throw new Error(error?.message || data?.error || "Failed to get Spotify auth URL");
+  }
+
+  // Store client_id for the token exchange step
+  if (data.client_id) {
+    sessionStorage.setItem("spotify_client_id", data.client_id);
+  }
+
+  window.location.href = data.url;
 }
 
 export async function exchangeSpotifyCode(code: string): Promise<{
@@ -50,11 +57,14 @@ export async function exchangeSpotifyCode(code: string): Promise<{
   const codeVerifier = sessionStorage.getItem("spotify_code_verifier");
   if (!codeVerifier) throw new Error("Missing code verifier");
 
+  const clientId = sessionStorage.getItem("spotify_client_id") || "";
+  if (!clientId) throw new Error("Missing Spotify client ID");
+
   const res = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: SPOTIFY_CLIENT_ID,
+      client_id: clientId,
       grant_type: "authorization_code",
       code,
       redirect_uri: REDIRECT_URI,
@@ -68,5 +78,6 @@ export async function exchangeSpotifyCode(code: string): Promise<{
   }
 
   sessionStorage.removeItem("spotify_code_verifier");
+  sessionStorage.removeItem("spotify_client_id");
   return res.json();
 }
