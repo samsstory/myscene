@@ -914,6 +914,21 @@ export type Database = {
     }
     Functions: {
       generate_referral_code: { Args: never; Returns: string }
+      get_edmtrain_event_preview: {
+        Args: { p_edmtrain_id: number }
+        Returns: {
+          artist_image_url: string
+          artist_names: string
+          artists: Json
+          edmtrain_id: number
+          event_date: string
+          event_link: string
+          event_name: string
+          festival_ind: boolean
+          venue_location: string
+          venue_name: string
+        }[]
+      }
       get_mutual_followers: {
         Args: { _user_id: string }
         Returns: {

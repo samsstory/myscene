@@ -46,7 +46,7 @@ interface DashboardSheetsProps {
   showCompareSheet: boolean;
   setShowCompareSheet: (v: boolean) => void;
   inviteShowId: string | null;
-  inviteShowType: "logged" | "upcoming";
+  inviteShowType: "logged" | "upcoming" | "edmtrain";
   inviteHighlights: string[];
   inviteNote: string;
 }
@@ -168,7 +168,7 @@ const DashboardSheets = ({
       )}
 
       {/* Compare Show Sheet */}
-      {inviteShowId && (
+      {inviteShowId && inviteShowType !== "edmtrain" && (
         <CompareShowSheet
           open={showCompareSheet}
           onOpenChange={setShowCompareSheet}

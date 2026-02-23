@@ -16,7 +16,7 @@ const IndexV2 = () => {
 
   const [searchParams] = useSearchParams();
   const showId = searchParams.get("show");
-  const showType = (searchParams.get("type") as "logged" | "upcoming") ?? "logged";
+  const showType = (searchParams.get("type") as "logged" | "upcoming" | "edmtrain") ?? "logged";
   const refCode = searchParams.get("ref") ?? undefined;
 
   // If this is an invite link, show ONLY the invite page

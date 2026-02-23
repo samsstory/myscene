@@ -24,7 +24,7 @@ interface ShowPreview {
 
 interface ShowInviteHeroProps {
   showId: string;
-  showType: "logged" | "upcoming";
+  showType: "logged" | "upcoming" | "edmtrain";
   refCode?: string;
 }
 
@@ -78,14 +78,36 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
   useEffect(() => {
     const fetchPreview = async () => {
       try {
-        const fnName = showType === "logged"
-          ? "get_show_invite_preview"
-          : "get_upcoming_show_invite_preview";
-        const { data, error } = await supabase.rpc(fnName as any, { p_show_id: showId });
-        if (error || !data || (Array.isArray(data) && data.length === 0)) {
-          setNotFound(true);
+        if (showType === "edmtrain") {
+          const edmtrainId = parseInt(showId, 10);
+          if (isNaN(edmtrainId)) { setNotFound(true); setLoading(false); return; }
+          const { data, error } = await supabase.rpc("get_edmtrain_event_preview" as any, { p_edmtrain_id: edmtrainId });
+          if (error || !data || (Array.isArray(data) && data.length === 0)) {
+            setNotFound(true);
+          } else {
+            const row = Array.isArray(data) ? data[0] : data;
+            setPreview({
+              show_id: String(row.edmtrain_id),
+              artist_name: row.event_name || row.artist_names || "Event",
+              artist_image_url: row.artist_image_url,
+              venue_name: row.venue_name,
+              venue_location: row.venue_location,
+              show_date: row.event_date,
+              photo_url: null,
+              inviter_full_name: null,
+              inviter_username: null,
+            });
+          }
         } else {
-          setPreview(Array.isArray(data) ? data[0] : data);
+          const fnName = showType === "logged"
+            ? "get_show_invite_preview"
+            : "get_upcoming_show_invite_preview";
+          const { data, error } = await supabase.rpc(fnName as any, { p_show_id: showId });
+          if (error || !data || (Array.isArray(data) && data.length === 0)) {
+            setNotFound(true);
+          } else {
+            setPreview(Array.isArray(data) ? data[0] : data);
+          }
         }
       } catch {
         setNotFound(true);
@@ -256,15 +278,17 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
             <div className="px-5 py-5 space-y-4">
 
               {/* Inviter attribution */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-primary text-[11px] font-bold">{(inviterDisplay[0] || "?").toUpperCase()}</span>
+              {(showType !== "edmtrain" || preview?.inviter_full_name || preview?.inviter_username) && (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-primary text-[11px] font-bold">{(inviterDisplay[0] || "?").toUpperCase()}</span>
+                  </div>
+                  <p className="text-xs text-foreground/50 leading-snug">
+                    <span className="text-foreground/80 font-medium">{inviterDisplay}</span>
+                    {showType === "logged" ? " wants to compare notes with you" : " wants you at this"}
+                  </p>
                 </div>
-                <p className="text-xs text-foreground/50 leading-snug">
-                  <span className="text-foreground/80 font-medium">{inviterDisplay}</span>
-                  {showType === "logged" ? " wants to compare notes with you" : " is going to this"}
-                </p>
-              </div>
+              )}
 
               {/* ── LOGGED idle state ── */}
               {showType === "logged" && step === "idle" && (
@@ -308,19 +332,24 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                 </>
               )}
 
-              {/* ── UPCOMING: RSVP buttons ── */}
-              {showType === "upcoming" && step === "idle" && (
-                <div className="flex gap-2">
-                  {RSVP_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => { setRsvp(opt.key); handleUpcomingSignup(); }}
-                      className="flex-1 rounded-xl border py-3 px-1 text-[11px] font-medium text-center transition-all duration-200 leading-tight bg-white/[0.04] border-white/[0.08] text-foreground/45 hover:bg-white/[0.08] hover:border-white/[0.16]"
-                    >
-                      <span className="block text-base mb-1">{opt.emoji}</span>
-                      {opt.label}
-                    </button>
-                  ))}
+              {/* ── UPCOMING / EDMTRAIN: RSVP buttons ── */}
+              {(showType === "upcoming" || showType === "edmtrain") && step === "idle" && (
+                <div className="space-y-3">
+                  {showType === "edmtrain" && (
+                    <p className="text-xs text-foreground/40 text-center">Are you going?</p>
+                  )}
+                  <div className="flex gap-2">
+                    {RSVP_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => { setRsvp(opt.key); handleUpcomingSignup(); }}
+                        className="flex-1 rounded-xl border py-3 px-1 text-[11px] font-medium text-center transition-all duration-200 leading-tight bg-white/[0.04] border-white/[0.08] text-foreground/45 hover:bg-white/[0.08] hover:border-white/[0.16]"
+                      >
+                        <span className="block text-base mb-1">{opt.emoji}</span>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
