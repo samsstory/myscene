@@ -35,7 +35,7 @@ const Dashboard = () => {
   // Invite / compare flow state
   const [showCompareSheet, setShowCompareSheet] = useState(false);
   const [inviteShowId, setInviteShowId] = useState<string | null>(null);
-  const [inviteShowType, setInviteShowType] = useState<"logged" | "upcoming">("logged");
+  const [inviteShowType, setInviteShowType] = useState<"logged" | "upcoming" | "edmtrain">("logged");
   const [inviteHighlights, setInviteHighlights] = useState<string[]>([]);
   const [inviteNote, setInviteNote] = useState("");
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
@@ -55,7 +55,7 @@ const Dashboard = () => {
     if (!dataReady) return;
     const isInvite = searchParams.get("invite") === "true";
     const showId = searchParams.get("show");
-    const showType = (searchParams.get("type") as "logged" | "upcoming") || "logged";
+    const showType = (searchParams.get("type") as "logged" | "upcoming" | "edmtrain") || "logged";
     if (isInvite && showId) {
       const highlights = JSON.parse(localStorage.getItem("invite_highlights") || "[]");
       const note = localStorage.getItem("invite_note") || "";
@@ -69,7 +69,39 @@ const Dashboard = () => {
       localStorage.removeItem("invite_note");
       localStorage.removeItem("invite_ref");
       pendingAddFlowRef.current = false;
-      setTimeout(() => setShowCompareSheet(true), 600);
+
+      if (showType === "edmtrain") {
+        // Auto-add the edmtrain event to user's upcoming schedule
+        const addEdmtrainEvent = async () => {
+          try {
+            const edmtrainId = parseInt(showId, 10);
+            if (isNaN(edmtrainId)) return;
+            const { data: eventData } = await supabase.rpc("get_edmtrain_event_preview" as any, { p_edmtrain_id: edmtrainId });
+            const event = Array.isArray(eventData) ? eventData[0] : eventData;
+            if (!event) return;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const rsvpParam = searchParams.get("rsvp") || "going";
+            await supabase.from("upcoming_shows").insert({
+              created_by_user_id: user.id,
+              artist_name: event.event_name || event.artist_names || "Event",
+              venue_name: event.venue_name,
+              venue_location: event.venue_location,
+              show_date: event.event_date,
+              artist_image_url: event.artist_image_url,
+              rsvp_status: rsvpParam,
+              source_url: event.event_link,
+            });
+            const { toast } = await import("sonner");
+            toast.success(`Added to your schedule! 🎶`);
+          } catch (err) {
+            console.error("Failed to add edmtrain event:", err);
+          }
+        };
+        addEdmtrainEvent();
+      } else {
+        setTimeout(() => setShowCompareSheet(true), 600);
+      }
       setSearchParams({}, { replace: true });
     }
   }, [dataReady, searchParams, setSearchParams]);

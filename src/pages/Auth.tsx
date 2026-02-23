@@ -14,6 +14,7 @@ import DynamicIslandOverlay from "@/components/ui/DynamicIslandOverlay";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [authSearchParams] = useState(() => new URLSearchParams(window.location.search));
   const [isLoading, setIsLoading] = useState(false);
 
   // Capture referral code from URL if present
@@ -82,7 +83,19 @@ const Auth = () => {
       }
 
       toast.success("Sign up successful! Welcome to Scene 🎵");
-      navigate("/dashboard");
+      // Forward invite params if present
+      const showParam = authSearchParams.get("show");
+      const typeParam = authSearchParams.get("type");
+      if (showParam && typeParam) {
+        const rsvpParam = authSearchParams.get("rsvp");
+        const refParam = authSearchParams.get("ref");
+        const qs = new URLSearchParams({ invite: "true", show: showParam, type: typeParam });
+        if (rsvpParam) qs.set("rsvp", rsvpParam);
+        if (refParam) qs.set("ref", refParam);
+        navigate(`/dashboard?${qs.toString()}`);
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign up");
     } finally {
@@ -107,7 +120,19 @@ const Auth = () => {
       if (error) throw error;
 
       toast.success("Welcome back! 🎶");
-      navigate("/dashboard");
+      // Forward invite params if present
+      const showParam = authSearchParams.get("show");
+      const typeParam = authSearchParams.get("type");
+      if (showParam && typeParam) {
+        const rsvpParam = authSearchParams.get("rsvp");
+        const refParam = authSearchParams.get("ref");
+        const qs = new URLSearchParams({ invite: "true", show: showParam, type: typeParam });
+        if (rsvpParam) qs.set("rsvp", rsvpParam);
+        if (refParam) qs.set("ref", refParam);
+        navigate(`/dashboard?${qs.toString()}`);
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
