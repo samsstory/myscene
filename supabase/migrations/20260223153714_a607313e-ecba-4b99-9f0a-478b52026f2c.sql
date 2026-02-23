@@ -1,0 +1,1 @@
+ALTER TABLE public.edmtrain_events ADD COLUMN artist_image_url text;

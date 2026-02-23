@@ -1,4 +1,4 @@
-import { ExternalLink, CalendarPlus, Music } from "lucide-react";
+import { CalendarPlus, Music, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { format } from "date-fns";
@@ -6,74 +6,87 @@ import { format } from "date-fns";
 interface EdmtrainEventCardProps {
   event: EdmtrainEvent;
   onAddToSchedule: (event: EdmtrainEvent) => void;
-  compact?: boolean;
 }
 
-export default function EdmtrainEventCard({ event, onAddToSchedule, compact }: EdmtrainEventCardProps) {
+export default function EdmtrainEventCard({ event, onAddToSchedule }: EdmtrainEventCardProps) {
   const artistNames = event.artists.map((a) => a.name).join(", ");
   const displayName = event.event_name || artistNames || "Event";
   const dateStr = format(new Date(event.event_date + "T12:00:00"), "MMM d");
+  const hasImage = !!event.artist_image_url;
 
   return (
-    <div
-      className={cn(
-        "group relative rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md overflow-hidden transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.14]",
-        compact ? "p-3" : "p-4"
+    <div className="relative w-40 shrink-0 snap-start aspect-[3/4] rounded-2xl overflow-hidden group">
+      {/* Background image or gradient fallback */}
+      {hasImage ? (
+        <img
+          src={event.artist_image_url!}
+          alt={displayName}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-white/[0.02] flex items-center justify-center">
+          <Music className="w-10 h-10 text-white/15" />
+        </div>
       )}
-    >
-      {/* Festival badge */}
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+      {/* Festival badge - top left */}
       {event.festival_ind && (
-        <span className="absolute top-2 right-2 text-[9px] uppercase tracking-widest font-bold text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+        <span className="absolute top-2 left-2 text-[8px] uppercase tracking-widest font-bold text-primary bg-primary/20 backdrop-blur-sm px-1.5 py-0.5 rounded-full border border-primary/30 z-10">
           Festival
         </span>
       )}
 
-      <div className="space-y-2">
-        {/* Artist / Event name */}
-        <div className="flex items-start gap-2">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center shrink-0">
-            <Music className="w-4 h-4 text-white/40" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="text-sm font-semibold text-white/90 truncate">{displayName}</h4>
-            {event.event_name && artistNames && (
-              <p className="text-xs text-white/50 truncate">{artistNames}</p>
-            )}
-          </div>
-        </div>
+      {/* Add to schedule - top right */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddToSchedule(event);
+        }}
+        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:bg-primary/30 hover:border-primary/40 hover:text-primary active:scale-90 transition-all z-10"
+      >
+        <CalendarPlus className="w-3.5 h-3.5" />
+      </button>
 
-        {/* Venue + Date */}
-        <div className="flex items-center justify-between text-xs text-white/50">
-          <span className="truncate max-w-[60%]">
-            {event.venue_name}{event.venue_location ? ` · ${event.venue_location}` : ""}
-          </span>
-          <span className="font-medium text-white/70 shrink-0">{dateStr}</span>
-        </div>
+      {/* Bottom content */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+        <h4 className="text-[13px] font-semibold text-white leading-tight line-clamp-2">{displayName}</h4>
+        {event.event_name && artistNames && (
+          <p className="text-[10px] text-white/60 truncate mt-0.5">{artistNames}</p>
+        )}
+        <p className="text-[10px] text-white/50 truncate mt-1">
+          {event.venue_name} · {dateStr}
+        </p>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            onClick={() => onAddToSchedule(event)}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary/15 border border-primary/25 text-primary text-xs font-semibold hover:bg-primary/25 active:scale-[0.97] transition-all"
-          >
-            <CalendarPlus className="w-3.5 h-3.5" />
-            Add to Schedule
-          </button>
+        {/* Bottom row: Ticket + Edmtrain logo */}
+        <div className="flex items-center justify-between mt-2">
           <a
             href={event.event_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white/60 text-xs font-medium hover:bg-white/[0.10] hover:text-white/80 active:scale-[0.97] transition-all"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 backdrop-blur-sm border border-white/15 text-white/70 text-[10px] font-medium hover:bg-white/20 hover:text-white active:scale-95 transition-all"
           >
-            <ExternalLink className="w-3 h-3" />
-            Edmtrain
+            <Ticket className="w-3 h-3" />
+            Tickets
+          </a>
+          <a
+            href={event.event_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="opacity-40 hover:opacity-70 transition-opacity"
+          >
+            <img
+              src="https://edmtrain.s3.amazonaws.com/img/logo/logo-web.svg"
+              alt="Edmtrain"
+              className="h-[12px] w-auto invert"
+            />
           </a>
         </div>
-      </div>
-
-      {/* Attribution */}
-      <div className="mt-2 flex items-center justify-end">
-        <span className="text-[9px] text-white/25 tracking-wide">Powered by Edmtrain</span>
       </div>
     </div>
   );

@@ -101,6 +101,7 @@ export type Database = {
       edmtrain_events: {
         Row: {
           ages: string | null
+          artist_image_url: string | null
           artists: Json
           edmtrain_id: number
           event_date: string
@@ -118,6 +119,7 @@ export type Database = {
         }
         Insert: {
           ages?: string | null
+          artist_image_url?: string | null
           artists?: Json
           edmtrain_id: number
           event_date: string
@@ -135,6 +137,7 @@ export type Database = {
         }
         Update: {
           ages?: string | null
+          artist_image_url?: string | null
           artists?: Json
           edmtrain_id?: number
           event_date?: string
