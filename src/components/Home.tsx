@@ -25,7 +25,6 @@ import QuickAddSheet from "./QuickAddSheet";
 import { toast } from "sonner";
 
 import { type StatPillAction } from "./home/StatPills";
-import { type IWasTherePayload } from "./home/FriendActivityFeed";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 import IncompleteTagsSheet from "./home/IncompleteTagsSheet";
@@ -38,7 +37,6 @@ import { useFriendUpcomingShows } from "@/hooks/useFriendUpcomingShows";
 import FriendsPanelView from "./home/FriendsPanelView";
 import { usePopularShows } from "@/hooks/usePopularShows";
 import { usePopularNearMe } from "@/hooks/usePopularNearMe";
-import { useFriendActivity } from "@/hooks/useFriendActivity";
 
 type ViewMode = ContentView;
 
@@ -67,7 +65,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const { following, followers } = useFollowers();
   const followingIds = useMemo(() => following.map((f) => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
-  const { items: activityItems, isLoading: activityLoading } = useFriendActivity(followingIds);
   const { items: exploreItems, totalUsers: exploreTotalUsers, isLoading: exploreLoading } = usePopularShows(true);
   const { items: nearMeItems, totalUsers: nearMeTotalUsers, isLoading: nearMeLoading, hasLocation: nearMeHasLocation } = usePopularNearMe(true);
 
@@ -106,18 +103,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
       venueName: item.type === 'artist' ? item.sampleVenueName : (item as any).venueName,
       venueLocation: item.type === 'artist' ? (item as any).sampleVenueLocation : (item as any).venueLocation,
       showDate: item.sampleShowDate
-    });
-    sheets.setQuickAddOpen(true);
-  };
-
-  const handleIWasThere = (payload: IWasTherePayload) => {
-    sheets.setQuickAddPrefill({
-      showType: payload.showType as any || 'set',
-      artistName: payload.artistName,
-      artistImageUrl: (payload as any).artistImageUrl || null,
-      venueName: payload.venueName,
-      venueLocation: (payload as any).venueLocation || null,
-      showDate: payload.showDate
     });
     sheets.setQuickAddOpen(true);
   };
@@ -162,11 +147,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           {viewMode === 'home' && (
             <SceneView
               onPlanShow={() => sheets.setPlanShowOpen(true)}
-              activityItems={activityItems}
-              activityLoading={activityLoading}
-              followingCount={following.length}
               onFindFriends={() => setViewMode("friends")}
-              onIWasThere={handleIWasThere}
               nearMeItems={nearMeItems}
               nearMeTotalUsers={nearMeTotalUsers}
               nearMeLoading={nearMeLoading}
