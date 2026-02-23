@@ -201,7 +201,7 @@ export default function ShowDetailSheet({
                 href={localTicketUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-primary hover:underline"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-white/80 text-sm font-medium hover:bg-white/20 hover:text-white active:scale-95 transition-all"
               >
                 <Ticket className="h-4 w-4 flex-shrink-0" />
                 View Tickets

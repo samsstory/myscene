@@ -25,12 +25,6 @@ export default function FriendChip({ show, isAdded, isToggling, onTap, onToggle 
   const visibleAvatars = allFriends.slice(0, 3);
   const extraCount = allFriends.length - visibleAvatars.length;
 
-  const firstName = allFriends[0]?.full_name?.split(" ")[0]
-    ?? allFriends[0]?.username
-    ?? "Friend";
-  const goingLabel = extraCount > 0
-    ? `${firstName} + ${extraCount} more going`
-    : `${firstName} going`;
 
   return (
     <button
@@ -105,23 +99,16 @@ export default function FriendChip({ show, isAdded, isToggling, onTap, onToggle 
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
         <p
-          className="text-xs font-bold text-white leading-tight line-clamp-1"
+          className="text-xs font-bold text-white leading-tight line-clamp-2"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
         >
           {show.artist_name}
         </p>
         <p
-          className="text-[9px] text-white/80 mt-0.5 leading-tight line-clamp-1"
+          className="text-[10px] text-white/70 mt-0.5"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
         >
-          {goingLabel}
-        </p>
-        <p
-          className="text-[9px] text-white/55 mt-0.5"
-          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
-        >
-          {dateLabel}
-          {venueLabel && ` · ${venueLabel}`}
+          {venueLabel && `${venueLabel} · `}{dateLabel}
         </p>
       </div>
     </button>
