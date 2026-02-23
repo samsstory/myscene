@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import StatPills, { StatPillAction } from "./StatPills";
 import WhatsNextStrip from "./WhatsNextStrip";
 import FriendActivityFeed, { type IWasTherePayload } from "./FriendActivityFeed";
 import PopularFeedGrid from "./PopularFeedGrid";
@@ -9,11 +8,6 @@ import { type ShowTypeFilter } from "@/hooks/usePopularShows";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 interface SceneViewProps {
-  statPills: Parameters<typeof StatPills>[0]["stats"];
-  statsLoading: boolean;
-  onPillTap: (action: StatPillAction, payload?: string) => void;
-  showsTourActive?: boolean;
-  showsRef?: React.RefObject<HTMLButtonElement>;
   onPlanShow: () => void;
   activityItems: Parameters<typeof FriendActivityFeed>[0]["items"];
   activityLoading: boolean;
@@ -35,11 +29,6 @@ interface SceneViewProps {
 type FeedMode = "scene" | "near-me" | "explore" | "upcoming";
 
 export default function SceneView({
-  statPills,
-  statsLoading,
-  onPillTap,
-  showsTourActive,
-  showsRef,
   onPlanShow,
   activityItems,
   activityLoading,
@@ -67,8 +56,6 @@ export default function SceneView({
 
   return (
     <div className="space-y-5">
-      <StatPills stats={statPills} isLoading={statsLoading} onPillTap={onPillTap} showsTourActive={showsTourActive} showsRef={showsRef} />
-
       <WhatsNextStrip onPlanShow={onPlanShow} />
 
       <div className="space-y-3">

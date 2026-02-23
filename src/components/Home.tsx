@@ -161,11 +161,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         >
           {viewMode === 'home' && (
             <SceneView
-              statPills={statPills}
-              statsLoading={statsLoading}
-              onPillTap={handlePillTap}
-              showsTourActive={showsTourActive}
-              showsRef={showsRef}
               onPlanShow={() => sheets.setPlanShowOpen(true)}
               activityItems={activityItems}
               activityLoading={activityLoading}
@@ -235,6 +230,9 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onAddPhoto={(show) => { sheets.setQuickPhotoShow(show); sheets.setQuickPhotoOpen(true); }}
               onAddTags={(showId) => { sheets.setIncompleteTagsFocusId(showId); sheets.setIncompleteTagsOpen(true); }}
               onRankShow={() => sheets.setFocusedRankingOpen(true)}
+              statPills={statPills}
+              statsLoading={statsLoading}
+              onPillTap={handlePillTap}
             />
           )}
 
