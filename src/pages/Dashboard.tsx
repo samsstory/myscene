@@ -93,7 +93,15 @@ const Dashboard = () => {
               source_url: event.event_link,
             });
             const { toast } = await import("sonner");
-            toast.success(`Added to your schedule! 🎶`);
+            const artistLabel = event.event_name || event.artist_names || "Event";
+            const dateLabel = event.event_date
+              ? await (async () => { try { const { format, parseISO } = await import("date-fns"); return format(parseISO(event.event_date), "MMM d, yyyy"); } catch { return event.event_date; } })()
+              : null;
+            toast.success(`${artistLabel} added to your schedule`, {
+              description: [event.venue_name, dateLabel].filter(Boolean).join(" · "),
+              duration: 5000,
+              icon: "🎶",
+            });
           } catch (err) {
             console.error("Failed to add edmtrain event:", err);
           }
