@@ -14,6 +14,7 @@ export interface EdmtrainEvent {
   venue_latitude: number | null;
   venue_longitude: number | null;
   artists: { id: number; name: string; link: string; b2b: boolean }[];
+  artist_image_url: string | null;
 }
 
 interface UseEdmtrainEventsOptions {
@@ -138,6 +139,7 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
         venue_latitude: row.venue_latitude,
         venue_longitude: row.venue_longitude,
         artists: typeof row.artists === "string" ? JSON.parse(row.artists) : (row.artists || []),
+        artist_image_url: row.artist_image_url || null,
       }));
 
       setEvents(mapped);

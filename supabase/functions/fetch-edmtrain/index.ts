@@ -8,6 +8,45 @@ const corsHeaders = {
 
 const EDMTRAIN_BASE = "https://edmtrain.com/api/events";
 
+// Spotify Client Credentials token cache (per invocation)
+let spotifyToken: string | null = null;
+let tokenExpiry = 0;
+
+async function getSpotifyToken(): Promise<string> {
+  if (spotifyToken && Date.now() < tokenExpiry) return spotifyToken;
+  const clientId = Deno.env.get("SPOTIFY_CLIENT_ID");
+  const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET");
+  if (!clientId || !clientSecret) throw new Error("Spotify credentials not configured");
+
+  const resp = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!resp.ok) throw new Error(`Spotify auth failed: ${resp.status}`);
+  const data = await resp.json();
+  spotifyToken = data.access_token;
+  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return spotifyToken!;
+}
+
+async function resolveArtistImage(artistName: string, token: string): Promise<string | null> {
+  try {
+    const resp = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.artists?.items?.[0]?.images?.[0]?.url || null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -123,6 +162,37 @@ Deno.serve(async (req) => {
     const events = edmData.data || [];
     console.log(`Received ${events.length} events from Edmtrain`);
 
+    // Resolve headliner images via Spotify
+    let spotifyImageCache: Record<string, string | null> = {};
+    try {
+      const token = await getSpotifyToken();
+
+      // Collect unique headliner names
+      const headlinerNames = [...new Set(
+        events
+          .map((e: any) => e.artistList?.[0]?.name)
+          .filter(Boolean)
+      )] as string[];
+
+      console.log(`Resolving ${headlinerNames.length} unique headliner images via Spotify`);
+
+      // Process in batches of 5
+      for (let i = 0; i < headlinerNames.length; i += 5) {
+        const batch = headlinerNames.slice(i, i + 5);
+        const results = await Promise.all(
+          batch.map(async (name) => {
+            const imageUrl = await resolveArtistImage(name, token);
+            return { name, imageUrl };
+          })
+        );
+        for (const { name, imageUrl } of results) {
+          spotifyImageCache[name] = imageUrl;
+        }
+      }
+    } catch (err) {
+      console.warn("Spotify image resolution failed, continuing without images:", err);
+    }
+
     // Step 1: Delete stale data for this location + any past events globally
     const today = new Date().toISOString().split("T")[0];
     await supabase.from("edmtrain_events").delete().eq("location_key", locationKey);
@@ -130,29 +200,33 @@ Deno.serve(async (req) => {
 
     // Step 2: Upsert fresh events
     if (events.length > 0) {
-      const rows = events.map((e: any) => ({
-        edmtrain_id: e.id,
-        event_name: e.name || null,
-        event_link: e.link,
-        event_date: e.date,
-        festival_ind: e.festivalInd || false,
-        ages: e.ages || null,
-        venue_name: e.venue?.name || null,
-        venue_location: e.venue?.location || null,
-        venue_address: e.venue?.address || null,
-        venue_latitude: e.venue?.latitude || null,
-        venue_longitude: e.venue?.longitude || null,
-        artists: JSON.stringify(
-          (e.artistList || []).map((a: any) => ({
-            id: a.id,
-            name: a.name,
-            link: a.link,
-            b2b: a.b2bInd || false,
-          }))
-        ),
-        fetched_at: new Date().toISOString(),
-        location_key: locationKey,
-      }));
+      const rows = events.map((e: any) => {
+        const headlinerName = e.artistList?.[0]?.name || null;
+        return {
+          edmtrain_id: e.id,
+          event_name: e.name || null,
+          event_link: e.link,
+          event_date: e.date,
+          festival_ind: e.festivalInd || false,
+          ages: e.ages || null,
+          venue_name: e.venue?.name || null,
+          venue_location: e.venue?.location || null,
+          venue_address: e.venue?.address || null,
+          venue_latitude: e.venue?.latitude || null,
+          venue_longitude: e.venue?.longitude || null,
+          artists: JSON.stringify(
+            (e.artistList || []).map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              link: a.link,
+              b2b: a.b2bInd || false,
+            }))
+          ),
+          artist_image_url: headlinerName ? (spotifyImageCache[headlinerName] ?? null) : null,
+          fetched_at: new Date().toISOString(),
+          location_key: locationKey,
+        };
+      });
 
       const { error: upsertError } = await supabase
         .from("edmtrain_events")
