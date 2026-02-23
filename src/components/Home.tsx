@@ -160,6 +160,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               }}
               hasNoUpcoming={upcomingShows.length === 0}
               hasNoFollowing={following.length === 0}
+              upcomingShows={upcomingShows}
             />
           )}
 
