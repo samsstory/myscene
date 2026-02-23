@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { format, parseISO, isThisWeek, isThisMonth, addMonths, isAfter } from "date-fns";
 import { Plus, Music2, CheckCircle2, CircleHelp, X, Users, Check, Loader2 } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
@@ -543,6 +543,11 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const [activeTab, setActiveTab] = useState<"mine" | "friends" | "discover">("mine");
   type TimeFilter = "all" | "week" | "month" | "later";
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+
+  // Reset filter when switching tabs
+  useEffect(() => {
+    setTimeFilter("all");
+  }, [activeTab]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedShow, setSelectedShow] = useState<UpcomingShow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
