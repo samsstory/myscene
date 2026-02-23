@@ -17,7 +17,7 @@ import UpcomingChip from "./upcoming/UpcomingChip";
 import FriendChip from "./upcoming/FriendChip";
 import AddShowChip from "./upcoming/AddShowChip";
 import FriendShowDetailSheet from "./upcoming/FriendShowDetailSheet";
-import DiscoverFeed from "./DiscoverFeed";
+import DiscoverFeed from "./ForYouFeed";
 
 // ─── DEMO OVERRIDE ───────────────────────────────────────────────────────────
 // Temporary: shows 10 dummy friends on the first Mine card to preview the UI
