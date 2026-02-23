@@ -97,8 +97,13 @@ export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onC
         {event.event_name && artistNames && (
           <p className="text-[10px] text-white/60 truncate mt-0.5">{artistNames}</p>
         )}
-        <p className="text-[10px] text-white/50 truncate mt-1">
-          {event.venue_name} · {dateStr}
+        {event.venue_name && (
+          <p className="text-[10px] text-white/50 truncate mt-0.5">
+            {event.venue_name}
+          </p>
+        )}
+        <p className="text-[10px] text-white/40 mt-0.5">
+          {dateStr}
         </p>
       </div>
     </div>

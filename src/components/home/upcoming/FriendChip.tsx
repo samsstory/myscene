@@ -45,39 +45,6 @@ export default function FriendChip({ show, isAdded, isToggling, onTap, onToggle 
         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/15 to-transparent" />
       )}
 
-      {/* Stacked friend avatars — top-left */}
-      <div className="absolute top-2 left-2 flex items-center">
-        {visibleAvatars.map((f, i) =>
-          f.avatar_url ? (
-            <img
-              key={f.id}
-              src={f.avatar_url}
-              alt={f.username ?? f.full_name ?? "Friend"}
-              className="w-6 h-6 rounded-full border border-black/60 object-cover"
-              style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
-            />
-          ) : (
-            <div
-              key={f.id}
-              className="w-6 h-6 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center"
-              style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
-            >
-              <span className="text-[8px] font-bold text-primary-foreground leading-none">
-                {(f.username ?? f.full_name ?? "?")[0].toUpperCase()}
-              </span>
-            </div>
-          )
-        )}
-        {extraCount > 0 && (
-          <div
-            className="w-6 h-6 rounded-full border border-black/60 bg-white/20 flex items-center justify-center"
-            style={{ marginLeft: -8, zIndex: 0 }}
-          >
-            <span className="text-[7px] font-bold text-white/90 leading-none">+{extraCount}</span>
-          </div>
-        )}
-      </div>
-
       {/* Quick add/remove toggle — top-right */}
       <button
         onClick={(e) => onToggle(show, e)}
@@ -98,17 +65,57 @@ export default function FriendChip({ show, isAdded, isToggling, onTap, onToggle 
       </button>
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
+        {/* Friend avatars directly above artist name */}
+        <div className="flex items-center mb-1">
+          {visibleAvatars.map((f, i) =>
+            f.avatar_url ? (
+              <img
+                key={f.id}
+                src={f.avatar_url}
+                alt={f.username ?? f.full_name ?? "Friend"}
+                className="w-6 h-6 rounded-full border border-black/60 object-cover"
+                style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
+              />
+            ) : (
+              <div
+                key={f.id}
+                className="w-6 h-6 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center"
+                style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
+              >
+                <span className="text-[8px] font-bold text-primary-foreground leading-none">
+                  {(f.username ?? f.full_name ?? "?")[0].toUpperCase()}
+                </span>
+              </div>
+            )
+          )}
+          {extraCount > 0 && (
+            <div
+              className="w-6 h-6 rounded-full border border-black/60 bg-white/20 flex items-center justify-center"
+              style={{ marginLeft: -8, zIndex: 0 }}
+            >
+              <span className="text-[7px] font-bold text-white/90 leading-none">+{extraCount}</span>
+            </div>
+          )}
+        </div>
         <p
           className="text-xs font-bold text-white leading-tight line-clamp-2"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
         >
           {show.artist_name}
         </p>
+        {venueLabel && (
+          <p
+            className="text-[10px] text-white/70 mt-0.5"
+            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
+          >
+            {venueLabel}
+          </p>
+        )}
         <p
-          className="text-[10px] text-white/70 mt-0.5"
+          className="text-[10px] text-white/50 mt-0.5"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
         >
-          {venueLabel && `${venueLabel} · `}{dateLabel}
+          {dateLabel}
         </p>
       </div>
     </button>

@@ -78,11 +78,19 @@ export default function UpcomingChip({ show, goingWith, onTap }: UpcomingChipPro
         >
           {show.artist_name}
         </p>
+        {venueLabel && (
+          <p
+            className="text-[10px] text-white/70 mt-0.5"
+            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
+          >
+            {venueLabel}
+          </p>
+        )}
         <p
-          className="text-[10px] text-white/70 mt-0.5"
+          className="text-[10px] text-white/50 mt-0.5"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
         >
-          {venueLabel && `${venueLabel} · `}{dateLabel}
+          {dateLabel}
         </p>
       </div>
     </button>
