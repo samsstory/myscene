@@ -96,7 +96,11 @@ export default function SceneView({
         </section>
       ) : (
         <>
-          <WhatsNextStrip onPlanShow={onPlanShow} />
+          <WhatsNextStrip
+            onPlanShow={onPlanShow}
+            userArtistNames={userArtistNames}
+            onAddEdmtrainToSchedule={onAddEdmtrainToSchedule}
+          />
 
           {friendShows.length > 0 && (
             <section className="space-y-2">

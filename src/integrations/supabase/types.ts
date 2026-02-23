@@ -680,6 +680,75 @@ export type Database = {
           },
         ]
       }
+      spotify_connections: {
+        Row: {
+          access_token: string
+          connected_at: string
+          expires_at: string
+          id: string
+          last_synced_at: string | null
+          refresh_token: string
+          spotify_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          connected_at?: string
+          expires_at: string
+          id?: string
+          last_synced_at?: string | null
+          refresh_token: string
+          spotify_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          connected_at?: string
+          expires_at?: string
+          id?: string
+          last_synced_at?: string | null
+          refresh_token?: string
+          spotify_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      spotify_top_artists: {
+        Row: {
+          artist_name: string
+          genres: string[] | null
+          id: string
+          popularity: number | null
+          rank_position: number
+          spotify_artist_id: string
+          synced_at: string
+          time_range: string
+          user_id: string
+        }
+        Insert: {
+          artist_name: string
+          genres?: string[] | null
+          id?: string
+          popularity?: number | null
+          rank_position?: number
+          spotify_artist_id: string
+          synced_at?: string
+          time_range?: string
+          user_id: string
+        }
+        Update: {
+          artist_name?: string
+          genres?: string[] | null
+          id?: string
+          popularity?: number | null
+          rank_position?: number
+          spotify_artist_id?: string
+          synced_at?: string
+          time_range?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       upcoming_shows: {
         Row: {
           artist_image_url: string | null
@@ -914,6 +983,17 @@ export type Database = {
     }
     Functions: {
       generate_referral_code: { Args: never; Returns: string }
+      get_discover_upcoming_near_me: {
+        Args: { p_city: string; p_user_id: string }
+        Returns: {
+          artist_image_url: string
+          artist_name: string
+          attendee_count: number
+          show_date: string
+          venue_location: string
+          venue_name: string
+        }[]
+      }
       get_edmtrain_event_preview: {
         Args: { p_edmtrain_id: number }
         Returns: {
