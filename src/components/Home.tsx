@@ -152,6 +152,17 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onQuickAdd={handleQuickAddFromPopular}
               onAddEdmtrainToSchedule={handleEdmtrainAddToSchedule}
               userArtistNames={userArtistNames}
+              friendShows={friendShows}
+              onAddFriendShowToSchedule={async (show) => {
+                const saved = await saveUpcomingShow({
+                  artist_name: show.artist_name,
+                  venue_name: show.venue_name || undefined,
+                  venue_location: show.venue_location || undefined,
+                  show_date: show.show_date || undefined,
+                  artist_image_url: show.artist_image_url || undefined,
+                });
+                if (!saved) toast.error("Failed to add to schedule");
+              }}
             />
           )}
 
