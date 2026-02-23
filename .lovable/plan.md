@@ -1,82 +1,88 @@
 
 
-# Standardize Show Card Text Layout + Edmtrain Card Cleanup
+# Wire Up `event_name` End-to-End + Shared `ShowCardContent` Component
 
-## Goal
-Unify the bottom text area across all three show card types (UpcomingChip, FriendChip, EdmtrainEventCard) and move the Edmtrain ticket button styling into the detail sheet.
-
----
-
-## Current State vs. Target
-
-| Element | UpcomingChip (My Shows) | FriendChip (Friends Going) | EdmtrainEventCard (Discover) | **Target (all cards)** |
-|---|---|---|---|---|
-| **Friend avatars** | AvatarStack (top-left area, in bottom section) | Stacked avatars top-left | None | AvatarStack top-left (max 3 + overflow) |
-| **Artist name** | line-clamp-2 | line-clamp-1 | line-clamp-2 | line-clamp-2 |
-| **Friend name text** | None | "Alex going" / "Alex + 2 more going" | None | **Remove entirely** |
-| **Venue** | Truncated, inline with date | Truncated, inline with date | Truncated, inline with date | Own line, truncated |
-| **Date** | "MMM d" inline with venue | "MMM d" inline with venue | "MMM d" inline with venue | Own line or shared with venue: `Venue . MMM d` |
-| **Bottom extras** | None | None | Ticket button + Edmtrain logo | **Remove ticket + logo from card** |
+## Overview
+Three coordinated changes: update the AI parser to extract `event_name` separately from `artist_name`, wire the new field through the hook and save flow, and build a shared `ShowCardContent` component that standardizes the bottom text area across all show cards.
 
 ---
 
-## Changes
+## 1. Update the Edge Function Parser
 
-### 1. FriendChip -- Remove friend name text, standardize layout
+**File:** `supabase/functions/parse-upcoming-show/index.ts`
 
-**File:** `src/components/home/upcoming/FriendChip.tsx`
-
-- Remove the `goingLabel` line ("Alex going" / "Alex + 2 more going") -- the `<p>` at lines 113-118
-- Change artist name from `line-clamp-1` to `line-clamp-2` to match UpcomingChip
-- Keep the stacked friend avatars in the top-left (already correct)
-- Keep the quick add/remove toggle in the top-right (already correct)
-- Bottom text becomes: Artist (2 lines max), then `Venue . MMM d` on a single meta line (matching UpcomingChip's existing pattern)
-
-### 2. EdmtrainEventCard -- Remove ticket button and Edmtrain logo from card
-
-**File:** `src/components/home/EdmtrainEventCard.tsx`
-
-- Remove the entire bottom row (lines 104-129): the Ticket `<a>` button and Edmtrain logo
-- This makes the card's bottom content match the standard: title (line-clamp-2), optional artist subtitle, then venue/date meta line
-- Slightly reduce padding (`p-3` to `p-2.5`) to match other chips if needed for visual consistency
-
-### 3. ShowDetailSheet -- Replace plain-text ticket link with liquid glass button
-
-**File:** `src/components/home/ShowDetailSheet.tsx`
-
-- Replace the current simple `<a>` ticket link (lines 199-208, plain text with a Ticket icon and "View Tickets") with a styled liquid glass button matching the current EdmtrainEventCard ticket style:
-  - `bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl px-4 py-2.5`
-  - Ticket icon + "View Tickets" label
-  - This becomes the universal ticket button for all show detail sheets (upcoming, friend, edmtrain)
-
-### 4. UpcomingChip -- Minor tweak for venue/date line consistency
-
-**File:** `src/components/home/upcoming/UpcomingChip.tsx`
-
-- Already mostly correct; ensure the venue/date meta line format matches: `Venue . MMM d` (venue first, then date) -- currently shows `dateLabel . venueLabel`, so reverse the order to `venueLabel . dateLabel` for consistency with EdmtrainEventCard's pattern
-- Keep AvatarStack in the bottom section (already using it)
-- No other changes needed
+- Add `event_name` to the tool definition schema (string, description: "Event or festival brand name like Elrow, Beyond Wonderland, etc. Empty string if this is just a regular artist show.")
+- Add `event_name` to the `required` array in the tool schema
+- The AI will now separate "Beyond Wonderland" (event_name) from "Fisher" (artist_name) instead of mashing them together
 
 ---
 
-## Files Summary
+## 2. Update the Hook and Types
 
-| Action | File | What changes |
-|---|---|---|
-| Edit | `src/components/home/upcoming/FriendChip.tsx` | Remove friend name text line; change artist to line-clamp-2; reorder venue/date |
-| Edit | `src/components/home/EdmtrainEventCard.tsx` | Remove ticket button + Edmtrain logo from card bottom |
-| Edit | `src/components/home/ShowDetailSheet.tsx` | Replace plain ticket link with liquid glass button style |
-| Edit | `src/components/home/upcoming/UpcomingChip.tsx` | Reorder meta line to venue first, then date |
+**File:** `src/hooks/usePlanUpcomingShow.ts`
+
+- Add `event_name: string` to the `ParsedUpcomingEvent` interface
+- Add `event_name: string | null` to the `UpcomingShow` interface
+- Add `event_name?: string` to `SaveUpcomingShowData`
+- In `saveUpcomingShow`, pass `event_name` through to the insert call
+
+**File:** `src/hooks/useFriendUpcomingShows.ts`
+
+- Add `event_name` to the `FriendShow` interface and to the Supabase select query so friend show cards can display it too
 
 ---
 
-## What stays the same
+## 3. Update PlanShowSheet to Capture `event_name`
 
-- RSVP badge (top-right on UpcomingChip) -- unique to "my shows"
-- Quick add/remove toggle (top-right on FriendChip) -- unique to friend cards  
-- CalendarPlus / scheduled status badge (top-right on EdmtrainEventCard) -- unique to discovery
-- Festival badge (top-left) -- stays on all card types that support it
-- Friend avatars (top-left on FriendChip, bottom section on UpcomingChip) -- both use AvatarStack, positioning stays per card type
-- DEMO_10_FRIENDS data -- untouched
-- Edmtrain attribution in the detail sheet footer -- stays as-is
+**File:** `src/components/home/PlanShowSheet.tsx`
 
+- Add `editEventName` state variable
+- Populate it from parsed result in the confirm stage
+- Add an "Event name (optional)" input field in both the confirm and manual stages (between the artist and venue fields)
+- Pass `event_name` through in `handleSave`
+
+---
+
+## 4. Build the Shared `ShowCardContent` Component
+
+**File (new):** `src/components/home/upcoming/ShowCardContent.tsx`
+
+A single presentational component that renders the standardized bottom content area for all show cards:
+
+```text
+  [Avatar Stack]         (optional)
+  Event Name             (optional, bold, line-clamp-1)
+  Artist Name            (bold, line-clamp-2)
+  Venue Name             (text-white/70, line-clamp-1)
+  Date                   (text-white/50)
+```
+
+Props:
+- `avatars?: AvatarPerson[]` -- friend avatar stack (optional)
+- `eventName?: string | null` -- event brand name (optional)
+- `artistName: string` -- always shown
+- `venueName?: string | null` -- venue, truncated
+- `dateLabel: string` -- formatted date string
+
+All text uses `textShadow` for readability over images. Each line is its own `<p>` tag to prevent truncation issues.
+
+---
+
+## 5. Refactor Existing Cards to Use `ShowCardContent`
+
+**`UpcomingChip.tsx`**: Replace the bottom `<div>` content (lines 67-86) with `<ShowCardContent>`, passing `show.event_name`, avatars, artist, venue, and date.
+
+**`FriendChip.tsx`**: Replace the bottom content (lines 67-119) with `<ShowCardContent>`, deriving avatars from `show.allFriends`.
+
+**`EdmtrainEventCard.tsx`**: Replace the bottom content (lines 90-108) with `<ShowCardContent>`, passing `event.event_name` and `event.venue_name`.
+
+Each card retains its own unique elements (RSVP badge, add button, festival tag, reason label) -- only the text stack is shared.
+
+---
+
+## Sequencing
+1. Deploy edge function update first (parser)
+2. Update types and hooks
+3. Build `ShowCardContent`
+4. Refactor the three card components
+5. Update `PlanShowSheet` with event name field
