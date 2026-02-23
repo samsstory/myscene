@@ -59,9 +59,6 @@ function DiscoverTeaser() {
           <p className="text-sm font-medium text-white/70 max-w-[240px]">
             Connect your Spotify so you never miss the shows you actually care about.
           </p>
-          <span className="text-xs font-semibold bg-gradient-to-r from-cyan-400 to-rose-400 bg-clip-text text-transparent">
-            For You
-          </span>
           <button
             onClick={() => initiateSpotifyAuth()}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#1DB954]/20 border border-[#1DB954]/40 text-[#1DB954] text-sm font-semibold hover:bg-[#1DB954]/30 transition-colors"
