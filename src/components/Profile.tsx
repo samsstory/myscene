@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { LogOut, Camera, Loader2, Share2, Users, Sparkles, Navigation, Download, Bell, BellOff, UserSearch, ChevronRight, Lock, Trophy, Music2, Star } from "lucide-react";
+import { LogOut, Camera, Loader2, Share2, Users, Sparkles, Navigation, Download, Bell, BellOff, UserSearch, ChevronRight, Lock, Trophy, Music2, Star, MapPin, Search, X, LocateFixed } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { toast } from "sonner";
@@ -259,6 +259,13 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [bio, setBio] = useState("");
+  const [homeCity, setHomeCity] = useState("");
+  const [homeCitySearch, setHomeCitySearch] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState<Array<{ description: string; lat: number; lng: number }>>([]);
+  const [citySearching, setCitySearching] = useState(false);
+  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const citySearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {fetchProfile();}, []);
 
@@ -270,7 +277,7 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
       setUserId(user.id);
 
       const [profileRes, showCountRes, rankRes] = await Promise.all([
-      supabase.from("profiles").select("avatar_url, referral_code, username, full_name, phone_number, bio").eq("id", user.id).single(),
+      supabase.from("profiles").select("avatar_url, referral_code, username, full_name, phone_number, bio, home_city").eq("id", user.id).single(),
       supabase.from("shows").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       supabase.rpc("get_referral_rank", { _user_id: user.id })]
       );
@@ -282,6 +289,8 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
         setFullName(profileRes.data.full_name || "");
         setPhoneNumber((profileRes.data as any).phone_number || "");
         setBio((profileRes.data as any).bio || "");
+        const profileData = profileRes.data as any;
+        setHomeCity(profileData.home_city || "");
       }
       if (!showCountRes.error && showCountRes.count !== null) setTotalShows(showCountRes.count);
       if (rankRes.data?.[0]) {
@@ -365,6 +374,77 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
       await navigator.clipboard.writeText(url);
       toast.success("Invite link copied!");
     }
+  };
+
+  // ─── City search via Mapbox geocoding ────────────────────────────────────────
+  const searchCity = useCallback((query: string) => {
+    setHomeCitySearch(query);
+    if (citySearchTimeout.current) clearTimeout(citySearchTimeout.current);
+    if (query.length < 2) { setCitySuggestions([]); return; }
+    citySearchTimeout.current = setTimeout(async () => {
+      setCitySearching(true);
+      try {
+        const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1Ijoic2NlbmUtYXBwIiwiYSI6ImNtYjd1NmJ5NTBnMDkyaXM3ZnU0OGQ0d2gifQ.PU2M2MwjMm_pBFYP-TWHLA";
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?types=place&limit=5&access_token=${mapboxToken}`
+        );
+        const data = await res.json();
+        const results = (data.features || []).map((f: any) => ({
+          description: f.place_name,
+          lat: f.center[1],
+          lng: f.center[0],
+        }));
+        setCitySuggestions(results);
+      } catch { setCitySuggestions([]); }
+      finally { setCitySearching(false); }
+    }, 300);
+  }, []);
+
+  const selectCity = async (city: { description: string; lat: number; lng: number }) => {
+    setHomeCity(city.description);
+    setHomeCitySearch("");
+    setCitySuggestions([]);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("profiles").update({
+        home_city: city.description,
+        home_latitude: city.lat,
+        home_longitude: city.lng,
+      } as any).eq("id", user.id);
+      toast.success("Home city updated!");
+    } catch { toast.error("Failed to update home city"); }
+  };
+
+  const detectCurrentLocation = async () => {
+    if (!navigator.geolocation) { toast.error("Geolocation not supported"); return; }
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1Ijoic2NlbmUtYXBwIiwiYSI6ImNtYjd1NmJ5NTBnMDkyaXM3ZnU0OGQ0d2gifQ.PU2M2MwjMm_pBFYP-TWHLA";
+          const res = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${pos.coords.longitude},${pos.coords.latitude}.json?types=place&limit=1&access_token=${mapboxToken}`
+          );
+          const data = await res.json();
+          const place = data.features?.[0];
+          const cityName = place?.place_name || `${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)}`;
+          
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          await supabase.from("profiles").update({
+            home_city: cityName,
+            home_latitude: pos.coords.latitude,
+            home_longitude: pos.coords.longitude,
+          } as any).eq("id", user.id);
+          setHomeCity(cityName);
+          toast.success("Location updated to current position!");
+        } catch { toast.error("Failed to update location"); }
+        finally { setDetectingLocation(false); }
+      },
+      () => { toast.error("Location access denied"); setDetectingLocation(false); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const displayName = fullName || username || email.split("@")[0];
@@ -566,6 +646,71 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
                 {saving ? <><Loader2 className="h-4 w-4 animate-spin" />Saving…</> : "Update Profile"}
               </button>
             </form>
+          </GlassPanel>
+        </div>
+
+        {/* ── Home City ── */}
+        <div>
+          <SectionLabel>Home City</SectionLabel>
+          <GlassPanel className="space-y-3">
+            {/* Current city display */}
+            {homeCity && (
+              <div className="flex items-center gap-2.5 px-1">
+                <MapPin className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-sm text-white/80 flex-1 truncate">{homeCity}</span>
+              </div>
+            )}
+
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
+              <Input
+                value={homeCitySearch}
+                onChange={(e) => searchCity(e.target.value)}
+                placeholder="Search for a city…"
+                className="bg-white/[0.04] border-white/[0.10] text-white/80 placeholder:text-white/25 focus:border-primary/40 pl-9 pr-8"
+              />
+              {homeCitySearch && (
+                <button onClick={() => { setHomeCitySearch(""); setCitySuggestions([]); }} className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <X className="h-3.5 w-3.5 text-white/30 hover:text-white/60" />
+                </button>
+              )}
+            </div>
+
+            {/* Suggestions dropdown */}
+            {citySuggestions.length > 0 && (
+              <div className="rounded-xl bg-white/[0.06] border border-white/[0.10] overflow-hidden">
+                {citySuggestions.map((city, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectCity(city)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-white/70 hover:bg-white/[0.06] transition-colors border-b border-white/[0.04] last:border-b-0"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-white/30 shrink-0" />
+                    <span className="truncate">{city.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {citySearching && (
+              <div className="flex items-center justify-center py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-white/30" />
+              </div>
+            )}
+
+            {/* Use current location button */}
+            <button
+              onClick={detectCurrentLocation}
+              disabled={detectingLocation}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/50 text-sm hover:bg-white/[0.07] hover:text-white/70 transition-all disabled:opacity-50"
+            >
+              {detectingLocation ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />Detecting…</>
+              ) : (
+                <><LocateFixed className="h-4 w-4" />Use Current Location</>
+              )}
+            </button>
           </GlassPanel>
         </div>
 
