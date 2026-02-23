@@ -47,6 +47,11 @@ export default function EdmtrainEventDetailSheet({
       venueName={event.venue_name}
       venueLocation={event.venue_location}
       spotifySearchTerm={headliner}
+      heroBadge={event.festival_ind ? (
+        <span className="text-[9px] uppercase tracking-widest font-bold text-primary bg-primary/20 backdrop-blur-sm px-2 py-0.5 rounded-full border border-primary/30">
+          Festival
+        </span>
+      ) : undefined}
       ticketUrl={event.event_link}
       rsvpMode="add"
       onAddToSchedule={(status) => onAddToSchedule(event, status)}
@@ -90,15 +95,6 @@ export default function EdmtrainEventDetailSheet({
         </>
       }
     >
-      {/* Festival badge */}
-      {event.festival_ind && (
-        <div>
-          <span className="text-[9px] uppercase tracking-widest font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full border border-primary/30">
-            Festival
-          </span>
-        </div>
-      )}
-
       {/* Artists lineup chips */}
       {event.artists.length > 1 && (
         <div className="space-y-2">
