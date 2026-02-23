@@ -86,6 +86,20 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
             setNotFound(true);
           } else {
             const row = Array.isArray(data) ? data[0] : data;
+            // Look up inviter profile from referral code
+            let inviterName: string | null = null;
+            let inviterUsername: string | null = null;
+            if (refCode) {
+              const { data: inviterData } = await supabase
+                .from("profiles")
+                .select("full_name, username")
+                .eq("referral_code", refCode)
+                .single();
+              if (inviterData) {
+                inviterName = inviterData.full_name;
+                inviterUsername = inviterData.username;
+              }
+            }
             setPreview({
               show_id: String(row.edmtrain_id),
               artist_name: row.event_name || row.artist_names || "Event",
@@ -94,8 +108,8 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
               venue_location: row.venue_location,
               show_date: row.event_date,
               photo_url: null,
-              inviter_full_name: null,
-              inviter_username: null,
+              inviter_full_name: inviterName,
+              inviter_username: inviterUsername,
             });
           }
         } else {
@@ -278,14 +292,14 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
             <div className="px-5 py-5 space-y-4">
 
               {/* Inviter attribution */}
-              {(showType !== "edmtrain" || preview?.inviter_full_name || preview?.inviter_username) && (
+              {(preview?.inviter_full_name || preview?.inviter_username) && (
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
                     <span className="text-primary text-[11px] font-bold">{(inviterDisplay[0] || "?").toUpperCase()}</span>
                   </div>
                   <p className="text-xs text-foreground/50 leading-snug">
                     <span className="text-foreground/80 font-medium">{inviterDisplay}</span>
-                    {showType === "logged" ? " wants to compare notes with you" : " wants you at this"}
+                    {showType === "logged" ? " wants to compare notes with you" : " is going to this"}
                   </p>
                 </div>
               )}
