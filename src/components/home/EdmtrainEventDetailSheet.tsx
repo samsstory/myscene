@@ -2,7 +2,8 @@ import { format } from "date-fns";
 import { CalendarPlus, MapPin, CalendarDays, Ticket, Music, ExternalLink, UserPlus, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+
+import { useShareShow } from "@/hooks/useShareShow";
 import type { EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 interface EdmtrainEventDetailSheetProps {
@@ -30,6 +31,7 @@ export default function EdmtrainEventDetailSheet({
   onOpenChange,
   onAddToSchedule,
 }: EdmtrainEventDetailSheetProps) {
+  const { shareShow } = useShareShow();
   if (!event) return null;
 
   const artistNames = event.artists.map((a) => a.name).join(", ");
@@ -154,30 +156,15 @@ export default function EdmtrainEventDetailSheet({
           {/* Invite a friend */}
           <button
             className="w-full flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] rounded-xl px-4 py-3 transition-all group"
-            onClick={async () => {
-              const artistNames = event.artists.map((a) => a.name).join(", ");
-              const name = event.event_name || artistNames || "Event";
-              const venueText = event.venue_name ? ` at ${event.venue_name}` : "";
-              const shareData = {
-                title: `Come to ${name}${venueText}!`,
-                text: `Check out ${name}${venueText} — let's go together! 🎶`,
-                url: event.event_link,
-              };
-              if (navigator.share) {
-                try {
-                  await navigator.share(shareData);
-                  return;
-                } catch (err: any) {
-                  if (err?.name === "AbortError") return;
-                }
-              }
-              try {
-                await navigator.clipboard.writeText(event.event_link);
-                toast.success("Link copied to clipboard! 🔗");
-              } catch {
-                toast.info(event.event_link, { duration: 6000 });
-              }
-            }}
+            onClick={() =>
+              shareShow({
+                showId: String(event.edmtrain_id),
+                type: "edmtrain",
+                artistName: event.event_name || event.artists.map((a) => a.name).join(", ") || "Event",
+                venueName: event.venue_name ?? undefined,
+                edmtrainLink: event.event_link,
+              })
+            }
           >
             <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
               <UserPlus className="h-4 w-4 text-primary/70" />
