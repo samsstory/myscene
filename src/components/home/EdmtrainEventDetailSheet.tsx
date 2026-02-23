@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { CalendarPlus, MapPin, CalendarDays, Ticket, Music, ExternalLink, UserPlus, ChevronRight } from "lucide-react";
+import { truncateArtists } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
@@ -78,11 +79,11 @@ export default function EdmtrainEventDetailSheet({
           )}
 
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
-            <h2 className="text-xl font-bold text-white" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
-              {displayName}
+            <h2 className="text-xl font-bold text-white line-clamp-1" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
+              {event.event_name || truncateArtists(event.artists.map(a => a.name), 3)}
             </h2>
-            {event.event_name && artistNames && (
-              <p className="text-sm text-white/60 mt-0.5 line-clamp-1">{artistNames}</p>
+            {event.event_name && event.artists.length > 0 && (
+              <p className="text-sm text-white/60 mt-0.5 line-clamp-1">{truncateArtists(event.artists.map(a => a.name), 3)}</p>
             )}
           </div>
         </div>
@@ -160,7 +161,7 @@ export default function EdmtrainEventDetailSheet({
               shareShow({
                 showId: String(event.edmtrain_id),
                 type: "edmtrain",
-                artistName: event.event_name || event.artists.map((a) => a.name).join(", ") || "Event",
+                artistName: event.event_name || truncateArtists(event.artists.map((a) => a.name), 3),
                 venueName: event.venue_name ?? undefined,
                 edmtrainLink: event.event_link,
               })
@@ -171,7 +172,7 @@ export default function EdmtrainEventDetailSheet({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-medium text-foreground/90">Invite a friend</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground line-clamp-2">
                 Share this event with your squad
               </p>
             </div>
