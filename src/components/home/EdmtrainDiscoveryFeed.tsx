@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin } from "lucide-react";
 import { useEdmtrainEvents, type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import EdmtrainEventCard from "./EdmtrainEventCard";
+import EdmtrainEventDetailSheet from "./EdmtrainEventDetailSheet";
 
 interface EdmtrainDiscoveryFeedProps {
   onAddToSchedule: (event: EdmtrainEvent) => void;
@@ -64,6 +66,9 @@ export default function EdmtrainDiscoveryFeed({
     overrideCity,
   });
 
+  const [selectedEvent, setSelectedEvent] = useState<{ event: EdmtrainEvent; endDate?: string } | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
   const grouped = groupMultiDayEvents(events);
   const matchSet = new Set(matchedArtistNames.map((n) => n.toLowerCase()));
 
@@ -102,15 +107,29 @@ export default function EdmtrainDiscoveryFeed({
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 scrollbar-hide -mx-1 px-1">
-      {displayed.map(({ event, endDate }) => (
-        <EdmtrainEventCard
-          key={event.edmtrain_id}
-          event={event}
-          endDate={endDate}
-          onAddToSchedule={onAddToSchedule}
-        />
-      ))}
-    </div>
+    <>
+      <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 scrollbar-hide -mx-1 px-1">
+        {displayed.map(({ event, endDate }) => (
+          <EdmtrainEventCard
+            key={event.edmtrain_id}
+            event={event}
+            endDate={endDate}
+            onAddToSchedule={onAddToSchedule}
+            onClick={() => {
+              setSelectedEvent({ event, endDate });
+              setDetailOpen(true);
+            }}
+          />
+        ))}
+      </div>
+
+      <EdmtrainEventDetailSheet
+        event={selectedEvent?.event ?? null}
+        endDate={selectedEvent?.endDate}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onAddToSchedule={onAddToSchedule}
+      />
+    </>
   );
 }
