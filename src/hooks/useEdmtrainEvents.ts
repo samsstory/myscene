@@ -64,18 +64,35 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
 
       let state: string | null = null;
       if (profile.home_city) {
-        // Try to match "City, ST" or "City, State" pattern
+        // Try to match various formats:
+        // "Austin, TX" → "Texas"
+        // "New York, New York, United States" → "New York"
+        // "Los Angeles, California" → "California"
         const parts = profile.home_city.split(",").map((p: string) => p.trim());
-        if (parts.length >= 2) {
-          const lastPart = parts[parts.length - 1].toUpperCase();
-          if (stateAbbrevToFull[lastPart]) {
-            state = stateAbbrevToFull[lastPart];
-          } else {
-            // Check if it's already a full state name
-            const fullMatch = Object.values(stateAbbrevToFull).find(
-              s => s.toLowerCase() === parts[parts.length - 1].toLowerCase()
-            );
-            if (fullMatch) state = fullMatch;
+        
+        // Try each part from right to left, skipping country names
+        const countryNames = ["united states", "usa", "us", "canada", "uk", "united kingdom", "spain", "germany", "france", "australia", "mexico"];
+        
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const part = parts[i].trim();
+          const partUpper = part.toUpperCase();
+          
+          // Skip country names
+          if (countryNames.includes(part.toLowerCase())) continue;
+          
+          // Check abbreviation
+          if (stateAbbrevToFull[partUpper]) {
+            state = stateAbbrevToFull[partUpper];
+            break;
+          }
+          
+          // Check full state name
+          const fullMatch = Object.values(stateAbbrevToFull).find(
+            s => s.toLowerCase() === part.toLowerCase()
+          );
+          if (fullMatch) {
+            state = fullMatch;
+            break;
           }
         }
       }
