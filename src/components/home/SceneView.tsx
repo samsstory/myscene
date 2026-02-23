@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import WhatsNextStrip from "./WhatsNextStrip";
-import FriendActivityFeed, { type IWasTherePayload } from "./FriendActivityFeed";
 import PopularFeedGrid from "./PopularFeedGrid";
 import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
 import { type ShowTypeFilter } from "@/hooks/usePopularShows";
@@ -9,11 +8,6 @@ import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 interface SceneViewProps {
   onPlanShow: () => void;
-  activityItems: Parameters<typeof FriendActivityFeed>[0]["items"];
-  activityLoading: boolean;
-  followingCount: number;
-  onFindFriends: () => void;
-  onIWasThere: (payload: IWasTherePayload) => void;
   nearMeItems: Parameters<typeof PopularFeedGrid>[0]["items"];
   nearMeTotalUsers: number;
   nearMeLoading: boolean;
@@ -22,6 +16,7 @@ interface SceneViewProps {
   exploreTotalUsers: number;
   exploreLoading: boolean;
   onQuickAdd: (item: any) => void;
+  onFindFriends: () => void;
   onAddEdmtrainToSchedule?: (event: EdmtrainEvent) => void;
   userArtistNames?: string[];
 }
@@ -30,11 +25,6 @@ type FeedMode = "scene" | "near-me" | "explore" | "upcoming";
 
 export default function SceneView({
   onPlanShow,
-  activityItems,
-  activityLoading,
-  followingCount,
-  onFindFriends,
-  onIWasThere,
   nearMeItems,
   nearMeTotalUsers,
   nearMeLoading,
@@ -43,6 +33,7 @@ export default function SceneView({
   exploreTotalUsers,
   exploreLoading,
   onQuickAdd,
+  onFindFriends,
   onAddEdmtrainToSchedule,
   userArtistNames = [],
 }: SceneViewProps) {
@@ -81,13 +72,15 @@ export default function SceneView({
         </div>
 
         {feedMode === "scene" && (
-          <FriendActivityFeed
-            items={activityItems}
-            isLoading={activityLoading}
-            hasFollowing={followingCount > 0}
-            onFindFriends={onFindFriends}
-            onIWasThere={onIWasThere}
-          />
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-sm text-white/40">Scene Feed moved to the Friends tab</p>
+            <button
+              onClick={onFindFriends}
+              className="text-xs font-semibold text-primary/80 hover:text-primary transition-colors"
+            >
+              Go to Friends →
+            </button>
+          </div>
         )}
         {feedMode === "upcoming" && (
           <EdmtrainDiscoveryFeed
