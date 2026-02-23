@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { format, parseISO, isThisWeek, isThisMonth, addMonths, isAfter, startOfToday } from "date-fns";
-import { Plus, Music2, CheckCircle2, CircleHelp, X, Users, Check, Loader2 } from "lucide-react";
+import { Plus, Music2, CheckCircle2, CircleHelp, X, Users, Check, Loader2, NotebookPen } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows, type FriendShow } from "@/hooks/useFriendUpcomingShows";
@@ -41,6 +41,7 @@ const DEMO_10_FRIENDS: FriendShow[] = Array.from({ length: 10 }, (_, i) => ({
 
 interface WhatsNextStripProps {
   onPlanShow?: () => void;
+  onLogShow?: () => void;
 }
 
 const RSVP_BADGE = {
@@ -534,7 +535,7 @@ function FriendShowDetailSheet({
   );
 }
 
-export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
+export default function WhatsNextStrip({ onPlanShow, onLogShow }: WhatsNextStripProps) {
   const { upcomingShows, isLoading, deleteUpcomingShow, updateRsvpStatus, saveUpcomingShow } = usePlanUpcomingShow();
   const { following } = useFollowers();
   const followingIds = useMemo(() => following.map(f => f.id), [following]);
@@ -684,6 +685,24 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         try { return !isAfter(today, parseISO(show.show_date)); } catch { return true; }
       })
       .sort((a, b) => (a.show_date ?? "").localeCompare(b.show_date ?? ""));
+  }, [upcomingShows]);
+
+  // Count past (unlogged) upcoming shows
+  const pastShowsCount = useMemo(() => {
+    const today = startOfToday();
+    const norm = (s: string) => s.trim().toLowerCase();
+    const seen = new Set<string>();
+    let count = 0;
+    for (const show of upcomingShows) {
+      const key = `${norm(show.artist_name)}|${show.show_date ?? ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (!show.show_date) continue;
+      try {
+        if (isAfter(today, parseISO(show.show_date))) count++;
+      } catch { /* skip */ }
+    }
+    return count;
   }, [upcomingShows]);
 
   const filteredMineShows = useMemo(() => {
@@ -869,6 +888,20 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
             ))}
             <AddShowChip onClick={handlePlanShow} />
           </div>
+        )}
+
+        {/* Unlogged past shows nudge */}
+        {activeTab === "mine" && !isLoading && pastShowsCount > 0 && (
+          <button
+            onClick={onLogShow}
+            className="w-full rounded-2xl border border-primary/15 bg-primary/[0.06] px-4 py-2.5 flex items-center gap-3 hover:bg-primary/[0.10] transition-colors"
+          >
+            <NotebookPen className="h-4 w-4 text-primary/60 flex-shrink-0" />
+            <p className="text-xs text-primary/80 text-left">
+              You have <span className="font-semibold">{pastShowsCount}</span> past {pastShowsCount === 1 ? "show" : "shows"} to log
+            </p>
+            <span className="ml-auto text-[10px] text-primary/50 font-medium">Log →</span>
+          </button>
         )}
 
         {/* ── FRIENDS TAB ── */}
