@@ -299,7 +299,7 @@ export default function ShowInviteHero({ showId, showType, refCode }: ShowInvite
                   </div>
                   <p className="text-xs text-foreground/50 leading-snug">
                     <span className="text-foreground/80 font-medium">{inviterDisplay}</span>
-                    {showType === "logged" ? " wants to compare notes with you" : " is going to this"}
+                    {showType === "logged" ? " wants to compare notes with you" : " invited you"}
                   </p>
                 </div>
               )}
