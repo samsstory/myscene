@@ -384,7 +384,7 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
     citySearchTimeout.current = setTimeout(async () => {
       setCitySearching(true);
       try {
-        const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1Ijoic2NlbmUtYXBwIiwiYSI6ImNtYjd1NmJ5NTBnMDkyaXM3ZnU0OGQ0d2gifQ.PU2M2MwjMm_pBFYP-TWHLA";
+        const mapboxToken = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
         const res = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?types=place&limit=5&access_token=${mapboxToken}`
         );
@@ -422,7 +422,7 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1Ijoic2NlbmUtYXBwIiwiYSI6ImNtYjd1NmJ5NTBnMDkyaXM3ZnU0OGQ0d2gifQ.PU2M2MwjMm_pBFYP-TWHLA";
+          const mapboxToken = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
           const res = await fetch(
             `https://api.mapbox.com/geocoding/v5/mapbox.places/${pos.coords.longitude},${pos.coords.latitude}.json?types=place&limit=1&access_token=${mapboxToken}`
           );
