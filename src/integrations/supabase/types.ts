@@ -755,6 +755,7 @@ export type Database = {
           artist_name: string
           created_at: string
           created_by_user_id: string
+          event_name: string | null
           id: string
           linked_show_id: string | null
           raw_input: string | null
@@ -770,6 +771,7 @@ export type Database = {
           artist_name: string
           created_at?: string
           created_by_user_id: string
+          event_name?: string | null
           id?: string
           linked_show_id?: string | null
           raw_input?: string | null
@@ -785,6 +787,7 @@ export type Database = {
           artist_name?: string
           created_at?: string
           created_by_user_id?: string
+          event_name?: string | null
           id?: string
           linked_show_id?: string | null
           raw_input?: string | null
