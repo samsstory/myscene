@@ -41,7 +41,7 @@ export default function UpcomingChip({ show, goingWith, onTap }: UpcomingChipPro
 
   return (
     <button
-      className="relative flex-shrink-0 w-32 h-36 rounded-2xl overflow-hidden cursor-pointer select-none text-left"
+      className="relative flex-shrink-0 w-32 aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer select-none text-left"
       onClick={() => onTap(show, goingWith)}
     >
       {show.artist_image_url ? (

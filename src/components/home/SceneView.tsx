@@ -104,7 +104,7 @@ export default function SceneView({
 
           {friendShows.length > 0 && (
             <section className="space-y-2">
-              <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
+              <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">
                 Friends Going
               </h3>
               <FriendsGoingSection
@@ -120,7 +120,7 @@ export default function SceneView({
       {/* Section 3: Personalized recommendations with city toggle */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
+          <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">
             Upcoming Near You
           </h3>
           {displayCity && (
@@ -142,7 +142,7 @@ export default function SceneView({
 
       {/* Section 4: Popular near me */}
       <section className="space-y-2">
-        <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
+        <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">
           Popular Near You
         </h3>
         <PopularFeedGrid

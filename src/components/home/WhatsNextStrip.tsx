@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { parseISO, isThisWeek, isThisMonth, addMonths, isAfter, startOfToday } from "date-fns";
-import { Plus, Music2, Users, NotebookPen } from "lucide-react";
+import { Plus, Music2, Users, NotebookPen, Sparkles, ChevronDown } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -183,7 +183,7 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
       <div className="space-y-2.5">
         {/* Section label */}
         <h3
-          className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white/60"
+          className="text-sm uppercase tracking-[0.12em] font-semibold text-white/60"
           style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
         >
           Upcoming Shows
@@ -229,6 +229,7 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
                   : "bg-gradient-to-r from-cyan-500/10 to-transparent text-white/50 hover:text-white/70 border border-cyan-400/15"
               }`}
             >
+              <Sparkles className="h-3 w-3" />
               For You
             </button>
           </div>
@@ -245,20 +246,18 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
 
         {/* Time filter pills — Mine tab only */}
         {activeTab === "mine" && !isLoading && deduplicatedMineShows.length > 3 && (
-          <div className="flex items-center gap-1.5">
-            {([["all", "All"], ["week", "This Week"], ["month", "This Month"], ["later", "Later"]] as const).map(([val, label]) => (
-              <button
-                key={val}
-                onClick={() => setTimeFilter(val)}
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium transition-all ${
-                  timeFilter === val
-                    ? "bg-primary/20 text-primary border border-primary/30"
-                    : "text-white/30 hover:text-white/50"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center">
+            <button
+              onClick={() => {
+                const order: TimeFilter[] = ["all", "week", "month", "later"];
+                const idx = order.indexOf(timeFilter);
+                setTimeFilter(order[(idx + 1) % order.length]);
+              }}
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium text-white/50 hover:text-white/70 bg-white/[0.06] border border-white/[0.08] transition-all"
+            >
+              {{ all: "All", week: "This Week", month: "This Month", later: "Later" }[timeFilter]}
+              <ChevronDown className="h-3 w-3" />
+            </button>
           </div>
         )}
 
