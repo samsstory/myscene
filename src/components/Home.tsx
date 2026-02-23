@@ -152,7 +152,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               }}
               onFriendShowTap={(fs) => {
                 const asUpcoming: import("@/hooks/usePlanUpcomingShow").UpcomingShow = {
-                  id: fs.id, artist_name: fs.artist_name, venue_name: fs.venue_name,
+                  id: fs.id, artist_name: fs.artist_name, event_name: fs.event_name ?? null, venue_name: fs.venue_name,
                   venue_location: fs.venue_location, show_date: fs.show_date,
                   ticket_url: null, artist_image_url: fs.artist_image_url,
                   rsvp_status: "going", created_at: "", raw_input: null
@@ -176,7 +176,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               onUpcomingTap={sheets.openUpcomingDetail}
               onFriendShowTap={(fs) => {
                 const asUpcoming: import("@/hooks/usePlanUpcomingShow").UpcomingShow = {
-                  id: fs.id, artist_name: fs.artist_name, venue_name: fs.venue_name,
+                  id: fs.id, artist_name: fs.artist_name, event_name: fs.event_name ?? null, venue_name: fs.venue_name,
                   venue_location: fs.venue_location, show_date: fs.show_date,
                   ticket_url: null, artist_image_url: fs.artist_image_url,
                   rsvp_status: "going", created_at: "", raw_input: null

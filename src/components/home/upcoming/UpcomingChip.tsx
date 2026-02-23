@@ -2,8 +2,8 @@ import { format, parseISO } from "date-fns";
 import { CheckCircle2, CircleHelp, X } from "lucide-react";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import type { FriendShow } from "@/hooks/useFriendUpcomingShows";
-import AvatarStack from "./AvatarStack";
 import type { AvatarPerson } from "./AvatarStack";
+import ShowCardContent from "./ShowCardContent";
 
 const RSVP_BADGE = {
   going:     { Icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/20 border-emerald-500/30" },
@@ -22,16 +22,9 @@ export default function UpcomingChip({ show, goingWith, onTap }: UpcomingChipPro
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
     : "Date TBD";
 
-  const venueLabel = show.venue_name
-    ? (show.venue_name.length > 16 ? show.venue_name.slice(0, 14) + "…" : show.venue_name)
-    : show.venue_location
-    ? (show.venue_location.length > 16 ? show.venue_location.slice(0, 14) + "…" : show.venue_location)
-    : null;
-
   const badge = RSVP_BADGE[show.rsvp_status ?? "going"];
   const BadgeIcon = badge.Icon;
 
-  // Normalise goingWith friends into AvatarPerson[]
   const goingWithPeople: AvatarPerson[] = goingWith.map((fs) => ({
     id: fs.friend.id,
     avatar_url: fs.friend.avatar_url,
@@ -69,29 +62,13 @@ export default function UpcomingChip({ show, goingWith, onTap }: UpcomingChipPro
       )}
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
-        {goingWithPeople.length > 0 && (
-          <AvatarStack people={goingWithPeople} size="sm" className="mb-1" />
-        )}
-        <p
-          className="text-xs font-bold text-white leading-tight line-clamp-2"
-          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
-        >
-          {show.artist_name}
-        </p>
-        {venueLabel && (
-          <p
-            className="text-[10px] text-white/70 mt-0.5"
-            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
-          >
-            {venueLabel}
-          </p>
-        )}
-        <p
-          className="text-[10px] text-white/50 mt-0.5"
-          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
-        >
-          {dateLabel}
-        </p>
+        <ShowCardContent
+          avatars={goingWithPeople}
+          eventName={show.event_name}
+          artistName={show.artist_name}
+          venueName={show.venue_name ?? show.venue_location}
+          dateLabel={dateLabel}
+        />
       </div>
     </button>
   );

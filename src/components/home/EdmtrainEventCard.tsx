@@ -1,6 +1,7 @@
 import { CalendarPlus, Music, Ticket, CheckCircle2, CircleHelp } from "lucide-react";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { format } from "date-fns";
+import ShowCardContent from "./upcoming/ShowCardContent";
 
 export type ScheduledStatus = "going" | "maybe" | null;
 
@@ -93,18 +94,12 @@ export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onC
             {reasonLabel}
           </span>
         )}
-        <h4 className="text-[13px] font-semibold text-white leading-tight line-clamp-2">{displayName}</h4>
-        {event.event_name && artistNames && (
-          <p className="text-[10px] text-white/60 truncate mt-0.5">{artistNames}</p>
-        )}
-        {event.venue_name && (
-          <p className="text-[10px] text-white/50 truncate mt-0.5">
-            {event.venue_name}
-          </p>
-        )}
-        <p className="text-[10px] text-white/40 mt-0.5">
-          {dateStr}
-        </p>
+        <ShowCardContent
+          eventName={event.event_name}
+          artistName={event.event_name ? artistNames : displayName}
+          venueName={event.venue_name}
+          dateLabel={dateStr}
+        />
       </div>
     </div>
   );

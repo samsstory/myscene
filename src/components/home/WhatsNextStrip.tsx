@@ -27,6 +27,7 @@ const DEMO_10_FRIENDS: FriendShow[] = Array.from({ length: 10 }, (_, i) => ({
   id: `demo-friend-${i}`,
   show_date: "2025-03-08",
   artist_name: "Fred again..",
+  event_name: null,
   artist_image_url: null,
   venue_name: "MSG",
   venue_location: "New York",

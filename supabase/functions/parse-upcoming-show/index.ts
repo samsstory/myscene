@@ -76,13 +76,14 @@ const TOOL_DEFINITION = {
             type: 'object',
             properties: {
               artist_name: { type: 'string', description: 'Primary headliner artist name, properly capitalized.' },
+              event_name: { type: 'string', description: 'Event or festival brand name like Elrow, Beyond Wonderland, Tomorrowland, etc. Empty string if this is just a regular artist show.' },
               venue_name: { type: 'string', description: 'Venue name if mentioned. Empty string if not found.' },
               venue_location: { type: 'string', description: 'City and/or country. Empty string if not found.' },
               show_date: { type: 'string', description: 'ISO date YYYY-MM-DD. Empty string if not found.' },
               ticket_url: { type: 'string', description: 'Ticket purchase URL if explicitly present. Empty string otherwise.' },
               confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
             },
-            required: ['artist_name', 'venue_name', 'venue_location', 'show_date', 'ticket_url', 'confidence'],
+            required: ['artist_name', 'event_name', 'venue_name', 'venue_location', 'show_date', 'ticket_url', 'confidence'],
             additionalProperties: false,
           },
         },
@@ -184,6 +185,7 @@ serve(async (req) => {
 
     let parsedEvents: Array<{
       artist_name: string;
+      event_name: string;
       venue_name: string;
       venue_location: string;
       show_date: string;
