@@ -43,10 +43,10 @@ export default function ContentPillNav({ activeView, onViewChange, rankNudge }: 
               whileTap={{ scale: 0.93 }}
               onClick={() => { navigator.vibrate?.(6); onViewChange(pill.id); }}
               className={cn(
-                "relative flex-shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 border",
+                "relative flex-shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150",
                 isActive
-                  ? "bg-primary/20 border-primary/40 text-primary"
-                  : "bg-white/[0.06] border-white/[0.10] text-muted-foreground hover:text-foreground/80 hover:bg-white/[0.09]"
+                  ? "bg-primary/20 border border-primary/40 text-primary"
+                  : "text-muted-foreground hover:text-foreground/80"
               )}
             >
               {isActive && (

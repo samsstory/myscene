@@ -83,8 +83,8 @@ export default function FriendsGoingSection({ friendShows, onAddToSchedule, onSh
   };
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {grouped.slice(0, 6).map((group) => {
+    <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
+      {grouped.map((group) => {
         const isAdded = addedKeys.has(group.key);
         const isAdding = addingKeys.has(group.key);
 
@@ -109,7 +109,7 @@ export default function FriendsGoingSection({ friendShows, onAddToSchedule, onSh
         return (
           <div
             key={group.key}
-            className="relative rounded-2xl overflow-hidden h-40 cursor-pointer select-none"
+            className="relative flex-shrink-0 w-32 aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer select-none"
             onClick={() => onShowTap?.(group.representative)}
           >
             {/* Background */}
