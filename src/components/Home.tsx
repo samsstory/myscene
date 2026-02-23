@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { truncateArtists } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
@@ -96,7 +97,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   }, [shows]);
 
   const handleEdmtrainAddToSchedule = async (event: EdmtrainEvent) => {
-    const artistName = event.artists.map(a => a.name).join(", ") || event.event_name || "Event";
+    const artistName = event.event_name || truncateArtists(event.artists.map(a => a.name), 3);
     const saved = await saveUpcomingShow({
       artist_name: artistName,
       venue_name: event.venue_name || undefined,
