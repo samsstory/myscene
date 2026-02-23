@@ -225,8 +225,8 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
               onClick={() => setActiveTab("discover")}
               className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.12em] transition-all ${
                 activeTab === "discover"
-                  ? "bg-white/[0.14] text-white border border-white/20"
-                  : "text-white/40 hover:text-white/60"
+                  ? "bg-gradient-to-r from-cyan-500/20 to-cyan-400/10 text-white border border-cyan-400/30"
+                  : "bg-gradient-to-r from-cyan-500/10 to-transparent text-white/50 hover:text-white/70 border border-cyan-400/15"
               }`}
             >
               For You
