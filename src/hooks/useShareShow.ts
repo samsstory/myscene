@@ -5,9 +5,10 @@ import { toast } from "sonner";
 
 export interface ShareShowParams {
   showId: string;
-  type: "logged" | "upcoming";
+  type: "logged" | "upcoming" | "edmtrain";
   artistName: string;
   venueName?: string;
+  edmtrainLink?: string;
 }
 
 // Fetch the current user's referral code
@@ -32,7 +33,7 @@ export function useShareShow() {
   const { data: profile } = useReferralCode();
 
   const shareShow = useCallback(
-    async ({ showId, type, artistName, venueName }: ShareShowParams) => {
+    async ({ showId, type, artistName, venueName, edmtrainLink }: ShareShowParams) => {
       const refCode = profile?.referral_code ?? "";
       const inviterName = profile?.full_name ?? profile?.username ?? "A friend";
 
@@ -46,14 +47,19 @@ export function useShareShow() {
 
       // Compose share message
       const venueText = venueName ? ` at ${venueName}` : "";
-      const shareTitle =
-        type === "logged"
-          ? `You're invited to compare your ${artistName}${venueText} experience on Scene`
-          : `${inviterName} wants you at ${artistName}${venueText}`;
-      const text =
-        type === "logged"
-          ? `${inviterName} saw ${artistName}${venueText} and wants to compare notes 🎵`
-          : `${inviterName} is going to see ${artistName}${venueText} and wants you there 🎤`;
+      let shareTitle: string;
+      let text: string;
+
+      if (type === "edmtrain") {
+        shareTitle = `Come to ${artistName}${venueText}!`;
+        text = `${inviterName} wants you at ${artistName}${venueText} — let's go together! 🎶`;
+      } else if (type === "logged") {
+        shareTitle = `You're invited to compare your ${artistName}${venueText} experience on Scene`;
+        text = `${inviterName} saw ${artistName}${venueText} and wants to compare notes 🎵`;
+      } else {
+        shareTitle = `${inviterName} wants you at ${artistName}${venueText}`;
+        text = `${inviterName} is going to see ${artistName}${venueText} and wants you there 🎤`;
+      }
 
       // Try native share first (mobile)
       if (navigator.share) {
