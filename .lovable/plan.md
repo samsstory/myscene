@@ -1,74 +1,145 @@
 
-# Phase 4 — Polish (4A, 4B, 4C)
+# Discovery-First Home Tab Restructure
 
-## 4A. Pill Naming Review
+## Overview
+Restructure the Home tab from a multi-purpose dashboard into a focused discovery hub for upcoming shows, while relocating backward-looking content (StatPills, Scene Feed) to their logical homes (My Shows, Friends).
 
-**Problem:** "H2H" means nothing to new users. "My Shows" vs "My Scene" is confusing -- both sound like they do the same thing.
+---
+
+## Phase 1: Move StatPills to My Shows Tab Header
+
+**Goal:** Remove backward-looking metrics from Home, place them where they contextually belong.
 
 **Changes:**
-- Rename "H2H" to "Rank" -- clearer, one word, immediately communicates purpose
-- Rename "My Scene" to "Home" -- since it's the landing/feed view
-- Keep "My Shows", "Schedule", "Friends", "Globe" as-is (they're clear)
-
-Updated pill order:
-```
-Home | Schedule | My Shows | Rank | Friends | Globe
-```
-
-File: `src/components/home/ContentPillNav.tsx` -- update the `PILLS` array labels.
+- `SceneView.tsx` -- Remove `StatPills` component and all related props (`statPills`, `statsLoading`, `onPillTap`, `showsTourActive`, `showsRef`)
+- `MyShowsView.tsx` -- Add `StatPills` as a header section above the existing ranked list. Accept new props for stat data.
+- `Home.tsx` -- Stop passing stat-related props to `SceneView`; pass them to `MyShowsView` instead. Clean up unused imports.
+- `SceneView` interface -- Slim down by removing 5+ stat-related props
 
 ---
 
-## 4B. Micro-Interaction Polish
+## Phase 2: Move Scene Feed to Friends Tab
 
-**Changes in `src/components/Home.tsx`:**
-- The `AnimatePresence` view transitions already exist (`opacity + y`). No changes needed there.
-
-**Changes in `src/components/home/ContentPillNav.tsx`:**
-- Add haptic feedback (`navigator.vibrate?.(6)`) on pill tap (same pattern as BottomNav)
-- The spring-based `layoutId` pill indicator is already in place -- keep as-is
-
-**Changes in `src/components/home/StatPills.tsx`:**
-- Add staggered fade-in animation to stat pills using framer-motion's `staggerChildren`
-- Wrap each pill in a `motion.div` with `initial={{ opacity: 0, y: 8 }}` and `animate={{ opacity: 1, y: 0 }}`
-- Use a parent `motion.div` with `staggerChildren: 0.06` for the container
-
----
-
-## 4C. Loading Experience
-
-**Current state:** BrandedLoader shows a quote on first session open, then "Still loading..." if slow. The slow-load detector kicks in at 2s (reassurance) and 3.5s (bug report prompt). This all works correctly.
-
-**Potential flicker issue:** When switching pill views, the `AnimatePresence` in Home.tsx handles transitions cleanly already. However, views that fetch data (like Friends, Globe) could show a blank flash before their own loading states render.
+**Goal:** Friend logging activity ("Alex added Rufus Du Sol") belongs with social connections, not discovery.
 
 **Changes:**
-- No changes needed to BrandedLoader or slow-load detector -- they work correctly
-- Add a subtle skeleton placeholder for pill view transitions: wrap the `AnimatePresence` content in Home.tsx so that data-fetching views (SceneView, MyShowsView, etc.) don't flash empty before their loading skeletons appear. This is already handled by each view's own `isLoading` states, so this is a verification task rather than code change.
-- Verify the quote-on-first-open gate works: `sessionStorage` flag in BrandedLoader ensures quotes only show once per session -- confirmed working from code review.
-
-**Conclusion for 4C:** The loading experience is already solid. The only action item is confirming no flicker, which is a runtime check rather than a code change.
+- `SceneView.tsx` -- Remove the "Scene Feed" sub-tab and all `FriendActivityFeed` related props (`activityItems`, `activityLoading`, `followingCount`, `onFindFriends`, `onIWasThere`)
+- `FriendsPanelView.tsx` -- Add `FriendActivityFeed` as a section within the Friends tab. Wire up the existing `useFriendActivity` hook data.
+- `Home.tsx` -- Stop passing activity props to `SceneView`. Move `useFriendActivity` call to only run when Friends tab is active (or keep it in Home and pass to FriendsPanelView).
 
 ---
 
-## Summary of File Changes
+## Phase 3: Remove Sub-Tab Navigation from SceneView
 
-| File | Change |
-|------|--------|
-| `src/components/home/ContentPillNav.tsx` | Rename "My Scene" to "Home", "H2H" to "Rank"; add haptic on tap |
-| `src/components/home/StatPills.tsx` | Add staggered fade-in animation with framer-motion |
-| `.lovable/pre-launch-fixes.md` | Mark 4A, 4B, 4C as done |
+**Goal:** Eliminate the confusing second navigation layer. Replace with a single vertical scroll feed.
+
+**Changes:**
+- `SceneView.tsx` -- Remove the `feedMode` state and the horizontal sub-tab bar (`Scene Feed / Upcoming / Near Me / Explore`). The component becomes a single vertical scroll of discovery sections.
+- Remove `Explore` sub-feed entirely (too generic; `Popular Near Me` covers location-based discovery better)
+
+---
+
+## Phase 4: Build the Unified Discovery Feed
+
+**Goal:** Create the new Home tab layout as a single vertical scroll with clear sections.
+
+### Section 1: WhatsNextStrip (keep, already at top)
+- No changes needed -- already shows Mine/Friends upcoming shows as horizontal chips
+- This remains the hero section
+
+### Section 2: Friends Going Highlight (NEW)
+- **New component:** `FriendsGoingSection.tsx`
+- **Data source:** `useFriendUpcomingShows` -- group `friendShows` by artist+date to find events where 2+ friends are attending
+- **UI:** Rich image cards (reuse the existing `FriendChip` card pattern from `WhatsNextStrip`) displayed vertically, showing stacked friend avatars, artist name, venue, date, and a "Plan to go" CTA
+- **Logic:** Filter friend shows to events with >= 2 friends going, sorted by date ascending
+- **Fallback:** If no multi-friend events, show single-friend upcoming shows with a "Join [friend]?" framing
+
+### Section 3: Edmtrain Personalized Feed (existing, promoted)
+- Move `EdmtrainDiscoveryFeed` from a sub-tab to an inline section
+- No component changes needed, just placement
+
+### Section 4: Popular Near Me (existing, promoted)  
+- Move `PopularFeedGrid` (near-me variant) from a sub-tab to an inline section
+- Remove its sub-type pills (Sets/Shows/Festivals) to keep the feed lean -- default to "set"
+- Add a section header: "Popular Near You"
+
+### Final `SceneView` structure:
+```text
+[WhatsNextStrip]          -- My upcoming + friend upcoming chips
+[FriendsGoingSection]     -- Multi-friend event highlights  
+[EdmtrainDiscoveryFeed]   -- Personalized recommendations
+[PopularFeedGrid]         -- Trending near user's location
+```
+
+**Changes:**
+- Create `src/components/home/FriendsGoingSection.tsx` -- new component
+- `SceneView.tsx` -- Rebuild to render sections vertically without sub-tabs. Slim props to only what's needed for the four sections.
+- `Home.tsx` -- Update props passed to `SceneView` to match the slimmed interface
+
+---
+
+## Phase 5: Cold Start Experience
+
+**Goal:** New users with no shows, no friends, and no location see useful content, not empty states.
+
+**Changes:**
+- `SceneView.tsx` -- Add a cold-start check: if user has 0 upcoming shows AND 0 following, show a welcome section with two CTAs:
+  - "Plan your first show" (opens PlanShowSheet)
+  - "Find friends on Scene" (navigates to Friends tab)
+- Below the CTAs, still show Edmtrain + Popular Near Me so even new users get discovery content
+
+---
+
+## Phase 6: Cleanup and Refactor
+
+**Goal:** Remove dead code and tighten interfaces.
+
+**Changes:**
+- `SceneView.tsx` -- Remove all unused imports (`FriendActivityFeed`, state for `feedMode`, sub-tab UI code, `PopularFeedGrid` sub-type state for explore)
+- `Home.tsx` -- Remove props/hooks that are no longer passed to SceneView (activity items, explore items, etc.)
+- `useHomeStats.ts` -- StatPills array builder can be simplified since pills only render in My Shows now (no tour-related logic needed)
+- Verify `ContentPillNav` needs no changes (it doesn't -- tab definitions stay the same)
 
 ---
 
 ## Technical Details
 
-**ContentPillNav changes:**
-- `PILLS` array: `{ id: "home", label: "Home" }` and `{ id: "rank", label: "Rank" }`
-- Add `navigator.vibrate?.(6)` inside the `onClick` handler before calling `onViewChange`
+### New Component: `FriendsGoingSection`
+```
+Props:
+  - friendShows: FriendShow[]
+  - onPlanShow: () => void
+  - onViewDetails: (show) => void
 
-**StatPills stagger animation:**
-- Import `motion` from `framer-motion`
-- Replace the container `<div className="flex gap-2.5 items-stretch">` with `<motion.div variants={containerVariants} initial="hidden" animate="show">`
-- Wrap each stat button in `<motion.div variants={itemVariants}>` with opacity + y transform
-- Container variants: `{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }`
-- Item variants: `{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } } }`
+Logic:
+  - Group friendShows by (artist_name + show_date) key
+  - Filter groups with >= 2 friends
+  - Render as vertical cards with stacked avatars
+  - Reuse FriendAvatarStack pattern from WhatsNextStrip
+  - Empty state: "Your friends haven't shared plans yet"
+```
+
+### Props Removed from SceneView
+- `statPills`, `statsLoading`, `onPillTap`, `showsTourActive`, `showsRef` (moved to MyShows)
+- `activityItems`, `activityLoading`, `followingCount`, `onFindFriends`, `onIWasThere` (moved to Friends)
+- `exploreItems`, `exploreTotalUsers`, `exploreLoading` (removed entirely)
+
+### Props Added to MyShowsView
+- `statPills`, `statsLoading`, `onPillTap`
+
+### Files Modified
+- `src/components/home/SceneView.tsx` (major rewrite)
+- `src/components/Home.tsx` (prop routing changes)
+- `src/components/home/MyShowsView.tsx` (add StatPills header)
+- `src/components/home/FriendsPanelView.tsx` (add activity feed)
+
+### Files Created
+- `src/components/home/FriendsGoingSection.tsx`
+
+### Files Unchanged
+- `ContentPillNav.tsx`, `WhatsNextStrip.tsx`, `EdmtrainDiscoveryFeed.tsx`, `PopularFeedGrid.tsx`, `FriendActivityFeed.tsx`, `StatPills.tsx` -- all reused as-is
+
+---
+
+## Execution Order
+Phases 1-3 are independent cleanup moves that can be done sequentially with verification between each. Phase 4 is the main build. Phase 5 adds polish. Phase 6 is final cleanup. Each phase will be verified before moving to the next.
