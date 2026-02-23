@@ -1,7 +1,9 @@
 import WhatsNextStrip from "./WhatsNextStrip";
 import PopularFeedGrid from "./PopularFeedGrid";
 import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
+import FriendsGoingSection from "./FriendsGoingSection";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
+import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 
 interface SceneViewProps {
   onPlanShow: () => void;
@@ -12,6 +14,8 @@ interface SceneViewProps {
   onQuickAdd: (item: any) => void;
   onAddEdmtrainToSchedule?: (event: EdmtrainEvent) => void;
   userArtistNames?: string[];
+  friendShows?: FriendShow[];
+  onAddFriendShowToSchedule?: (show: FriendShow) => void;
 }
 
 export default function SceneView({
@@ -23,6 +27,8 @@ export default function SceneView({
   onQuickAdd,
   onAddEdmtrainToSchedule,
   userArtistNames = [],
+  friendShows = [],
+  onAddFriendShowToSchedule,
 }: SceneViewProps) {
   const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
     console.log("Add to schedule:", event);
@@ -33,7 +39,20 @@ export default function SceneView({
       {/* Section 1: Upcoming shows */}
       <WhatsNextStrip onPlanShow={onPlanShow} />
 
-      {/* Section 2: Personalized recommendations */}
+      {/* Section 2: Friends Going */}
+      {friendShows.length > 0 && (
+        <section className="space-y-2">
+          <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
+            Friends Going
+          </h3>
+          <FriendsGoingSection
+            friendShows={friendShows}
+            onAddToSchedule={onAddFriendShowToSchedule ?? (() => {})}
+          />
+        </section>
+      )}
+
+      {/* Section 3: Personalized recommendations */}
       <section className="space-y-2">
         <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
           Upcoming Near You
@@ -44,7 +63,7 @@ export default function SceneView({
         />
       </section>
 
-      {/* Section 3: Popular near me */}
+      {/* Section 4: Popular near me */}
       <section className="space-y-2">
         <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
           Popular Near You
