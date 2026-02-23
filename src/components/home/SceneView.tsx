@@ -4,7 +4,9 @@ import StatPills, { StatPillAction } from "./StatPills";
 import WhatsNextStrip from "./WhatsNextStrip";
 import FriendActivityFeed, { type IWasTherePayload } from "./FriendActivityFeed";
 import PopularFeedGrid from "./PopularFeedGrid";
+import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
 import { type ShowTypeFilter } from "@/hooks/usePopularShows";
+import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 interface SceneViewProps {
   statPills: Parameters<typeof StatPills>[0]["stats"];
@@ -13,26 +15,24 @@ interface SceneViewProps {
   showsTourActive?: boolean;
   showsRef?: React.RefObject<HTMLButtonElement>;
   onPlanShow: () => void;
-  // Scene Feed
   activityItems: Parameters<typeof FriendActivityFeed>[0]["items"];
   activityLoading: boolean;
   followingCount: number;
   onFindFriends: () => void;
   onIWasThere: (payload: IWasTherePayload) => void;
-  // Near Me
   nearMeItems: Parameters<typeof PopularFeedGrid>[0]["items"];
   nearMeTotalUsers: number;
   nearMeLoading: boolean;
   nearMeHasLocation?: boolean;
-  // Explore
   exploreItems: Parameters<typeof PopularFeedGrid>[0]["items"];
   exploreTotalUsers: number;
   exploreLoading: boolean;
-  // Quick add callback for popular grids
   onQuickAdd: (item: any) => void;
+  onAddEdmtrainToSchedule?: (event: EdmtrainEvent) => void;
+  userArtistNames?: string[];
 }
 
-type FeedMode = "scene" | "near-me" | "explore";
+type FeedMode = "scene" | "near-me" | "explore" | "upcoming";
 
 export default function SceneView({
   statPills,
@@ -54,10 +54,16 @@ export default function SceneView({
   exploreTotalUsers,
   exploreLoading,
   onQuickAdd,
+  onAddEdmtrainToSchedule,
+  userArtistNames = [],
 }: SceneViewProps) {
   const [feedMode, setFeedMode] = useState<FeedMode>("scene");
   const [nearMeShowType, setNearMeShowType] = useState<ShowTypeFilter>("set");
   const [exploreShowType, setExploreShowType] = useState<ShowTypeFilter>("set");
+
+  const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
+    console.log("Add to schedule:", event);
+  };
 
   return (
     <div className="space-y-5">
@@ -67,16 +73,16 @@ export default function SceneView({
 
       <div className="space-y-3">
         {/* Tab headers */}
-        <div className="flex items-center gap-4">
-          {(["scene", "near-me", "explore"] as const).map((mode) => {
-            const labels = { scene: "Scene Feed", "near-me": "Popular Near Me", explore: "Explore" };
+        <div className="flex items-center gap-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {(["scene", "upcoming", "near-me", "explore"] as const).map((mode) => {
+            const labels = { scene: "Scene Feed", upcoming: "Upcoming", "near-me": "Popular Near Me", explore: "Explore" };
             const isActive = feedMode === mode;
             return (
               <button
                 key={mode}
                 onClick={() => setFeedMode(mode)}
                 className={cn(
-                  "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors",
+                  "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors whitespace-nowrap shrink-0",
                   isActive ? "text-white/80" : "text-white/30 hover:text-white/50"
                 )}
                 style={isActive ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
@@ -94,6 +100,12 @@ export default function SceneView({
             hasFollowing={followingCount > 0}
             onFindFriends={onFindFriends}
             onIWasThere={onIWasThere}
+          />
+        )}
+        {feedMode === "upcoming" && (
+          <EdmtrainDiscoveryFeed
+            onAddToSchedule={onAddEdmtrainToSchedule || defaultEdmtrainHandler}
+            matchedArtistNames={userArtistNames}
           />
         )}
         {feedMode === "near-me" && (

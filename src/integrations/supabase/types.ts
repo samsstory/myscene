@@ -98,6 +98,60 @@ export type Database = {
         }
         Relationships: []
       }
+      edmtrain_events: {
+        Row: {
+          ages: string | null
+          artists: Json
+          edmtrain_id: number
+          event_date: string
+          event_link: string
+          event_name: string | null
+          festival_ind: boolean
+          fetched_at: string
+          id: number
+          location_key: string
+          venue_address: string | null
+          venue_latitude: number | null
+          venue_location: string | null
+          venue_longitude: number | null
+          venue_name: string | null
+        }
+        Insert: {
+          ages?: string | null
+          artists?: Json
+          edmtrain_id: number
+          event_date: string
+          event_link: string
+          event_name?: string | null
+          festival_ind?: boolean
+          fetched_at?: string
+          id?: number
+          location_key: string
+          venue_address?: string | null
+          venue_latitude?: number | null
+          venue_location?: string | null
+          venue_longitude?: number | null
+          venue_name?: string | null
+        }
+        Update: {
+          ages?: string | null
+          artists?: Json
+          edmtrain_id?: number
+          event_date?: string
+          event_link?: string
+          event_name?: string | null
+          festival_ind?: boolean
+          fetched_at?: string
+          id?: number
+          location_key?: string
+          venue_address?: string | null
+          venue_latitude?: number | null
+          venue_location?: string | null
+          venue_longitude?: number | null
+          venue_name?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
