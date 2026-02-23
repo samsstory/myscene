@@ -46,7 +46,13 @@ export async function initiateSpotifyAuth() {
     sessionStorage.setItem("spotify_client_id", data.client_id);
   }
 
-  window.location.href = data.url;
+  // Use top-level navigation to avoid iframe restrictions (Spotify blocks iframes)
+  if (window.top) {
+    window.top.location.href = data.url;
+  } else {
+    window.location.href = data.url;
+  }
+
 }
 
 export async function exchangeSpotifyCode(code: string): Promise<{
