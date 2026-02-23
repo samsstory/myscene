@@ -22,6 +22,7 @@ export interface UpcomingShow {
   artist_image_url: string | null;
   rsvp_status: "going" | "maybe" | "not_going";
   created_at: string;
+  raw_input: string | null;
 }
 
 export interface SaveUpcomingShowData {
