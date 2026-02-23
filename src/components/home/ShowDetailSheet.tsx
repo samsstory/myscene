@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { format, parseISO } from "date-fns";
 import {
   MapPin,
   CalendarDays,
@@ -15,7 +14,6 @@ import {
 } from "lucide-react";
 import { truncateArtists } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 
 /* ── Shared types ─────────────────────────────────────── */
 
@@ -267,58 +265,36 @@ export default function ShowDetailSheet({
           {children}
 
           {/* ── RSVP ── */}
-          {rsvpMode === "toggle" && (
-            <div className="space-y-2">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
-                Your Status
-              </p>
-              <div className="flex gap-2">
-                {RSVP_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setRsvp(opt.value);
-                      onRsvpChange?.(opt.value);
-                    }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                      rsvp === opt.value
-                        ? opt.activeClass
-                        : "border-white/[0.08] text-muted-foreground hover:border-white/20 hover:text-foreground/70"
-                    }`}
-                  >
-                    {opt.icon}
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {rsvpMode === "add" && (
+          <div className="space-y-2">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+              {rsvpMode === "add" ? "Add to Schedule" : "Your Status"}
+            </p>
             <div className="flex gap-2">
-              <Button
-                className="flex-1 gap-2"
-                onClick={() => {
-                  onAddToSchedule?.("going");
-                  onOpenChange(false);
-                }}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                I'm Going
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-                onClick={() => {
-                  onAddToSchedule?.("maybe");
-                  onOpenChange(false);
-                }}
-              >
-                <CircleHelp className="h-4 w-4" />
-                Maybe
-              </Button>
+              {RSVP_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setRsvp(opt.value);
+                    if (rsvpMode === "toggle") {
+                      onRsvpChange?.(opt.value);
+                    } else {
+                      onAddToSchedule?.(opt.value);
+                      onOpenChange(false);
+                    }
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                    rsvp === opt.value
+                      ? opt.activeClass
+                      : "border-white/[0.08] text-muted-foreground hover:border-white/20 hover:text-foreground/70"
+                  }`}
+                >
+                  {opt.icon}
+                  {opt.label}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+
 
           {/* ── Who's Going ── */}
           {goingWith.length > 0 && (() => {
