@@ -26,6 +26,7 @@ import { toast } from "sonner";
 
 import { type StatPillAction } from "./home/StatPills";
 import { type IWasTherePayload } from "./home/FriendActivityFeed";
+import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 import IncompleteTagsSheet from "./home/IncompleteTagsSheet";
 import MissingPhotosSheet from "./home/MissingPhotosSheet";
@@ -62,7 +63,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
 
   const [calendarFriendsMode, setCalendarFriendsMode] = useState(false);
 
-  const { upcomingShows, deleteUpcomingShow, updateRsvpStatus } = usePlanUpcomingShow();
+  const { upcomingShows, deleteUpcomingShow, updateRsvpStatus, saveUpcomingShow } = usePlanUpcomingShow();
   const { following, followers } = useFollowers();
   const followingIds = useMemo(() => following.map((f) => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
@@ -121,6 +122,27 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     sheets.setQuickAddOpen(true);
   };
 
+  // Collect unique artist names for Edmtrain personalization
+  const userArtistNames = useMemo(() => {
+    const names = new Set<string>();
+    shows.forEach((s) => s.artists.forEach((a) => names.add(a.name)));
+    return Array.from(names);
+  }, [shows]);
+
+  const handleEdmtrainAddToSchedule = async (event: EdmtrainEvent) => {
+    const artistName = event.artists.map(a => a.name).join(", ") || event.event_name || "Event";
+    const saved = await saveUpcomingShow({
+      artist_name: artistName,
+      venue_name: event.venue_name || undefined,
+      venue_location: event.venue_location || undefined,
+      show_date: event.event_date || undefined,
+      ticket_url: event.event_link, // Edmtrain event link as ticket URL (required attribution)
+    });
+    if (!saved) {
+      toast.error("Failed to add to schedule");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <ContentPillNav
@@ -158,6 +180,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               exploreTotalUsers={exploreTotalUsers}
               exploreLoading={exploreLoading}
               onQuickAdd={handleQuickAddFromPopular}
+              onAddEdmtrainToSchedule={handleEdmtrainAddToSchedule}
+              userArtistNames={userArtistNames}
             />
           )}
 
