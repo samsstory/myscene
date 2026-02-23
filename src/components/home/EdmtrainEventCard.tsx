@@ -6,6 +6,7 @@ interface EdmtrainEventCardProps {
   event: EdmtrainEvent;
   endDate?: string;
   onAddToSchedule: (event: EdmtrainEvent) => void;
+  onClick?: () => void;
 }
 
 function formatDateRange(startIso: string, endIso?: string): string {
@@ -18,14 +19,17 @@ function formatDateRange(startIso: string, endIso?: string): string {
   return `${format(start, "MMM d")}–${format(end, "MMM d")}`;
 }
 
-export default function EdmtrainEventCard({ event, endDate, onAddToSchedule }: EdmtrainEventCardProps) {
+export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onClick }: EdmtrainEventCardProps) {
   const artistNames = event.artists.map((a) => a.name).join(", ");
   const displayName = event.event_name || artistNames || "Event";
   const dateStr = formatDateRange(event.event_date, endDate);
   const hasImage = !!event.artist_image_url;
 
   return (
-    <div className="relative w-40 shrink-0 snap-start aspect-[3/4] rounded-2xl overflow-hidden group">
+    <div
+      className="relative w-40 shrink-0 snap-start aspect-[3/4] rounded-2xl overflow-hidden group cursor-pointer"
+      onClick={onClick}
+    >
       {/* Background image or gradient fallback */}
       {hasImage ? (
         <img
