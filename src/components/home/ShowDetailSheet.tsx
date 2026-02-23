@@ -206,6 +206,7 @@ export default function ShowDetailSheet({
             )}
 
             {/* Ticket link */}
+            <div>
             {localTicketUrl ? (
               <a
                 href={localTicketUrl}
@@ -253,6 +254,7 @@ export default function ShowDetailSheet({
                 </span>
               </button>
             ) : null}
+            </div>
 
             {/* Spotify */}
             {spotifySearchTerm && (
