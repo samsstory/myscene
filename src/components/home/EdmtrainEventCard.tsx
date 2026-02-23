@@ -1,17 +1,27 @@
 import { CalendarPlus, Music, Ticket } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { format } from "date-fns";
 
 interface EdmtrainEventCardProps {
   event: EdmtrainEvent;
+  endDate?: string;
   onAddToSchedule: (event: EdmtrainEvent) => void;
 }
 
-export default function EdmtrainEventCard({ event, onAddToSchedule }: EdmtrainEventCardProps) {
+function formatDateRange(startIso: string, endIso?: string): string {
+  const start = new Date(startIso + "T12:00:00");
+  if (!endIso || endIso === startIso) return format(start, "MMM d");
+  const end = new Date(endIso + "T12:00:00");
+  if (start.getMonth() === end.getMonth()) {
+    return `${format(start, "MMM d")}–${format(end, "d")}`;
+  }
+  return `${format(start, "MMM d")}–${format(end, "MMM d")}`;
+}
+
+export default function EdmtrainEventCard({ event, endDate, onAddToSchedule }: EdmtrainEventCardProps) {
   const artistNames = event.artists.map((a) => a.name).join(", ");
   const displayName = event.event_name || artistNames || "Event";
-  const dateStr = format(new Date(event.event_date + "T12:00:00"), "MMM d");
+  const dateStr = formatDateRange(event.event_date, endDate);
   const hasImage = !!event.artist_image_url;
 
   return (

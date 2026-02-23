@@ -8,23 +8,63 @@ interface EdmtrainDiscoveryFeedProps {
   matchedArtistNames?: string[];
 }
 
+/** Merge multi-day events (same name + venue) into a single card with date range. */
+interface GroupedEvent {
+  event: EdmtrainEvent;
+  endDate?: string;
+}
+
+function groupMultiDayEvents(events: EdmtrainEvent[]): GroupedEvent[] {
+  const keyMap = new Map<string, GroupedEvent>();
+  const order: string[] = [];
+
+  for (const event of events) {
+    const name = (event.event_name || event.artists.map(a => a.name).join(", ")).toLowerCase();
+    const key = `${name}::${(event.venue_name || "").toLowerCase()}`;
+
+    const existing = keyMap.get(key);
+    if (existing) {
+      if (event.event_date < existing.event.event_date) {
+        existing.endDate = existing.endDate || existing.event.event_date;
+        existing.event = { ...event, artists: mergeArtists(event.artists, existing.event.artists) };
+      } else {
+        const curEnd = existing.endDate || existing.event.event_date;
+        if (event.event_date > curEnd) existing.endDate = event.event_date;
+        existing.event = { ...existing.event, artists: mergeArtists(existing.event.artists, event.artists) };
+      }
+      if (!existing.event.artist_image_url && event.artist_image_url) {
+        existing.event = { ...existing.event, artist_image_url: event.artist_image_url };
+      }
+    } else {
+      keyMap.set(key, { event });
+      order.push(key);
+    }
+  }
+
+  return order.map(k => keyMap.get(k)!);
+}
+
+function mergeArtists(primary: EdmtrainEvent["artists"], secondary: EdmtrainEvent["artists"]) {
+  const seen = new Set(primary.map(a => a.name.toLowerCase()));
+  return [...primary, ...secondary.filter(a => !seen.has(a.name.toLowerCase()))];
+}
+
 export default function EdmtrainDiscoveryFeed({ onAddToSchedule, matchedArtistNames = [] }: EdmtrainDiscoveryFeedProps) {
   const { events, isLoading, error } = useEdmtrainEvents();
 
-  // Personalization: boost events that match user's logged artists
+  const grouped = groupMultiDayEvents(events);
   const matchSet = new Set(matchedArtistNames.map((n) => n.toLowerCase()));
 
-  const scored = events.map((event) => {
+  const scored = grouped.map(({ event, endDate }) => {
     let score = 0;
     for (const artist of event.artists) {
       if (matchSet.has(artist.name.toLowerCase())) score += 10;
     }
     if (event.festival_ind) score += 2;
-    return { event, score };
+    return { event, endDate, score };
   });
 
   scored.sort((a, b) => b.score - a.score || a.event.event_date.localeCompare(b.event.event_date));
-
   const displayed = scored.slice(0, 12);
 
   if (isLoading) {
@@ -51,10 +91,11 @@ export default function EdmtrainDiscoveryFeed({ onAddToSchedule, matchedArtistNa
 
   return (
     <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 scrollbar-hide -mx-1 px-1">
-      {displayed.map(({ event }) => (
+      {displayed.map(({ event, endDate }) => (
         <EdmtrainEventCard
           key={event.edmtrain_id}
           event={event}
+          endDate={endDate}
           onAddToSchedule={onAddToSchedule}
         />
       ))}
