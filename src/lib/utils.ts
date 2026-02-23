@@ -21,3 +21,18 @@ export function formatShowDate(dateStr: string, datePrecision?: string | null): 
   return format(date, isCurrentYear ? "MMM d" : "MMM d, yyyy");
 }
 
+/**
+ * Truncate a comma-separated artist list to `max` names, appending "+ N more".
+ * Also works with an array of names.
+ */
+export function truncateArtists(
+  input: string | string[],
+  max: number = 3,
+): string {
+  const names = Array.isArray(input)
+    ? input
+    : input.split(",").map((s) => s.trim()).filter(Boolean);
+  if (names.length <= max) return names.join(", ");
+  return `${names.slice(0, max).join(", ")} + ${names.length - max} more`;
+}
+

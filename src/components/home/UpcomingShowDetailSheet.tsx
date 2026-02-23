@@ -4,6 +4,7 @@ import { Trash2, Ticket, MapPin, CalendarDays, CheckCircle2, AlertCircle, X, Use
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useShareShow } from "@/hooks/useShareShow";
+import { truncateArtists } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,8 +147,8 @@ export default function UpcomingShowDetailSheet({
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent" />
             )}
             <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
-              <h2 className="text-xl font-bold text-white" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
-                {show.artist_name}
+              <h2 className="text-xl font-bold text-white line-clamp-1" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
+                {truncateArtists(show.artist_name, 3)}
               </h2>
             </div>
           </div>
@@ -312,8 +313,8 @@ export default function UpcomingShowDetailSheet({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-medium text-foreground/90">Invite a friend</p>
-              <p className="text-[11px] text-muted-foreground">
-                Invite them to join you at {show.artist_name}
+              <p className="text-[11px] text-muted-foreground line-clamp-2">
+                Invite them to join you at {truncateArtists(show.artist_name, 3)}
               </p>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
