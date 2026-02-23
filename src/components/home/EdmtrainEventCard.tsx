@@ -5,7 +5,7 @@ import { format } from "date-fns";
 interface EdmtrainEventCardProps {
   event: EdmtrainEvent;
   endDate?: string;
-  onAddToSchedule: (event: EdmtrainEvent) => void;
+  onAddToSchedule: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   onClick?: () => void;
 }
 

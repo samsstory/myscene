@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { CalendarPlus, MapPin, CalendarDays, Ticket, Music, ExternalLink, UserPlus, ChevronRight } from "lucide-react";
+import { CalendarPlus, MapPin, CalendarDays, Ticket, Music, ExternalLink, UserPlus, ChevronRight, CheckCircle2, CircleHelp } from "lucide-react";
 import { truncateArtists } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ interface EdmtrainEventDetailSheetProps {
   endDate?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddToSchedule: (event: EdmtrainEvent) => void;
+  onAddToSchedule: (event: EdmtrainEvent, rsvpStatus?: string) => void;
 }
 
 function formatDateRange(startIso: string, endIso?: string): string {
@@ -179,17 +179,30 @@ export default function EdmtrainEventDetailSheet({
             <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
           </button>
 
-          {/* Add to schedule */}
-          <Button
-            className="w-full gap-2"
-            onClick={() => {
-              onAddToSchedule(event);
-              onOpenChange(false);
-            }}
-          >
-            <CalendarPlus className="h-4 w-4" />
-            Add to My Schedule
-          </Button>
+          {/* Add to schedule – going / maybe */}
+          <div className="flex gap-2">
+            <Button
+              className="flex-1 gap-2"
+              onClick={() => {
+                onAddToSchedule(event, "going");
+                onOpenChange(false);
+              }}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              I'm Going
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+              onClick={() => {
+                onAddToSchedule(event, "maybe");
+                onOpenChange(false);
+              }}
+            >
+              <CircleHelp className="h-4 w-4" />
+              Maybe
+            </Button>
+          </div>
 
           {/* Edmtrain + event link */}
           <div className="flex items-center justify-between pt-1">
