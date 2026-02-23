@@ -1,101 +1,63 @@
 
-# Scene — Remaining Improvements Plan
 
-## Phase 7: Add Historical StatPills to My Shows ← NEXT
+# Edmtrain Carousel Redesign - Implementation Plan
 
-**Goal:** Restore backward-looking metric pills (total shows, cities/countries, streak) to the My Shows view, where they belong contextually as part of the "Reflect" experience.
+## Summary
+Transform the "Upcoming Near You" section from a vertical card list into a horizontal scroll carousel with Spotify-resolved artist images, a Ticket icon CTA, and Edmtrain logo attribution.
 
-**Changes:**
-- `useHomeStats.ts` — Rebuild `statPills` array with historical metrics: Total Shows (→ no action), Cities/Countries (→ globe), Streak, and Confirmation Ring (→ rank)
-- `MyShowsView.tsx` — Re-add `StatPills` component at the top, accepting pills + loading state
-- `Home.tsx` — Pass `statPills` and `statsLoading` back to `MyShowsView`
+## Changes
 
-**No new dependencies or database changes.**
+### 1. Database Migration
+Add an `artist_image_url` column to the `edmtrain_events` table to cache Spotify artist images.
 
----
+```sql
+ALTER TABLE edmtrain_events ADD COLUMN artist_image_url text;
+```
 
-## Phase 8: Redirect to My Shows After Ranking Session
+### 2. Edge Function: `fetch-edmtrain/index.ts`
+After fetching and parsing Edmtrain events, resolve headliner images via Spotify before upserting:
 
-**Goal:** After completing a focused ranking session, automatically switch the user to the My Shows tab so they see their updated rankings immediately.
+- Add a `getSpotifyToken()` helper using Client Credentials flow (same pattern as `backfill-artist-images`)
+- For each event, take `artistList[0].name` (headliner), search Spotify, grab the first result's image URL
+- Process in batches of 5 with small delays to avoid rate limits
+- Store the image URL in the `artist_image_url` column on each row
+- Events with no Spotify match get `null` (card will show a gradient fallback)
 
-**Changes:**
-- `Home.tsx` — In the `FocusedRankingSession` `onComplete` callback, add `setViewMode('rankings')` to navigate to My Shows after the session closes.
+### 3. Hook: `useEdmtrainEvents.ts`
+- Add `artist_image_url: string | null` to the `EdmtrainEvent` interface
+- Map it from the database row in the fetch result mapping
 
-**Effort:** Trivial — one line change.
+### 4. Component: `EdmtrainEventCard.tsx` - Full Redesign
+Convert from a text-heavy card to a portrait image tile (`w-40`, `aspect-[3/4]`):
 
----
+- **Background**: Full-bleed artist image with `bg-gradient-to-t from-black/80` overlay; fallback gradient + Music icon when no image
+- **Top-left**: Festival badge pill (if applicable)
+- **Top-right**: `CalendarPlus` icon button (calls `onAddToSchedule`)
+- **Bottom overlay**: Artist/event name (truncated), date, venue name (truncated)
+- **Bottom-left**: Lucide `Ticket` icon button linking to `event_link` (opens in new tab)
+- **Bottom-right**: Small Edmtrain logo (loaded from `https://edmtrain.s3.amazonaws.com/img/logo/logo-web.svg`, ~14px tall) as a clickable watermark also linking to `event_link`
 
-## Phase 9: Edmtrain Suggestions on Schedule Date Tap
+### 5. Component: `EdmtrainDiscoveryFeed.tsx` - Carousel Layout
+- Replace vertical `space-y-3` list with horizontal scroll: `flex overflow-x-auto gap-3 snap-x snap-mandatory scrollbar-hide pb-1`
+- Each card: `shrink-0 snap-start`
+- Remove the duplicate "Upcoming Near You" header (already rendered by parent `SceneView`)
+- Loading state: 4 skeleton rectangles (`w-40 aspect-[3/4]`) in a horizontal row
+- Display up to 12 events (increased from 8 since carousel takes less vertical space)
 
-**Goal:** When a user taps a future date in the Schedule view, surface Edmtrain events for that date as planning suggestions.
+## Technical Details
 
-**Changes:**
-- `ScheduleView.tsx` — Add a date-tap handler that filters cached Edmtrain events by the selected date
-- Create a small inline component or sheet showing matching Edmtrain events with "Add to schedule" action
-- Wire up `useEdmtrainEvents` or query `edmtrain_events` table filtered by date
+### Spotify Image Resolution (in edge function)
+- Uses `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` (already configured as secrets)
+- Client Credentials flow: `POST https://accounts.spotify.com/api/token` with `grant_type=client_credentials`
+- Search: `GET https://api.spotify.com/v1/search?q={artistName}&type=artist&limit=1`
+- Take `data.artists.items[0].images[0].url` as the image
+- Token cached in-memory for the duration of the function invocation
+- Batches of 5 artists with no artificial delay (Spotify rate limits are generous for search)
 
-**Effort:** Medium.
+### Files Modified
+1. **Database migration** -- add `artist_image_url text` column
+2. **`supabase/functions/fetch-edmtrain/index.ts`** -- add Spotify image resolution
+3. **`src/hooks/useEdmtrainEvents.ts`** -- add `artist_image_url` to interface and mapping
+4. **`src/components/home/EdmtrainEventCard.tsx`** -- redesign as portrait image tile
+5. **`src/components/home/EdmtrainDiscoveryFeed.tsx`** -- switch to horizontal scroll carousel
 
----
-
-## Phase 10: Move Scene Feed Activity to Friends Tab
-
-**Goal:** Friend activity (show logs, rankings) belongs in the Friends tab ("Connect"), not the Home tab ("Discover").
-
-**Changes:**
-- `FriendsPanelView.tsx` — Add a "Recent Activity" section using `FriendActivityFeed`
-- Ensure `FriendActivityFeed` is no longer rendered on the Home tab (already removed from SceneView)
-
-**Effort:** Medium — component exists, needs relocation and integration.
-
----
-
-## Phase 11: Friend Venue Pins on Globe
-
-**Goal:** Add an overlay toggle on the Globe map showing venues your friends have visited.
-
-**Changes:**
-- `MapView.tsx` — Add a toggle button for "Friend pins" overlay
-- Query friend show venues and render as a distinct marker layer (different color/style)
-- Use `followingIds` to fetch friend venue data
-
-**Effort:** Medium.
-
----
-
-## Phase 12: "Friends Who Also Saw X" Mutual Overlaps
-
-**Goal:** On a show detail sheet, surface which friends attended the same event (same artist + date or venue + date).
-
-**Changes:**
-- `ShowReviewSheet.tsx` — Add a "Friends who were there" section
-- Query logic: match `show_artists.artist_name` + `shows.show_date` across followed users
-- Display friend avatars with names
-
-**Effort:** Medium — needs cross-user query with RLS considerations.
-
----
-
-## Phase 13: Friend Profiles with Public Rankings
-
-**Goal:** Tapping a friend's profile shows their public show collection and rankings for comparison.
-
-**Changes:**
-- Create a `FriendProfileSheet` or page showing their ranked shows
-- Query their shows + rankings (requires public/follower-visible RLS policy)
-- Add comparison view: "You both saw X — they ranked it #3, you ranked it #7"
-
-**Effort:** Large — new component + RLS policy work.
-
----
-
-## Phase 14: Highlight Reel / Wrapped-Style Insights
-
-**Goal:** A "Year in Review" or on-demand highlight reel summarizing the user's show history with visual stats and memorable moments.
-
-**Changes:**
-- New component: `HighlightReel.tsx` — carousel or scroll-through experience
-- Stats: top artist, most-visited venue, total cities, best-ranked show, longest streak, etc.
-- Accessible from My Shows view
-
-**Effort:** Large — new feature, significant design work.
