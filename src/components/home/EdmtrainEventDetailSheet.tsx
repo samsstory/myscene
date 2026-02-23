@@ -1,7 +1,8 @@
 import { format } from "date-fns";
-import { CalendarPlus, MapPin, CalendarDays, Ticket, Music, ExternalLink } from "lucide-react";
+import { CalendarPlus, MapPin, CalendarDays, Ticket, Music, ExternalLink, UserPlus, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import type { EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 interface EdmtrainEventDetailSheetProps {
@@ -149,6 +150,46 @@ export default function EdmtrainEventDetailSheet({
               </div>
             </div>
           )}
+
+          {/* Invite a friend */}
+          <button
+            className="w-full flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] rounded-xl px-4 py-3 transition-all group"
+            onClick={async () => {
+              const artistNames = event.artists.map((a) => a.name).join(", ");
+              const name = event.event_name || artistNames || "Event";
+              const venueText = event.venue_name ? ` at ${event.venue_name}` : "";
+              const shareData = {
+                title: `Come to ${name}${venueText}!`,
+                text: `Check out ${name}${venueText} — let's go together! 🎶`,
+                url: event.event_link,
+              };
+              if (navigator.share) {
+                try {
+                  await navigator.share(shareData);
+                  return;
+                } catch (err: any) {
+                  if (err?.name === "AbortError") return;
+                }
+              }
+              try {
+                await navigator.clipboard.writeText(event.event_link);
+                toast.success("Link copied to clipboard! 🔗");
+              } catch {
+                toast.info(event.event_link, { duration: 6000 });
+              }
+            }}
+          >
+            <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
+              <UserPlus className="h-4 w-4 text-primary/70" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium text-foreground/90">Invite a friend</p>
+              <p className="text-[11px] text-muted-foreground">
+                Share this event with your squad
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+          </button>
 
           {/* Add to schedule */}
           <Button
