@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { parseISO, isThisWeek, isThisMonth, addMonths, isAfter, startOfToday } from "date-fns";
-import { Plus, Music2, Users, NotebookPen, Sparkles, ChevronDown } from "lucide-react";
+import { Plus, Music2, Users, NotebookPen, Sparkles } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -17,6 +17,8 @@ import UpcomingChip from "./upcoming/UpcomingChip";
 import FriendChip from "./upcoming/FriendChip";
 import AddShowChip from "./upcoming/AddShowChip";
 import FriendShowDetailSheet from "./upcoming/FriendShowDetailSheet";
+import TimeFilterDropdown, { type TimeFilter } from "./upcoming/TimeFilterDropdown";
+import SectionLabel from "./SectionLabel";
 import DiscoverFeed from "./ForYouFeed";
 
 // ─── DEMO OVERRIDE ───────────────────────────────────────────────────────────
@@ -48,56 +50,6 @@ const DEMO_10_FRIENDS: FriendShow[] = Array.from({ length: 10 }, (_, i) => ({
 }));
 // ─────────────────────────────────────────────────────────────────────────────
 
-type TimeFilter = "all" | "week" | "month" | "later";
-const TIME_OPTIONS: { value: TimeFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "week", label: "This Week" },
-  { value: "month", label: "This Month" },
-  { value: "later", label: "Later" },
-];
-
-function TimeFilterDropdown({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium text-white/50 hover:text-white/70 bg-white/[0.06] border border-white/[0.08] transition-all"
-      >
-        {TIME_OPTIONS.find(o => o.value === value)?.label}
-        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-white/[0.12] bg-[hsl(var(--background))] shadow-lg py-1 min-w-[120px]">
-          {TIME_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              className={`w-full text-left px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                value === opt.value
-                  ? "text-primary bg-primary/10"
-                  : "text-foreground/70 hover:bg-white/[0.06]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface WhatsNextStripProps {
   onPlanShow?: () => void;
@@ -232,12 +184,9 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
     <>
       <div className="space-y-2.5">
         {/* Section label */}
-        <h3
-          className="text-sm uppercase tracking-[0.12em] font-semibold text-white/60"
-          style={{ textShadow: "0 0 8px rgba(255,255,255,0.2)" }}
-        >
+        <SectionLabel glow className="text-white/60">
           Upcoming Shows
-        </h3>
+        </SectionLabel>
 
         {/* Tab pills */}
         <div className="flex items-center justify-between">
