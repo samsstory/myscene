@@ -19,13 +19,48 @@ export interface EdmtrainEvent {
 
 interface UseEdmtrainEventsOptions {
   enabled?: boolean;
+  /** Override location instead of using profile home city */
+  overrideLat?: number | null;
+  overrideLng?: number | null;
+  overrideCity?: string | null;
+}
+
+// State abbreviation map for Edmtrain API
+const stateAbbrevToFull: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+  CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
+  HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
+  MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri",
+  MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
+  OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina",
+  SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
+  VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+  DC: "District of Columbia",
+};
+
+const countryNames = ["united states", "usa", "us", "canada", "uk", "united kingdom", "spain", "germany", "france", "australia", "mexico"];
+
+function extractState(cityStr: string): string | null {
+  const parts = cityStr.split(",").map((p) => p.trim());
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i].trim();
+    if (countryNames.includes(part.toLowerCase())) continue;
+    if (stateAbbrevToFull[part.toUpperCase()]) return stateAbbrevToFull[part.toUpperCase()];
+    const fullMatch = Object.values(stateAbbrevToFull).find(s => s.toLowerCase() === part.toLowerCase());
+    if (fullMatch) return fullMatch;
+  }
+  return null;
 }
 
 export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
-  const { enabled = true } = opts;
+  const { enabled = true, overrideLat, overrideLng, overrideCity } = opts;
   const [events, setEvents] = useState<EdmtrainEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const hasOverride = overrideLat != null && overrideLng != null;
 
   const fetchEvents = useCallback(async () => {
     if (!enabled) return;
@@ -33,88 +68,45 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
     setError(null);
 
     try {
-      // Get user's home coordinates
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      let lat: number, lng: number, cityStr: string;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("home_latitude, home_longitude, home_city")
-        .eq("id", user.id)
-        .single();
+      if (hasOverride) {
+        lat = overrideLat!;
+        lng = overrideLng!;
+        cityStr = overrideCity || "";
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      if (!profile?.home_latitude || !profile?.home_longitude) {
-        setEvents([]);
-        return;
-      }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("home_latitude, home_longitude, home_city")
+          .eq("id", user.id)
+          .single();
 
-      // Extract state from home_city (e.g. "Austin, TX" → "Texas", "Los Angeles, CA" → "California")
-      const stateAbbrevToFull: Record<string, string> = {
-        AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
-        CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
-        HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
-        KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
-        MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri",
-        MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
-        NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
-        OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina",
-        SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
-        VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
-        DC: "District of Columbia",
-      };
-
-      let state: string | null = null;
-      if (profile.home_city) {
-        // Try to match various formats:
-        // "Austin, TX" → "Texas"
-        // "New York, New York, United States" → "New York"
-        // "Los Angeles, California" → "California"
-        const parts = profile.home_city.split(",").map((p: string) => p.trim());
-        
-        // Try each part from right to left, skipping country names
-        const countryNames = ["united states", "usa", "us", "canada", "uk", "united kingdom", "spain", "germany", "france", "australia", "mexico"];
-        
-        for (let i = parts.length - 1; i >= 0; i--) {
-          const part = parts[i].trim();
-          const partUpper = part.toUpperCase();
-          
-          // Skip country names
-          if (countryNames.includes(part.toLowerCase())) continue;
-          
-          // Check abbreviation
-          if (stateAbbrevToFull[partUpper]) {
-            state = stateAbbrevToFull[partUpper];
-            break;
-          }
-          
-          // Check full state name
-          const fullMatch = Object.values(stateAbbrevToFull).find(
-            s => s.toLowerCase() === part.toLowerCase()
-          );
-          if (fullMatch) {
-            state = fullMatch;
-            break;
-          }
+        if (!profile?.home_latitude || !profile?.home_longitude) {
+          setEvents([]);
+          return;
         }
+        lat = Number(profile.home_latitude);
+        lng = Number(profile.home_longitude);
+        cityStr = profile.home_city || "";
       }
 
+      const state = extractState(cityStr);
       if (!state) {
-        console.warn("Could not determine state from home_city:", profile.home_city);
+        console.warn("Could not determine state from city:", cityStr);
         setEvents([]);
         return;
       }
 
-      // Trigger cache refresh (edge function checks freshness internally)
+      // Trigger cache refresh
       await supabase.functions.invoke("fetch-edmtrain", {
-        body: {
-          latitude: profile.home_latitude,
-          longitude: profile.home_longitude,
-          state,
-        },
+        body: { latitude: lat, longitude: lng, state },
       });
 
       // Read cached events
-      const locationKey = `lat:${Number(profile.home_latitude).toFixed(1)},lng:${Number(profile.home_longitude).toFixed(1)}`;
+      const locationKey = `lat:${lat.toFixed(1)},lng:${lng.toFixed(1)}`;
       const today = new Date().toISOString().split("T")[0];
 
       const { data: cached, error: queryError } = await supabase
@@ -149,7 +141,7 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [enabled]);
+  }, [enabled, hasOverride, overrideLat, overrideLng, overrideCity]);
 
   useEffect(() => {
     fetchEvents();

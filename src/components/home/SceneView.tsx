@@ -1,10 +1,13 @@
+import { useState, useEffect } from "react";
 import { CalendarPlus, Users } from "lucide-react";
 import WhatsNextStrip from "./WhatsNextStrip";
 import PopularFeedGrid from "./PopularFeedGrid";
 import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
 import FriendsGoingSection from "./FriendsGoingSection";
+import InlineCityPicker from "./InlineCityPicker";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SceneViewProps {
   onPlanShow: () => void;
@@ -18,9 +21,7 @@ interface SceneViewProps {
   userArtistNames?: string[];
   friendShows?: FriendShow[];
   onAddFriendShowToSchedule?: (show: FriendShow) => void;
-  /** True when user has 0 upcoming shows */
   hasNoUpcoming?: boolean;
-  /** True when user follows 0 people */
   hasNoFollowing?: boolean;
 }
 
@@ -43,11 +44,26 @@ export default function SceneView({
     console.log("Add to schedule:", event);
   };
 
+  // Home city from profile (for display & reset)
+  const [homeCity, setHomeCity] = useState("");
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from("profiles").select("home_city").eq("id", user.id).single().then(({ data }) => {
+        if (data?.home_city) setHomeCity(data.home_city);
+      });
+    });
+  }, []);
+
+  // Temporary city override (session-only)
+  const [cityOverride, setCityOverride] = useState<{ name: string; lat: number; lng: number } | null>(null);
+
+  const displayCity = cityOverride?.name || homeCity;
+
   const isColdStart = hasNoUpcoming && hasNoFollowing;
 
   return (
     <div className="space-y-6">
-      {/* Cold-start welcome for brand-new users */}
       {isColdStart ? (
         <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 space-y-4">
           <div className="space-y-1">
@@ -75,10 +91,8 @@ export default function SceneView({
         </section>
       ) : (
         <>
-          {/* Section 1: Upcoming shows */}
           <WhatsNextStrip onPlanShow={onPlanShow} />
 
-          {/* Section 2: Friends Going */}
           {friendShows.length > 0 && (
             <section className="space-y-2">
               <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
@@ -93,14 +107,25 @@ export default function SceneView({
         </>
       )}
 
-      {/* Section 3: Personalized recommendations */}
+      {/* Section 3: Personalized recommendations with city toggle */}
       <section className="space-y-2">
-        <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
-          Upcoming Near You
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
+            Upcoming Near You
+          </h3>
+          {displayCity && (
+            <InlineCityPicker
+              currentCity={displayCity}
+              onCityChange={(city) => setCityOverride(city)}
+            />
+          )}
+        </div>
         <EdmtrainDiscoveryFeed
           onAddToSchedule={onAddEdmtrainToSchedule || defaultEdmtrainHandler}
           matchedArtistNames={userArtistNames}
+          overrideLat={cityOverride?.lat}
+          overrideLng={cityOverride?.lng}
+          overrideCity={cityOverride?.name}
         />
       </section>
 
