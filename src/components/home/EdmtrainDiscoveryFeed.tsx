@@ -6,9 +6,11 @@ import EdmtrainEventCard from "./EdmtrainEventCard";
 interface EdmtrainDiscoveryFeedProps {
   onAddToSchedule: (event: EdmtrainEvent) => void;
   matchedArtistNames?: string[];
+  overrideLat?: number | null;
+  overrideLng?: number | null;
+  overrideCity?: string | null;
 }
 
-/** Merge multi-day events (same name + venue) into a single card with date range. */
 interface GroupedEvent {
   event: EdmtrainEvent;
   endDate?: string;
@@ -49,8 +51,18 @@ function mergeArtists(primary: EdmtrainEvent["artists"], secondary: EdmtrainEven
   return [...primary, ...secondary.filter(a => !seen.has(a.name.toLowerCase()))];
 }
 
-export default function EdmtrainDiscoveryFeed({ onAddToSchedule, matchedArtistNames = [] }: EdmtrainDiscoveryFeedProps) {
-  const { events, isLoading, error } = useEdmtrainEvents();
+export default function EdmtrainDiscoveryFeed({
+  onAddToSchedule,
+  matchedArtistNames = [],
+  overrideLat,
+  overrideLng,
+  overrideCity,
+}: EdmtrainDiscoveryFeedProps) {
+  const { events, isLoading, error } = useEdmtrainEvents({
+    overrideLat,
+    overrideLng,
+    overrideCity,
+  });
 
   const grouped = groupMultiDayEvents(events);
   const matchSet = new Set(matchedArtistNames.map((n) => n.toLowerCase()));
