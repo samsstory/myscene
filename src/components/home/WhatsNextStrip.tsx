@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { format, parseISO, isThisWeek, isThisMonth, addMonths, isAfter } from "date-fns";
+import { format, parseISO, isThisWeek, isThisMonth, addMonths, isAfter, startOfToday } from "date-fns";
 import { Plus, Music2, CheckCircle2, CircleHelp, X, Users, Check, Loader2 } from "lucide-react";
 import { usePlanUpcomingShow, type UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import { useFollowers } from "@/hooks/useFollowers";
@@ -677,9 +677,13 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         seen.set(key, show);
       }
     }
-    return Array.from(seen.values()).sort(
-      (a, b) => (a.show_date ?? "").localeCompare(b.show_date ?? "")
-    );
+    const today = startOfToday();
+    return Array.from(seen.values())
+      .filter((show) => {
+        if (!show.show_date) return true; // keep date-TBD shows
+        try { return !isAfter(today, parseISO(show.show_date)); } catch { return true; }
+      })
+      .sort((a, b) => (a.show_date ?? "").localeCompare(b.show_date ?? ""));
   }, [upcomingShows]);
 
   const filteredMineShows = useMemo(() => {
