@@ -225,10 +225,10 @@ export function usePlanUpcomingShow() {
           // Fire rich "friend is also going" toast (non-blocking)
           checkSharedShow(user.id, data.artist_name, data.show_date);
         } else {
-          toast.success(`${data.artist_name} added to your calendar`);
+          toast.success(`${data.artist_name} added to your calendar`, { icon: "🎶" });
         }
       } else {
-        toast.success(`${data.artist_name} added to your calendar`);
+        toast.success(`${data.artist_name} added to your calendar`, { icon: "🎶" });
       }
 
       await fetchUpcomingShows();
