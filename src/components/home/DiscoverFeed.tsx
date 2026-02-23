@@ -56,8 +56,8 @@ function DiscoverTeaser() {
           <div className="w-10 h-10 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center">
             <Lock className="h-4.5 w-4.5 text-white/50" />
           </div>
-          <p className="text-sm font-medium text-white/70 max-w-[220px]">
-            Connect Spotify to unlock your personalized For You feed
+          <p className="text-sm font-medium text-white/70 max-w-[240px]">
+            Connect your Spotify so you never miss the shows you actually care about.
           </p>
           <button
             onClick={() => initiateSpotifyAuth()}
