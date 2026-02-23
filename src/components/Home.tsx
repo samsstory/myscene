@@ -1,9 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
 import ContentPillNav, { type ContentView } from "./home/ContentPillNav";
 import MyShowsView from "./home/MyShowsView";
 import SceneView from "./home/SceneView";
@@ -20,7 +18,7 @@ import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
 import { QuickPhotoAddSheet } from "./QuickPhotoAddSheet";
 import MapView from "./MapView";
 import Rank from "./Rank";
-import AddShowFlow, { type AddShowPrefill } from "./AddShowFlow";
+import AddShowFlow from "./AddShowFlow";
 import QuickAddSheet from "./QuickAddSheet";
 import { toast } from "sonner";
 
@@ -145,6 +143,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           {viewMode === 'home' && (
             <SceneView
               onPlanShow={() => sheets.setPlanShowOpen(true)}
+              onNavigateToFriends={() => setViewMode('friends')}
               nearMeItems={nearMeItems}
               nearMeTotalUsers={nearMeTotalUsers}
               nearMeLoading={nearMeLoading}
@@ -163,6 +162,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
                 });
                 if (!saved) toast.error("Failed to add to schedule");
               }}
+              hasNoUpcoming={upcomingShows.length === 0}
+              hasNoFollowing={following.length === 0}
             />
           )}
 
