@@ -1,0 +1,1 @@
+ALTER TABLE public.upcoming_shows ADD COLUMN event_name text DEFAULT NULL;
