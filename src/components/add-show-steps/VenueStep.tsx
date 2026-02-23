@@ -194,7 +194,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       setIsSearchingCities(true);
 
       try {
-        const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+        const { MAPBOX_TOKEN } = await import("@/lib/mapbox");
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(citySearchTerm.trim())}.json?access_token=${MAPBOX_TOKEN}&types=place,region&limit=10`
         );
@@ -232,7 +232,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
       setIsSearchingAddresses(true);
 
       try {
-        const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+        const { MAPBOX_TOKEN } = await import("@/lib/mapbox");
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(venueAddress.trim())}.json?access_token=${MAPBOX_TOKEN}&types=address,poi,place,region,country&limit=8`
         );
@@ -381,7 +381,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
   const geocodeAndSelect = async (query: string, venueName: string, locationName: string) => {
     setIsGeocoding(true);
     try {
-      const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtdWVsd2hpdGUxMjMxIiwiYSI6ImNtaDRjdndoNTExOGoyanBxbXBvZW85ZnoifQ.Dday-uhaPP_gF_s0E3xy2Q";
+      const { MAPBOX_TOKEN } = await import("@/lib/mapbox");
       console.log(`[VenueStep] Geocoding address: "${query}"`);
       
       const response = await fetch(
