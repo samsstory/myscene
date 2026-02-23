@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
-import { StatPill } from "@/components/home/StatPills";
+import { StatPill, StatPillAction } from "@/components/home/StatPills";
+import { Music, Globe, Flame, Trophy, Calendar } from "lucide-react";
 
 interface TopShow {
   id: string;
@@ -342,7 +343,52 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     fetchStats();
   }, [fetchStats]);
 
-  const statPills: StatPill[] = [];
+  const statPills: StatPill[] = [
+    {
+      id: 'total-shows',
+      label: 'Shows',
+      value: stats.allTimeShows,
+      icon: Music,
+      highlight: true,
+      action: null as StatPillAction,
+    },
+    ...(stats.topShow ? [{
+      id: 'top-show',
+      label: '#1 Show',
+      value: truncate(stats.topShow.artistName, 12),
+      icon: Trophy,
+      action: null as StatPillAction,
+    }] : []),
+    ...(stats.uniqueCities > 0 ? [{
+      id: 'cities',
+      label: stats.uniqueCountries <= 1 ? 'Cities' : 'Countries',
+      value: stats.uniqueCountries <= 1 ? stats.uniqueCities : stats.uniqueCountries,
+      icon: Globe,
+      action: 'globe' as StatPillAction,
+    }] : []),
+    {
+      id: 'this-year',
+      label: new Date().getFullYear().toString(),
+      value: stats.showsThisYear,
+      icon: Calendar,
+      action: 'calendar' as StatPillAction,
+    },
+    ...(stats.currentStreak >= 2 ? [{
+      id: 'streak',
+      label: 'Streak',
+      value: `${stats.currentStreak}mo`,
+      icon: Flame,
+      action: null as StatPillAction,
+    }] : []),
+    ...(stats.globalConfirmationPercentage > 0 ? [{
+      id: 'confirmation',
+      label: 'Ranked',
+      value: `${Math.round(stats.globalConfirmationPercentage)}%`,
+      action: 'rank-tab' as StatPillAction,
+      isConfirmationRing: true,
+      confirmationPercentage: stats.globalConfirmationPercentage,
+    }] : []),
+  ];
 
   return {
     stats,

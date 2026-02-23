@@ -12,7 +12,7 @@ import SwipeableRankingCard from "@/components/rankings/SwipeableRankingCard";
 import ShowsBarChart from "@/components/rankings/ShowsBarChart";
 import { ShowRankBadge } from "@/components/feed/ShowRankBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import StatPills, { type StatPillAction, type StatPill } from "./StatPills";
 
 interface MyShowsViewProps {
   shows: Show[];
@@ -24,6 +24,9 @@ interface MyShowsViewProps {
   onAddPhoto: (show: Show) => void;
   onAddTags: (showId: string) => void;
   onRankShow: () => void;
+  statPills?: StatPill[];
+  statsLoading?: boolean;
+  onPillTap?: (action: StatPillAction, payload?: string) => void;
 }
 
 type TimeFilter = "all-time" | "this-year" | "last-year" | "this-month";
@@ -40,6 +43,9 @@ const MyShowsView = ({
   onAddPhoto,
   onAddTags,
   onRankShow,
+  statPills,
+  statsLoading,
+  onPillTap,
 }: MyShowsViewProps) => {
   const [topRatedFilter, setTopRatedFilter] = useState<TimeFilter>("all-time");
   const [sortMode, setSortMode] = useState<SortMode>("best");
@@ -139,6 +145,11 @@ const MyShowsView = ({
 
   return (
     <>
+      {statPills && statPills.length > 0 && (
+        <div className="mb-4">
+          <StatPills stats={statPills} isLoading={statsLoading} onPillTap={onPillTap} />
+        </div>
+      )}
       <div className="space-y-4">
         {/* Needs Attention strip */}
         {!loading && attentionShows.length > 0 && (
