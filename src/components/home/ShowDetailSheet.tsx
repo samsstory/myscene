@@ -87,6 +87,9 @@ export interface ShowDetailSheetProps {
   /* Optional extra sections rendered between details & actions */
   children?: React.ReactNode;
 
+  /* Badge overlay on top-left of hero image (e.g. "Festival") */
+  heroBadge?: React.ReactNode;
+
   /* Footer slot (e.g. Edmtrain attribution, delete button) */
   footer?: React.ReactNode;
 }
@@ -114,6 +117,7 @@ export default function ShowDetailSheet({
   inviteDescription,
   goingWith = [],
   children,
+  heroBadge,
   footer,
 }: ShowDetailSheetProps) {
   const [rsvp, setRsvp] = useState<RsvpStatus>(currentRsvp);
@@ -165,6 +169,12 @@ export default function ShowDetailSheet({
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent flex items-center justify-center">
               <Music className="w-16 h-16 text-white/10" />
+            </div>
+          )}
+
+          {heroBadge && (
+            <div className="absolute top-3 left-4 z-10">
+              {heroBadge}
             </div>
           )}
 
