@@ -94,6 +94,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
   // Editable fields
   const [editArtist, setEditArtist] = useState("");
+  const [editEventName, setEditEventName] = useState("");
   const [editVenue, setEditVenue] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editDate, setEditDate] = useState("");
@@ -114,6 +115,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
     setSelectedImageFile(null);
     setSelectedImageUrl(null);
     setManualArtistImageUrl(undefined);
+    setEditEventName("");
     clearParsedResult();
   }, [clearParsedResult]);
 
@@ -152,7 +154,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
     const hasImages = screenshots.length > 0;
 
     if (!hasText && !hasImages) {
-      setEditArtist(""); setEditVenue(""); setEditLocation(""); setEditDate(""); setEditTicketUrl("");
+      setEditArtist(""); setEditEventName(""); setEditVenue(""); setEditLocation(""); setEditDate(""); setEditTicketUrl("");
       setStage("manual");
       return;
     }
@@ -194,6 +196,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
       const event = events[0];
       setConfirmedEvent(event);
       setEditArtist(event.artist_name);
+      setEditEventName(event.event_name || "");
       setEditVenue(event.venue_name || "");
       setEditLocation(event.venue_location || "");
       setEditDate(event.show_date || "");
@@ -225,7 +228,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   };
 
   const handleManual = () => {
-    setEditArtist(""); setEditVenue(""); setEditLocation(""); setEditDate(""); setEditTicketUrl("");
+    setEditArtist(""); setEditEventName(""); setEditVenue(""); setEditLocation(""); setEditDate(""); setEditTicketUrl("");
     setManualArtistImageUrl(undefined);
     setStage("manual");
   };
@@ -236,6 +239,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
     setCurrentEventIndex(nextIndex);
     setConfirmedEvent(next);
     setEditArtist(next.artist_name);
+    setEditEventName(next.event_name || "");
     setEditVenue(next.venue_name || "");
     setEditLocation(next.venue_location || "");
     setEditDate(next.show_date || "");
@@ -269,13 +273,13 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
 
     const data: SaveUpcomingShowData = {
       artist_name: editArtist,
+      event_name: editEventName || undefined,
       venue_name: editVenue || undefined,
       venue_location: editLocation || undefined,
       show_date: editDate || undefined,
       ticket_url: editTicketUrl || undefined,
       artist_image_url: finalImageUrl,
       raw_input: inputText || undefined,
-
     };
     const ok = await saveUpcomingShow(data);
     if (ok) {
@@ -498,6 +502,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Edit if needed</p>
               <div className="space-y-2">
                 <Input placeholder="Artist name" value={editArtist} onChange={(e) => setEditArtist(e.target.value)} className={inputFieldClass} />
+                <Input placeholder="Event name (optional)" value={editEventName} onChange={(e) => setEditEventName(e.target.value)} className={inputFieldClass} />
                 <Input placeholder="Venue name (optional)" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} className={inputFieldClass} />
                 <Input placeholder="City / location (optional)" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className={inputFieldClass} />
                 <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className={inputFieldClass} />
@@ -595,6 +600,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                   </div>
                 )}
               </div>
+
+              <Input placeholder="Event name (optional)" value={editEventName} onChange={(e) => setEditEventName(e.target.value)} className={inputFieldClass} />
 
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

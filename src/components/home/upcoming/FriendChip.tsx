@@ -1,6 +1,8 @@
 import { format, parseISO } from "date-fns";
 import { Plus, Check, Loader2 } from "lucide-react";
 import type { GroupedFriendShow } from "./types";
+import type { AvatarPerson } from "./AvatarStack";
+import ShowCardContent from "./ShowCardContent";
 
 interface FriendChipProps {
   show: GroupedFriendShow;
@@ -15,16 +17,13 @@ export default function FriendChip({ show, isAdded, isToggling, onTap, onToggle 
     ? (() => { try { return format(parseISO(show.show_date), "MMM d"); } catch { return ""; } })()
     : "Date TBD";
 
-  const venueLabel = show.venue_name
-    ? (show.venue_name.length > 16 ? show.venue_name.slice(0, 14) + "…" : show.venue_name)
-    : show.venue_location
-    ? (show.venue_location.length > 16 ? show.venue_location.slice(0, 14) + "…" : show.venue_location)
-    : null;
-
   const allFriends = show.allFriends;
-  const visibleAvatars = allFriends.slice(0, 3);
-  const extraCount = allFriends.length - visibleAvatars.length;
-
+  const avatars: AvatarPerson[] = allFriends.map((f) => ({
+    id: f.id,
+    avatar_url: f.avatar_url,
+    username: f.username,
+    full_name: f.full_name,
+  }));
 
   return (
     <button
@@ -65,58 +64,13 @@ export default function FriendChip({ show, isAdded, isToggling, onTap, onToggle 
       </button>
 
       <div className="absolute bottom-0 left-0 right-0 p-2.5">
-        {/* Friend avatars directly above artist name */}
-        <div className="flex items-center mb-1">
-          {visibleAvatars.map((f, i) =>
-            f.avatar_url ? (
-              <img
-                key={f.id}
-                src={f.avatar_url}
-                alt={f.username ?? f.full_name ?? "Friend"}
-                className="w-6 h-6 rounded-full border border-black/60 object-cover"
-                style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
-              />
-            ) : (
-              <div
-                key={f.id}
-                className="w-6 h-6 rounded-full border border-black/60 bg-primary/70 flex items-center justify-center"
-                style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i }}
-              >
-                <span className="text-[8px] font-bold text-primary-foreground leading-none">
-                  {(f.username ?? f.full_name ?? "?")[0].toUpperCase()}
-                </span>
-              </div>
-            )
-          )}
-          {extraCount > 0 && (
-            <div
-              className="w-6 h-6 rounded-full border border-black/60 bg-white/20 flex items-center justify-center"
-              style={{ marginLeft: -8, zIndex: 0 }}
-            >
-              <span className="text-[7px] font-bold text-white/90 leading-none">+{extraCount}</span>
-            </div>
-          )}
-        </div>
-        <p
-          className="text-xs font-bold text-white leading-tight line-clamp-2"
-          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
-        >
-          {show.artist_name}
-        </p>
-        {venueLabel && (
-          <p
-            className="text-[10px] text-white/70 mt-0.5"
-            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
-          >
-            {venueLabel}
-          </p>
-        )}
-        <p
-          className="text-[10px] text-white/50 mt-0.5"
-          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}
-        >
-          {dateLabel}
-        </p>
+        <ShowCardContent
+          avatars={avatars}
+          eventName={show.event_name}
+          artistName={show.artist_name}
+          venueName={show.venue_name ?? show.venue_location}
+          dateLabel={dateLabel}
+        />
       </div>
     </button>
   );

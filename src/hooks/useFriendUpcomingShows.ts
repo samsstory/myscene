@@ -6,6 +6,7 @@ export interface FriendShow {
   id: string;
   show_date: string | null;
   artist_name: string;
+  event_name: string | null;
   artist_image_url: string | null;
   venue_name: string | null;
   venue_location: string | null;
@@ -42,6 +43,7 @@ export function useFriendUpcomingShows(followingIds: string[]) {
           id,
           show_date,
           artist_name,
+          event_name,
           artist_image_url,
           venue_name,
           venue_location,
@@ -100,6 +102,7 @@ export function useFriendUpcomingShows(followingIds: string[]) {
           id: row.id,
           show_date: row.show_date,
           artist_name: row.artist_name,
+          event_name: row.event_name ?? null,
           artist_image_url: row.artist_image_url,
           venue_name: row.venue_name,
           venue_location: row.venue_location,

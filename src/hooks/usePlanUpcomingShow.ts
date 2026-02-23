@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 export interface ParsedUpcomingEvent {
   artist_name: string;
+  event_name: string;
   venue_name: string;
   venue_location: string;
   show_date: string;
@@ -15,6 +16,7 @@ export interface ParsedUpcomingEvent {
 export interface UpcomingShow {
   id: string;
   artist_name: string;
+  event_name: string | null;
   venue_name: string | null;
   venue_location: string | null;
   show_date: string | null;
@@ -27,6 +29,7 @@ export interface UpcomingShow {
 
 export interface SaveUpcomingShowData {
   artist_name: string;
+  event_name?: string;
   venue_name?: string;
   venue_location?: string;
   show_date?: string;
@@ -191,6 +194,7 @@ export function usePlanUpcomingShow() {
         .insert({
           created_by_user_id: user.id,
           artist_name: data.artist_name,
+          event_name: data.event_name || null,
           venue_name: data.venue_name || null,
           venue_location: data.venue_location || null,
           show_date: data.show_date || null,
