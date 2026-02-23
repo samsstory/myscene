@@ -35,7 +35,6 @@ import { useHomeStats } from "@/hooks/useHomeStats";
 import { useFollowers } from "@/hooks/useFollowers";
 import { useFriendUpcomingShows } from "@/hooks/useFriendUpcomingShows";
 import FriendsPanelView from "./home/FriendsPanelView";
-import { usePopularShows } from "@/hooks/usePopularShows";
 import { usePopularNearMe } from "@/hooks/usePopularNearMe";
 
 type ViewMode = ContentView;
@@ -65,7 +64,6 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
   const { following, followers } = useFollowers();
   const followingIds = useMemo(() => following.map((f) => f.id), [following]);
   const { friendsByDate, friendShows } = useFriendUpcomingShows(followingIds);
-  const { items: exploreItems, totalUsers: exploreTotalUsers, isLoading: exploreLoading } = usePopularShows(true);
   const { items: nearMeItems, totalUsers: nearMeTotalUsers, isLoading: nearMeLoading, hasLocation: nearMeHasLocation } = usePopularNearMe(true);
 
   useEffect(() => { onViewChange?.(viewMode); }, [viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -147,14 +145,10 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           {viewMode === 'home' && (
             <SceneView
               onPlanShow={() => sheets.setPlanShowOpen(true)}
-              onFindFriends={() => setViewMode("friends")}
               nearMeItems={nearMeItems}
               nearMeTotalUsers={nearMeTotalUsers}
               nearMeLoading={nearMeLoading}
               nearMeHasLocation={nearMeHasLocation}
-              exploreItems={exploreItems}
-              exploreTotalUsers={exploreTotalUsers}
-              exploreLoading={exploreLoading}
               onQuickAdd={handleQuickAddFromPopular}
               onAddEdmtrainToSchedule={handleEdmtrainAddToSchedule}
               userArtistNames={userArtistNames}

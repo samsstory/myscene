@@ -1,9 +1,6 @@
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 import WhatsNextStrip from "./WhatsNextStrip";
 import PopularFeedGrid from "./PopularFeedGrid";
 import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
-import { type ShowTypeFilter } from "@/hooks/usePopularShows";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 
 interface SceneViewProps {
@@ -12,16 +9,10 @@ interface SceneViewProps {
   nearMeTotalUsers: number;
   nearMeLoading: boolean;
   nearMeHasLocation?: boolean;
-  exploreItems: Parameters<typeof PopularFeedGrid>[0]["items"];
-  exploreTotalUsers: number;
-  exploreLoading: boolean;
   onQuickAdd: (item: any) => void;
-  onFindFriends: () => void;
   onAddEdmtrainToSchedule?: (event: EdmtrainEvent) => void;
   userArtistNames?: string[];
 }
-
-type FeedMode = "scene" | "near-me" | "explore" | "upcoming";
 
 export default function SceneView({
   onPlanShow,
@@ -29,89 +20,45 @@ export default function SceneView({
   nearMeTotalUsers,
   nearMeLoading,
   nearMeHasLocation,
-  exploreItems,
-  exploreTotalUsers,
-  exploreLoading,
   onQuickAdd,
-  onFindFriends,
   onAddEdmtrainToSchedule,
   userArtistNames = [],
 }: SceneViewProps) {
-  const [feedMode, setFeedMode] = useState<FeedMode>("scene");
-  const [nearMeShowType, setNearMeShowType] = useState<ShowTypeFilter>("set");
-  const [exploreShowType, setExploreShowType] = useState<ShowTypeFilter>("set");
-
   const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
     console.log("Add to schedule:", event);
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      {/* Section 1: Upcoming shows */}
       <WhatsNextStrip onPlanShow={onPlanShow} />
 
-      <div className="space-y-3">
-        {/* Tab headers */}
-        <div className="flex items-center gap-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {(["scene", "upcoming", "near-me", "explore"] as const).map((mode) => {
-            const labels = { scene: "Scene Feed", upcoming: "Upcoming", "near-me": "Popular Near Me", explore: "Explore" };
-            const isActive = feedMode === mode;
-            return (
-              <button
-                key={mode}
-                onClick={() => setFeedMode(mode)}
-                className={cn(
-                  "text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors whitespace-nowrap shrink-0",
-                  isActive ? "text-white/80" : "text-white/30 hover:text-white/50"
-                )}
-                style={isActive ? { textShadow: "0 0 8px rgba(255,255,255,0.2)" } : undefined}
-              >
-                {labels[mode]}
-              </button>
-            );
-          })}
-        </div>
+      {/* Section 2: Personalized recommendations */}
+      <section className="space-y-2">
+        <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
+          Upcoming Near You
+        </h3>
+        <EdmtrainDiscoveryFeed
+          onAddToSchedule={onAddEdmtrainToSchedule || defaultEdmtrainHandler}
+          matchedArtistNames={userArtistNames}
+        />
+      </section>
 
-        {feedMode === "scene" && (
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <p className="text-sm text-white/40">Scene Feed moved to the Friends tab</p>
-            <button
-              onClick={onFindFriends}
-              className="text-xs font-semibold text-primary/80 hover:text-primary transition-colors"
-            >
-              Go to Friends →
-            </button>
-          </div>
-        )}
-        {feedMode === "upcoming" && (
-          <EdmtrainDiscoveryFeed
-            onAddToSchedule={onAddEdmtrainToSchedule || defaultEdmtrainHandler}
-            matchedArtistNames={userArtistNames}
-          />
-        )}
-        {feedMode === "near-me" && (
-          <PopularFeedGrid
-            items={nearMeItems}
-            totalUsers={nearMeTotalUsers}
-            isLoading={nearMeLoading}
-            showType={nearMeShowType}
-            onShowTypeChange={setNearMeShowType}
-            onQuickAdd={onQuickAdd}
-            onFindFriends={onFindFriends}
-            emptyMessage={nearMeHasLocation === false ? "Set your home city in your profile to see what's popular near you." : undefined}
-          />
-        )}
-        {feedMode === "explore" && (
-          <PopularFeedGrid
-            items={exploreItems}
-            totalUsers={exploreTotalUsers}
-            isLoading={exploreLoading}
-            showType={exploreShowType}
-            onShowTypeChange={setExploreShowType}
-            onQuickAdd={onQuickAdd}
-            onFindFriends={onFindFriends}
-          />
-        )}
-      </div>
+      {/* Section 3: Popular near me */}
+      <section className="space-y-2">
+        <h3 className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white/35">
+          Popular Near You
+        </h3>
+        <PopularFeedGrid
+          items={nearMeItems}
+          totalUsers={nearMeTotalUsers}
+          isLoading={nearMeLoading}
+          showType="set"
+          onShowTypeChange={() => {}}
+          onQuickAdd={onQuickAdd}
+          emptyMessage={nearMeHasLocation === false ? "Set your home city in your profile to see what's popular near you." : undefined}
+        />
+      </section>
     </div>
   );
 }
