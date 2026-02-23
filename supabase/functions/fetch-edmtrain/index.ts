@@ -36,15 +36,50 @@ async function getSpotifyToken(): Promise<string> {
 async function resolveArtistImage(artistName: string, token: string): Promise<string | null> {
   try {
     const resp = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=3`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!resp.ok) return null;
     const data = await resp.json();
-    return data.artists?.items?.[0]?.images?.[0]?.url || null;
+    const items = data.artists?.items || [];
+    // Try exact match first, then fall back to first result with images
+    const exactMatch = items.find((i: any) => i.name.toLowerCase() === artistName.toLowerCase() && i.images?.length > 0);
+    if (exactMatch) return exactMatch.images[0].url;
+    const withImage = items.find((i: any) => i.images?.length > 0);
+    return withImage?.images?.[0]?.url || null;
   } catch {
     return null;
   }
+}
+
+// Try multiple artist names from the event to find an image
+async function resolveEventImage(
+  artistList: { name: string }[],
+  eventName: string | null,
+  isFestival: boolean,
+  token: string,
+  cache: Record<string, string | null>
+): Promise<string | null> {
+  // Try each artist in order (headliner first)
+  for (const artist of artistList.slice(0, 5)) {
+    if (cache[artist.name] !== undefined) {
+      if (cache[artist.name]) return cache[artist.name];
+      continue; // Already tried and failed
+    }
+    const url = await resolveArtistImage(artist.name, token);
+    cache[artist.name] = url;
+    if (url) return url;
+  }
+  // For festivals, try the event name itself as artist search
+  if (isFestival && eventName) {
+    const cleanName = eventName.replace(/\d{4}/g, '').replace(/\s+(festival|fest|music|presents)\s*/gi, ' ').trim();
+    if (cleanName && cache[cleanName] === undefined) {
+      const url = await resolveArtistImage(cleanName, token);
+      cache[cleanName] = url;
+      if (url) return url;
+    }
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -110,6 +145,36 @@ Deno.serve(async (req) => {
       const hoursAgo = (Date.now() - fetchedAt.getTime()) / (1000 * 60 * 60);
       if (hoursAgo < 12) {
         console.log(`Cache hit for ${locationKey}, ${hoursAgo.toFixed(1)}h old`);
+
+        // Backfill missing images on cache hit
+        try {
+          const { data: missingImages } = await supabase
+            .from("edmtrain_events")
+            .select("edmtrain_id, artists, event_name, festival_ind")
+            .eq("location_key", locationKey)
+            .is("artist_image_url", null)
+            .limit(20);
+
+          if (missingImages && missingImages.length > 0) {
+            console.log(`Backfilling ${missingImages.length} events missing images`);
+            const token = await getSpotifyToken();
+            const imgCache: Record<string, string | null> = {};
+
+            for (const row of missingImages) {
+              const artistList = (typeof row.artists === 'string' ? JSON.parse(row.artists) : row.artists) || [];
+              const url = await resolveEventImage(artistList, row.event_name, row.festival_ind, token, imgCache);
+              if (url) {
+                await supabase
+                  .from("edmtrain_events")
+                  .update({ artist_image_url: url })
+                  .eq("edmtrain_id", row.edmtrain_id);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Image backfill failed:", err);
+        }
+
         return new Response(
           JSON.stringify({ success: true, cached: true, locationKey }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -162,35 +227,13 @@ Deno.serve(async (req) => {
     const events = edmData.data || [];
     console.log(`Received ${events.length} events from Edmtrain`);
 
-    // Resolve headliner images via Spotify
+    // Resolve images via Spotify (try multiple artists per event)
     let spotifyImageCache: Record<string, string | null> = {};
+    let spotifyToken: string | null = null;
     try {
-      const token = await getSpotifyToken();
-
-      // Collect unique headliner names
-      const headlinerNames = [...new Set(
-        events
-          .map((e: any) => e.artistList?.[0]?.name)
-          .filter(Boolean)
-      )] as string[];
-
-      console.log(`Resolving ${headlinerNames.length} unique headliner images via Spotify`);
-
-      // Process in batches of 5
-      for (let i = 0; i < headlinerNames.length; i += 5) {
-        const batch = headlinerNames.slice(i, i + 5);
-        const results = await Promise.all(
-          batch.map(async (name) => {
-            const imageUrl = await resolveArtistImage(name, token);
-            return { name, imageUrl };
-          })
-        );
-        for (const { name, imageUrl } of results) {
-          spotifyImageCache[name] = imageUrl;
-        }
-      }
+      spotifyToken = await getSpotifyToken();
     } catch (err) {
-      console.warn("Spotify image resolution failed, continuing without images:", err);
+      console.warn("Spotify auth failed, continuing without images:", err);
     }
 
     // Step 1: Delete stale data for this location + any past events globally
@@ -198,10 +241,32 @@ Deno.serve(async (req) => {
     await supabase.from("edmtrain_events").delete().eq("location_key", locationKey);
     await supabase.from("edmtrain_events").delete().lt("event_date", today);
 
-    // Step 2: Upsert fresh events
+    // Step 2: Resolve images per event (trying multiple artists)
+    const eventImages: Record<number, string | null> = {};
+    if (spotifyToken && events.length > 0) {
+      console.log(`Resolving images for ${events.length} events via Spotify`);
+      // Process in batches of 5 events
+      for (let i = 0; i < events.length; i += 5) {
+        const batch = events.slice(i, i + 5);
+        await Promise.all(
+          batch.map(async (e: any) => {
+            const artistList = (e.artistList || []).map((a: any) => ({ name: a.name }));
+            const url = await resolveEventImage(
+              artistList,
+              e.name || null,
+              e.festivalInd || false,
+              spotifyToken!,
+              spotifyImageCache
+            );
+            eventImages[e.id] = url;
+          })
+        );
+      }
+    }
+
+    // Step 3: Upsert fresh events
     if (events.length > 0) {
       const rows = events.map((e: any) => {
-        const headlinerName = e.artistList?.[0]?.name || null;
         return {
           edmtrain_id: e.id,
           event_name: e.name || null,
@@ -222,7 +287,7 @@ Deno.serve(async (req) => {
               b2b: a.b2bInd || false,
             }))
           ),
-          artist_image_url: headlinerName ? (spotifyImageCache[headlinerName] ?? null) : null,
+          artist_image_url: eventImages[e.id] ?? null,
           fetched_at: new Date().toISOString(),
           location_key: locationKey,
         };
