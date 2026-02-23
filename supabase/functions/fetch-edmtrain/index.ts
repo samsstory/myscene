@@ -64,21 +64,39 @@ async function resolveArtistImageFromSpotify(artistName: string, token: string):
   }
 }
 
-// Build a lookup map from our own show_artists table (known artist images)
+// Build a lookup map from show_artists + previously resolved edmtrain_events
 async function buildLocalArtistImageCache(supabase: any): Promise<Record<string, string>> {
   const localCache: Record<string, string> = {};
   try {
-    const { data } = await supabase
+    // Source 1: show_artists table (user's logged shows)
+    const { data: saData } = await supabase
       .from("show_artists")
       .select("artist_name, artist_image_url")
       .not("artist_image_url", "is", null)
-      .like("artist_image_url", "https://i.scdn.co/%"); // Only use Spotify URLs (not user uploads)
-    
-    if (data) {
-      for (const row of data) {
+      .like("artist_image_url", "https://i.scdn.co/%");
+    if (saData) {
+      for (const row of saData) {
         localCache[row.artist_name.toLowerCase()] = row.artist_image_url;
       }
     }
+
+    // Source 2: edmtrain_events that already have resolved images
+    const { data: etData } = await supabase
+      .from("edmtrain_events")
+      .select("artists, artist_image_url")
+      .not("artist_image_url", "is", null)
+      .like("artist_image_url", "https://i.scdn.co/%");
+    if (etData) {
+      for (const row of etData) {
+        const artists = (typeof row.artists === 'string' ? JSON.parse(row.artists) : row.artists) || [];
+        // Map the first artist to the image (it was resolved for them)
+        if (artists[0]?.name) {
+          const key = artists[0].name.toLowerCase();
+          if (!localCache[key]) localCache[key] = row.artist_image_url;
+        }
+      }
+    }
+
     console.log(`Loaded ${Object.keys(localCache).length} artist images from local DB`);
   } catch (err) {
     console.warn("Failed to load local artist cache:", err);
@@ -361,7 +379,7 @@ Deno.serve(async (req) => {
         console.log(`Resolving ${unresolved.length} remaining via Spotify (budget: ${MAX_CALLS} calls, 15s)`);
 
         for (const e of unresolved) {
-          if (callCount >= MAX_CALLS || (Date.now() - startTime) > TIME_BUDGET_MS) break;
+          if (spotifyRateLimited || callCount >= MAX_CALLS || (Date.now() - startTime) > TIME_BUDGET_MS) break;
 
           const artistList = (e.artistList || []).map((a: any) => ({ name: a.name }));
           // Only try the first artist to conserve budget
@@ -377,6 +395,8 @@ Deno.serve(async (req) => {
             callCount++;
             url = await resolveArtistImageFromSpotify(firstArtist.name, token);
             spotifyCache[key] = url;
+            // Break immediately if we just got rate limited
+            if (spotifyRateLimited) break;
           }
 
           if (url) {
