@@ -277,6 +277,8 @@ export default function ShowDetailSheet({
                     setRsvp(opt.value);
                     if (rsvpMode === "toggle") {
                       onRsvpChange?.(opt.value);
+                    } else if (opt.value === "not_going") {
+                      onOpenChange(false);
                     } else {
                       onAddToSchedule?.(opt.value);
                       onOpenChange(false);
