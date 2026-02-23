@@ -33,15 +33,20 @@ async function getSpotifyToken(): Promise<string> {
   return cachedSpotifyToken!;
 }
 
+// Global rate-limit flag — once we hit a 429, stop all Spotify calls
+let spotifyRateLimited = false;
+
 async function resolveArtistImageFromSpotify(artistName: string, token: string): Promise<string | null> {
+  if (spotifyRateLimited) return null;
   try {
     const resp = await fetch(
       `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=3`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (resp.status === 429) {
-      console.warn(`Spotify rate limited, waiting...`);
-      await new Promise(r => setTimeout(r, 2000));
+      console.warn(`Spotify rate limited — stopping all Spotify calls`);
+      spotifyRateLimited = true;
+      await resp.text();
       return null;
     }
     if (!resp.ok) {
@@ -188,31 +193,33 @@ Deno.serve(async (req) => {
       if (hoursAgo < 12) {
         console.log(`Cache hit for ${locationKey}, ${hoursAgo.toFixed(1)}h old`);
 
-        // Backfill missing images on cache hit using local DB + limited Spotify
+        // Backfill missing images on cache hit — LOCAL DB ONLY (no Spotify to avoid blocking)
         try {
           const { data: missingImages } = await supabase
             .from("edmtrain_events")
             .select("edmtrain_id, artists, event_name, festival_ind")
             .eq("location_key", locationKey)
             .is("artist_image_url", null)
-            .limit(30);
+            .limit(50);
 
           if (missingImages && missingImages.length > 0) {
-            console.log(`Backfilling ${missingImages.length} events missing images`);
-            const token = await getSpotifyToken();
-            const spotifyCache: Record<string, string | null> = {};
-
+            let filled = 0;
             for (const row of missingImages) {
               const artistList = (typeof row.artists === 'string' ? JSON.parse(row.artists) : row.artists) || [];
-              const url = await resolveEventImage(artistList, row.event_name, row.festival_ind, token, localArtistCache, spotifyCache);
-              if (url) {
-                await supabase
-                  .from("edmtrain_events")
-                  .update({ artist_image_url: url })
-                  .eq("edmtrain_id", row.edmtrain_id);
+              // Only check local DB, no Spotify calls on cache hit
+              for (const artist of artistList) {
+                const localUrl = localArtistCache[(artist.name || '').toLowerCase()];
+                if (localUrl) {
+                  await supabase
+                    .from("edmtrain_events")
+                    .update({ artist_image_url: localUrl })
+                    .eq("edmtrain_id", row.edmtrain_id);
+                  filled++;
+                  break;
+                }
               }
             }
-            console.log(`Backfill complete`);
+            if (filled > 0) console.log(`Backfilled ${filled} images from local DB`);
           }
         } catch (err) {
           console.warn("Image backfill failed:", err);
