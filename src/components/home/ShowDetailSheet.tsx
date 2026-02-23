@@ -201,10 +201,10 @@ export default function ShowDetailSheet({
                 href={localTicketUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-white/80 text-sm font-medium hover:bg-white/20 hover:text-white active:scale-95 transition-all"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 backdrop-blur-sm border border-white/15 text-white/70 text-[11px] font-medium hover:bg-white/20 hover:text-white active:scale-95 transition-all"
               >
-                <Ticket className="h-4 w-4 flex-shrink-0" />
-                View Tickets
+                <Ticket className="h-3 w-3 flex-shrink-0" />
+                Tickets
               </a>
             ) : editableTicket && addingTicket ? (
               <div className="flex items-center gap-2">
