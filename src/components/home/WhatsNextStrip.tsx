@@ -565,6 +565,8 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
   const [pastLogPrefill, setPastLogPrefill] = useState<QuickAddPrefill | null>(null);
   const [pastLogOpen, setPastLogOpen] = useState(false);
   const pastLogQueueRef = useRef<UpcomingShow[]>([]);
+  const [pastLogPosition, setPastLogPosition] = useState(1);
+  const [pastLogTotal, setPastLogTotal] = useState(0);
 
   const handlePlanShow = () => {
     if (onPlanShow) {
@@ -711,19 +713,35 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
 
   const pastShowsCount = pastShows.length;
 
+  const prefillFromShow = (show: UpcomingShow): QuickAddPrefill => ({
+    artistName: show.artist_name,
+    artistImageUrl: show.artist_image_url,
+    venueName: show.venue_name,
+    venueLocation: show.venue_location,
+    showDate: show.show_date,
+    showType: show.raw_input === "festival" ? "festival" : "set",
+  });
+
+  const advanceQueue = useCallback(() => {
+    const next = pastLogQueueRef.current.shift();
+    if (next) {
+      setPastLogPrefill(prefillFromShow(next));
+      setPastLogPosition((p) => p + 1);
+      setPastLogOpen(false);
+      setTimeout(() => setPastLogOpen(true), 300);
+    } else {
+      toast.success("All past shows logged! 🎉");
+      setPastLogOpen(false);
+    }
+  }, []);
+
   const startPastLogQueue = useCallback(() => {
     if (pastShows.length === 0) return;
     pastLogQueueRef.current = [...pastShows];
     const first = pastLogQueueRef.current.shift()!;
-    const isFestival = first.raw_input === "festival";
-    setPastLogPrefill({
-      artistName: first.artist_name,
-      artistImageUrl: first.artist_image_url,
-      venueName: first.venue_name,
-      venueLocation: first.venue_location,
-      showDate: first.show_date,
-      showType: isFestival ? "festival" : "set",
-    });
+    setPastLogTotal(pastShows.length);
+    setPastLogPosition(1);
+    setPastLogPrefill(prefillFromShow(first));
     setPastLogOpen(true);
   }, [pastShows]);
 
@@ -736,26 +754,25 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
       await supabase.from("upcoming_shows" as any).delete().eq("id", justLogged.id);
       refetch();
     }
+    advanceQueue();
+  }, [pastShows, pastLogPrefill, refetch, advanceQueue]);
 
-    // Advance to next in queue
-    const next = pastLogQueueRef.current.shift();
-    if (next) {
-      const isFestival = next.raw_input === "festival";
-      setPastLogPrefill({
-        artistName: next.artist_name,
-        artistImageUrl: next.artist_image_url,
-        venueName: next.venue_name,
-        venueLocation: next.venue_location,
-        showDate: next.show_date,
-        showType: isFestival ? "festival" : "set",
-      });
-      // Re-open after a brief delay so the sheet animates fresh
-      setPastLogOpen(false);
-      setTimeout(() => setPastLogOpen(true), 300);
-    } else {
-      toast.success("All past shows logged! 🎉");
+  const handleNeverMadeIt = useCallback(async () => {
+    // Delete from upcoming without logging
+    const show = pastShows.find(
+      (s) => s.artist_name === pastLogPrefill?.artistName && s.show_date === pastLogPrefill?.showDate
+    );
+    if (show) {
+      await supabase.from("upcoming_shows" as any).delete().eq("id", show.id);
+      refetch();
     }
-  }, [pastShows, pastLogPrefill, refetch]);
+    advanceQueue();
+  }, [pastShows, pastLogPrefill, refetch, advanceQueue]);
+
+  const handleSkipForNow = useCallback(() => {
+    // Keep in upcoming, just advance queue
+    advanceQueue();
+  }, [advanceQueue]);
 
   const filteredMineShows = useMemo(() => {
     if (timeFilter === "all") return deduplicatedMineShows;
@@ -1031,6 +1048,10 @@ export default function WhatsNextStrip({ onPlanShow }: WhatsNextStripProps) {
         onOpenChange={setPastLogOpen}
         prefill={pastLogPrefill}
         onShowAdded={handlePastLogShowAdded}
+        queuePosition={pastLogPosition}
+        queueTotal={pastLogTotal}
+        onNeverMadeIt={handleNeverMadeIt}
+        onSkipForNow={handleSkipForNow}
       />
     </>
   );

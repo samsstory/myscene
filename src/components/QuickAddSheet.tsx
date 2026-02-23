@@ -28,6 +28,14 @@ interface QuickAddSheetProps {
   onOpenChange: (open: boolean) => void;
   prefill: QuickAddPrefill | null;
   onShowAdded?: (show: AddedShowData) => void;
+  /** Queue mode: current position (1-indexed) */
+  queuePosition?: number;
+  /** Queue mode: total items */
+  queueTotal?: number;
+  /** Queue mode: called when user taps "I Never Made It" */
+  onNeverMadeIt?: () => void;
+  /** Queue mode: called when user taps "Skip for Now" */
+  onSkipForNow?: () => void;
 }
 
 interface ExtraArtist {
@@ -44,7 +52,7 @@ interface VenueSuggestion {
   longitude?: number;
 }
 
-const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddSheetProps) => {
+const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded, queuePosition, queueTotal, onNeverMadeIt, onSkipForNow }: QuickAddSheetProps) => {
   // Core state
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
@@ -383,6 +391,22 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-3xl bg-background border-white/10 pb-safe max-h-[92vh] overflow-y-auto p-0">
+        {/* Queue progress bar */}
+        {queueTotal && queueTotal > 1 && queuePosition && (
+          <div className="px-5 pt-4 pb-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] uppercase tracking-[0.15em] font-semibold text-white/35">
+                {queuePosition} of {queueTotal}
+              </span>
+            </div>
+            <div className="w-full h-0.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary/60 rounded-full transition-all duration-300"
+                style={{ width: `${((queuePosition - 1) / queueTotal) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
         {/* Hero Section */}
         <div className="relative w-full h-44 overflow-hidden rounded-t-3xl">
           {customPhotoUrl ? (
@@ -659,6 +683,30 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded }: QuickAddShe
               "Add to My Scene"
             )}
           </Button>
+
+          {/* Queue-mode secondary actions */}
+          {queueTotal && queueTotal > 0 && (
+            <div className="flex gap-2">
+              {onNeverMadeIt && (
+                <Button
+                  onClick={onNeverMadeIt}
+                  variant="ghost"
+                  className="flex-1 h-10 text-sm text-muted-foreground hover:text-destructive"
+                >
+                  I Never Made It
+                </Button>
+              )}
+              {onSkipForNow && (
+                <Button
+                  onClick={onSkipForNow}
+                  variant="ghost"
+                  className="flex-1 h-10 text-sm text-muted-foreground"
+                >
+                  Skip for Now
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
