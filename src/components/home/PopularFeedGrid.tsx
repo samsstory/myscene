@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, UserPlus, Hand } from "lucide-react";
+import { Users, Plus, Globe, MapPin, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PopularItem, PopularArtist, PopularEvent, ShowTypeFilter } from "@/hooks/usePopularShows";
+import type { GeoScope } from "@/hooks/usePopularNearMe";
 
 interface PopularFeedGridProps {
   items: PopularItem[];
@@ -12,8 +12,9 @@ interface PopularFeedGridProps {
   onShowTypeChange: (t: ShowTypeFilter) => void;
   onQuickAdd: (item: PopularItem) => void;
   onFindFriends?: () => void;
-  /** Optional message when no location is set (for Near Me) */
   emptyMessage?: string;
+  geoScope: GeoScope;
+  onGeoScopeChange: (scope: GeoScope) => void;
 }
 
 const TYPE_PILLS: { id: ShowTypeFilter; label: string }[] = [
@@ -22,69 +23,73 @@ const TYPE_PILLS: { id: ShowTypeFilter; label: string }[] = [
   { id: "festival", label: "Festivals" },
 ];
 
-function ArtistCard({ item, onQuickAdd, index }: { item: PopularArtist; onQuickAdd: () => void; index: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.04 }}
-      className="relative rounded-2xl overflow-hidden border border-white/[0.08] aspect-square"
-    >
-      <img src={item.artistImageUrl!} alt={item.artistName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-2.5">
-        <p className="text-xs font-bold text-white leading-tight truncate drop-shadow-md">{item.artistName}</p>
-        {item.userCount > 0 && (
-          <p className="text-[9px] text-white/45 mt-0.5 flex items-center gap-1">
-            <Users className="h-2.5 w-2.5 inline" />
-            {item.userCount} {item.userCount === 1 ? "user" : "users"}
-          </p>
-        )}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
-          className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-white/80 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1 hover:bg-white/15 transition-colors"
-        >
-          <Hand className="h-2.5 w-2.5" />
-          I was there
-        </motion.button>
-      </div>
-    </motion.div>
-  );
-}
+const GEO_PILLS: { id: GeoScope; label: string; icon: typeof MapPin }[] = [
+  { id: "city", label: "City", icon: MapPin },
+  { id: "country", label: "Country", icon: Map },
+  { id: "world", label: "World", icon: Globe },
+];
 
-function EventCard({ item, onQuickAdd, index }: { item: PopularEvent; onQuickAdd: () => void; index: number }) {
+function LeaderboardRow({ item, rank, onQuickAdd }: { item: PopularItem; rank: number; onQuickAdd: () => void }) {
+  const name = item.type === "artist" ? item.artistName : item.eventName;
+  const imageUrl = item.type === "artist" ? item.artistImageUrl : item.imageUrl;
+  const venue = item.type === "artist" ? item.sampleVenueName : item.venueName;
+  const subArtists = item.type === "event" && item.topArtists.length > 0 ? item.topArtists.join(" · ") : null;
+
+  // Rank styling intensity
+  const rankGlow = rank <= 3;
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.04 }}
-      className="relative rounded-2xl overflow-hidden border border-white/[0.08] aspect-[4/3]"
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: rank * 0.03 }}
+      className="flex items-center gap-3 py-2.5 group"
     >
-      <img src={item.imageUrl!} alt={item.eventName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-3">
-        <p className="text-sm font-bold text-white leading-tight truncate drop-shadow-md">{item.eventName}</p>
-        {item.topArtists.length > 0 && (
-          <p className="text-[10px] text-white/50 mt-0.5 truncate">
-            {item.topArtists.join(" · ")}
-          </p>
-        )}
-        {item.userCount > 0 && (
-          <p className="text-[9px] text-white/40 mt-0.5 flex items-center gap-1">
-            <Users className="h-2.5 w-2.5 inline" />
-            {item.userCount} {item.userCount === 1 ? "user" : "users"}
-          </p>
-        )}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
-          className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-white/80 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1 hover:bg-white/15 transition-colors"
-        >
-          <Hand className="h-2.5 w-2.5" />
-          I was there
-        </motion.button>
+      {/* Rank number */}
+      <div className={cn(
+        "w-7 text-center font-bold text-sm shrink-0",
+        rank === 1 && "text-amber-400",
+        rank === 2 && "text-white/70",
+        rank === 3 && "text-amber-600/80",
+        rank > 3 && "text-white/30"
+      )}
+        style={rankGlow ? { textShadow: rank === 1 ? "0 0 10px rgba(251,191,36,0.5)" : "none" } : undefined}
+      >
+        {rank}
       </div>
+
+      {/* Artist/Event image */}
+      <div className="relative h-11 w-11 rounded-xl overflow-hidden shrink-0 border border-white/[0.08]">
+        {imageUrl ? (
+          <img src={imageUrl} alt={name} className="h-full w-full object-cover" loading="lazy" />
+        ) : (
+          <div className="h-full w-full bg-white/[0.06]" />
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground truncate leading-tight">{name}</p>
+        <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
+          {subArtists || venue || ""}
+        </p>
+      </div>
+
+      {/* User count */}
+      <div className="flex items-center gap-1 text-[10px] text-white/40 shrink-0">
+        <Users className="h-3 w-3" />
+        <span>{item.userCount}</span>
+      </div>
+
+      {/* Log CTA */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
+        className="shrink-0 flex items-center justify-center h-7 w-7 rounded-lg bg-white/[0.06] border border-white/[0.10] text-white/50 hover:bg-primary/15 hover:text-primary hover:border-primary/30 transition-colors"
+        aria-label="Log this show"
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </motion.button>
     </motion.div>
   );
 }
@@ -98,11 +103,17 @@ export default function PopularFeedGrid({
   onQuickAdd,
   onFindFriends,
   emptyMessage,
+  geoScope,
+  onGeoScopeChange,
 }: PopularFeedGridProps) {
   if (emptyMessage) {
     return (
       <div className="space-y-3">
-        <SubTabs active={showType} onChange={onShowTypeChange} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <GeoTabs active={geoScope} onChange={onGeoScopeChange} />
+          <div className="w-px h-4 bg-white/[0.08]" />
+          <SubTabs active={showType} onChange={onShowTypeChange} />
+        </div>
         <div className="text-center py-8 text-muted-foreground text-sm">
           <p>{emptyMessage}</p>
         </div>
@@ -112,68 +123,96 @@ export default function PopularFeedGrid({
 
   return (
     <div className="space-y-3">
-      {/* Sub-tabs */}
-      <SubTabs active={showType} onChange={onShowTypeChange} />
+      {/* Filter row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <GeoTabs active={geoScope} onChange={onGeoScopeChange} />
+        <div className="w-px h-4 bg-white/[0.08]" />
+        <SubTabs active={showType} onChange={onShowTypeChange} />
+      </div>
 
       {/* Loading */}
       {isLoading && (
-        <div className={cn("grid gap-2", showType === "set" ? "grid-cols-3" : "grid-cols-2")}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className={cn(
-              "rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse",
-              showType === "set" ? "aspect-square" : "aspect-[4/3]"
-            )} />
+        <div className="space-y-1">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="flex items-center gap-3 py-2.5">
+              <div className="w-7 h-4 rounded bg-white/[0.04] animate-pulse" />
+              <div className="h-11 w-11 rounded-xl bg-white/[0.04] animate-pulse" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 w-24 rounded bg-white/[0.04] animate-pulse" />
+                <div className="h-2.5 w-16 rounded bg-white/[0.04] animate-pulse" />
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty */}
       {!isLoading && items.length === 0 && (
         <div className="text-center py-8 text-muted-foreground text-sm">
           <p>No {showType === "set" ? "sets" : showType === "show" ? "shows" : "festivals"} found yet.</p>
         </div>
       )}
 
-      {/* Grid */}
+      {/* Leaderboard list */}
       {!isLoading && items.length > 0 && (
-        <div className={cn("grid gap-2", showType === "set" ? "grid-cols-3" : "grid-cols-2")}>
-          {items.map((item, i) => {
-            if (item.type === "artist") {
-              return <ArtistCard key={item.artistName} item={item} onQuickAdd={() => onQuickAdd(item)} index={i} />;
-            } else {
-              return <EventCard key={item.eventName} item={item} onQuickAdd={() => onQuickAdd(item)} index={i} />;
-            }
-          })}
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.05] px-3">
+          {items.map((item, i) => (
+            <LeaderboardRow
+              key={item.type === "artist" ? item.artistName : item.eventName}
+              item={item}
+              rank={i + 1}
+              onQuickAdd={() => onQuickAdd(item)}
+            />
+          ))}
         </div>
       )}
 
-      {/* Find friends CTA */}
-      {onFindFriends && (
-        <div className="flex justify-center pt-1">
-          <button
-            onClick={onFindFriends}
-            className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-full px-4 py-2 hover:bg-primary/10 transition-colors"
-          >
-            <UserPlus className="h-3.5 w-3.5" />
-            Find friends
-          </button>
-        </div>
+      {/* Total users context */}
+      {!isLoading && items.length > 0 && totalUsers > 0 && (
+        <p className="text-[10px] text-white/25 text-center tracking-wide uppercase">
+          Based on {totalUsers} {totalUsers === 1 ? "user" : "users"} in the Scene community
+        </p>
       )}
+    </div>
+  );
+}
+
+function GeoTabs({ active, onChange }: { active: GeoScope; onChange: (s: GeoScope) => void }) {
+  return (
+    <div className="flex gap-1.5">
+      {GEO_PILLS.map((pill) => {
+        const Icon = pill.icon;
+        return (
+          <button
+            key={pill.id}
+            onClick={() => onChange(pill.id)}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.12em] font-semibold border transition-colors",
+              active === pill.id
+                ? "bg-primary/15 border-primary/30 text-primary"
+                : "bg-white/[0.04] border-white/[0.08] text-white/30 hover:text-white/50 hover:bg-white/[0.06]"
+            )}
+          >
+            <Icon className="h-3 w-3" />
+            {pill.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 function SubTabs({ active, onChange }: { active: ShowTypeFilter; onChange: (t: ShowTypeFilter) => void }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1.5">
       {TYPE_PILLS.map((pill) => (
         <button
           key={pill.id}
           onClick={() => onChange(pill.id)}
           className={cn(
-            "px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.15em] font-semibold border transition-colors",
+            "px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.12em] font-semibold border transition-colors",
             active === pill.id
-              ? "bg-primary/15 border-primary/30 text-primary"
+              ? "bg-white/10 border-white/20 text-white/70"
               : "bg-white/[0.04] border-white/[0.08] text-white/30 hover:text-white/50 hover:bg-white/[0.06]"
           )}
         >
