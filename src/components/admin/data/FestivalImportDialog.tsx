@@ -176,7 +176,7 @@ export function FestivalImportDialog({ open, onOpenChange }: Props) {
               artists: f.artists,
               source: mode === "scrape" ? "firecrawl" : "manual",
             },
-            { onConflict: "lower(trim(event_name)),year", ignoreDuplicates: false }
+            { onConflict: "event_name,year", ignoreDuplicates: false }
           );
         if (error) throw error;
       }
