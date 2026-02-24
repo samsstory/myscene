@@ -1,6 +1,7 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Instagram, Send, Trash2 } from "lucide-react";
+import { Instagram, Send, Trash2, Share2 } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
 import { parseISO, format } from "date-fns";
 import { formatShowDate } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -451,6 +452,93 @@ export const ShowReviewSheet = ({
                   Invite to Compare
                 </Button>
               </div>
+
+              {/* Share Festival Invite — only for festival-type shows */}
+              {show.showType === "festival" && show.eventName && (
+                <Button
+                  variant="ghost"
+                  className="w-full h-11 rounded-xl font-medium text-sm bg-white/[0.04] border border-white/[0.08] text-foreground/60 hover:text-foreground hover:bg-white/[0.08] transition-all"
+                  onClick={async () => {
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) return;
+
+                      // Find the festival lineup by name + year
+                      const showYear = new Date(show.date).getFullYear();
+                      const { data: lineup } = await supabase
+                        .from("festival_lineups")
+                        .select("id")
+                        .eq("event_name", show.eventName!)
+                        .eq("year", showYear)
+                        .maybeSingle();
+
+                      if (!lineup) {
+                        sonnerToast.error("Couldn't find festival lineup to share");
+                        return;
+                      }
+
+                      // Get the user's artists from child sets
+                      const { data: childShows } = await supabase
+                        .from("shows")
+                        .select("id, show_artists(artist_name, artist_image_url)")
+                        .eq("parent_show_id", show.id)
+                        .eq("user_id", user.id);
+
+                      const selectedArtists = (childShows || []).map((s: any) => ({
+                        name: s.show_artists?.[0]?.artist_name || "Artist",
+                        image_url: s.show_artists?.[0]?.artist_image_url || null,
+                      }));
+
+                      const { data: profile } = await supabase
+                        .from("profiles")
+                        .select("referral_code")
+                        .eq("id", user.id)
+                        .single();
+
+                      const { data: invite, error } = await supabase
+                        .from("festival_invites")
+                        .insert({
+                          created_by: user.id,
+                          festival_lineup_id: lineup.id,
+                          festival_name: show.eventName!,
+                          selected_artists: selectedArtists,
+                        })
+                        .select("id")
+                        .single();
+
+                      if (error || !invite) {
+                        sonnerToast.error("Failed to create invite");
+                        return;
+                      }
+
+                      const refParam = profile?.referral_code ? `&ref=${profile.referral_code}` : "";
+                      const url = `https://tryscene.app/?show=${invite.id}&type=festival-invite${refParam}`;
+
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({
+                            title: `Join me at ${show.eventName} on Scene`,
+                            text: `I just claimed ${show.eventName} on Scene — ${selectedArtists.length} sets! Who did you see? 🎶`,
+                            url,
+                          });
+                          return;
+                        } catch (err: any) {
+                          if (err?.name === "AbortError") return;
+                        }
+                      }
+
+                      await navigator.clipboard.writeText(url);
+                      sonnerToast.success("Festival invite link copied! 🔗");
+                    } catch (err) {
+                      console.error("Share festival error:", err);
+                      sonnerToast.error("Something went wrong");
+                    }
+                  }}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share Festival Invite
+                </Button>
+              )}
 
               {onDelete && (
                 <div className="flex justify-center">
