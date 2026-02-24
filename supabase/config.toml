@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.sync-spotify-taste]
 verify_jwt = false
+
+[functions.scan-data-quality]
+verify_jwt = false
