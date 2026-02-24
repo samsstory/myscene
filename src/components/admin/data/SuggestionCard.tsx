@@ -166,11 +166,13 @@ function LocationSearchInput({
     const placeQuery = venueName && !value.toLowerCase().includes(venueName.toLowerCase())
       ? `${venueName} ${value}`
       : value;
+    // Only search cities if query doesn't look like a specific venue name
+    const isGenericQuery = !venueName || !value.toLowerCase().includes(venueName.toLowerCase().split(" ")[0]);
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       const [places, cities] = await Promise.all([
         fetchGooglePlaces(placeQuery),
-        fetchMapboxCities(value),
+        isGenericQuery ? fetchMapboxCities(value) : Promise.resolve([]),
       ]);
       setPlaceResults(places);
       setCityResults(cities);
