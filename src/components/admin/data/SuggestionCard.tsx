@@ -99,8 +99,23 @@ interface VenueResult {
   country?: string;
 }
 
-function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
-  const [query, setQuery] = useState("");
+// ─── Inline Location Search Input ──────────────────────────────────────
+// Acts as both a text input for the location value AND a search-as-you-type
+// combo that queries Google Places / Foursquare via search-venues.
+
+function LocationSearchInput({
+  value,
+  onChange,
+  onSelect,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onSelect: (r: VenueResult) => void;
+  placeholder?: string;
+  className?: string;
+}) {
   const [results, setResults] = useState<VenueResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -108,12 +123,12 @@ function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
 
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (query.length < 3) { setResults([]); return; }
+    if (value.length < 3) { setResults([]); return; }
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke("search-venues", {
-          body: { searchTerm: query, showType: "venue" },
+          body: { searchTerm: value, showType: "venue" },
         });
         if (error) throw error;
         const venues: VenueResult[] = (data?.suggestions || data?.primary || [])
@@ -128,21 +143,21 @@ function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
       }
     }, 400);
     return () => clearTimeout(timerRef.current);
-  }, [query]);
+  }, [value]);
 
   return (
     <div className="relative">
       <div className="relative">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+        <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
         <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search venue name…"
-          className="h-7 text-xs pl-7 bg-black/20 border-white/[0.08]"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`pl-6 pr-6 ${className || ""}`}
           onFocus={() => results.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
         />
-        {loading && <div className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 border border-muted-foreground/40 border-t-foreground rounded-full animate-spin" />}
+        {loading && <div className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 border border-muted-foreground/40 border-t-foreground rounded-full animate-spin" />}
       </div>
       {open && results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-md border border-white/[0.1] bg-popover shadow-lg max-h-48 overflow-y-auto">
@@ -150,7 +165,7 @@ function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
             <button
               key={i}
               className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors"
-              onMouseDown={(e) => { e.preventDefault(); onSelect(r); setQuery(""); setOpen(false); }}
+              onMouseDown={(e) => { e.preventDefault(); onSelect(r); setOpen(false); }}
             >
               <div className="font-medium text-foreground">{r.name}</div>
               <div className="text-muted-foreground text-[10px] truncate">{r.location}</div>
@@ -164,16 +179,10 @@ function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
 
 // ─── Editable Venue Table ──────────────────────────────────────────────
 
-const VENUE_FIELDS: { key: keyof VenueRow; label: string }[] = [
-  { key: "name", label: "Name" },
-  { key: "location", label: "Location" },
-];
-
 function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: VenueRow; duplicates: VenueRow[]; editsRef: React.MutableRefObject<Record<string, Partial<VenueRow>>> }) {
   const allRows = [canonical, ...duplicates];
   const [edits, setEdits] = useState<Record<string, Partial<VenueRow>>>({});
 
-  // Keep ref in sync
   useEffect(() => { editsRef.current = edits; }, [edits, editsRef]);
 
   const getValue = (row: VenueRow, key: keyof VenueRow) => {
@@ -188,7 +197,6 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
   };
 
   const applyVenue = async (rowId: string, r: VenueResult) => {
-    // Look up the cached venue in the DB to get coordinates
     const { data: venue } = await supabase
       .from("venues")
       .select("name, location, city, country, latitude, longitude")
@@ -211,47 +219,46 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
   };
 
   return (
-    <div className="mt-2 space-y-3">
-      {/* Table header */}
-      <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 2fr" }}>
-        {VENUE_FIELDS.map((f) => (
-          <div key={f.key} className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">
-            {f.label}
-          </div>
-        ))}
+    <div className="mt-2 space-y-2">
+      {/* Column headers */}
+      <div className="grid gap-2" style={{ gridTemplateColumns: "auto 1fr 2fr" }}>
+        <div className="w-16" />
+        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">Name</div>
+        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">Location</div>
       </div>
 
-      {/* Rows */}
       {allRows.map((row, idx) => {
         const isCanon = idx === 0;
         return (
-          <div key={row.id} className={`rounded-md border p-2 space-y-1.5 ${
+          <div key={row.id} className={`rounded-md border p-2 ${
             isCanon ? "border-amber-500/30 bg-amber-500/5" : "border-white/[0.06] bg-white/[0.01]"
           }`}>
-            {/* Row label */}
-            <div className="flex items-center gap-1.5 mb-1">
-              {isCanon && <Star className="h-3 w-3 text-amber-400" />}
-              <span className={`text-[10px] font-medium uppercase tracking-wider ${isCanon ? "text-amber-400" : "text-muted-foreground"}`}>
-                {isCanon ? "Keep" : "Duplicate"}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono ml-auto">{row.id.slice(0, 8)}…</span>
-            </div>
+            <div className="grid gap-2 items-center" style={{ gridTemplateColumns: "auto 1fr 2fr" }}>
+              {/* Label pill */}
+              <div className="flex items-center gap-1 w-16">
+                {isCanon && <Star className="h-3 w-3 text-amber-400 shrink-0" />}
+                <span className={`text-[10px] font-medium uppercase tracking-wider ${isCanon ? "text-amber-400" : "text-muted-foreground"}`}>
+                  {isCanon ? "Keep" : "Dup"}
+                </span>
+              </div>
 
-            {/* Editable fields: Name + Location */}
-            <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 2fr" }}>
-              {VENUE_FIELDS.map((f) => (
-                <Input
-                  key={f.key}
-                  value={String(getValue(row, f.key) ?? "")}
-                  onChange={(e) => setValue(row.id, f.key, e.target.value)}
-                  placeholder={f.label}
-                  className="h-6 text-xs bg-black/20 border-white/[0.08] px-1.5"
-                />
-              ))}
-            </div>
+              {/* Name — plain editable input */}
+              <Input
+                value={String(getValue(row, "name") ?? "")}
+                onChange={(e) => setValue(row.id, "name", e.target.value)}
+                placeholder="Name"
+                className="h-6 text-xs bg-black/20 border-white/[0.08] px-1.5"
+              />
 
-            {/* Venue search — searches Google Places / Foursquare */}
-            <VenueSearch onSelect={(r) => applyVenue(row.id, r)} />
+              {/* Location — search combo input */}
+              <LocationSearchInput
+                value={String(getValue(row, "location") ?? "")}
+                onChange={(val) => setValue(row.id, "location", val)}
+                onSelect={(r) => applyVenue(row.id, r)}
+                placeholder="Search or type location…"
+                className="h-6 text-xs bg-black/20 border-white/[0.08]"
+              />
+            </div>
           </div>
         );
       })}
