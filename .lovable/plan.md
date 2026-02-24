@@ -1,94 +1,69 @@
 
-# Admin Data Manager
 
-Build a new "Data" tab in the admin dashboard with three sub-views (Venues, Shows, AI Suggestions) and a backend table to queue AI-detected data issues.
+# AI Data Enrichment Scanner
 
----
-
-## 1. Database Migration
-
-### New table: `data_suggestions`
-
-Stores issues flagged by the AI enrichment agent (duplicates, missing metadata, naming inconsistencies) for admin review.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | default gen_random_uuid() |
-| entity_type | text | 'venue', 'show', 'artist', 'event' |
-| entity_id | uuid | nullable -- the record in question |
-| suggestion_type | text | 'duplicate', 'missing_data', 'name_mismatch', 'merge', 'broken_hierarchy' |
-| title | text | Short summary, e.g. "Possible duplicate venue" |
-| details | jsonb | Structured payload (merge candidates, missing fields, etc.) |
-| status | text | 'pending' / 'approved' / 'dismissed', default 'pending' |
-| resolved_by | uuid | nullable, admin who acted |
-| resolved_at | timestamptz | nullable |
-| created_at | timestamptz | default now() |
-
-RLS: admin-only read/update. No public access.
-
-### Venues table update
-
-Add admin UPDATE + DELETE policies so admins can edit and merge venues from the dashboard. Currently venues can only be inserted and read.
+Build a backend edge function that scans the database for data quality issues and populates the `data_suggestions` queue for admin review.
 
 ---
 
-## 2. New Admin Components
+## What It Scans
 
-### `src/components/admin/DataTab.tsx`
-Top-level wrapper with three sub-tabs: **Venues**, **Shows**, **Suggestions**.
+### 1. Duplicate Venues
+Finds venues with the same name (case-insensitive) that exist as separate records. For example, the database currently has 14 "Austin City Limits" records and "CLUB SPACE" vs "Club Space" as distinct rows.
 
-### `src/components/admin/data/VenuesBrowser.tsx`
-- Search bar (filters by name, city, country)
-- Table: Name, Location, City, Country, Lat/Lng, Show Count, Actions
-- Stat pills: Total Venues, Missing Country, Missing Coords
-- **Edit dialog**: inline or modal to update name, city, country, coordinates
-- **Merge dialog**: select two venues, pick canonical one, reassign all shows from the other, then delete the duplicate
-- Show count is derived by counting `shows` rows with matching `venue_id`
+- Groups venues by `lower(trim(name))`
+- For groups with 2+ records, picks the one with the most metadata (has coordinates, city, country) as the canonical candidate
+- Creates a `duplicate` suggestion with merge candidate IDs
 
-### `src/components/admin/data/ShowsBrowser.tsx`
-- Search bar (filters by venue_name, event_name, artist names)
-- Table: Artists, Venue, Event, Date, Type, User, Photo, Actions
-- Stat pills: Total Shows, Missing Venue ID, Missing Location
-- **Edit dialog**: update venue_name, venue_location, event_name, venue_id link
-- Links to venue browser for quick cross-referencing
+### 2. Venues Missing Metadata
+Finds venues linked to shows but missing critical fields (coordinates, city, or country).
 
-### `src/components/admin/data/SuggestionsQueue.tsx`
-- List of pending AI suggestions with type badges
-- Approve / Dismiss buttons per suggestion
-- Details expandable (shows merge candidates, missing fields, etc.)
-- Filter by type and status
+- Only flags venues that are actually referenced by shows (not orphans)
+- Creates a `missing_data` suggestion listing which fields are absent
 
----
+### 3. Artist Name Variants
+Finds artist names in `show_artists` that are near-duplicates via case differences or slight spelling variations using the existing `pg_trgm` similarity function.
 
-## 3. Admin Page Changes
+- Groups by `lower(trim(artist_name))` first for exact case mismatches
+- Then uses trigram similarity (threshold 0.7) for fuzzy matches like "Fred again.." vs "Fred Again.."
+- Creates `name_mismatch` suggestions with the variant names and show counts
 
-### `src/pages/Admin.tsx`
-- Add "Data" tab to the existing tabs array (between "Inviters" and "Bugs")
-- Import and render `DataTab` in the corresponding `TabsContent`
+### 4. Unlinked Shows
+Finds shows that have a `venue_name` but no `venue_id`, and attempts to match them to existing venues.
+
+- Uses `ilike` matching on venue name
+- Creates `missing_data` suggestions with the candidate venue ID for easy linking
 
 ---
 
-## 4. Backend Policies
+## Edge Function: `scan-data-quality`
 
-### Venues
-- New RLS policy: "Admins can update venues" -- `has_role(auth.uid(), 'admin')`
-- New RLS policy: "Admins can delete venues" -- `has_role(auth.uid(), 'admin')`
+**File**: `supabase/functions/scan-data-quality/index.ts`
 
-### Shows
-- New RLS policy: "Admins can update any show" -- `has_role(auth.uid(), 'admin')`
+- Uses service role key to read all data and insert suggestions
+- Requires admin auth (validates caller has admin role)
+- Clears previous pending suggestions before inserting fresh ones (avoids duplicates on re-scan)
+- Returns a summary: `{ duplicateVenues: 5, missingMetadata: 12, artistVariants: 3, unlinkedShows: 4 }`
 
-### data_suggestions
-- SELECT: admin only
-- INSERT: admin only (and later, edge functions via service role)
-- UPDATE: admin only
-- DELETE: admin only
+### Config
+```toml
+[functions.scan-data-quality]
+verify_jwt = false
+```
 
 ---
 
-## Technical Notes
+## Frontend: "Run Scan" Button
 
-- Venue merge logic: update all `shows.venue_id` and `user_venues.venue_id` from duplicate to canonical, then delete the duplicate venue record
-- Show count per venue uses a subquery or separate count query to avoid N+1
-- Search uses `ilike` for simplicity; the existing `pg_trgm` extension is available for fuzzy matching later
-- All admin queries go through the standard client with the logged-in admin's session (RLS handles authorization)
-- The suggestions queue table is designed to be populated by the real-time AI enrichment agent (built next)
+Add a "Run Scan" button to the `SuggestionsQueue` component header that invokes the edge function and refreshes the list.
+
+---
+
+## Technical Details
+
+- The function runs all four scans sequentially (venues are small, ~80 rows; artists ~100 distinct names; shows ~119 rows)
+- Artist fuzzy matching uses SQL `similarity()` from pg_trgm which is already installed
+- Each suggestion includes structured `details` JSON with entity IDs, candidate matches, and missing fields so the admin UI can render actionable cards
+- The function deletes only `pending` suggestions from previous scans before inserting new ones (preserves `approved`/`dismissed` history)
+- No AI/LLM calls needed -- this is pure SQL pattern matching which is more reliable for this data size
+
