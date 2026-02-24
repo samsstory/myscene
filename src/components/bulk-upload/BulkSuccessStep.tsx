@@ -58,11 +58,9 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
       setShowPushInterstitial(true);
     }
 
-    // TEMP: bypass checks for preview testing
-    // if (!isFirstShow) return;
-    // const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-    // const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    // if (isStandalone || !isMobile) return;
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isStandalone || !isMobile) return;
 
     setShowInstallCTA(true);
 
