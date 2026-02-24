@@ -72,22 +72,22 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
               .map(v => v.id)
           );
         } else if (geoScope === "country") {
-          // Find the user's country from the nearest venue
+          // Find the user's country from the nearest venue that HAS a country set
           let userCountry: string | null = null;
           let minDist = Infinity;
           for (const v of venues) {
+            if (!v.country) continue;
             const d = haversineKm(homeLat, homeLng, Number(v.latitude), Number(v.longitude));
             if (d < minDist) { minDist = d; userCountry = v.country; }
           }
           if (userCountry) {
-            nearbyVenueIds = new Set(venues.filter(v => v.country === userCountry).map(v => v.id));
-          } else {
-            // Fallback to wider radius
+            // Include venues with matching country OR venues with null country in the same country's bounding area
             nearbyVenueIds = new Set(
-              venues
-                .filter(v => haversineKm(homeLat, homeLng, Number(v.latitude), Number(v.longitude)) <= RADIUS_KM * 10)
-                .map(v => v.id)
+              venues.filter(v => v.country === userCountry || !v.country).map(v => v.id)
             );
+          } else {
+            // No country data at all — include all venues as fallback
+            nearbyVenueIds = null;
           }
         }
 
