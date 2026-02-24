@@ -350,6 +350,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             addedCount={addedCount}
             addedShows={addedShows}
             festivalName={selectedFestival?.event_name ?? null}
+            festivalLineupId={selectedFestival?.id ?? null}
             onAddMore={handleAddMore}
             onDone={handleClose}
             onCreateReviewPhoto={handleOpenEditor}

@@ -22,6 +22,8 @@ interface LineupSelectionGridProps {
   onConfirm: (selected: string[]) => void;
   festivalName?: string;
   isSubmitting?: boolean;
+  initialSelected?: Set<string>;
+  ctaLabel?: string;
 }
 
 const ArtistCard = ({
@@ -97,8 +99,10 @@ const LineupSelectionGrid = ({
   onConfirm,
   festivalName,
   isSubmitting,
+  initialSelected,
+  ctaLabel,
 }: LineupSelectionGridProps) => {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(initialSelected ?? new Set());
   const [customInput, setCustomInput] = useState("");
   const [customArtists, setCustomArtists] = useState<LineupArtist[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
@@ -242,7 +246,7 @@ const LineupSelectionGrid = ({
         >
           {isSubmitting
             ? "Adding…"
-            : `Add ${selected.size} Show${selected.size !== 1 ? "s" : ""}`}
+            : ctaLabel || `Add ${selected.size} Show${selected.size !== 1 ? "s" : ""}`}
         </Button>
       </div>
     </div>

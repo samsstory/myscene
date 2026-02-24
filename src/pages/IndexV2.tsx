@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import LandingHeroV2 from "@/components/landing/v2/LandingHeroV2";
 import { useReferralCapture } from "@/hooks/useReferralCapture";
 import ShowInviteHero from "@/components/landing/ShowInviteHero";
+import FestivalInviteHero from "@/components/landing/FestivalInviteHero";
 import LazyGlobeShowcase from "@/components/landing/v2/LazyGlobeShowcase";
 
 const LogShowcaseV2 = lazy(() => import("@/components/landing/v2/LogShowcaseV2"));
@@ -16,14 +17,23 @@ const IndexV2 = () => {
 
   const [searchParams] = useSearchParams();
   const showId = searchParams.get("show");
-  const showType = (searchParams.get("type") as "logged" | "upcoming" | "edmtrain") ?? "logged";
+  const showType = searchParams.get("type") ?? "logged";
   const refCode = searchParams.get("ref") ?? undefined;
+
+  // If this is a festival invite link
+  if (showId && showType === "festival-invite") {
+    return (
+      <div className="min-h-screen bg-background">
+        <FestivalInviteHero inviteId={showId} refCode={refCode} />
+      </div>
+    );
+  }
 
   // If this is an invite link, show ONLY the invite page
   if (showId) {
     return (
       <div className="min-h-screen bg-background">
-        <ShowInviteHero showId={showId} showType={showType} refCode={refCode} />
+        <ShowInviteHero showId={showId} showType={showType as "logged" | "upcoming" | "edmtrain"} refCode={refCode} />
       </div>
     );
   }

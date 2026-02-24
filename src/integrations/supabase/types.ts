@@ -301,6 +301,41 @@ export type Database = {
         }
         Relationships: []
       }
+      festival_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          festival_lineup_id: string
+          festival_name: string
+          id: string
+          selected_artists: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          festival_lineup_id: string
+          festival_name: string
+          id?: string
+          selected_artists?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          festival_lineup_id?: string
+          festival_name?: string
+          id?: string
+          selected_artists?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festival_invites_festival_lineup_id_fkey"
+            columns: ["festival_lineup_id"]
+            isOneToOne: false
+            referencedRelation: "festival_lineups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       festival_lineups: {
         Row: {
           artists: Json
