@@ -43,7 +43,7 @@ serve(async (req) => {
     // Get all show_artists missing image or spotify ID
     const { data: artists, error } = await supabase
       .from('show_artists')
-      .select('id, artist_name')
+      .select('id, artist_name, spotify_artist_id')
       .or('artist_image_url.is.null,spotify_artist_id.is.null')
       .limit(500);
 
@@ -63,8 +63,44 @@ serve(async (req) => {
     const token = await getSpotifyToken();
     console.log(`Got Spotify token, processing ${uniqueNames.length} unique names`);
 
-    // Process one at a time with small delays to avoid Spotify 429
+    // Check if any artists already have spotify IDs — use direct lookup (separate rate limit)
+    const artistsWithIds = artists.filter(a => a.spotify_artist_id);
+    const uniqueIdsMap = new Map<string, string>();
+    for (const a of artistsWithIds) {
+      if (a.spotify_artist_id && !uniqueIdsMap.has(a.artist_name)) {
+        uniqueIdsMap.set(a.artist_name, a.spotify_artist_id);
+      }
+    }
+
+    // First pass: direct artist lookup by ID (different rate limit bucket)
+    for (const [name, spotifyId] of uniqueIdsMap) {
+      try {
+        const resp = await fetch(
+          `https://api.spotify.com/v1/artists/${spotifyId}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (!resp.ok) {
+          console.error(`Spotify artist lookup failed for "${name}" (${spotifyId}): ${resp.status}`);
+          await resp.text();
+          if (resp.status === 429) {
+            await new Promise(r => setTimeout(r, 2000));
+          }
+          continue;
+        }
+        const artist = await resp.json();
+        if (artist) {
+          spotifyCache[name] = { id: artist.id, imageUrl: artist.images?.[0]?.url || null };
+          console.log(`Direct lookup "${name}": ${artist.images?.[0]?.url}`);
+        }
+        await new Promise(r => setTimeout(r, 200));
+      } catch (err) {
+        console.error(`Error looking up "${name}":`, err);
+      }
+    }
+
+    // Second pass: search for artists without a known spotify ID
     for (const name of uniqueNames) {
+      if (spotifyCache[name]) continue; // Already resolved via direct lookup
       try {
         const resp = await fetch(
           `https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
@@ -74,7 +110,6 @@ serve(async (req) => {
           console.error(`Spotify search failed for "${name}": ${resp.status}`);
           await resp.text();
           if (resp.status === 429) {
-            // Wait a bit and continue with remaining artists
             await new Promise(r => setTimeout(r, 2000));
           }
           continue;
