@@ -114,7 +114,7 @@ function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
           body: { searchTerm: query, showType: "venue" },
         });
         if (error) throw error;
-        const venues: VenueResult[] = (data?.primary || [])
+        const venues: VenueResult[] = (data?.suggestions || data?.primary || [])
           .concat(data?.other || [])
           .map((v: any) => ({ name: v.name, location: v.location }));
         setResults(venues.slice(0, 8));
