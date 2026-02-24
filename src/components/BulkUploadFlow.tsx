@@ -15,6 +15,8 @@ import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
 import { useTextImportUpload } from "@/hooks/useTextImportUpload";
 import LineupChoiceStep from "./festival-claim/LineupChoiceStep";
 import FestivalSearchStep, { FestivalResult } from "./festival-claim/FestivalSearchStep";
+import LineupSelectionGrid from "./festival-claim/LineupSelectionGrid";
+import { useFestivalClaim } from "@/hooks/useFestivalClaim";
 
 interface BulkUploadFlowProps {
   open: boolean;
@@ -37,6 +39,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   const [selectedFestival, setSelectedFestival] = useState<FestivalResult | null>(null);
   const { uploadShows, isUploading } = useBulkShowUpload();
   const { uploadShows: uploadTextShows, isUploading: isTextUploading } = useTextImportUpload();
+  const { claimShows, isSubmitting: isClaiming } = useFestivalClaim();
 
   const handleClose = () => {
     // Cleanup photo URLs
@@ -322,6 +325,22 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             onSelect={(festival) => {
               setSelectedFestival(festival);
               setStep('lineup-grid');
+            }}
+          />
+        )}
+
+        {step === 'lineup-grid' && selectedFestival && (
+          <LineupSelectionGrid
+            artists={selectedFestival.artists}
+            festivalName={selectedFestival.event_name}
+            isSubmitting={isClaiming}
+            onConfirm={async (selectedArtists) => {
+              const result = await claimShows(selectedArtists, selectedFestival);
+              if (result.success) {
+                setAddedCount(result.addedCount);
+                setAddedShows(result.addedShows);
+                setStep('success');
+              }
             }}
           />
         )}

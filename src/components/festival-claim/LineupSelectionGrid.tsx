@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, Plus, X } from "lucide-react";
+import { Check, Plus, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -101,11 +101,18 @@ const LineupSelectionGrid = ({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customInput, setCustomInput] = useState("");
   const [customArtists, setCustomArtists] = useState<LineupArtist[]>([]);
+  const [searchFilter, setSearchFilter] = useState("");
 
   const allArtists = useMemo(
-    () => [...artists, ...customArtists],
+    () => [...artists, ...customArtists].sort((a, b) => a.name.localeCompare(b.name)),
     [artists, customArtists]
   );
+
+  const filteredArtists = useMemo(() => {
+    if (!searchFilter.trim()) return allArtists;
+    const q = searchFilter.toLowerCase();
+    return allArtists.filter((a) => a.name.toLowerCase().includes(q));
+  }, [allArtists, searchFilter]);
 
   const allNames = useMemo(
     () => allArtists.map((a) => a.name),
@@ -140,17 +147,17 @@ const LineupSelectionGrid = ({
   };
 
   // Group by day if any artist has a day field
-  const hasDays = allArtists.some((a) => a.day);
+  const hasDays = filteredArtists.some((a) => a.day);
   const grouped = useMemo(() => {
     if (!hasDays) return null;
     const map = new Map<string, LineupArtist[]>();
-    for (const a of allArtists) {
+    for (const a of filteredArtists) {
       const key = a.day || "Other";
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(a);
     }
     return map;
-  }, [allArtists, hasDays]);
+  }, [filteredArtists, hasDays]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -168,6 +175,17 @@ const LineupSelectionGrid = ({
         </button>
       </div>
 
+      {/* Search filter */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          placeholder="Search artists…"
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+          className="pl-9 h-9 text-sm bg-white/[0.04] border-white/[0.08]"
+        />
+      </div>
+
       {/* Artist grid / grouped */}
       <div className="max-h-[45vh] overflow-y-auto pr-1 -mr-1">
         {grouped ? (
@@ -182,7 +200,7 @@ const LineupSelectionGrid = ({
           ))
         ) : (
           <div className="grid grid-cols-2 gap-2">
-            {allArtists.map((a) => (
+            {filteredArtists.map((a) => (
               <ArtistCard
                 key={a.name}
                 name={a.name}
