@@ -6,6 +6,8 @@ const MILES_TO_KM = 1.60934;
 const RADIUS_MILES = 50;
 const RADIUS_KM = RADIUS_MILES * MILES_TO_KM;
 
+export type GeoScope = "city" | "country" | "world";
+
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -16,7 +18,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "set") {
+export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "set", geoScope: GeoScope = "city") {
   const [items, setItems] = useState<PopularItem[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,38 +45,70 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
       const homeLat = profile?.home_latitude ? Number(profile.home_latitude) : null;
       const homeLng = profile?.home_longitude ? Number(profile.home_longitude) : null;
 
-      if (!homeLat || !homeLng) {
+      // World scope doesn't need location
+      if (geoScope !== "world" && (!homeLat || !homeLng)) {
         setHasLocation(false);
         setIsLoading(false);
         return;
       }
       setHasLocation(true);
 
-      const { data: venues } = await supabase
-        .from("venues")
-        .select("id, latitude, longitude")
-        .not("latitude", "is", null)
-        .not("longitude", "is", null);
+      // For world scope, skip venue filtering entirely
+      let nearbyVenueIds: Set<string> | null = null;
 
-      if (cancelled || !venues) { setIsLoading(false); return; }
+      if (geoScope !== "world" && homeLat && homeLng) {
+        const { data: venues } = await supabase
+          .from("venues")
+          .select("id, latitude, longitude, country")
+          .not("latitude", "is", null)
+          .not("longitude", "is", null);
 
-      const nearbyVenueIds = new Set(
-        venues
-          .filter(v => haversineKm(homeLat, homeLng, Number(v.latitude), Number(v.longitude)) <= RADIUS_KM)
-          .map(v => v.id)
-      );
+        if (cancelled || !venues) { setIsLoading(false); return; }
 
-      if (nearbyVenueIds.size === 0) {
-        setItems([]);
-        setIsLoading(false);
-        return;
+        if (geoScope === "city") {
+          nearbyVenueIds = new Set(
+            venues
+              .filter(v => haversineKm(homeLat, homeLng, Number(v.latitude), Number(v.longitude)) <= RADIUS_KM)
+              .map(v => v.id)
+          );
+        } else if (geoScope === "country") {
+          // Find the user's country from the nearest venue
+          let userCountry: string | null = null;
+          let minDist = Infinity;
+          for (const v of venues) {
+            const d = haversineKm(homeLat, homeLng, Number(v.latitude), Number(v.longitude));
+            if (d < minDist) { minDist = d; userCountry = v.country; }
+          }
+          if (userCountry) {
+            nearbyVenueIds = new Set(venues.filter(v => v.country === userCountry).map(v => v.id));
+          } else {
+            // Fallback to wider radius
+            nearbyVenueIds = new Set(
+              venues
+                .filter(v => haversineKm(homeLat, homeLng, Number(v.latitude), Number(v.longitude)) <= RADIUS_KM * 10)
+                .map(v => v.id)
+            );
+          }
+        }
+
+        if (nearbyVenueIds && nearbyVenueIds.size === 0) {
+          setItems([]);
+          setIsLoading(false);
+          return;
+        }
       }
 
-      const { data: showRows } = await supabase
+      // Build query
+      let query = supabase
         .from("shows")
         .select("id, user_id, venue_name, show_date, venue_id, event_name, show_type")
-        .eq("show_type", showType)
-        .in("venue_id", [...nearbyVenueIds]);
+        .eq("show_type", showType);
+
+      if (nearbyVenueIds) {
+        query = query.in("venue_id", [...nearbyVenueIds]);
+      }
+
+      const { data: showRows } = await query;
 
       if (cancelled || !showRows || showRows.length === 0) {
         setItems([]);
@@ -95,7 +129,6 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
       if (cancelled || !artistRows) { setIsLoading(false); return; }
 
       if (showType === "set") {
-        // Artist-centric
         const artistAgg = new Map<string, {
           imageUrl: string | null;
           userIds: Set<string>;
@@ -134,7 +167,7 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
           }))
           .filter(a => a.artistImageUrl)
           .sort((a, b) => b.userCount - a.userCount || a.artistName.localeCompare(b.artistName))
-          .slice(0, 12);
+          .slice(0, 15);
 
         if (!cancelled) {
           setItems(sorted);
@@ -142,7 +175,6 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
           setIsLoading(false);
         }
       } else {
-        // Event-centric
         const artistsByShow = new Map<string, typeof artistRows>();
         for (const row of artistRows) {
           if (!artistsByShow.has(row.show_id)) artistsByShow.set(row.show_id, []);
@@ -182,7 +214,7 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
             sampleShowDate: e.latestDate, showType: showType,
           }))
           .sort((a, b) => b.userCount - a.userCount || a.eventName.localeCompare(b.eventName))
-          .slice(0, 12);
+          .slice(0, 15);
 
         if (!cancelled) {
           setItems(sorted);
@@ -194,7 +226,7 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
 
     load();
     return () => { cancelled = true; };
-  }, [enabled, showType]);
+  }, [enabled, showType, geoScope]);
 
   return { items, totalUsers, isLoading, hasLocation };
 }

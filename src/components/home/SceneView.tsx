@@ -10,14 +10,12 @@ import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { supabase } from "@/integrations/supabase/client";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
+import type { ShowTypeFilter } from "@/hooks/usePopularShows";
+import { usePopularNearMe, type GeoScope } from "@/hooks/usePopularNearMe";
 
 interface SceneViewProps {
   onPlanShow: () => void;
   onNavigateToFriends?: () => void;
-  nearMeItems: Parameters<typeof PopularFeedGrid>[0]["items"];
-  nearMeTotalUsers: number;
-  nearMeLoading: boolean;
-  nearMeHasLocation?: boolean;
   onQuickAdd: (item: any) => void;
   onAddEdmtrainToSchedule?: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   userArtistNames?: string[];
@@ -32,10 +30,6 @@ interface SceneViewProps {
 export default function SceneView({
   onPlanShow,
   onNavigateToFriends,
-  nearMeItems,
-  nearMeTotalUsers,
-  nearMeLoading,
-  nearMeHasLocation,
   onQuickAdd,
   onAddEdmtrainToSchedule,
   userArtistNames = [],
@@ -137,19 +131,31 @@ export default function SceneView({
         />
       </section>
 
-      {/* Section 4: Popular near me */}
       <section className="space-y-2">
-        <SectionLabel>Popular Near You</SectionLabel>
-        <PopularFeedGrid
-          items={nearMeItems}
-          totalUsers={nearMeTotalUsers}
-          isLoading={nearMeLoading}
-          showType="set"
-          onShowTypeChange={() => {}}
-          onQuickAdd={onQuickAdd}
-          emptyMessage={nearMeHasLocation === false ? "Set your home city in your profile to see what's popular near you." : undefined}
-        />
+        <SectionLabel>Top Rated Near You</SectionLabel>
+        <TopRatedSection onQuickAdd={onQuickAdd} />
       </section>
     </div>
+  );
+}
+
+/** Self-contained leaderboard with its own data fetching + filter state */
+function TopRatedSection({ onQuickAdd }: { onQuickAdd: (item: any) => void }) {
+  const [showType, setShowType] = useState<ShowTypeFilter>("set");
+  const [geoScope, setGeoScope] = useState<GeoScope>("city");
+  const { items, totalUsers, isLoading, hasLocation } = usePopularNearMe(true, showType, geoScope);
+
+  return (
+    <PopularFeedGrid
+      items={items}
+      totalUsers={totalUsers}
+      isLoading={isLoading}
+      showType={showType}
+      onShowTypeChange={setShowType}
+      onQuickAdd={onQuickAdd}
+      geoScope={geoScope}
+      onGeoScopeChange={setGeoScope}
+      emptyMessage={hasLocation === false ? "Set your home city in your profile to see what's trending near you." : undefined}
+    />
   );
 }
