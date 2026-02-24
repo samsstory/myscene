@@ -100,6 +100,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
     const artistName = event.event_name || truncateArtists(event.artists.map(a => a.name), 3);
     const saved = await saveUpcomingShow({
       artist_name: artistName,
+      artist_image_url: event.artist_image_url || undefined,
+      event_name: event.event_name || undefined,
       venue_name: event.venue_name || undefined,
       venue_location: event.venue_location || undefined,
       show_date: event.event_date || undefined,
@@ -141,12 +143,14 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               userArtistNames={userArtistNames}
               friendShows={friendShows}
               onAddFriendShowToSchedule={async (show) => {
+                const imgUrl = show.artist_image_url;
+                const isUserUpload = imgUrl && imgUrl.includes("supabase") && imgUrl.includes("show-photos");
                 const saved = await saveUpcomingShow({
                   artist_name: show.artist_name,
                   venue_name: show.venue_name || undefined,
                   venue_location: show.venue_location || undefined,
                   show_date: show.show_date || undefined,
-                  artist_image_url: show.artist_image_url || undefined,
+                  artist_image_url: isUserUpload ? undefined : (imgUrl || undefined),
                 });
                 if (!saved) toast.error("Failed to add to schedule");
               }}
