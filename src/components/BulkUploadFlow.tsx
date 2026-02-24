@@ -14,6 +14,7 @@ import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
 import { useTextImportUpload } from "@/hooks/useTextImportUpload";
 import LineupChoiceStep from "./festival-claim/LineupChoiceStep";
+import FestivalSearchStep, { FestivalResult } from "./festival-claim/FestivalSearchStep";
 
 interface BulkUploadFlowProps {
   open: boolean;
@@ -33,6 +34,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   const [addedShows, setAddedShows] = useState<AddedShowData[]>([]);
   const [editorShow, setEditorShow] = useState<AddedShowData | null>(null);
   const [parsedShows, setParsedShows] = useState<ParsedShow[]>([]);
+  const [selectedFestival, setSelectedFestival] = useState<FestivalResult | null>(null);
   const { uploadShows, isUploading } = useBulkShowUpload();
   const { uploadShows: uploadTextShows, isUploading: isTextUploading } = useTextImportUpload();
 
@@ -46,6 +48,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     setAddedShows([]);
     setEditorShow(null);
     setParsedShows([]);
+    setSelectedFestival(null);
     onOpenChange(false);
   };
 
@@ -106,6 +109,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
     setAddedShows([]);
     setEditorShow(null);
     setParsedShows([]);
+    setSelectedFestival(null);
     setStep('select');
   };
 
@@ -310,6 +314,15 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
           <LineupChoiceStep
             onUploadPhoto={() => {/* Step 6 - future */}}
             onSearchDatabase={() => setStep('lineup-search')}
+          />
+        )}
+
+        {step === 'lineup-search' && (
+          <FestivalSearchStep
+            onSelect={(festival) => {
+              setSelectedFestival(festival);
+              setStep('lineup-grid');
+            }}
           />
         )}
 
