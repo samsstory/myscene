@@ -53,7 +53,18 @@ export const useFestivalClaim = () => {
         date_precision: festival.date_start ? "exact" : "month",
       };
 
-      // 1. Create parent festival record
+      // 1. Look up canonical artist images
+      const { data: knownArtists } = await supabase
+        .from("artists")
+        .select("name, image_url, id")
+        .in("name", newArtists);
+
+      const artistImageMap = new Map<string, { image_url: string | null; id: string }>();
+      (knownArtists || []).forEach((a) => {
+        artistImageMap.set(a.name.toLowerCase(), { image_url: a.image_url, id: a.id });
+      });
+
+      // 2. Create parent festival record
       const { data: parent, error: parentError } = await supabase
         .from("shows")
         .insert({ ...shared, show_type: "festival" })
@@ -62,7 +73,7 @@ export const useFestivalClaim = () => {
 
       if (parentError || !parent) throw parentError;
 
-      // 2. Create child set records linked to parent
+      // 3. Create child set records linked to parent
       const setRows = newArtists.map(() => ({
         ...shared,
         show_type: "set" as const,
@@ -76,18 +87,21 @@ export const useFestivalClaim = () => {
 
       if (setError || !insertedSets) throw setError;
 
-      // 3. Insert show_artists — parent gets all artists, each child gets one
-      const artistRows = [
-        ...newArtists.map((name, i) => ({
-          show_id: parent.id,
+      // 4. Insert show_artists with images from canonical artists table
+      const buildArtistRow = (showId: string, name: string, isHeadliner: boolean) => {
+        const match = artistImageMap.get(name.toLowerCase());
+        return {
+          show_id: showId,
           artist_name: name,
-          is_headliner: i === 0,
-        })),
-        ...insertedSets.map((set, i) => ({
-          show_id: set.id,
-          artist_name: newArtists[i],
-          is_headliner: true,
-        })),
+          is_headliner: isHeadliner,
+          artist_image_url: match?.image_url || null,
+          artist_id: match?.id || null,
+        };
+      };
+
+      const artistRows = [
+        ...newArtists.map((name, i) => buildArtistRow(parent.id, name, i === 0)),
+        ...insertedSets.map((set, i) => buildArtistRow(set.id, newArtists[i], true)),
       ];
 
       const { error: artistError } = await supabase
