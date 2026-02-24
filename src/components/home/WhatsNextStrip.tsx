@@ -124,15 +124,44 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
   const deduplicatedMineShows = useMemo(() => {
     const norm = (s: string) => s.trim().toLowerCase();
     const seen = new Map<string, UpcomingShow>();
+    // Track venue+date combos to catch same-event duplicates with different artist names
+    const venueDate = new Map<string, UpcomingShow>();
+
     for (const show of upcomingShows) {
-      const key = `${norm(show.artist_name)}|${show.show_date ?? ""}`;
-      const existing = seen.get(key);
-      if (!existing || show.created_at < existing.created_at) {
-        seen.set(key, show);
+      const artistKey = `${norm(show.artist_name)}|${show.show_date ?? ""}`;
+      const existingByArtist = seen.get(artistKey);
+      if (!existingByArtist || show.created_at > existingByArtist.created_at) {
+        seen.set(artistKey, show);
+      }
+
+      // Also dedupe by venue+date (catches "Beyond Wonderland" vs full lineup)
+      if (show.venue_name && show.show_date) {
+        const vdKey = `${norm(show.venue_name)}|${show.show_date}`;
+        const existingByVenue = venueDate.get(vdKey);
+        if (!existingByVenue || show.created_at > existingByVenue.created_at) {
+          venueDate.set(vdKey, show);
+        }
       }
     }
+
+    // Merge: keep the venue+date winner if it conflicts with an artist-key entry
+    const finalMap = new Map<string, UpcomingShow>();
+    for (const show of seen.values()) {
+      finalMap.set(show.id, show);
+    }
+    // Remove entries that lost the venue+date dedup
+    for (const [, winner] of venueDate) {
+      // Remove any other show with same venue+date that isn't the winner
+      for (const [id, s] of finalMap) {
+        if (id !== winner.id && s.show_date === winner.show_date && s.venue_name && norm(s.venue_name) === norm(winner.venue_name!)) {
+          finalMap.delete(id);
+        }
+      }
+      finalMap.set(winner.id, winner);
+    }
+
     const today = startOfToday();
-    return Array.from(seen.values())
+    return Array.from(finalMap.values())
       .filter((show) => {
         if (!show.show_date) return true;
         try { return !isAfter(today, parseISO(show.show_date)); } catch { return true; }
