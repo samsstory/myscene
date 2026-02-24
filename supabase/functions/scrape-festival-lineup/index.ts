@@ -50,7 +50,7 @@ const FIRECRAWL_SCHEMA = {
 async function scrapeWithFirecrawl(url: string, apiKey: string) {
   console.log("Attempting Firecrawl extraction for:", url);
 
-  // Step 1: Get markdown content
+  // Scrape page as markdown (reliable, gets all content)
   const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
     headers: {
@@ -71,36 +71,11 @@ async function scrapeWithFirecrawl(url: string, apiKey: string) {
   }
 
   const markdown = data.data?.markdown || data.markdown || null;
-
-  // Step 2: Try Firecrawl /extract endpoint for structured data
-  let json = null;
-  try {
-    const extractResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url,
-        formats: ["extract"],
-        extract: { schema: FIRECRAWL_SCHEMA },
-      }),
-    });
-    if (extractResp.ok) {
-      const extractData = await extractResp.json();
-      json = extractData.data?.extract || extractData.extract || null;
-      console.log("Firecrawl extract result:", JSON.stringify(json)?.slice(0, 200));
-    }
-  } catch (e) {
-    console.log("Firecrawl extract failed, will use LLM fallback:", e);
-  }
-
-  return { json, markdown };
+  return { markdown };
 }
 
 async function extractWithLLM(markdown: string, url: string): Promise<ScrapeResult | null> {
-  console.log("Falling back to LLM extraction");
+  console.log("Extracting lineup via LLM...");
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -117,11 +92,11 @@ async function extractWithLLM(markdown: string, url: string): Promise<ScrapeResu
         {
           role: "system",
           content:
-            "Extract festival lineup data from the provided webpage content. Return structured data using the provided tool.",
+            "Extract festival lineup data from the provided webpage content. You MUST extract EVERY artist listed — do not truncate or summarize. Return structured data using the provided tool.",
         },
         {
           role: "user",
-          content: `Extract the festival name, year, dates, venue, and complete artist lineup from this page:\n\nURL: ${url}\n\n${markdown.slice(0, 30000)}`,
+          content: `Extract the festival name, year, dates, venue, and the COMPLETE artist lineup from this page. Include ALL artists, even if there are hundreds.\n\nURL: ${url}\n\n${markdown.slice(0, 60000)}`,
         },
       ],
       tools: [
@@ -149,7 +124,9 @@ async function extractWithLLM(markdown: string, url: string): Promise<ScrapeResu
   if (!toolCall) return null;
 
   try {
-    return JSON.parse(toolCall.function.arguments);
+    const parsed = JSON.parse(toolCall.function.arguments);
+    console.log(`LLM extracted ${parsed.artists?.length ?? 0} artists`);
+    return parsed;
   } catch {
     console.error("Failed to parse LLM tool call arguments");
     return null;
@@ -163,19 +140,6 @@ async function fuzzyMatchVenue(
 ): Promise<{ venue_id: string; name: string; location: string } | null> {
   if (!venueName) return null;
 
-  const resp = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/similarity`,
-    {
-      method: "POST",
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-      },
-      // We'll use a direct query instead
-    },
-  );
-  // Use a direct PostgREST query with trigram similarity
   const query = `${supabaseUrl}/rest/v1/venues?select=id,name,location&name=ilike.*${encodeURIComponent(venueName.slice(0, 50))}*&limit=5`;
   const venueResp = await fetch(query, {
     headers: {
@@ -189,14 +153,11 @@ async function fuzzyMatchVenue(
   const venues = await venueResp.json();
   if (!venues.length) return null;
 
-  // Find best match by simple substring similarity
   const lower = venueName.toLowerCase().trim();
   const best = venues.reduce(
     (best: any, v: any) => {
       const name = (v.name || "").toLowerCase().trim();
-      // Exact match gets highest score
       if (name === lower) return { ...v, score: 1 };
-      // Contains match
       if (name.includes(lower) || lower.includes(name)) {
         const score = Math.min(name.length, lower.length) / Math.max(name.length, lower.length);
         return score > (best?.score || 0) ? { ...v, score } : best;
@@ -241,22 +202,18 @@ Deno.serve(async (req) => {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    // Step 1: Scrape with Firecrawl JSON schema
-    const { json: firecrawlJson, markdown } = await scrapeWithFirecrawl(formattedUrl, firecrawlKey);
+    // Step 1: Scrape markdown with Firecrawl
+    const { markdown } = await scrapeWithFirecrawl(formattedUrl, firecrawlKey);
 
-    let result: ScrapeResult | null = null;
-
-    // Step 2: Check quality of Firecrawl extraction
-    if (firecrawlJson?.event_name && firecrawlJson?.artists?.length >= 3) {
-      console.log(`Firecrawl extracted ${firecrawlJson.artists.length} artists — using directly`);
-      result = firecrawlJson;
-    } else if (markdown) {
-      // Step 3: Fallback to LLM
-      console.log(
-        `Firecrawl JSON had ${firecrawlJson?.artists?.length ?? 0} artists — falling back to LLM`,
+    if (!markdown) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Could not retrieve page content" }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
-      result = await extractWithLLM(markdown, formattedUrl);
     }
+
+    // Step 2: Extract structured data via LLM (handles 100+ artists reliably)
+    const result = await extractWithLLM(markdown, formattedUrl);
 
     if (!result || !result.event_name || !result.artists?.length) {
       return new Response(
