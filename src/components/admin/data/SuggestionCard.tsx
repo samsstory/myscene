@@ -43,10 +43,18 @@ export function SuggestionCard({
   onResolve,
 }: {
   suggestion: Suggestion;
-  onResolve: (id: string, status: "approved" | "dismissed") => void;
+  onResolve: (id: string, status: "approved" | "dismissed", edits?: Record<string, Partial<VenueRow>>) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const editsRef = useRef<Record<string, Partial<VenueRow>>>({});
   const Icon = TYPE_ICONS[s.suggestion_type] || Star;
+
+  const handleApprove = async () => {
+    setMerging(true);
+    await onResolve(s.id, "approved", editsRef.current);
+    setMerging(false);
+  };
 
   return (
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
@@ -64,10 +72,10 @@ export function SuggestionCard({
         <div className="flex items-center gap-1 shrink-0">
           {s.status === "pending" && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-400 hover:text-emerald-300" onClick={() => onResolve(s.id, "approved")}>
-                <CheckCircle2 className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-400 hover:text-emerald-300" onClick={handleApprove} disabled={merging}>
+                {merging ? <div className="h-4 w-4 border-2 border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => onResolve(s.id, "dismissed")}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => onResolve(s.id, "dismissed")} disabled={merging}>
                 <XCircle className="h-4 w-4" />
               </Button>
             </>
@@ -77,7 +85,7 @@ export function SuggestionCard({
           </Button>
         </div>
       </div>
-      {expanded && renderExpanded(s)}
+      {expanded && renderExpanded(s, editsRef)}
     </div>
   );
 }
@@ -161,9 +169,12 @@ const VENUE_FIELDS: { key: keyof VenueRow; label: string }[] = [
   { key: "country", label: "Country" },
 ];
 
-function EditableVenueTable({ canonical, duplicates }: { canonical: VenueRow; duplicates: VenueRow[] }) {
+function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: VenueRow; duplicates: VenueRow[]; editsRef: React.MutableRefObject<Record<string, Partial<VenueRow>>> }) {
   const allRows = [canonical, ...duplicates];
   const [edits, setEdits] = useState<Record<string, Partial<VenueRow>>>({});
+
+  // Keep ref in sync
+  useEffect(() => { editsRef.current = edits; }, [edits, editsRef]);
 
   const getValue = (row: VenueRow, key: keyof VenueRow) => {
     return edits[row.id]?.[key] !== undefined ? edits[row.id][key] : row[key];
@@ -321,11 +332,11 @@ function renderHeader(s: Suggestion) {
   return <p className="text-sm font-medium">{s.title}</p>;
 }
 
-function renderExpanded(s: Suggestion) {
+function renderExpanded(s: Suggestion, editsRef: React.MutableRefObject<Record<string, Partial<VenueRow>>>) {
   const d = s.details as any;
 
   if (s.suggestion_type === "duplicate" && s.entity_type === "venue" && d.canonical) {
-    return <EditableVenueTable canonical={d.canonical} duplicates={d.duplicates || []} />;
+    return <EditableVenueTable canonical={d.canonical} duplicates={d.duplicates || []} editsRef={editsRef} />;
   }
 
   return (

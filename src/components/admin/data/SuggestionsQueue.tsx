@@ -5,6 +5,16 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Scan } from "lucide-react";
 import { SuggestionCard } from "./SuggestionCard";
 
+interface VenueRow {
+  id: string;
+  name: string;
+  city: string | null;
+  country: string | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 interface Suggestion {
   id: string;
   entity_type: string;
@@ -52,7 +62,104 @@ export function SuggestionsQueue() {
     }
   };
 
-  const resolve = async (id: string, status: "approved" | "dismissed") => {
+  const resolve = async (id: string, status: "approved" | "dismissed", edits?: Record<string, Partial<VenueRow>>) => {
+    // Find the suggestion to check if it's a venue duplicate that needs merging
+    const suggestion = suggestions.find(s => s.id === id);
+    
+    if (status === "approved" && suggestion?.suggestion_type === "duplicate" && suggestion?.entity_type === "venue") {
+      try {
+        const d = suggestion.details as any;
+        const canonical: VenueRow = d.canonical;
+        const duplicates: VenueRow[] = d.duplicates || [];
+        const canonicalId = canonical.id;
+        const duplicateIds = duplicates.map((dup: VenueRow) => dup.id);
+
+        // 1. Update canonical venue with any edits
+        const canonEdits = edits?.[canonicalId];
+        if (canonEdits && Object.keys(canonEdits).length > 0) {
+          const updatePayload: Record<string, unknown> = {};
+          if (canonEdits.name !== undefined) updatePayload.name = canonEdits.name;
+          if (canonEdits.location !== undefined) updatePayload.location = canonEdits.location;
+          if (canonEdits.city !== undefined) updatePayload.city = canonEdits.city;
+          if (canonEdits.country !== undefined) updatePayload.country = canonEdits.country;
+          if (canonEdits.latitude !== undefined) updatePayload.latitude = canonEdits.latitude;
+          if (canonEdits.longitude !== undefined) updatePayload.longitude = canonEdits.longitude;
+
+          const { error: updateErr } = await supabase
+            .from("venues")
+            .update(updatePayload)
+            .eq("id", canonicalId);
+          if (updateErr) throw updateErr;
+        }
+
+        // 2. Reassign shows from duplicates to canonical
+        for (const dupId of duplicateIds) {
+          await supabase
+            .from("shows")
+            .update({ venue_id: canonicalId } as any)
+            .eq("venue_id", dupId);
+        }
+
+        // 3. Reassign user_venues: merge into canonical, delete duplicate entries
+        for (const dupId of duplicateIds) {
+          // Get user_venues pointing to this duplicate
+          const { data: dupUserVenues } = await supabase
+            .from("user_venues")
+            .select("user_id, show_count, last_show_date")
+            .eq("venue_id", dupId);
+
+          if (dupUserVenues && dupUserVenues.length > 0) {
+            for (const duv of dupUserVenues) {
+              // Check if user already has a record for canonical
+              const { data: existing } = await supabase
+                .from("user_venues")
+                .select("show_count, last_show_date")
+                .eq("user_id", duv.user_id)
+                .eq("venue_id", canonicalId)
+                .maybeSingle();
+
+              if (existing) {
+                // Merge counts
+                await supabase
+                  .from("user_venues")
+                  .update({
+                    show_count: existing.show_count + duv.show_count,
+                    last_show_date: duv.last_show_date && existing.last_show_date
+                      ? (duv.last_show_date > existing.last_show_date ? duv.last_show_date : existing.last_show_date)
+                      : duv.last_show_date || existing.last_show_date,
+                  })
+                  .eq("user_id", duv.user_id)
+                  .eq("venue_id", canonicalId);
+              } else {
+                // Move to canonical
+                await supabase
+                  .from("user_venues")
+                  .update({ venue_id: canonicalId })
+                  .eq("user_id", duv.user_id)
+                  .eq("venue_id", dupId);
+              }
+            }
+            // Delete any remaining duplicate user_venues
+            await supabase
+              .from("user_venues")
+              .delete()
+              .eq("venue_id", dupId);
+          }
+        }
+
+        // 4. Delete duplicate venues
+        for (const dupId of duplicateIds) {
+          await supabase.from("venues").delete().eq("id", dupId);
+        }
+
+        toast({ title: "Merge complete", description: `Merged ${duplicateIds.length} duplicate(s) into "${canonEdits?.name || canonical.name}".` });
+      } catch (err: any) {
+        toast({ title: "Merge failed", description: err.message, variant: "destructive" });
+        return;
+      }
+    }
+
+    // Mark suggestion as resolved
     const { data: { session } } = await supabase.auth.getSession();
     await (supabase.from("data_suggestions" as any).update({
       status,
