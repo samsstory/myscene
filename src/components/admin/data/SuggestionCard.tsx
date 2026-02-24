@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Star, MapPin, Music, Link2, Search } from "lucide-react";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface Suggestion {
   id: string;
@@ -81,58 +82,43 @@ export function SuggestionCard({
   );
 }
 
-// ─── Address Autocomplete ──────────────────────────────────────────────
+// ─── Venue Search (Google Places + Foursquare via search-venues) ─────
 
-interface AddressResult {
+interface VenueResult {
   name: string;
-  city: string | null;
-  country: string | null;
   location: string;
-  latitude: number;
-  longitude: number;
 }
 
-function AddressSearch({ onSelect }: { onSelect: (r: AddressResult) => void }) {
+function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<AddressResult[]>([]);
+  const [results, setResults] = useState<VenueResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const search = useCallback(async (q: string) => {
-    if (q.length < 3) { setResults([]); return; }
-    try {
-      const { MAPBOX_TOKEN } = await import("@/lib/mapbox");
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&types=poi,address,place&limit=5`
-      );
-      const data = await res.json();
-      const mapped: AddressResult[] = (data.features || []).map((f: any) => {
-        const ctx = (f.context || []) as Array<{ id: string; text: string }>;
-        const city = ctx.find((c: any) => c.id.startsWith("place"))?.text || null;
-        const country = ctx.find((c: any) => c.id.startsWith("country"))?.text || null;
-        return {
-          name: f.text,
-          city,
-          country,
-          location: f.place_name,
-          latitude: f.center[1],
-          longitude: f.center[0],
-        };
-      });
-      setResults(mapped);
-      setOpen(true);
-    } catch { setResults([]); }
-  }, []);
 
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (query.length >= 3) {
-      timerRef.current = setTimeout(() => search(query), 300);
-    } else {
-      setResults([]);
-    }
+    if (query.length < 3) { setResults([]); return; }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("search-venues", {
+          body: { searchTerm: query, showType: "venue" },
+        });
+        if (error) throw error;
+        const venues: VenueResult[] = (data?.primary || [])
+          .concat(data?.other || [])
+          .map((v: any) => ({ name: v.name, location: v.location }));
+        setResults(venues.slice(0, 8));
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
     return () => clearTimeout(timerRef.current);
-  }, [query, search]);
+  }, [query]);
 
   return (
     <div className="relative">
@@ -141,11 +127,12 @@ function AddressSearch({ onSelect }: { onSelect: (r: AddressResult) => void }) {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search address…"
+          placeholder="Search venue name…"
           className="h-7 text-xs pl-7 bg-black/20 border-white/[0.08]"
           onFocus={() => results.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
         />
+        {loading && <div className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 border border-muted-foreground/40 border-t-foreground rounded-full animate-spin" />}
       </div>
       {open && results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-md border border-white/[0.1] bg-popover shadow-lg max-h-48 overflow-y-auto">
@@ -189,16 +176,25 @@ function EditableVenueTable({ canonical, duplicates }: { canonical: VenueRow; du
     }));
   };
 
-  const applyAddress = (rowId: string, r: AddressResult) => {
+  const applyVenue = async (rowId: string, r: VenueResult) => {
+    // Look up the cached venue in the DB to get coordinates
+    const { data: venue } = await supabase
+      .from("venues")
+      .select("name, location, city, country, latitude, longitude")
+      .eq("name", r.name)
+      .eq("location", r.location)
+      .maybeSingle();
+
     setEdits((prev) => ({
       ...prev,
       [rowId]: {
         ...prev[rowId],
+        name: r.name,
         location: r.location,
-        city: r.city,
-        country: r.country,
-        latitude: r.latitude,
-        longitude: r.longitude,
+        city: venue?.city || prev[rowId]?.city || null,
+        country: venue?.country || prev[rowId]?.country || null,
+        latitude: venue?.latitude ? Number(venue.latitude) : prev[rowId]?.latitude || null,
+        longitude: venue?.longitude ? Number(venue.longitude) : prev[rowId]?.longitude || null,
       },
     }));
   };
@@ -206,8 +202,7 @@ function EditableVenueTable({ canonical, duplicates }: { canonical: VenueRow; du
   return (
     <div className="mt-2 space-y-3">
       {/* Table header */}
-      <div className="grid gap-1" style={{ gridTemplateColumns: "auto 1fr 1.5fr 1fr 1fr" }}>
-        <div className="w-5" />
+      <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 1.5fr 1fr 1fr" }}>
         {VENUE_FIELDS.map((f) => (
           <div key={f.key} className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">
             {f.label}
@@ -244,8 +239,8 @@ function EditableVenueTable({ canonical, duplicates }: { canonical: VenueRow; du
               ))}
             </div>
 
-            {/* Address search */}
-            <AddressSearch onSelect={(r) => applyAddress(row.id, r)} />
+            {/* Venue search */}
+            <VenueSearch onSelect={(r) => applyVenue(row.id, r)} />
           </div>
         );
       })}
@@ -333,7 +328,6 @@ function renderExpanded(s: Suggestion) {
     return <EditableVenueTable canonical={d.canonical} duplicates={d.duplicates || []} />;
   }
 
-  // Fallback: raw JSON
   return (
     <pre className="mt-3 text-xs text-muted-foreground bg-black/20 rounded p-2 overflow-x-auto">
       {JSON.stringify(d, null, 2)}
