@@ -11,6 +11,12 @@ export interface ShareShowParams {
   edmtrainLink?: string;
 }
 
+export interface ShareFestivalInviteParams {
+  showId: string;        // parent festival show id
+  eventName: string;
+  showDate: string;      // ISO date string to derive year
+}
+
 // Fetch the current user's referral code
 function useReferralCode() {
   return useQuery({
@@ -67,9 +73,7 @@ export function useShareShow() {
           await navigator.share({ title: shareTitle, text, url });
           return;
         } catch (err: any) {
-          // User cancelled — swallow AbortError silently
           if (err?.name === "AbortError") return;
-          // Otherwise fall through to clipboard
         }
       }
 
@@ -78,12 +82,86 @@ export function useShareShow() {
         await navigator.clipboard.writeText(url);
         toast.success("Link copied to clipboard! 🔗");
       } catch {
-        // Last resort: show the URL in a toast
         toast.info(url, { duration: 6000 });
       }
     },
     [profile]
   );
 
-  return { shareShow };
+  const shareFestivalInvite = useCallback(
+    async ({ showId, eventName, showDate }: ShareFestivalInviteParams) => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Find the festival lineup by name + year
+        const showYear = new Date(showDate).getFullYear();
+        const { data: lineup } = await supabase
+          .from("festival_lineups")
+          .select("id")
+          .eq("event_name", eventName)
+          .eq("year", showYear)
+          .maybeSingle();
+
+        if (!lineup) {
+          toast.error("Couldn't find festival lineup to share");
+          return;
+        }
+
+        // Get the user's artists from child sets
+        const { data: childShows } = await supabase
+          .from("shows")
+          .select("id, show_artists(artist_name, artist_image_url)")
+          .eq("parent_show_id", showId)
+          .eq("user_id", user.id);
+
+        const selectedArtists = (childShows || []).map((s: any) => ({
+          name: s.show_artists?.[0]?.artist_name || "Artist",
+          image_url: s.show_artists?.[0]?.artist_image_url || null,
+        }));
+
+        const { data: invite, error } = await supabase
+          .from("festival_invites")
+          .insert({
+            created_by: user.id,
+            festival_lineup_id: lineup.id,
+            festival_name: eventName,
+            selected_artists: selectedArtists,
+          })
+          .select("id")
+          .single();
+
+        if (error || !invite) {
+          toast.error("Failed to create invite");
+          return;
+        }
+
+        const refCode = profile?.referral_code ?? "";
+        const refParam = refCode ? `&ref=${refCode}` : "";
+        const url = `https://tryscene.app/?show=${invite.id}&type=festival-invite${refParam}`;
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: `Join me at ${eventName} on Scene`,
+              text: `I just claimed ${eventName} on Scene — ${selectedArtists.length} sets! Who did you see? 🎶`,
+              url,
+            });
+            return;
+          } catch (err: any) {
+            if (err?.name === "AbortError") return;
+          }
+        }
+
+        await navigator.clipboard.writeText(url);
+        toast.success("Festival invite link copied! 🔗");
+      } catch (err) {
+        console.error("Share festival error:", err);
+        toast.error("Something went wrong");
+      }
+    },
+    [profile]
+  );
+
+  return { shareShow, shareFestivalInvite };
 }
