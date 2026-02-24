@@ -4,11 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import type { QuickAddPrefill } from "@/components/QuickAddSheet";
+import { isUserUploadedImage, resolveArtistImage } from "@/lib/artist-image-utils";
 
-function prefillFromShow(show: UpcomingShow): QuickAddPrefill {
+async function prefillFromShow(show: UpcomingShow): Promise<QuickAddPrefill> {
+  let imageUrl = show.artist_image_url;
+  if (isUserUploadedImage(imageUrl)) {
+    imageUrl = (await resolveArtistImage(show.artist_name)) ?? null;
+  }
   return {
     artistName: show.artist_name,
-    artistImageUrl: show.artist_image_url,
+    artistImageUrl: imageUrl,
     venueName: show.venue_name,
     venueLocation: show.venue_location,
     showDate: show.show_date,
@@ -39,10 +44,10 @@ export function usePastLogQueue(upcomingShows: UpcomingShow[], refetch: () => vo
     return Array.from(seen.values());
   }, [upcomingShows]);
 
-  const advanceQueue = useCallback(() => {
+  const advanceQueue = useCallback(async () => {
     const next = pastLogQueueRef.current.shift();
     if (next) {
-      setPastLogPrefill(prefillFromShow(next));
+      setPastLogPrefill(await prefillFromShow(next));
       setPastLogPosition((p) => p + 1);
       setPastLogOpen(false);
       setTimeout(() => setPastLogOpen(true), 300);
@@ -52,13 +57,13 @@ export function usePastLogQueue(upcomingShows: UpcomingShow[], refetch: () => vo
     }
   }, []);
 
-  const startPastLogQueue = useCallback(() => {
+  const startPastLogQueue = useCallback(async () => {
     if (pastShows.length === 0) return;
     pastLogQueueRef.current = [...pastShows];
     const first = pastLogQueueRef.current.shift()!;
     setPastLogTotal(pastShows.length);
     setPastLogPosition(1);
-    setPastLogPrefill(prefillFromShow(first));
+    setPastLogPrefill(await prefillFromShow(first));
     setPastLogOpen(true);
   }, [pastShows]);
 
