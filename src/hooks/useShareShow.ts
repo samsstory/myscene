@@ -149,7 +149,7 @@ export function useShareShow() {
         const showYear = new Date(showDate).getFullYear();
         const { data: lineup } = await supabase
           .from("festival_lineups")
-          .select("id")
+          .select("id, artists")
           .eq("event_name", eventName)
           .eq("year", showYear)
           .maybeSingle();
@@ -165,10 +165,27 @@ export function useShareShow() {
           .eq("parent_show_id", showId)
           .eq("user_id", user.id);
 
-        const selectedArtists = (childShows || []).map((s: any) => ({
-          name: s.show_artists?.[0]?.artist_name || "Artist",
-          image_url: s.show_artists?.[0]?.artist_image_url || null,
-        }));
+        // Build a case-insensitive map from lineup artist names so stored
+        // names always match the canonical lineup casing.
+        const lineupArtists: any[] = (() => {
+          if (!lineup.artists) return [];
+          const raw = typeof lineup.artists === "string" ? JSON.parse(lineup.artists) : lineup.artists;
+          return Array.isArray(raw) ? raw : [];
+        })();
+        const canonicalName = new Map<string, string>(
+          lineupArtists.map((a: any) => {
+            const name = typeof a === "string" ? a : a.name;
+            return [name.toLowerCase(), name];
+          })
+        );
+
+        const selectedArtists = (childShows || []).map((s: any) => {
+          const rawName = s.show_artists?.[0]?.artist_name || "Artist";
+          return {
+            name: canonicalName.get(rawName.toLowerCase()) || rawName,
+            image_url: s.show_artists?.[0]?.artist_image_url || null,
+          };
+        });
 
         await createAndShareInvite(lineup.id, eventName, selectedArtists);
       } catch (err) {
