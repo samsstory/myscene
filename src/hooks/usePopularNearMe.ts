@@ -105,13 +105,26 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
         .eq("show_type", showType)
         .is("parent_show_id", null);
 
-      if (nearbyVenueIds) {
+      // For city scope with few venues, use .in() filter. For country/world, filter client-side
+      // to avoid exceeding URL length limits with too many venue IDs.
+      if (nearbyVenueIds && nearbyVenueIds.size <= 200) {
         query = query.in("venue_id", [...nearbyVenueIds]);
       }
 
-      const { data: showRows } = await query;
+      const { data: rawShowRows } = await query;
 
-      if (cancelled || !showRows || showRows.length === 0) {
+      if (cancelled || !rawShowRows || rawShowRows.length === 0) {
+        setItems([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Client-side venue filter for large sets (country scope)
+      const showRows = nearbyVenueIds && nearbyVenueIds.size > 200
+        ? rawShowRows.filter(s => s.venue_id && nearbyVenueIds.has(s.venue_id))
+        : rawShowRows;
+
+      if (showRows.length === 0) {
         setItems([]);
         setIsLoading(false);
         return;
