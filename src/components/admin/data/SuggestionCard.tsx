@@ -90,63 +90,68 @@ export function SuggestionCard({
   );
 }
 
-// ─── Venue Search (Google Places + Foursquare via search-venues) ─────
+// ─── Mapbox Geocoding for Location Search ───────────────────────────
 
-interface VenueResult {
+import { MAPBOX_TOKEN } from "@/lib/mapbox";
+
+interface GeoResult {
   name: string;
-  location: string;
+  fullAddress: string;
   city?: string;
   country?: string;
+  latitude: number;
+  longitude: number;
 }
-
-// ─── Inline Location Search Input ──────────────────────────────────────
-// Acts as both a text input for the location value AND a search-as-you-type
-// combo that queries Google Places / Foursquare via search-venues.
 
 function LocationSearchInput({
   value,
   onChange,
-  onSelect,
-  venueName,
+  onSelectGeo,
   placeholder,
   className,
 }: {
   value: string;
   onChange: (val: string) => void;
-  onSelect: (r: VenueResult) => void;
-  venueName?: string;
+  onSelectGeo: (r: GeoResult) => void;
   placeholder?: string;
   className?: string;
 }) {
-  const [results, setResults] = useState<VenueResult[]>([]);
+  const [results, setResults] = useState<GeoResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (value.length < 3) { setResults([]); return; }
-    // Use the venue name as the search term so the API can match by name,
-    // rather than searching by city/address which gets filtered out.
-    const searchTerm = venueName && venueName.length >= 2 ? venueName : value;
+    if (value.length < 2) { setResults([]); return; }
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke("search-venues", {
-          body: { searchTerm, showType: "venue" },
+        const encoded = encodeURIComponent(value.trim());
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&limit=6&types=place,poi,address,locality,neighborhood,region`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const features = data.features || [];
+        const mapped: GeoResult[] = features.map((f: any) => {
+          const ctx = f.context || [];
+          const getCtx = (prefix: string) => ctx.find((c: any) => c.id?.startsWith(prefix))?.text || "";
+          return {
+            name: f.text || "",
+            fullAddress: f.place_name || "",
+            city: getCtx("place") || (f.place_type?.includes("place") ? f.text : "") || getCtx("locality") || "",
+            country: getCtx("country") || "",
+            latitude: f.center?.[1] || 0,
+            longitude: f.center?.[0] || 0,
+          };
         });
-        if (error) throw error;
-        const venues: VenueResult[] = (data?.suggestions || data?.primary || [])
-          .concat(data?.other || [])
-          .map((v: any) => ({ name: v.name, location: v.location, city: v.city, country: v.country }));
-        setResults(venues.slice(0, 8));
+        setResults(mapped);
         setOpen(true);
       } catch {
         setResults([]);
       } finally {
         setLoading(false);
       }
-    }, 400);
+    }, 300);
     return () => clearTimeout(timerRef.current);
   }, [value]);
 
@@ -170,10 +175,10 @@ function LocationSearchInput({
             <button
               key={i}
               className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors"
-              onMouseDown={(e) => { e.preventDefault(); onSelect(r); setOpen(false); }}
+              onMouseDown={(e) => { e.preventDefault(); onSelectGeo(r); setOpen(false); }}
             >
               <div className="font-medium text-foreground">{r.name}</div>
-              <div className="text-muted-foreground text-[10px] truncate">{r.location}</div>
+              <div className="text-muted-foreground text-[10px] truncate">{r.fullAddress}</div>
             </button>
           ))}
         </div>
@@ -201,24 +206,16 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
     }));
   };
 
-  const applyVenue = async (rowId: string, r: VenueResult) => {
-    const { data: venue } = await supabase
-      .from("venues")
-      .select("name, location, city, country, latitude, longitude")
-      .eq("name", r.name)
-      .eq("location", r.location)
-      .maybeSingle();
-
+  const applyGeo = (rowId: string, r: GeoResult) => {
     setEdits((prev) => ({
       ...prev,
       [rowId]: {
         ...prev[rowId],
-        name: r.name,
-        location: r.location,
-        city: venue?.city || r.city || prev[rowId]?.city || null,
-        country: venue?.country || r.country || prev[rowId]?.country || null,
-        latitude: venue?.latitude ? Number(venue.latitude) : prev[rowId]?.latitude || null,
-        longitude: venue?.longitude ? Number(venue.longitude) : prev[rowId]?.longitude || null,
+        location: r.fullAddress,
+        city: r.city || prev[rowId]?.city || null,
+        country: r.country || prev[rowId]?.country || null,
+        latitude: r.latitude || prev[rowId]?.latitude || null,
+        longitude: r.longitude || prev[rowId]?.longitude || null,
       },
     }));
   };
@@ -259,9 +256,8 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
               <LocationSearchInput
                 value={String(getValue(row, "location") ?? "")}
                 onChange={(val) => setValue(row.id, "location", val)}
-                onSelect={(r) => applyVenue(row.id, r)}
-                venueName={String(getValue(row, "name") ?? "")}
-                placeholder="Search or type location…"
+                onSelectGeo={(r) => applyGeo(row.id, r)}
+                placeholder="Search city or address…"
                 className="h-6 text-xs bg-black/20 border-white/[0.08]"
               />
             </div>
