@@ -176,9 +176,11 @@ async function searchFoursquare(
 
 function formatFoursquareLocation(venue: FoursquareVenue): string {
   const loc = venue.location;
+  // Prefer the full formatted address (e.g. "34 NE 11th St, Miami, FL 33132")
+  if (loc.formatted_address) return loc.formatted_address;
   if (loc.locality && loc.region) return `${loc.locality}, ${loc.region}`;
   if (loc.locality && loc.country) return `${loc.locality}, ${loc.country}`;
-  return loc.formatted_address || loc.locality || '';
+  return loc.locality || '';
 }
 
 // ─── Google Places Search (fallback) ─────────────────────────────────
@@ -244,14 +246,8 @@ async function searchGooglePlaces(
 }
 
 function formatGoogleLocation(place: GooglePlace): string {
-  const parts = place.formatted_address.split(', ');
-  if (parts.length >= 3) {
-    const city = parts[parts.length - 3] || '';
-    const stateZip = parts[parts.length - 2] || '';
-    const state = stateZip.split(' ')[0] || '';
-    if (city && state) return `${city}, ${state}`;
-  }
-  return place.formatted_address;
+  // Return the full formatted address (e.g. "34 NE 11th St, Miami, FL 33132, United States")
+  return place.formatted_address || '';
 }
 
 // ─── Main Handler ────────────────────────────────────────────────────
