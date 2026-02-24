@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, Tent } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PhotoSelectStep from "./bulk-upload/PhotoSelectStep";
 import BulkReviewStep from "./bulk-upload/BulkReviewStep";
@@ -13,6 +13,7 @@ import { PhotoWithExif, VenueSuggestion, cleanupPhotoUrls } from "@/lib/exif-uti
 import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
 import { useTextImportUpload } from "@/hooks/useTextImportUpload";
+import LineupChoiceStep from "./festival-claim/LineupChoiceStep";
 
 interface BulkUploadFlowProps {
   open: boolean;
@@ -23,7 +24,7 @@ interface BulkUploadFlowProps {
   onAddManually?: () => void;
 }
 
-type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice';
+type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice' | 'lineup-search' | 'lineup-grid';
 
 const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
@@ -143,6 +144,10 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
       setStep('text-import');
     } else if (step === 'lineup-choice') {
       setStep('select');
+    } else if (step === 'lineup-search') {
+      setStep('lineup-choice');
+    } else if (step === 'lineup-grid') {
+      setStep('lineup-search');
     }
   };
 
@@ -191,6 +196,10 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         return 'Review Shows';
       case 'lineup-choice':
         return 'Add from Lineup';
+      case 'lineup-search':
+        return 'Search Festivals';
+      case 'lineup-grid':
+        return 'Select Artists';
       default:
         return 'Add Shows';
     }
@@ -239,7 +248,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center gap-3 mb-4">
-            {(step === 'smart-match' || step === 'review' || step === 'editor' || step === 'text-import' || step === 'text-review' || step === 'lineup-choice') && (
+            {(step === 'smart-match' || step === 'review' || step === 'editor' || step === 'text-import' || step === 'text-review' || step === 'lineup-choice' || step === 'lineup-search' || step === 'lineup-grid') && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -298,10 +307,10 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         )}
 
         {step === 'lineup-choice' && (
-          <div className="text-center py-12 space-y-3">
-            <Tent className="h-10 w-10 text-muted-foreground mx-auto" />
-            <p className="text-muted-foreground text-sm">Lineup flow coming in Step 3</p>
-          </div>
+          <LineupChoiceStep
+            onUploadPhoto={() => {/* Step 6 - future */}}
+            onSearchDatabase={() => setStep('lineup-search')}
+          />
         )}
 
         {step === 'success' && (
