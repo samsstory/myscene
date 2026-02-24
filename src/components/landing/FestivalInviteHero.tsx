@@ -58,12 +58,18 @@ export default function FestivalInviteHero({ inviteId, refCode }: FestivalInvite
   const inviterDisplay = data?.inviter?.full_name || (data?.inviter?.username ? `@${data.inviter.username}` : "A friend");
   const firstName = inviterDisplay.startsWith("@") ? inviterDisplay : inviterDisplay.split(" ")[0];
 
-  const sharerPicks = data?.invite.selected_artists?.map((a) => a.name) || [];
+  const rawSharerPicks = data?.invite.selected_artists?.map((a) => a.name) || [];
   const allLineupArtists: LineupArtist[] = (() => {
     if (!data?.lineup?.artists) return [];
     const raw = typeof data.lineup.artists === "string" ? JSON.parse(data.lineup.artists) : data.lineup.artists;
     if (!Array.isArray(raw)) return [];
     return raw.map((a: any) => ({ name: typeof a === "string" ? a : a.name, day: a.day, stage: a.stage }));
+  })();
+
+  // Case-insensitive match: map sharer picks to lineup artist names
+  const sharerPicks = (() => {
+    const lineupLower = new Map(allLineupArtists.map((a) => [a.name.toLowerCase(), a.name]));
+    return rawSharerPicks.map((name) => lineupLower.get(name.toLowerCase()) || name);
   })();
 
   const handleClaim = async (selectedArtists: string[]) => {
