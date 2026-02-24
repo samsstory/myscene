@@ -1,69 +1,103 @@
 
 
-# AI Data Enrichment Scanner
+# Phase 1: Festival Lineups Table + Admin Import UI
 
-Build a backend edge function that scans the database for data quality issues and populates the `data_suggestions` queue for admin review.
+## Overview
 
----
-
-## What It Scans
-
-### 1. Duplicate Venues
-Finds venues with the same name (case-insensitive) that exist as separate records. For example, the database currently has 14 "Austin City Limits" records and "CLUB SPACE" vs "Club Space" as distinct rows.
-
-- Groups venues by `lower(trim(name))`
-- For groups with 2+ records, picks the one with the most metadata (has coordinates, city, country) as the canonical candidate
-- Creates a `duplicate` suggestion with merge candidate IDs
-
-### 2. Venues Missing Metadata
-Finds venues linked to shows but missing critical fields (coordinates, city, or country).
-
-- Only flags venues that are actually referenced by shows (not orphans)
-- Creates a `missing_data` suggestion listing which fields are absent
-
-### 3. Artist Name Variants
-Finds artist names in `show_artists` that are near-duplicates via case differences or slight spelling variations using the existing `pg_trgm` similarity function.
-
-- Groups by `lower(trim(artist_name))` first for exact case mismatches
-- Then uses trigram similarity (threshold 0.7) for fuzzy matches like "Fred again.." vs "Fred Again.."
-- Creates `name_mismatch` suggestions with the variant names and show counts
-
-### 4. Unlinked Shows
-Finds shows that have a `venue_name` but no `venue_id`, and attempts to match them to existing venues.
-
-- Uses `ilike` matching on venue name
-- Creates `missing_data` suggestions with the candidate venue ID for easy linking
+Create a `festival_lineups` reference catalog table and build an admin interface for manually uploading festival lineup data via JSON or CSV. This data will later power the user-facing "claim your festival history" flow.
 
 ---
 
-## Edge Function: `scan-data-quality`
+## Step 1: Database Migration
 
-**File**: `supabase/functions/scan-data-quality/index.ts`
+Create the `festival_lineups` table to store scraped/imported festival data as a flat reference catalog.
 
-- Uses service role key to read all data and insert suggestions
-- Requires admin auth (validates caller has admin role)
-- Clears previous pending suggestions before inserting fresh ones (avoids duplicates on re-scan)
-- Returns a summary: `{ duplicateVenues: 5, missingMetadata: 12, artistVariants: 3, unlinkedShows: 4 }`
-
-### Config
-```toml
-[functions.scan-data-quality]
-verify_jwt = false
+```sql
+CREATE TABLE public.festival_lineups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_name text NOT NULL,
+  year integer NOT NULL,
+  date_start date,
+  date_end date,
+  venue_name text,
+  venue_location text,
+  venue_id uuid REFERENCES venues(id),
+  artists jsonb NOT NULL DEFAULT '[]'::jsonb,
+  source text DEFAULT 'manual',
+  source_url text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(lower(trim(event_name)), year)
+);
 ```
 
+**`artists` JSONB format:**
+```json
+[
+  { "name": "Fred Again..", "day": "Friday", "stage": null },
+  { "name": "Bicep", "day": "Saturday", "stage": null }
+]
+```
+
+**RLS Policies:**
+- SELECT: All authenticated users (they need to browse/search this catalog)
+- INSERT/UPDATE/DELETE: Admins only (`has_role(auth.uid(), 'admin')`)
+
+**Indexes:**
+- GIN index on `artists` for searching artist names within lineups
+- Trigram index on `event_name` for fuzzy festival name search
+
 ---
 
-## Frontend: "Run Scan" Button
+## Step 2: Admin UI -- "Festivals" Sub-Tab
 
-Add a "Run Scan" button to the `SuggestionsQueue` component header that invokes the edge function and refreshes the list.
+Add a new **"Festivals"** tab inside the existing Data tab (`DataTab.tsx`), alongside Venues, Shows, and AI Suggestions.
+
+### Components to create:
+
+**`src/components/admin/data/FestivalsBrowser.tsx`**
+- Table view of all `festival_lineups` records, showing: event name, year, artist count, venue, source
+- Search bar (fuzzy match on event name)
+- Stat pills: total festivals, total unique artists across all lineups
+- Click a row to expand/view the full artist list
+
+**`src/components/admin/data/FestivalImportDialog.tsx`**
+- Dialog/sheet triggered by an "Import Lineups" button
+- Two import modes via tabs:
+  - **JSON mode**: Paste a JSON array matching the schema (event_name, year, artists array, venue info)
+  - **CSV mode**: Paste CSV with columns: `event_name, year, artist_name, day` (one row per artist; grouped by event_name+year on import)
+- Preview step: shows parsed festivals with artist counts before committing
+- "Import" button inserts into `festival_lineups`, deduplicating by event_name + year (upsert -- merges artist arrays if festival already exists)
+- Validation: reject entries missing event_name or year
+
+### Updated file:
+- **`DataTab.tsx`**: Add a 4th tab trigger "Festivals" pointing to `<FestivalsBrowser />`
 
 ---
 
-## Technical Details
+## Step 3: Edit & Delete Support
 
-- The function runs all four scans sequentially (venues are small, ~80 rows; artists ~100 distinct names; shows ~119 rows)
-- Artist fuzzy matching uses SQL `similarity()` from pg_trgm which is already installed
-- Each suggestion includes structured `details` JSON with entity IDs, candidate matches, and missing fields so the admin UI can render actionable cards
-- The function deletes only `pending` suggestions from previous scans before inserting new ones (preserves `approved`/`dismissed` history)
-- No AI/LLM calls needed -- this is pure SQL pattern matching which is more reliable for this data size
+Each festival row in the browser gets:
+- **Edit button**: Opens a dialog to rename the festival, change year/dates, edit venue, or manually add/remove artists from the JSONB array
+- **Delete button**: Removes the lineup record (with confirmation)
+
+---
+
+## Technical Notes
+
+- The `festival_lineups` table is purely reference data -- it is NOT tied to any user's shows. It exists so users can later browse and "claim" shows from it.
+- The `source` column tracks provenance (`manual`, `firecrawl`, `scraper`) for Phase 2.
+- The `venue_id` FK is optional -- if a matching venue exists in the canonical `venues` table it can be linked, otherwise just store the name/location strings.
+- The unique constraint on `(lower(trim(event_name)), year)` prevents duplicate festival entries for the same year.
+
+---
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/` (new) | Create `festival_lineups` table, RLS policies, indexes |
+| `src/components/admin/data/FestivalsBrowser.tsx` (new) | Festival table browser with search, stats, expand |
+| `src/components/admin/data/FestivalImportDialog.tsx` (new) | JSON/CSV import dialog with preview + upsert |
+| `src/components/admin/DataTab.tsx` | Add "Festivals" tab |
 
