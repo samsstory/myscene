@@ -90,9 +90,7 @@ export function SuggestionCard({
   );
 }
 
-// ─── Mapbox Geocoding for Location Search ───────────────────────────
-
-import { MAPBOX_TOKEN } from "@/lib/mapbox";
+// ─── Google Places Search for Location ───────────────────────────────
 
 interface GeoResult {
   name: string;
@@ -107,12 +105,14 @@ function LocationSearchInput({
   value,
   onChange,
   onSelectGeo,
+  venueName,
   placeholder,
   className,
 }: {
   value: string;
   onChange: (val: string) => void;
   onSelectGeo: (r: GeoResult) => void;
+  venueName?: string;
   placeholder?: string;
   className?: string;
 }) {
@@ -124,36 +124,28 @@ function LocationSearchInput({
   useEffect(() => {
     clearTimeout(timerRef.current);
     if (value.length < 2) { setResults([]); return; }
+    // Combine venue name + typed location for best results
+    const query = venueName && !value.toLowerCase().includes(venueName.toLowerCase())
+      ? `${venueName} ${value}`
+      : value;
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const encoded = encodeURIComponent(value.trim());
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&limit=6&types=place,poi,address,locality,neighborhood,region`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const features = data.features || [];
-        const mapped: GeoResult[] = features.map((f: any) => {
-          const ctx = f.context || [];
-          const getCtx = (prefix: string) => ctx.find((c: any) => c.id?.startsWith(prefix))?.text || "";
-          return {
-            name: f.text || "",
-            fullAddress: f.place_name || "",
-            city: getCtx("place") || (f.place_type?.includes("place") ? f.text : "") || getCtx("locality") || "",
-            country: getCtx("country") || "",
-            latitude: f.center?.[1] || 0,
-            longitude: f.center?.[0] || 0,
-          };
+        const { data, error } = await supabase.functions.invoke("search-places", {
+          body: { query: query.trim() },
         });
-        setResults(mapped);
+        if (error) throw error;
+        const places: GeoResult[] = (data?.results || []).slice(0, 8);
+        setResults(places);
         setOpen(true);
       } catch {
         setResults([]);
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 400);
     return () => clearTimeout(timerRef.current);
-  }, [value]);
+  }, [value, venueName]);
 
   return (
     <div className="relative">
@@ -257,7 +249,8 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
                 value={String(getValue(row, "location") ?? "")}
                 onChange={(val) => setValue(row.id, "location", val)}
                 onSelectGeo={(r) => applyGeo(row.id, r)}
-                placeholder="Search city or address…"
+                venueName={String(getValue(row, "name") ?? "")}
+                placeholder="Search venue or city…"
                 className="h-6 text-xs bg-black/20 border-white/[0.08]"
               />
             </div>
