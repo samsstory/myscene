@@ -1,65 +1,114 @@
 
 
-## Plan: Festival-Aware Success Screen
+## Plan: Festival Invite Links
 
-### Problem
-The `BulkSuccessStep` component is context-unaware. When a user claims a festival lineup, the success screen:
-1. Shows a generic "X shows added" header instead of the festival name
-2. Renders a 2-column grid of individual show cards (mostly placeholder images) — overwhelming for 10+ artists
-3. Says "Tap to share your review on Instagram" — misleading since festival claims have no photos
-4. Share text is generic ("Just added X shows to my Scene") instead of festival-specific
-5. "Create Review Photo" appears for single shows even from festival flow — no photo to review
-6. PWA install prompt — already fixed in previous change
+### Overview
+Allow users to share their festival claim as an invite link. Recipients land on a public page showing the sharer's artist picks, can toggle artists on/off, then sign up (or log in) to claim the festival with their modified selections.
 
-### Changes
+### Database
 
-**1. `BulkUploadFlow.tsx` — Pass festival context to success screen**
-- Pass `selectedFestival` (or just `festivalName: string | null`) as a new prop to `BulkSuccessStep`
-- This lets the success screen branch its UI based on whether the claim was a festival or a regular bulk upload
+**New table: `festival_invites`**
+```sql
+CREATE TABLE festival_invites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_by UUID NOT NULL,           -- sharer's user id
+  festival_lineup_id UUID NOT NULL,   -- FK to festival_lineups.id
+  festival_name TEXT NOT NULL,
+  selected_artists JSONB NOT NULL DEFAULT '[]',  -- array of {name, image_url?}
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
 
-**2. `BulkSuccessStep.tsx` — Add `festivalName` prop and branch the UI**
+RLS policies:
+- **INSERT**: `auth.uid() = created_by` (authenticated users create their own invites)
+- **SELECT**: `true` (public read — anyone with the link can view)
+- No UPDATE/DELETE needed
 
-- **New prop**: `festivalName?: string | null`
-- Derive `isFestival = !!festivalName`
+### Edge Function: `get-festival-invite`
 
-- **Header**: When `isFestival`, show `"{festivalName}" logged` with a subtitle like `"{N} sets added to your rankings"` instead of the generic count
+Public endpoint (verify_jwt = false) that returns invite data + full festival lineup for the landing page. Fetches from `festival_invites` joined with `festival_lineups` and the inviter's `profiles` (name/username). Returns:
+```json
+{
+  "invite": { "id", "festival_name", "selected_artists" },
+  "lineup": { "artists", "venue_name", "venue_location", "date_start", "year" },
+  "inviter": { "full_name", "username" }
+}
+```
 
-- **Compact artist summary** (replaces the grid for festivals): A single card listing artist names as inline comma-separated text or wrapped tags — no tall grid of mostly-placeholder cards. Show artist images inline as small avatar circles where available, `✦` fallback where not.
+### URL Pattern
 
-- **Remove misleading prompts for festivals**:
-  - Hide "Tap to share your review on Instagram" hint
-  - Hide "Create Review Photo" button (no photos to work with)
-  
-- **Festival-specific share text**: Change from `"Just added X shows"` to `"Just claimed {festivalName} on SCENE — {N} sets logged! 🎵"`
+Reuse the existing `?show=ID&type=TYPE&ref=CODE` pattern:
+- **New type**: `festival-invite`
+- **URL**: `tryscene.app/?show=INVITE_UUID&type=festival-invite&ref=REF_CODE`
 
-- **Keep universal actions**: Rank, Add More, Done — these apply to all flows
+### Frontend Flow
+
+```text
+IndexV2 ──?type=festival-invite──► FestivalInviteHero
+                                      │
+                                      ├─ Fetch invite via edge function
+                                      ├─ Show header: "{Name} invited you to add {Festival} to Scene"
+                                      ├─ Subtitle: "Here's the {N} sets {Name} saw — who did you see?"
+                                      ├─ Reuse LineupSelectionGrid (pre-checked with sharer's picks)
+                                      ├─ CTA: "Add to My Scene →"
+                                      │     ├─ Logged in → run festival claim flow directly
+                                      │     └─ Not logged in → persist selections in localStorage → /auth
+                                      └─ "New here? Sign up free →"
+
+Auth page (existing) ──► Dashboard ──► auto-detect invite_type=festival-invite
+                                       → open BulkUploadFlow pre-loaded with festival + selections
+```
+
+### Files Modified
+
+1. **Migration** — Create `festival_invites` table + RLS
+2. **`supabase/functions/get-festival-invite/index.ts`** — New edge function
+3. **`supabase/config.toml`** — Add `[functions.get-festival-invite]` with `verify_jwt = false`
+4. **`src/components/landing/FestivalInviteHero.tsx`** — New component
+   - Fetches invite data via edge function
+   - Renders inviter attribution, festival name, subtitle with updated copy
+   - Embeds `LineupSelectionGrid` with sharer's picks pre-selected
+   - "Add to My Scene →" CTA (auth-gated)
+   - Stores `invite_type=festival-invite`, `invite_festival_lineup_id`, `invite_selected_artists` in localStorage before redirecting to `/auth`
+5. **`src/pages/IndexV2.tsx`** — Add `type=festival-invite` branch to render `FestivalInviteHero` instead of `ShowInviteHero`
+6. **`src/components/bulk-upload/BulkSuccessStep.tsx`** — Wire "Share Festival" button
+   - On tap: insert row into `festival_invites` with the user's selected artists, then trigger native share / clipboard with the invite URL
+   - Requires `festivalLineupId` as a new prop (passed from `BulkUploadFlow`)
+7. **`src/components/BulkUploadFlow.tsx`** — Pass `selectedFestival.id` (the lineup ID) down to `BulkSuccessStep`
+8. **`src/pages/Dashboard.tsx`** — Handle `invite_type=festival-invite` in the existing invite detection `useEffect`
+   - Read localStorage keys, open `BulkUploadFlow` pre-loaded at `lineup-grid` step with the festival data and pre-selected artists
+9. **`src/hooks/useShareShow.ts`** — Add a `shareFestivalInvite` method alongside the existing `shareShow` for use from the show detail sheet entry point
+
+### Component Reuse
+- **`LineupSelectionGrid`** — used as-is inside `FestivalInviteHero` for the toggleable artist grid (pre-checking the sharer's picks via a new `initialSelected` prop)
+- **`ShowInviteHero`** patterns — same glassmorphism card structure, inviter attribution, background gradient, OTP/auth flow
+- **`useFestivalClaim`** — reused for the actual claim when a logged-in user taps "Add to My Scene"
+- **`useShareShow`** — extended with festival invite creation logic
+- **Existing URL routing** in `IndexV2` and `Dashboard` — minimal additions to handle the new `type`
 
 ### Technical Detail
 
 ```text
-BulkSuccessStepProps
-  + festivalName?: string | null
+LineupSelectionGrid changes:
+  + initialSelected?: Set<string>   — pre-check these artists on mount
+  + ctaLabel?: string               — override button text ("Add to My Scene" vs "Add N Shows")
 
-BulkUploadFlow
-  success step: <BulkSuccessStep festivalName={selectedFestival?.event_name} ... />
+BulkSuccessStep changes:
+  + festivalLineupId?: string       — needed to create the invite row
+  handleShareAll():
+    1. INSERT into festival_invites { created_by, festival_lineup_id, festival_name, selected_artists }
+    2. Build URL: tryscene.app/?show={invite.id}&type=festival-invite&ref={refCode}
+    3. navigator.share() or clipboard fallback
 
-BulkSuccessStep render logic:
-  isFestival = !!festivalName
+FestivalInviteHero:
+  - Calls get-festival-invite edge function with invite ID
+  - Merges sharer's picks + full lineup into LineupSelectionGrid
+  - Pre-checks sharer's picks, user can toggle freely
+  - CTA creates account or claims directly if logged in
 
-  Header:
-    isFestival → "{festivalName} logged" + "{N} sets added"
-    else       → "{N} show(s) added" (existing)
-
-  Body:
-    isFestival → compact artist list card (names + avatars)
-    else       → existing grid/single-show card (unchanged)
-
-  Actions:
-    isFestival → Share Festival, Rank These Sets, Add More, Done
-    else       → existing Create Review Photo, Send to Friends, Rank, Share, Add More, Done
+Dashboard invite handling:
+  - Detect localStorage invite_type === "festival-invite"
+  - Fetch festival_lineups by stored lineup ID
+  - Open BulkUploadFlow at lineup-grid step with pre-selected artists
 ```
-
-### Files Modified
-- `src/components/bulk-upload/BulkSuccessStep.tsx` — add `festivalName` prop, branch header/body/actions
-- `src/components/BulkUploadFlow.tsx` — pass `selectedFestival?.event_name` to success step
 
