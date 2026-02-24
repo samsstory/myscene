@@ -301,6 +301,62 @@ export type Database = {
         }
         Relationships: []
       }
+      festival_lineups: {
+        Row: {
+          artists: Json
+          created_at: string
+          date_end: string | null
+          date_start: string | null
+          event_name: string
+          id: string
+          source: string | null
+          source_url: string | null
+          updated_at: string
+          venue_id: string | null
+          venue_location: string | null
+          venue_name: string | null
+          year: number
+        }
+        Insert: {
+          artists?: Json
+          created_at?: string
+          date_end?: string | null
+          date_start?: string | null
+          event_name: string
+          id?: string
+          source?: string | null
+          source_url?: string | null
+          updated_at?: string
+          venue_id?: string | null
+          venue_location?: string | null
+          venue_name?: string | null
+          year: number
+        }
+        Update: {
+          artists?: Json
+          created_at?: string
+          date_end?: string | null
+          date_start?: string | null
+          event_name?: string
+          id?: string
+          source?: string | null
+          source_url?: string | null
+          updated_at?: string
+          venue_id?: string | null
+          venue_location?: string | null
+          venue_name?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festival_lineups_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       followers: {
         Row: {
           created_at: string
