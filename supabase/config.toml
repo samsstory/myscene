@@ -54,3 +54,6 @@ verify_jwt = false
 
 [functions.scan-data-quality]
 verify_jwt = false
+
+[functions.scrape-festival-lineup]
+verify_jwt = false
