@@ -189,6 +189,28 @@ export function usePlanUpcomingShow() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // ── Duplicate prevention ──────────────────────────────────────────
+      // Check if user already has an upcoming show with same date + (artist OR venue)
+      if (data.show_date) {
+        const { data: existing } = await supabase
+          .from("upcoming_shows" as any)
+          .select("id, artist_name, venue_name")
+          .eq("created_by_user_id", user.id)
+          .eq("show_date", data.show_date);
+
+        const norm = (s?: string | null) => (s ?? "").trim().toLowerCase();
+        const isDupe = (existing as any[] ?? []).some((row: any) =>
+          norm(row.artist_name) === norm(data.artist_name) ||
+          (norm(row.venue_name) && norm(data.venue_name) && norm(row.venue_name) === norm(data.venue_name))
+        );
+
+        if (isDupe) {
+          toast.info("This show is already on your calendar", { icon: "📅" });
+          setIsSaving(false);
+          return false;
+        }
+      }
+
       const { error: insertError } = await supabase
         .from("upcoming_shows" as any)
         .insert({
