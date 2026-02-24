@@ -2,7 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Star, MapPin, Music, Link2, Search } from "lucide-react";
+import { MAPBOX_TOKEN } from "@/lib/mapbox";
+import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Star, MapPin, Music, Link2, Search, Building2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 interface Suggestion {
@@ -90,7 +91,7 @@ export function SuggestionCard({
   );
 }
 
-// ─── Google Places Search for Location ───────────────────────────────
+// ─── Smart Combo: Google Places + Mapbox Cities ─────────────────────
 
 interface GeoResult {
   name: string;
@@ -99,6 +100,43 @@ interface GeoResult {
   country?: string;
   latitude: number;
   longitude: number;
+  source: "place" | "city";
+}
+
+async function fetchGooglePlaces(query: string): Promise<GeoResult[]> {
+  try {
+    const { data, error } = await supabase.functions.invoke("search-places", {
+      body: { query: query.trim() },
+    });
+    if (error) throw error;
+    return ((data?.results || []) as Omit<GeoResult, "source">[]).slice(0, 5).map((r) => ({ ...r, source: "place" as const }));
+  } catch {
+    return [];
+  }
+}
+
+async function fetchMapboxCities(query: string): Promise<GeoResult[]> {
+  try {
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?types=place,region,country&limit=4&access_token=${MAPBOX_TOKEN}`
+    );
+    const data = await res.json();
+    return ((data.features || []) as any[]).map((f: any) => {
+      const ctx = (f.context || []) as any[];
+      const getCtx = (id: string) => ctx.find((c: any) => c.id?.startsWith(id))?.text || "";
+      return {
+        name: f.text,
+        fullAddress: f.place_name,
+        city: f.place_type?.includes("place") ? f.text : getCtx("place") || undefined,
+        country: getCtx("country") || undefined,
+        latitude: f.center[1],
+        longitude: f.center[0],
+        source: "city" as const,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 function LocationSearchInput({
@@ -116,36 +154,33 @@ function LocationSearchInput({
   placeholder?: string;
   className?: string;
 }) {
-  const [results, setResults] = useState<GeoResult[]>([]);
+  const [placeResults, setPlaceResults] = useState<GeoResult[]>([]);
+  const [cityResults, setCityResults] = useState<GeoResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (value.length < 2) { setResults([]); return; }
-    // Combine venue name + typed location for best results
-    const query = venueName && !value.toLowerCase().includes(venueName.toLowerCase())
+    if (value.length < 2) { setPlaceResults([]); setCityResults([]); return; }
+    const placeQuery = venueName && !value.toLowerCase().includes(venueName.toLowerCase())
       ? `${venueName} ${value}`
       : value;
     timerRef.current = setTimeout(async () => {
       setLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("search-places", {
-          body: { query: query.trim() },
-        });
-        if (error) throw error;
-        const places: GeoResult[] = (data?.results || []).slice(0, 8);
-        setResults(places);
-        setOpen(true);
-      } catch {
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
+      const [places, cities] = await Promise.all([
+        fetchGooglePlaces(placeQuery),
+        fetchMapboxCities(value),
+      ]);
+      setPlaceResults(places);
+      setCityResults(cities);
+      setOpen(true);
+      setLoading(false);
     }, 400);
     return () => clearTimeout(timerRef.current);
   }, [value, venueName]);
+
+  const hasResults = placeResults.length > 0 || cityResults.length > 0;
 
   return (
     <div className="relative">
@@ -156,23 +191,47 @@ function LocationSearchInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={`pl-6 pr-6 ${className || ""}`}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => hasResults && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
         />
         {loading && <div className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 border border-muted-foreground/40 border-t-foreground rounded-full animate-spin" />}
       </div>
-      {open && results.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-white/[0.1] bg-popover shadow-lg max-h-48 overflow-y-auto">
-          {results.map((r, i) => (
-            <button
-              key={i}
-              className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors"
-              onMouseDown={(e) => { e.preventDefault(); onSelectGeo(r); setOpen(false); }}
-            >
-              <div className="font-medium text-foreground">{r.name}</div>
-              <div className="text-muted-foreground text-[10px] truncate">{r.fullAddress}</div>
-            </button>
-          ))}
+      {open && hasResults && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-white/[0.1] bg-popover shadow-lg max-h-56 overflow-y-auto">
+          {cityResults.length > 0 && (
+            <>
+              <div className="px-2 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                <Building2 className="h-2.5 w-2.5" /> Cities
+              </div>
+              {cityResults.map((r, i) => (
+                <button
+                  key={`city-${i}`}
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors"
+                  onMouseDown={(e) => { e.preventDefault(); onSelectGeo(r); setOpen(false); }}
+                >
+                  <div className="font-medium text-foreground">{r.name}</div>
+                  <div className="text-muted-foreground text-[10px] truncate">{r.fullAddress}</div>
+                </button>
+              ))}
+            </>
+          )}
+          {placeResults.length > 0 && (
+            <>
+              <div className="px-2 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-2.5 w-2.5" /> Places
+              </div>
+              {placeResults.map((r, i) => (
+                <button
+                  key={`place-${i}`}
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors"
+                  onMouseDown={(e) => { e.preventDefault(); onSelectGeo(r); setOpen(false); }}
+                >
+                  <div className="font-medium text-foreground">{r.name}</div>
+                  <div className="text-muted-foreground text-[10px] truncate">{r.fullAddress}</div>
+                </button>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>
