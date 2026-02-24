@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { isUserUploadedImage, resolveArtistImage } from "@/lib/artist-image-utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, MapPin, Calendar, Music, Star, Camera, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -152,15 +153,25 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     } else if (open && !editShow && prefill) {
       // "I was there" / quick-add: pre-fill type + artist + optional venue/date
       const prefillDate = prefill.showDate ? new Date(prefill.showDate) : undefined;
-      setShowData(prev => ({
-        ...prev,
-        showType: prefill.showType,
-        artists: [{ name: prefill.artistName, isHeadliner: true, imageUrl: prefill.artistImageUrl || undefined }],
-        venue: prefill.venueName || "",
-        venueLocation: prefill.venueLocation || "",
-        date: prefillDate,
-        datePrecision: prefillDate ? "exact" : prev.datePrecision,
-      }));
+
+      // Resolve artist image: skip user uploads, fall back to Spotify
+      const initPrefill = async () => {
+        let imageUrl = prefill.artistImageUrl || undefined;
+        if (isUserUploadedImage(prefill.artistImageUrl)) {
+          imageUrl = await resolveArtistImage(prefill.artistName) || undefined;
+        }
+        setShowData(prev => ({
+          ...prev,
+          showType: prefill.showType,
+          artists: [{ name: prefill.artistName, isHeadliner: true, imageUrl }],
+          venue: prefill.venueName || "",
+          venueLocation: prefill.venueLocation || "",
+          date: prefillDate,
+          datePrecision: prefillDate ? "exact" : prev.datePrecision,
+        }));
+      };
+      initPrefill();
+
       setEntryPoint('artist');
       // Skip steps that are already filled
       const hasVenue = !!prefill.venueName;
