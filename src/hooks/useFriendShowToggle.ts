@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type { FriendShow } from "@/hooks/useFriendUpcomingShows";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
+import { isUserUploadedImage, resolveArtistImage } from "@/lib/artist-image-utils";
 
 interface UseFriendShowToggleOptions {
   deleteUpcomingShow: (id: string) => Promise<void>;
@@ -40,10 +41,14 @@ export function useFriendShowToggle({
       });
     } else {
       const imageUrl = show.artist_image_url;
-      const isUserUpload = imageUrl && imageUrl.includes("supabase") && imageUrl.includes("show-photos");
+      const isUpload = isUserUploadedImage(imageUrl);
+      let finalImage: string | undefined = isUpload ? undefined : (imageUrl ?? undefined);
+      if (isUpload) {
+        finalImage = await resolveArtistImage(show.artist_name);
+      }
       const success = await saveUpcomingShow({
         artist_name: show.artist_name,
-        artist_image_url: isUserUpload ? undefined : (imageUrl ?? undefined),
+        artist_image_url: finalImage,
         venue_name: show.venue_name ?? undefined,
         venue_location: show.venue_location ?? undefined,
         show_date: show.show_date ?? undefined,
