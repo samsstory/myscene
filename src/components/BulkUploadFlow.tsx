@@ -18,6 +18,11 @@ import FestivalSearchStep, { FestivalResult } from "./festival-claim/FestivalSea
 import LineupSelectionGrid from "./festival-claim/LineupSelectionGrid";
 import { useFestivalClaim } from "@/hooks/useFestivalClaim";
 
+interface InitialFestivalState {
+  festival: FestivalResult;
+  selectedArtists: string[];
+}
+
 interface BulkUploadFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,18 +30,20 @@ interface BulkUploadFlowProps {
   onNavigateToRank?: () => void;
   onShareShow?: (show: AddedShowData) => void;
   onAddManually?: () => void;
+  initialFestival?: InitialFestivalState | null;
 }
 
 type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice' | 'lineup-search' | 'lineup-grid';
 
-const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually }: BulkUploadFlowProps) => {
-  const [step, setStep] = useState<Step>('select');
+const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually, initialFestival }: BulkUploadFlowProps) => {
+  const [step, setStep] = useState<Step>(initialFestival ? 'lineup-grid' : 'select');
   const [photos, setPhotos] = useState<PhotoWithExif[]>([]);
   const [addedCount, setAddedCount] = useState(0);
   const [addedShows, setAddedShows] = useState<AddedShowData[]>([]);
   const [editorShow, setEditorShow] = useState<AddedShowData | null>(null);
   const [parsedShows, setParsedShows] = useState<ParsedShow[]>([]);
-  const [selectedFestival, setSelectedFestival] = useState<FestivalResult | null>(null);
+  const [selectedFestival, setSelectedFestival] = useState<FestivalResult | null>(initialFestival?.festival ?? null);
+  const [initialSelected] = useState<Set<string> | undefined>(initialFestival ? new Set(initialFestival.selectedArtists) : undefined);
   const { uploadShows, isUploading } = useBulkShowUpload();
   const { uploadShows: uploadTextShows, isUploading: isTextUploading } = useTextImportUpload();
   const { claimShows, isSubmitting: isClaiming } = useFestivalClaim();
@@ -334,6 +341,8 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             artists={selectedFestival.artists}
             festivalName={selectedFestival.event_name}
             isSubmitting={isClaiming}
+            initialSelected={initialSelected}
+            ctaLabel={initialSelected ? "Add to My Scene →" : undefined}
             onConfirm={async (selectedArtists) => {
               const result = await claimShows(selectedArtists, selectedFestival);
               if (result.success) {

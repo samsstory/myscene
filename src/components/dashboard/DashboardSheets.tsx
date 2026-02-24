@@ -1,5 +1,6 @@
 import AddShowFlow from "@/components/AddShowFlow";
 import BulkUploadFlow from "@/components/BulkUploadFlow";
+import type { FestivalResult } from "@/components/festival-claim/FestivalSearchStep";
 import AddChoiceSheet from "@/components/AddChoiceSheet";
 import PlanShowSheet from "@/components/home/PlanShowSheet";
 import CompareShowSheet from "@/components/CompareShowSheet";
@@ -49,6 +50,9 @@ interface DashboardSheetsProps {
   inviteShowType: "logged" | "upcoming" | "edmtrain";
   inviteHighlights: string[];
   inviteNote: string;
+  // Festival invite
+  festivalInviteState: { festival: FestivalResult; selectedArtists: string[] } | null;
+  onFestivalInviteClear: () => void;
 }
 
 const DashboardSheets = ({
@@ -82,6 +86,8 @@ const DashboardSheets = ({
   inviteShowType,
   inviteHighlights,
   inviteNote,
+  festivalInviteState,
+  onFestivalInviteClear,
 }: DashboardSheetsProps) => {
   const handleSpotlightTourComplete = async () => {
     await supabase
@@ -105,10 +111,14 @@ const DashboardSheets = ({
 
       <BulkUploadFlow
         open={showUnifiedAdd}
-        onOpenChange={setShowUnifiedAdd}
+        onOpenChange={(v) => {
+          setShowUnifiedAdd(v);
+          if (!v) onFestivalInviteClear();
+        }}
         onNavigateToFeed={() => setActiveTab("home")}
         onNavigateToRank={() => { setActiveTab("home"); setHomeView("rank"); }}
         onAddManually={() => setShowAddDialog(true)}
+        initialFestival={festivalInviteState}
       />
 
       <AddChoiceSheet
