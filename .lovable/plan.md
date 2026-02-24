@@ -1,74 +1,94 @@
 
+# Admin Data Manager
 
-## Fix Stale and Missing Spotify Artist Images
-
-### Problem
-
-Two categories of bad artist image data exist in the database:
-
-1. **Stale preview URLs** -- 5 artists in `show_artists` and 2 in `upcoming_shows` have URLs pointing to `lovable.app/images/...` (demo photos copied as artist images). These are NOT real artist profile images and will 404 or show wrong content.
-   - Bicep, Bob Moses, DJ Stingray, Four Tet, Fred again.. (in `show_artists`)
-   - Bicep, Floating Points (in `upcoming_shows`)
-
-2. **Missing images** -- DWLLRS and Mehro have completely NULL artist images. Several artists also lack `spotify_artist_id`.
-
-3. **Incomplete heuristic** -- The `isUserUploadedImage()` function only catches Supabase storage URLs (`supabase` + `show-photos`). It misses `lovable.app/images/` preview URLs that were stored as artist images before the guard was added.
+Build a new "Data" tab in the admin dashboard with three sub-views (Venues, Shows, AI Suggestions) and a backend table to queue AI-detected data issues.
 
 ---
 
-### Plan
+## 1. Database Migration
 
-#### Step 1: Widen the image heuristic
+### New table: `data_suggestions`
 
-Update `src/lib/artist-image-utils.ts` to also flag `lovable.app` and `lovableproject.com` URLs as non-platform images:
+Stores issues flagged by the AI enrichment agent (duplicates, missing metadata, naming inconsistencies) for admin review.
 
-```typescript
-export function isUserUploadedImage(url: string | null | undefined): boolean {
-  if (!url) return false;
-  if (url.includes("supabase") && url.includes("show-photos")) return true;
-  if (url.includes("lovable.app/images/") || url.includes("lovableproject.com/images/")) return true;
-  return false;
-}
-```
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | default gen_random_uuid() |
+| entity_type | text | 'venue', 'show', 'artist', 'event' |
+| entity_id | uuid | nullable -- the record in question |
+| suggestion_type | text | 'duplicate', 'missing_data', 'name_mismatch', 'merge', 'broken_hierarchy' |
+| title | text | Short summary, e.g. "Possible duplicate venue" |
+| details | jsonb | Structured payload (merge candidates, missing fields, etc.) |
+| status | text | 'pending' / 'approved' / 'dismissed', default 'pending' |
+| resolved_by | uuid | nullable, admin who acted |
+| resolved_at | timestamptz | nullable |
+| created_at | timestamptz | default now() |
 
-This prevents these stale URLs from being copied into new records going forward.
+RLS: admin-only read/update. No public access.
 
-#### Step 2: Data cleanup via SQL
+### Venues table update
 
-Run two UPDATE statements to NULL out the bad preview URLs so the backfill can re-populate them:
-
-**show_artists:**
-```sql
-UPDATE show_artists
-SET artist_image_url = NULL
-WHERE artist_image_url LIKE '%lovable.app/images/%'
-   OR artist_image_url LIKE '%lovableproject.com/images/%';
-```
-
-**upcoming_shows:**
-```sql
-UPDATE upcoming_shows
-SET artist_image_url = NULL
-WHERE artist_image_url LIKE '%lovable.app/images/%'
-   OR artist_image_url LIKE '%lovableproject.com/images/%';
-```
-
-This affects 5 `show_artists` rows and 2 `upcoming_shows` rows.
-
-#### Step 3: Run the backfill edge function
-
-Invoke the existing `backfill-artist-images` edge function, which queries `show_artists` rows with NULL `artist_image_url` or `spotify_artist_id`, looks up each artist on Spotify, and writes the correct image URL and Spotify ID. After the data cleanup in Step 2, this will now pick up all 7+ affected artists (Bicep, Bob Moses, DJ Stingray, Four Tet, Fred again.., DWLLRS, Mehro, etc.).
-
-#### Step 4: Verify
-
-Query the database to confirm all previously-stale rows now have valid `i.scdn.co` Spotify image URLs.
+Add admin UPDATE + DELETE policies so admins can edit and merge venues from the dashboard. Currently venues can only be inserted and read.
 
 ---
 
-### Technical Details
+## 2. New Admin Components
 
-- **Files modified**: `src/lib/artist-image-utils.ts` only (1 small change to the heuristic)
-- **Data operations**: 2 UPDATE queries via the insert tool, 1 edge function invocation
-- **No schema changes** required
-- **No new secrets** needed -- the backfill function already uses `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`
+### `src/components/admin/DataTab.tsx`
+Top-level wrapper with three sub-tabs: **Venues**, **Shows**, **Suggestions**.
 
+### `src/components/admin/data/VenuesBrowser.tsx`
+- Search bar (filters by name, city, country)
+- Table: Name, Location, City, Country, Lat/Lng, Show Count, Actions
+- Stat pills: Total Venues, Missing Country, Missing Coords
+- **Edit dialog**: inline or modal to update name, city, country, coordinates
+- **Merge dialog**: select two venues, pick canonical one, reassign all shows from the other, then delete the duplicate
+- Show count is derived by counting `shows` rows with matching `venue_id`
+
+### `src/components/admin/data/ShowsBrowser.tsx`
+- Search bar (filters by venue_name, event_name, artist names)
+- Table: Artists, Venue, Event, Date, Type, User, Photo, Actions
+- Stat pills: Total Shows, Missing Venue ID, Missing Location
+- **Edit dialog**: update venue_name, venue_location, event_name, venue_id link
+- Links to venue browser for quick cross-referencing
+
+### `src/components/admin/data/SuggestionsQueue.tsx`
+- List of pending AI suggestions with type badges
+- Approve / Dismiss buttons per suggestion
+- Details expandable (shows merge candidates, missing fields, etc.)
+- Filter by type and status
+
+---
+
+## 3. Admin Page Changes
+
+### `src/pages/Admin.tsx`
+- Add "Data" tab to the existing tabs array (between "Inviters" and "Bugs")
+- Import and render `DataTab` in the corresponding `TabsContent`
+
+---
+
+## 4. Backend Policies
+
+### Venues
+- New RLS policy: "Admins can update venues" -- `has_role(auth.uid(), 'admin')`
+- New RLS policy: "Admins can delete venues" -- `has_role(auth.uid(), 'admin')`
+
+### Shows
+- New RLS policy: "Admins can update any show" -- `has_role(auth.uid(), 'admin')`
+
+### data_suggestions
+- SELECT: admin only
+- INSERT: admin only (and later, edge functions via service role)
+- UPDATE: admin only
+- DELETE: admin only
+
+---
+
+## Technical Notes
+
+- Venue merge logic: update all `shows.venue_id` and `user_venues.venue_id` from duplicate to canonical, then delete the duplicate venue record
+- Show count per venue uses a subquery or separate count query to avoid N+1
+- Search uses `ilike` for simplicity; the existing `pg_trgm` extension is available for fuzzy matching later
+- All admin queries go through the standard client with the logged-in admin's session (RLS handles authorization)
+- The suggestions queue table is designed to be populated by the real-time AI enrichment agent (built next)
