@@ -61,7 +61,7 @@ const LineupChoiceStep = ({ onUploadPhoto, onSearchDatabase }: LineupChoiceStepP
     <ChoiceCard
       icon={Search}
       title="Search Database"
-      subtitle="Browse festivals we already have on file"
+      subtitle="Browse from over 500+ festival lineups from over the years"
       onClick={onSearchDatabase}
     />
 
