@@ -98,11 +98,12 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
         }
       }
 
-      // Build query
+      // Build query — exclude child sets (those belonging to a festival parent)
       let query = supabase
         .from("shows")
-        .select("id, user_id, venue_name, show_date, venue_id, event_name, show_type")
-        .eq("show_type", showType);
+        .select("id, user_id, venue_name, show_date, venue_id, event_name, show_type, parent_show_id")
+        .eq("show_type", showType)
+        .is("parent_show_id", null);
 
       if (nearbyVenueIds) {
         query = query.in("venue_id", [...nearbyVenueIds]);
