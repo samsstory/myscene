@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Plus, Image, MessageCircle, Scale, Share, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, Plus, Image, MessageCircle, Scale, Share, Download, Music } from "lucide-react";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
 
@@ -12,13 +11,14 @@ interface BeforeInstallPromptEvent extends Event {
 interface BulkSuccessStepProps {
   addedCount: number;
   addedShows: AddedShowData[];
+  festivalName?: string | null;
   onAddMore: () => void;
   onDone: () => void;
   onCreateReviewPhoto: (show: AddedShowData) => void;
   onRank: () => void;
 }
 
-// Tappable show card for multi-show display
+// Tappable show card for multi-show display (non-festival only)
 const ShowCard = ({ show, onTap }: { show: AddedShowData; onTap: (show: AddedShowData) => void }) => (
   <button 
     onClick={() => onTap(show)}
@@ -39,9 +39,23 @@ const ShowCard = ({ show, onTap }: { show: AddedShowData; onTap: (show: AddedSho
   </button>
 );
 
-const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateReviewPhoto, onRank }: BulkSuccessStepProps) => {
+// Compact artist chip for festival summary
+const ArtistChip = ({ name, imageUrl }: { name: string; imageUrl?: string | null }) => (
+  <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-muted/60 text-xs font-medium">
+    {imageUrl ? (
+      <img src={imageUrl} alt="" className="h-4 w-4 rounded-full object-cover" />
+    ) : (
+      <span className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center text-[8px] text-primary">✦</span>
+    )}
+    {name}
+  </span>
+);
+
+const BulkSuccessStep = ({ addedCount, addedShows, festivalName, onAddMore, onDone, onCreateReviewPhoto, onRank }: BulkSuccessStepProps) => {
   const firstShow = addedShows[0];
   const hasMultiple = addedShows.length > 1;
+  const isFestival = !!festivalName;
+
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallCTA, setShowInstallCTA] = useState(false);
   const [installDismissed, setInstallDismissed] = useState(false);
@@ -52,7 +66,6 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
     const isFirstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
 
-    // Show push interstitial on first show, if not already seen and supported
     const pushSeen = localStorage.getItem("scene-push-prompt-seen");
     if (isFirstShow && !pushSeen && "Notification" in window) {
       setShowPushInterstitial(true);
@@ -79,27 +92,27 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
       if (outcome === "accepted") setShowInstallCTA(false);
       setDeferredPrompt(null);
     } else {
-      // iOS — just dismiss, the InstallBanner will handle iOS instructions
       setInstallDismissed(true);
     }
   };
 
   const handleSendToFriends = () => {
     if (!firstShow) return;
-    
     const artistNames = firstShow.artists.map(a => a.name).join(', ');
     const shareText = `Just saw ${artistNames} at ${firstShow.venue.name}! 🎵`;
-    
     window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
   };
 
   const handleShareAll = () => {
-    const showCount = addedShows.length;
-    const shareText = `Just added ${showCount} shows to my Scene! 🎵`;
-    window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
+    if (isFestival) {
+      const shareText = `Just claimed ${festivalName} on SCENE — ${addedShows.length} sets logged! 🎵`;
+      window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
+    } else {
+      const shareText = `Just added ${addedShows.length} shows to my Scene! 🎵`;
+      window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
+    }
   };
 
-  // If we need to show the push interstitial, render it as the full content
   if (showPushInterstitial) {
     return (
       <PushNotificationInterstitial
@@ -110,18 +123,44 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
 
   return (
     <div className="text-center space-y-6 py-4">
-      {/* Success header - minimal */}
+      {/* Header */}
       <div className="flex items-center justify-center gap-3">
         <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <CheckCircle2 className="h-6 w-6 text-primary" />
+          {isFestival ? (
+            <Music className="h-6 w-6 text-primary" />
+          ) : (
+            <CheckCircle2 className="h-6 w-6 text-primary" />
+          )}
         </div>
-        <h2 className="text-xl font-bold">
-          {addedCount} show{addedCount !== 1 ? 's' : ''} added
-        </h2>
+        <div className="text-left">
+          <h2 className="text-xl font-bold">
+            {isFestival ? festivalName : `${addedCount} show${addedCount !== 1 ? 's' : ''} added`}
+          </h2>
+          {isFestival && (
+            <p className="text-sm text-muted-foreground">
+              {addedCount} set{addedCount !== 1 ? 's' : ''} added to your rankings
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Single show: Preview card with photo */}
-      {!hasMultiple && firstShow && (
+      {/* Body — festival: compact artist list */}
+      {isFestival && (
+        <div className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
+          <div className="flex flex-wrap gap-1.5 justify-center">
+            {addedShows.map((show) => (
+              <ArtistChip
+                key={show.id}
+                name={show.artists[0]?.name || "Artist"}
+                imageUrl={(show.artists[0] as any)?.image_url}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Body — non-festival single show */}
+      {!isFestival && !hasMultiple && firstShow && (
         <div className="rounded-xl overflow-hidden bg-muted">
           {firstShow.photo_url ? (
             <div className="relative aspect-[4/3] w-full">
@@ -156,8 +195,8 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
         </div>
       )}
 
-      {/* Multiple shows: Tappable grid */}
-      {hasMultiple && (
+      {/* Body — non-festival multi show grid */}
+      {!isFestival && hasMultiple && (
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-3">
             {addedShows.map((show) => (
@@ -174,11 +213,11 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
         </div>
       )}
 
-      {/* Inline Install CTA — first show only */}
+      {/* Inline Install CTA */}
       {showInstallCTA && !installDismissed && (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 space-y-3">
+        <div className="rounded-xl border border-border/50 bg-muted/30 backdrop-blur-sm p-4 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
               <Download className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left flex-1">
@@ -187,10 +226,10 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleInstall} className="flex-1 py-2 px-3 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/[0.10] hover:border-primary/30 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)] active:scale-[0.98]">
+            <button onClick={handleInstall} className="flex-1 py-2 px-3 rounded-xl bg-muted/60 backdrop-blur-sm border border-border text-sm font-medium text-foreground transition-all duration-200 hover:bg-muted hover:border-primary/30 active:scale-[0.98]">
               Install
             </button>
-            <button onClick={() => setInstallDismissed(true)} className="py-2 px-3 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+            <button onClick={() => setInstallDismissed(true)} className="py-2 px-3 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/40">
               Later
             </button>
           </div>
@@ -199,12 +238,12 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
 
       {/* Action buttons */}
       <div className="space-y-2.5 pt-2">
-        {/* Single show actions */}
-        {!hasMultiple && firstShow && (
+        {/* Non-festival single show actions */}
+        {!isFestival && !hasMultiple && firstShow && (
           <>
             <button 
               onClick={() => onCreateReviewPhoto(firstShow)}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/[0.10] hover:border-primary/30 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)] active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-muted/60 backdrop-blur-sm border border-border text-sm font-medium text-foreground transition-all duration-200 hover:bg-muted hover:border-primary/30 active:scale-[0.98]"
             >
               <Image className="h-4 w-4 text-primary" />
               Create Review Photo
@@ -212,7 +251,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
             
             <button 
               onClick={handleSendToFriends}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-muted/30 backdrop-blur-sm border border-border/50 text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-muted/50 active:scale-[0.98]"
             >
               <MessageCircle className="h-4 w-4 text-muted-foreground" />
               Send to Friends
@@ -220,20 +259,31 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
           </>
         )}
 
-        {/* Rank button */}
-        <button 
-          onClick={onRank}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
-        >
-          <Scale className="h-4 w-4 text-muted-foreground" />
-          Rank {hasMultiple ? 'These Shows' : 'This Show'}
-        </button>
-
-        {/* Multi-show share */}
-        {hasMultiple && (
+        {/* Festival share */}
+        {isFestival && (
           <button 
             onClick={handleShareAll}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-muted/60 backdrop-blur-sm border border-border text-sm font-medium text-foreground transition-all duration-200 hover:bg-muted hover:border-primary/30 active:scale-[0.98]"
+          >
+            <Share className="h-4 w-4 text-primary" />
+            Share Festival
+          </button>
+        )}
+
+        {/* Rank button — universal */}
+        <button 
+          onClick={onRank}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-muted/30 backdrop-blur-sm border border-border/50 text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-muted/50 active:scale-[0.98]"
+        >
+          <Scale className="h-4 w-4 text-muted-foreground" />
+          Rank {isFestival ? 'These Sets' : hasMultiple ? 'These Shows' : 'This Show'}
+        </button>
+
+        {/* Non-festival multi-show share */}
+        {!isFestival && hasMultiple && (
+          <button 
+            onClick={handleShareAll}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-muted/30 backdrop-blur-sm border border-border/50 text-sm font-medium text-foreground/80 transition-all duration-200 hover:bg-muted/50 active:scale-[0.98]"
           >
             <Share className="h-4 w-4 text-muted-foreground" />
             Share Summary
@@ -241,18 +291,18 @@ const BulkSuccessStep = ({ addedCount, addedShows, onAddMore, onDone, onCreateRe
         )}
       </div>
 
-      {/* Footer actions */}
+      {/* Footer actions — universal */}
       <div className="flex gap-2 pt-3">
         <button 
           onClick={onAddMore} 
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/40"
         >
           <Plus className="h-3.5 w-3.5" />
           Add More
         </button>
         <button 
           onClick={onDone} 
-          className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]"
+          className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/40"
         >
           Done
         </button>
