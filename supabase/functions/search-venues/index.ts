@@ -28,12 +28,16 @@ interface GooglePlace {
   formatted_address: string;
   geometry: { location: { lat: number; lng: number } };
   types: string[];
+  city?: string;
+  country?: string;
 }
 
 interface VenueSuggestion {
   id?: string;
   name: string;
   location: string;
+  city?: string;
+  country?: string;
   user_show_count: number;
   scene_users_count: number;
   category?: string;
@@ -217,7 +221,7 @@ async function searchGooglePlaces(
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types',
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.addressComponents',
       },
       body: JSON.stringify(body),
     });
@@ -232,13 +236,21 @@ async function searchGooglePlaces(
     const places = data.places || [];
     console.log(`[Google] Returned ${places.length} results`);
 
-    return places.map((p: any) => ({
-      place_id: p.id || '',
-      name: p.displayName?.text || '',
-      formatted_address: p.formattedAddress || '',
-      geometry: { location: { lat: p.location?.latitude || 0, lng: p.location?.longitude || 0 } },
-      types: p.types || [],
-    }));
+    return places.map((p: any) => {
+      const components = p.addressComponents || [];
+      const getComponent = (type: string) => components.find((c: any) => c.types?.includes(type))?.longText || '';
+      const city = getComponent('locality') || getComponent('sublocality') || getComponent('administrative_area_level_2') || '';
+      const country = getComponent('country') || '';
+      return {
+        place_id: p.id || '',
+        name: p.displayName?.text || '',
+        formatted_address: p.formattedAddress || '',
+        geometry: { location: { lat: p.location?.latitude || 0, lng: p.location?.longitude || 0 } },
+        types: p.types || [],
+        city: city || undefined,
+        country: country || undefined,
+      };
+    });
   } catch (error) {
     console.error('[Google] Exception:', error);
     return [];
@@ -402,6 +414,7 @@ serve(async (req) => {
         if (!venueMap.has(key)) {
           venueMap.set(key, {
             id: venue.id, name: venue.name, location: venue.location || '',
+            city: venue.city || undefined, country: venue.country || undefined,
             user_show_count: 0, scene_users_count: sceneCount,
           });
         } else {
@@ -417,6 +430,7 @@ serve(async (req) => {
       if (!venueMap.has(key)) {
         venueMap.set(key, {
           id: place.fsq_id, name: place.name, location,
+          city: place.location.locality || undefined, country: place.location.country || undefined,
           user_show_count: 0, scene_users_count: 0,
           category: place.categories?.[0]?.name || '',
         });
@@ -430,6 +444,7 @@ serve(async (req) => {
       if (!venueMap.has(key)) {
         venueMap.set(key, {
           id: place.place_id, name: place.name, location,
+          city: place.city || undefined, country: place.country || undefined,
           user_show_count: 0, scene_users_count: 0,
           types: place.types,
         });
@@ -449,8 +464,8 @@ serve(async (req) => {
       ...filteredGoogle.map(p => ({
         name: p.name,
         location: formatGoogleLocation(p),
-        city: null,
-        country: null,
+        city: p.city || null,
+        country: p.country || null,
         latitude: p.geometry?.location?.lat || null,
         longitude: p.geometry?.location?.lng || null,
       })),

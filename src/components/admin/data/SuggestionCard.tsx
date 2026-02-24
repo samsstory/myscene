@@ -95,6 +95,8 @@ export function SuggestionCard({
 interface VenueResult {
   name: string;
   location: string;
+  city?: string;
+  country?: string;
 }
 
 function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
@@ -116,7 +118,7 @@ function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
         if (error) throw error;
         const venues: VenueResult[] = (data?.suggestions || data?.primary || [])
           .concat(data?.other || [])
-          .map((v: any) => ({ name: v.name, location: v.location }));
+          .map((v: any) => ({ name: v.name, location: v.location, city: v.city, country: v.country }));
         setResults(venues.slice(0, 8));
         setOpen(true);
       } catch {
@@ -164,9 +166,7 @@ function VenueSearch({ onSelect }: { onSelect: (r: VenueResult) => void }) {
 
 const VENUE_FIELDS: { key: keyof VenueRow; label: string }[] = [
   { key: "name", label: "Name" },
-  { key: "location", label: "Address" },
-  { key: "city", label: "City" },
-  { key: "country", label: "Country" },
+  { key: "location", label: "Location" },
 ];
 
 function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: VenueRow; duplicates: VenueRow[]; editsRef: React.MutableRefObject<Record<string, Partial<VenueRow>>> }) {
@@ -202,8 +202,8 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
         ...prev[rowId],
         name: r.name,
         location: r.location,
-        city: venue?.city || prev[rowId]?.city || null,
-        country: venue?.country || prev[rowId]?.country || null,
+        city: venue?.city || r.city || prev[rowId]?.city || null,
+        country: venue?.country || r.country || prev[rowId]?.country || null,
         latitude: venue?.latitude ? Number(venue.latitude) : prev[rowId]?.latitude || null,
         longitude: venue?.longitude ? Number(venue.longitude) : prev[rowId]?.longitude || null,
       },
@@ -213,7 +213,7 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
   return (
     <div className="mt-2 space-y-3">
       {/* Table header */}
-      <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 1.5fr 1fr 1fr" }}>
+      <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 2fr" }}>
         {VENUE_FIELDS.map((f) => (
           <div key={f.key} className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">
             {f.label}
@@ -237,8 +237,8 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
               <span className="text-[10px] text-muted-foreground font-mono ml-auto">{row.id.slice(0, 8)}…</span>
             </div>
 
-            {/* Editable fields grid */}
-            <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 1.5fr 1fr 1fr" }}>
+            {/* Editable fields: Name + Location */}
+            <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 2fr" }}>
               {VENUE_FIELDS.map((f) => (
                 <Input
                   key={f.key}
@@ -250,7 +250,7 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
               ))}
             </div>
 
-            {/* Venue search */}
+            {/* Venue search — searches Google Places / Foursquare */}
             <VenueSearch onSelect={(r) => applyVenue(row.id, r)} />
           </div>
         );
