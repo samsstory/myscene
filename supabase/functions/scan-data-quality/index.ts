@@ -95,17 +95,31 @@ Deno.serve(async (req) => {
         }));
         scored.sort((a, b) => b.score - a.score);
         const canonical = scored[0];
-        const duplicates = scored.slice(1).map((v) => v.id);
+        const duplicates = scored.slice(1);
         suggestions.push({
           entity_type: "venue",
           entity_id: canonical.id,
           suggestion_type: "duplicate",
           title: `${group.length} duplicate venues: "${canonical.name}"`,
           details: {
-            canonical_id: canonical.id,
-            canonical_name: canonical.name,
-            duplicate_ids: duplicates,
-            all_ids: group.map((v) => v.id),
+            canonical: {
+              id: canonical.id,
+              name: canonical.name,
+              city: canonical.city,
+              country: canonical.country,
+              location: canonical.location,
+              latitude: canonical.latitude,
+              longitude: canonical.longitude,
+            },
+            duplicates: duplicates.map((v) => ({
+              id: v.id,
+              name: v.name,
+              city: v.city,
+              country: v.country,
+              location: v.location,
+              latitude: v.latitude,
+              longitude: v.longitude,
+            })),
             normalized_name: normName,
           },
         });

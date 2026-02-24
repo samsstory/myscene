@@ -47,7 +47,7 @@ export function SuggestionCard({
             </Badge>
             <Badge variant="outline" className="text-[10px]">{s.entity_type}</Badge>
           </div>
-          {renderBody(s)}
+          {renderBody(s, expanded)}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {s.status === "pending" && (
@@ -65,32 +65,71 @@ export function SuggestionCard({
           </Button>
         </div>
       </div>
-      {expanded && (
-        <pre className="mt-3 text-xs text-muted-foreground bg-black/20 rounded p-2 overflow-x-auto">
-          {JSON.stringify(s.details, null, 2)}
-        </pre>
-      )}
     </div>
   );
 }
 
-function renderBody(s: Suggestion) {
+/** Renders a key-value field row */
+function Field({ label, value, highlight }: { label: string; value: unknown; highlight?: boolean }) {
+  const display = value === null || value === undefined ? "—" : String(value);
+  const isEmpty = value === null || value === undefined || value === "";
+  return (
+    <div className="flex items-baseline gap-2 text-xs">
+      <span className="text-muted-foreground w-20 shrink-0 text-right">{label}</span>
+      <span className={
+        isEmpty ? "text-muted-foreground/50 italic" :
+        highlight ? "text-foreground font-medium" : "text-foreground"
+      }>
+        {isEmpty ? "null" : display}
+      </span>
+    </div>
+  );
+}
+
+/** Renders a full venue record like a DB row */
+function VenueRecord({ data, isCanonical }: { data: any; isCanonical?: boolean }) {
+  return (
+    <div className={`rounded-md border p-2 space-y-0.5 ${
+      isCanonical 
+        ? "border-amber-500/30 bg-amber-500/5" 
+        : "border-white/[0.06] bg-white/[0.01]"
+    }`}>
+      <div className="flex items-center gap-1.5 mb-1">
+        {isCanonical && <Star className="h-3 w-3 text-amber-400" />}
+        <span className={`text-[10px] font-medium uppercase tracking-wider ${isCanonical ? "text-amber-400" : "text-muted-foreground"}`}>
+          {isCanonical ? "Keep (canonical)" : "Duplicate — will merge"}
+        </span>
+      </div>
+      <Field label="id" value={data.id} />
+      <Field label="name" value={data.name} highlight />
+      <Field label="city" value={data.city} />
+      <Field label="country" value={data.country} />
+      <Field label="location" value={data.location} />
+      <Field label="latitude" value={data.latitude} />
+      <Field label="longitude" value={data.longitude} />
+    </div>
+  );
+}
+
+function renderBody(s: Suggestion, expanded: boolean) {
   const d = s.details as any;
 
-  // Duplicate venues
+  // Duplicate venues — show full DB records
   if (s.suggestion_type === "duplicate" && s.entity_type === "venue") {
-    const count = d.all_ids?.length || 0;
+    const dupeCount = (d.duplicates?.length || 0) + 1;
     return (
-      <div className="space-y-1.5">
-        <p className="text-sm font-medium">{count} records for "{d.canonical_name || d.normalized_name}"</p>
-        <div className="flex items-center gap-1.5 text-xs">
-          <Star className="h-3 w-3 text-amber-400" />
-          <span className="text-amber-400 font-medium">Keep:</span>
-          <span className="text-foreground font-mono">{truncateId(d.canonical_id)}</span>
-        </div>
-        {d.duplicate_ids && d.duplicate_ids.length > 0 && (
+      <div className="space-y-2">
+        <p className="text-sm font-medium">{dupeCount} records for "{d.canonical?.name || d.normalized_name}"</p>
+        {expanded ? (
+          <div className="space-y-2 mt-2">
+            <VenueRecord data={d.canonical} isCanonical />
+            {(d.duplicates || []).map((dup: any) => (
+              <VenueRecord key={dup.id} data={dup} />
+            ))}
+          </div>
+        ) : (
           <p className="text-xs text-muted-foreground">
-            Merge {d.duplicate_ids.length} duplicate{d.duplicate_ids.length > 1 ? "s" : ""} → reassign all linked shows
+            Expand to see all {dupeCount} records · {d.duplicates?.length} will be merged
           </p>
         )}
       </div>
@@ -110,6 +149,15 @@ function renderBody(s: Suggestion) {
             </Badge>
           ))}
         </div>
+        {expanded && (
+          <div className="mt-2 rounded-md border border-white/[0.06] bg-white/[0.01] p-2 space-y-0.5">
+            <Field label="id" value={d.venue_id} />
+            <Field label="name" value={d.venue_name} highlight />
+            {missing.map((f: string) => (
+              <Field key={f} label={f} value={null} />
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -136,7 +184,6 @@ function renderBody(s: Suggestion) {
         </div>
       );
     }
-    // Fuzzy match
     return (
       <div className="space-y-1">
         <p className="text-sm font-medium">
@@ -164,7 +211,6 @@ function renderBody(s: Suggestion) {
     );
   }
 
-  // Fallback
   return <p className="text-sm font-medium">{s.title}</p>;
 }
 
