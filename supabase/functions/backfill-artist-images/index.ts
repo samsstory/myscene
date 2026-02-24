@@ -40,7 +40,48 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get all show_artists missing image or spotify ID
+    // === STALENESS CHECK: validate existing image URLs ===
+    const { data: existingArtists, error: staleError } = await supabase
+      .from('show_artists')
+      .select('id, artist_name, artist_image_url, spotify_artist_id')
+      .not('artist_image_url', 'is', null)
+      .limit(200);
+
+    let staleCount = 0;
+    if (!staleError && existingArtists && existingArtists.length > 0) {
+      // Sample up to 50 for HEAD checks to stay within time limits
+      const sample = existingArtists
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 50);
+
+      console.log(`Staleness check: validating ${sample.length} existing image URLs`);
+
+      for (const artist of sample) {
+        try {
+          const headResp = await fetch(artist.artist_image_url!, { method: 'HEAD', redirect: 'follow' });
+          if (!headResp.ok) {
+            console.log(`Stale URL for "${artist.artist_name}": ${headResp.status}`);
+            await supabase
+              .from('show_artists')
+              .update({ artist_image_url: null })
+              .eq('id', artist.id);
+            staleCount++;
+          }
+          // Tiny delay to avoid hammering CDN
+          await new Promise(r => setTimeout(r, 100));
+        } catch {
+          console.log(`Unreachable URL for "${artist.artist_name}", marking stale`);
+          await supabase
+            .from('show_artists')
+            .update({ artist_image_url: null })
+            .eq('id', artist.id);
+          staleCount++;
+        }
+      }
+      console.log(`Staleness check complete: ${staleCount} stale URLs cleared`);
+    }
+
+    // === BACKFILL: Get all show_artists missing image or spotify ID ===
     const { data: artists, error } = await supabase
       .from('show_artists')
       .select('id, artist_name, spotify_artist_id')
@@ -49,7 +90,7 @@ serve(async (req) => {
 
     if (error) throw error;
     if (!artists || artists.length === 0) {
-      return new Response(JSON.stringify({ message: 'No artists to backfill', updated: 0 }), {
+      return new Response(JSON.stringify({ message: 'No artists to backfill', staleCleared: staleCount, updated: 0 }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -145,9 +186,9 @@ serve(async (req) => {
       if (!updateError) updated++;
     }
 
-    console.log(`Backfill complete: ${updated}/${artists.length} updated`);
+    console.log(`Backfill complete: ${updated}/${artists.length} updated, ${staleCount} stale cleared`);
 
-    return new Response(JSON.stringify({ updated, total: artists.length }), {
+    return new Response(JSON.stringify({ updated, total: artists.length, staleCleared: staleCount }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
