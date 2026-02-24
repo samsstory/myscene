@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { truncateArtists } from "@/lib/utils";
+import { isUserUploadedImage, resolveArtistImage } from "@/lib/artist-image-utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
@@ -144,13 +145,17 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               friendShows={friendShows}
               onAddFriendShowToSchedule={async (show) => {
                 const imgUrl = show.artist_image_url;
-                const isUserUpload = imgUrl && imgUrl.includes("supabase") && imgUrl.includes("show-photos");
+                const isUpload = isUserUploadedImage(imgUrl);
+                let finalImage: string | undefined = isUpload ? undefined : (imgUrl || undefined);
+                if (isUpload) {
+                  finalImage = await resolveArtistImage(show.artist_name);
+                }
                 const saved = await saveUpcomingShow({
                   artist_name: show.artist_name,
                   venue_name: show.venue_name || undefined,
                   venue_location: show.venue_location || undefined,
                   show_date: show.show_date || undefined,
-                  artist_image_url: isUserUpload ? undefined : (imgUrl || undefined),
+                  artist_image_url: finalImage,
                 });
                 if (!saved) toast.error("Failed to add to schedule");
               }}
