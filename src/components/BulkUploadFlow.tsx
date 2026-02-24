@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Tent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PhotoSelectStep from "./bulk-upload/PhotoSelectStep";
 import BulkReviewStep from "./bulk-upload/BulkReviewStep";
@@ -23,7 +23,7 @@ interface BulkUploadFlowProps {
   onAddManually?: () => void;
 }
 
-type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review';
+type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice';
 
 const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>('select');
@@ -141,7 +141,13 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
       setStep('select');
     } else if (step === 'text-review') {
       setStep('text-import');
+    } else if (step === 'lineup-choice') {
+      setStep('select');
     }
+  };
+
+  const handleFromLineup = () => {
+    setStep('lineup-choice');
   };
 
   const handlePasteList = () => {
@@ -183,6 +189,8 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         return 'Import from Notes';
       case 'text-review':
         return 'Review Shows';
+      case 'lineup-choice':
+        return 'Add from Lineup';
       default:
         return 'Add Shows';
     }
@@ -231,7 +239,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center gap-3 mb-4">
-            {(step === 'smart-match' || step === 'review' || step === 'editor' || step === 'text-import' || step === 'text-review') && (
+            {(step === 'smart-match' || step === 'review' || step === 'editor' || step === 'text-import' || step === 'text-review' || step === 'lineup-choice') && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -251,6 +259,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             isProcessing={false}
             onAddManually={onAddManually ? handleAddManually : undefined}
             onPasteList={handlePasteList}
+            onFromLineup={handleFromLineup}
           />
         )}
 
@@ -286,6 +295,13 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             onComplete={handleTextReviewComplete}
             isSubmitting={isTextUploading}
           />
+        )}
+
+        {step === 'lineup-choice' && (
+          <div className="text-center py-12 space-y-3">
+            <Tent className="h-10 w-10 text-muted-foreground mx-auto" />
+            <p className="text-muted-foreground text-sm">Lineup flow coming in Step 3</p>
+          </div>
         )}
 
         {step === 'success' && (
