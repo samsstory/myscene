@@ -59,6 +59,36 @@ export type Database = {
         }
         Relationships: []
       }
+      artists: {
+        Row: {
+          created_at: string
+          genres: string[] | null
+          id: string
+          image_url: string | null
+          name: string
+          spotify_artist_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          genres?: string[] | null
+          id?: string
+          image_url?: string | null
+          name: string
+          spotify_artist_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          genres?: string[] | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          spotify_artist_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bug_reports: {
         Row: {
           created_at: string
@@ -474,6 +504,7 @@ export type Database = {
       }
       show_artists: {
         Row: {
+          artist_id: string | null
           artist_image_url: string | null
           artist_name: string
           created_at: string
@@ -483,6 +514,7 @@ export type Database = {
           spotify_artist_id: string | null
         }
         Insert: {
+          artist_id?: string | null
           artist_image_url?: string | null
           artist_name: string
           created_at?: string
@@ -492,6 +524,7 @@ export type Database = {
           spotify_artist_id?: string | null
         }
         Update: {
+          artist_id?: string | null
           artist_image_url?: string | null
           artist_name?: string
           created_at?: string
@@ -501,6 +534,13 @@ export type Database = {
           spotify_artist_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "show_artists_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "show_artists_show_id_fkey"
             columns: ["show_id"]
