@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     // Fetch lineup
     const { data: lineup } = await supabase
       .from("festival_lineups")
-      .select("artists, venue_name, venue_location, date_start, year, event_name")
+      .select("id, artists, venue_name, venue_location, date_start, year, event_name")
       .eq("id", invite.festival_lineup_id)
       .single();
 

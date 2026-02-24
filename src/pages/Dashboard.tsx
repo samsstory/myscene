@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ContentView } from "@/components/home/ContentPillNav";
+import type { FestivalResult } from "@/components/festival-claim/FestivalSearchStep";
 import Home from "@/components/Home";
 import Profile from "@/components/Profile";
 import BottomNav from "@/components/BottomNav";
@@ -40,6 +41,7 @@ const Dashboard = () => {
   const [inviteHighlights, setInviteHighlights] = useState<string[]>([]);
   const [inviteNote, setInviteNote] = useState("");
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
+  const [festivalInviteState, setFestivalInviteState] = useState<{ festival: FestivalResult; selectedArtists: string[] } | null>(null);
 
   const showsStatRef = useRef<HTMLButtonElement | null>(null);
   const pendingAddFlowRef = useRef(false);
@@ -114,6 +116,61 @@ const Dashboard = () => {
       setSearchParams({}, { replace: true });
     }
   }, [dataReady, searchParams, setSearchParams]);
+
+  // Detect festival invite redirect from localStorage (post-auth)
+  useEffect(() => {
+    if (!dataReady) return;
+    const inviteType = localStorage.getItem("invite_type");
+    if (inviteType !== "festival-invite") return;
+
+    const lineupId = localStorage.getItem("invite_festival_lineup_id") || "";
+    const festivalName = localStorage.getItem("invite_festival_name") || "";
+    const selectedArtists: string[] = JSON.parse(localStorage.getItem("invite_selected_artists") || "[]");
+
+    // Clean up
+    localStorage.removeItem("invite_type");
+    localStorage.removeItem("invite_festival_lineup_id");
+    localStorage.removeItem("invite_selected_artists");
+    localStorage.removeItem("invite_festival_name");
+    localStorage.removeItem("invite_ref");
+
+    if (!lineupId) return;
+
+    // Fetch the lineup data to build a FestivalResult
+    const loadFestival = async () => {
+      const { data: lineup } = await supabase
+        .from("festival_lineups")
+        .select("id, event_name, year, date_start, date_end, venue_name, venue_location, venue_id, artists")
+        .eq("id", lineupId)
+        .maybeSingle();
+
+      if (!lineup) return;
+
+      const artists = (Array.isArray(lineup.artists) ? lineup.artists : []).map((a: any) => ({
+        name: typeof a === "string" ? a : a.name,
+        day: a.day,
+        stage: a.stage,
+      }));
+
+      const festival: FestivalResult = {
+        id: lineup.id,
+        event_name: lineup.event_name || festivalName,
+        year: lineup.year,
+        date_start: lineup.date_start,
+        date_end: lineup.date_end,
+        venue_name: lineup.venue_name,
+        venue_location: lineup.venue_location,
+        venue_id: lineup.venue_id,
+        artists,
+      };
+
+      pendingAddFlowRef.current = false;
+      setFestivalInviteState({ festival, selectedArtists });
+      setTimeout(() => setShowUnifiedAdd(true), 400);
+    };
+
+    loadFestival();
+  }, [dataReady]);
 
   useEffect(() => {
     let isMounted = true;
@@ -288,6 +345,8 @@ const Dashboard = () => {
         inviteShowType={inviteShowType}
         inviteHighlights={inviteHighlights}
         inviteNote={inviteNote}
+        festivalInviteState={festivalInviteState}
+        onFestivalInviteClear={() => setFestivalInviteState(null)}
       />
     </div>
   );

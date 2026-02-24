@@ -28,6 +28,9 @@ export default function FestivalInviteHero({ inviteId, refCode }: FestivalInvite
   const [claiming, setClaiming] = useState(false);
   const { claimShows } = useFestivalClaim();
 
+  // Derive lineup ID from edge function response
+  const lineupId = (data?.lineup as any)?.id || "";
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
   }, []);
@@ -67,18 +70,10 @@ export default function FestivalInviteHero({ inviteId, refCode }: FestivalInvite
     if (!session) {
       // Persist to localStorage and redirect to auth
       localStorage.setItem("invite_type", "festival-invite");
-      localStorage.setItem("invite_festival_lineup_id", data?.lineup ? (data as any).invite.id : "");
+      localStorage.setItem("invite_festival_lineup_id", lineupId);
       localStorage.setItem("invite_selected_artists", JSON.stringify(selectedArtists));
       localStorage.setItem("invite_festival_name", data?.invite.festival_name || "");
       if (refCode) localStorage.setItem("invite_ref", refCode);
-
-      // Store the actual lineup ID for claiming later
-      const lineupId = (() => {
-        // We need the lineup ID — extract from the invite data
-        // The edge function returns lineup data but not its ID directly;
-        // we stored festival_lineup_id in the invite
-        return ""; // Will be fetched via the invite in Dashboard
-      })();
 
       navigate(`/auth${refCode ? `?ref=${refCode}` : ""}`);
       return;
