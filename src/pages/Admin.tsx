@@ -8,6 +8,7 @@ import { AnnouncementsPanel } from "@/components/admin/AnnouncementsPanel";
 import { QuotesTab } from "@/components/admin/QuotesTab";
 import { FeatureRequestsTab } from "@/components/admin/FeatureRequestsTab";
 import { InvitersTab } from "@/components/admin/InvitersTab";
+import { DataTab } from "@/components/admin/DataTab";
 import { Shield } from "lucide-react";
 import BrandedLoader from "@/components/ui/BrandedLoader";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +64,7 @@ export default function Admin() {
               { value: "waitlist", label: "Waitlist" },
               { value: "users", label: "Users" },
               { value: "inviters", label: "Inviters" },
+              { value: "data", label: "Data" },
               { value: "bugs", label: "Bug Reports", badge: newBugCount > 0 ? newBugCount : undefined },
               { value: "features", label: "Feature Requests", badge: newFeatureCount > 0 ? newFeatureCount : undefined },
               { value: "announcements", label: "Announcements" },
@@ -91,6 +93,9 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="inviters">
             <InvitersTab />
+          </TabsContent>
+          <TabsContent value="data">
+            <DataTab />
           </TabsContent>
           <TabsContent value="bugs">
             <BugReportsTab onCountChange={setNewBugCount} />
