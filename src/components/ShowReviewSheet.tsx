@@ -453,11 +453,11 @@ export const ShowReviewSheet = ({
               </div>
 
               {/* Share Festival Invite — only for festival-type shows */}
-              {show.showType === "festival" && show.eventName && (
+              {show.showType === "festival" && (show.eventName || show.venue?.name) && (
                 <Button
                   variant="ghost"
                   className="w-full h-11 rounded-xl font-medium text-sm bg-white/[0.04] border border-white/[0.08] text-foreground/60 hover:text-foreground hover:bg-white/[0.08] transition-all"
-                  onClick={() => shareFestivalInvite({ showId: show.id, eventName: show.eventName!, showDate: show.date })}
+                  onClick={() => shareFestivalInvite({ showId: show.id, eventName: show.eventName || show.venue?.name || "", showDate: show.date })}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
                   Share Festival Invite
