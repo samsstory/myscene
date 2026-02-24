@@ -39,9 +39,11 @@ export function useFriendShowToggle({
         return next;
       });
     } else {
+      const imageUrl = show.artist_image_url;
+      const isUserUpload = imageUrl && imageUrl.includes("supabase") && imageUrl.includes("show-photos");
       const success = await saveUpcomingShow({
         artist_name: show.artist_name,
-        artist_image_url: show.artist_image_url ?? undefined,
+        artist_image_url: isUserUpload ? undefined : (imageUrl ?? undefined),
         venue_name: show.venue_name ?? undefined,
         venue_location: show.venue_location ?? undefined,
         show_date: show.show_date ?? undefined,
