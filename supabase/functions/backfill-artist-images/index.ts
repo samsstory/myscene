@@ -61,27 +61,36 @@ serve(async (req) => {
     const spotifyCache: Record<string, { id: string; imageUrl: string | null }> = {};
 
     const token = await getSpotifyToken();
+    console.log(`Got Spotify token, processing ${uniqueNames.length} unique names`);
 
-    // Process in batches of 5 to avoid rate limits
-    for (let i = 0; i < uniqueNames.length; i += 5) {
-      const batch = uniqueNames.slice(i, i + 5);
-      await Promise.all(batch.map(async (name) => {
-        try {
-          const resp = await fetch(
-            `https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
-            { headers: { 'Authorization': `Bearer ${token}` } }
-          );
-          if (!resp.ok) return;
-          const data = await resp.json();
-          const artist = data.artists?.items?.[0];
-          if (artist) {
-            spotifyCache[name] = {
-              id: artist.id,
-              imageUrl: artist.images?.[0]?.url || null,
-            };
+    // Process one at a time with small delays to avoid Spotify 429
+    for (const name of uniqueNames) {
+      try {
+        const resp = await fetch(
+          `https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (!resp.ok) {
+          console.error(`Spotify search failed for "${name}": ${resp.status}`);
+          await resp.text();
+          if (resp.status === 429) {
+            // Wait a bit and continue with remaining artists
+            await new Promise(r => setTimeout(r, 2000));
           }
-        } catch { /* skip */ }
-      }));
+          continue;
+        }
+        const data = await resp.json();
+        const artist = data.artists?.items?.[0];
+        if (artist) {
+          spotifyCache[name] = { id: artist.id, imageUrl: artist.images?.[0]?.url || null };
+          console.log(`Found "${name}": ${artist.name}`);
+        } else {
+          console.log(`No match for "${name}"`);
+        }
+        await new Promise(r => setTimeout(r, 200));
+      } catch (err) {
+        console.error(`Error searching "${name}":`, err);
+      }
     }
 
     // Update all matching records

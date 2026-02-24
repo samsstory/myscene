@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export function isUserUploadedImage(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.includes("supabase") && url.includes("show-photos");
+  if (url.includes("supabase") && url.includes("show-photos")) return true;
+  if (url.includes("lovable.app/images/") || url.includes("lovableproject.com/images/")) return true;
+  return false;
 }
 
 /**
