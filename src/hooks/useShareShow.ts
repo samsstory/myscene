@@ -12,9 +12,15 @@ export interface ShareShowParams {
 }
 
 export interface ShareFestivalInviteParams {
-  showId: string;        // parent festival show id
+  showId: string;
   eventName: string;
-  showDate: string;      // ISO date string to derive year
+  showDate: string;
+}
+
+export interface ShareFestivalFromLineupParams {
+  festivalLineupId: string;
+  festivalName: string;
+  artists: { name: string; image_url?: string | null }[];
 }
 
 // Fetch the current user's referral code
@@ -88,13 +94,58 @@ export function useShareShow() {
     [profile]
   );
 
+  // Shared helper: create invite row + share/copy URL
+  const createAndShareInvite = useCallback(
+    async (festivalLineupId: string, festivalName: string, selectedArtists: { name: string; image_url?: string | null }[]) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: invite, error } = await supabase
+        .from("festival_invites")
+        .insert({
+          created_by: user.id,
+          festival_lineup_id: festivalLineupId,
+          festival_name: festivalName,
+          selected_artists: selectedArtists,
+        })
+        .select("id")
+        .single();
+
+      if (error || !invite) {
+        toast.error("Failed to create invite");
+        return;
+      }
+
+      const refCode = profile?.referral_code ?? "";
+      const refParam = refCode ? `&ref=${refCode}` : "";
+      const url = `https://tryscene.app/?show=${invite.id}&type=festival-invite${refParam}`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Join me at ${festivalName} on Scene`,
+            text: `I just claimed ${festivalName} on Scene — ${selectedArtists.length} sets! Who did you see? 🎶`,
+            url,
+          });
+          return;
+        } catch (err: any) {
+          if (err?.name === "AbortError") return;
+        }
+      }
+
+      await navigator.clipboard.writeText(url);
+      toast.success("Festival invite link copied! 🔗");
+    },
+    [profile]
+  );
+
+  // Share from a logged festival show (looks up lineup + child shows)
   const shareFestivalInvite = useCallback(
     async ({ showId, eventName, showDate }: ShareFestivalInviteParams) => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Find the festival lineup by name + year
         const showYear = new Date(showDate).getFullYear();
         const { data: lineup } = await supabase
           .from("festival_lineups")
@@ -108,7 +159,6 @@ export function useShareShow() {
           return;
         }
 
-        // Get the user's artists from child sets
         const { data: childShows } = await supabase
           .from("shows")
           .select("id, show_artists(artist_name, artist_image_url)")
@@ -120,48 +170,27 @@ export function useShareShow() {
           image_url: s.show_artists?.[0]?.artist_image_url || null,
         }));
 
-        const { data: invite, error } = await supabase
-          .from("festival_invites")
-          .insert({
-            created_by: user.id,
-            festival_lineup_id: lineup.id,
-            festival_name: eventName,
-            selected_artists: selectedArtists,
-          })
-          .select("id")
-          .single();
-
-        if (error || !invite) {
-          toast.error("Failed to create invite");
-          return;
-        }
-
-        const refCode = profile?.referral_code ?? "";
-        const refParam = refCode ? `&ref=${refCode}` : "";
-        const url = `https://tryscene.app/?show=${invite.id}&type=festival-invite${refParam}`;
-
-        if (navigator.share) {
-          try {
-            await navigator.share({
-              title: `Join me at ${eventName} on Scene`,
-              text: `I just claimed ${eventName} on Scene — ${selectedArtists.length} sets! Who did you see? 🎶`,
-              url,
-            });
-            return;
-          } catch (err: any) {
-            if (err?.name === "AbortError") return;
-          }
-        }
-
-        await navigator.clipboard.writeText(url);
-        toast.success("Festival invite link copied! 🔗");
+        await createAndShareInvite(lineup.id, eventName, selectedArtists);
       } catch (err) {
         console.error("Share festival error:", err);
         toast.error("Something went wrong");
       }
     },
-    [profile]
+    [createAndShareInvite]
   );
 
-  return { shareShow, shareFestivalInvite };
+  // Share from BulkSuccessStep where lineup ID + artists are already known
+  const shareFestivalFromLineup = useCallback(
+    async ({ festivalLineupId, festivalName, artists }: ShareFestivalFromLineupParams) => {
+      try {
+        await createAndShareInvite(festivalLineupId, festivalName, artists);
+      } catch (err) {
+        console.error("Share festival error:", err);
+        toast.error("Something went wrong");
+      }
+    },
+    [createAndShareInvite]
+  );
+
+  return { shareShow, shareFestivalInvite, shareFestivalFromLineup };
 }

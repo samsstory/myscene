@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, Plus, Image, MessageCircle, Scale, Share, Download, Music } from "lucide-react";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
+import { useShareShow } from "@/hooks/useShareShow";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -56,6 +57,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
   const firstShow = addedShows[0];
   const hasMultiple = addedShows.length > 1;
   const isFestival = !!festivalName;
+  const { shareFestivalFromLineup } = useShareShow();
 
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallCTA, setShowInstallCTA] = useState(false);
@@ -106,61 +108,15 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
 
   const handleShareAll = useCallback(async () => {
     if (isFestival && festivalLineupId) {
-      // Create a festival invite and share the link
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("referral_code")
-          .eq("id", user.id)
-          .single();
-
-        const selectedArtists = addedShows.map((s) => ({
-          name: s.artists[0]?.name || "Artist",
-          image_url: (s.artists[0] as any)?.image_url || null,
-        }));
-
-        const { data: invite, error } = await supabase
-          .from("festival_invites")
-          .insert({
-            created_by: user.id,
-            festival_lineup_id: festivalLineupId,
-            festival_name: festivalName || "Festival",
-            selected_artists: selectedArtists,
-          })
-          .select("id")
-          .single();
-
-        if (error || !invite) {
-          console.error("Failed to create invite:", error);
-          return;
-        }
-
-        const refParam = profile?.referral_code ? `&ref=${profile.referral_code}` : "";
-        const url = `https://tryscene.app/?show=${invite.id}&type=festival-invite${refParam}`;
-
-        if (navigator.share) {
-          try {
-            await navigator.share({
-              title: `Join me at ${festivalName} on Scene`,
-              text: `I just claimed ${festivalName} on Scene — ${addedShows.length} sets! Who did you see? 🎶`,
-              url,
-            });
-            return;
-          } catch (err: any) {
-            if (err?.name === "AbortError") return;
-          }
-        }
-
-        await navigator.clipboard.writeText(url);
-        const { toast } = await import("sonner");
-        toast.success("Invite link copied! 🔗");
-      } catch (err) {
-        console.error("Share festival error:", err);
-      }
+      const artists = addedShows.map((s) => ({
+        name: s.artists[0]?.name || "Artist",
+        image_url: (s.artists[0] as any)?.image_url || null,
+      }));
+      await shareFestivalFromLineup({
+        festivalLineupId,
+        festivalName: festivalName || "Festival",
+        artists,
+      });
     } else if (isFestival) {
       const shareText = `Just claimed ${festivalName} on SCENE — ${addedShows.length} sets logged! 🎵`;
       window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
@@ -168,7 +124,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
       const shareText = `Just added ${addedShows.length} shows to my Scene! 🎵`;
       window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
     }
-  }, [isFestival, festivalLineupId, festivalName, addedShows]);
+  }, [isFestival, festivalLineupId, festivalName, addedShows, shareFestivalFromLineup]);
 
   if (showPushInterstitial) {
     return (
