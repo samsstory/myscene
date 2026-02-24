@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      data_suggestions: {
+        Row: {
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          suggestion_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          suggestion_type: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          suggestion_type?: string
+          title?: string
+        }
+        Relationships: []
+      }
       edmtrain_events: {
         Row: {
           ages: string | null
