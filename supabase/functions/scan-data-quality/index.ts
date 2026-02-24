@@ -139,8 +139,43 @@ Deno.serve(async (req) => {
     );
 
     if (venues) {
+      const googleApiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+      
       for (const v of venues) {
         if (!referencedIds.has(v.id)) continue;
+        
+        // Auto-backfill coordinates from location address if available
+        if ((!v.latitude || !v.longitude) && v.location && googleApiKey) {
+          try {
+            const query = `${v.name} ${v.location}`;
+            const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=geometry,formatted_address,address_components&key=${googleApiKey}`;
+            const resp = await fetch(url);
+            const json = await resp.json();
+            const candidate = json.candidates?.[0];
+            if (candidate?.geometry?.location) {
+              const updates: Record<string, unknown> = {
+                latitude: candidate.geometry.location.lat,
+                longitude: candidate.geometry.location.lng,
+              };
+              // Also backfill city/country if missing
+              if (candidate.address_components) {
+                for (const comp of candidate.address_components) {
+                  if (!v.city && comp.types?.includes("locality")) updates.city = comp.long_name;
+                  if (!v.country && comp.types?.includes("country")) updates.country = comp.long_name;
+                }
+              }
+              await sb.from("venues").update(updates).eq("id", v.id);
+              // Update local copy so we don't flag it
+              v.latitude = updates.latitude as number;
+              v.longitude = updates.longitude as number;
+              if (updates.city) v.city = updates.city as string;
+              if (updates.country) v.country = updates.country as string;
+            }
+          } catch (e) {
+            console.error(`Auto-backfill failed for ${v.name}:`, e);
+          }
+        }
+        
         const missing: string[] = [];
         if (!v.latitude || !v.longitude) missing.push("coordinates");
         if (!v.city) missing.push("city");
