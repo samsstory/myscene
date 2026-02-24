@@ -43,31 +43,52 @@ export const useFestivalClaim = () => {
         return { success: true, addedCount: 0, addedShows: [] };
       }
 
-      // Insert one show per artist
-      const showRows = newArtists.map((name) => ({
+      const shared = {
         user_id: user.id,
         show_date: showDate,
         venue_name: venueName,
         venue_location: venueLocation,
         venue_id: festival.venue_id,
-        show_type: "set" as const,
         event_name: festival.event_name,
         date_precision: festival.date_start ? "exact" : "month",
+      };
+
+      // 1. Create parent festival record
+      const { data: parent, error: parentError } = await supabase
+        .from("shows")
+        .insert({ ...shared, show_type: "festival" })
+        .select("id")
+        .single();
+
+      if (parentError || !parent) throw parentError;
+
+      // 2. Create child set records linked to parent
+      const setRows = newArtists.map(() => ({
+        ...shared,
+        show_type: "set" as const,
+        parent_show_id: parent.id,
       }));
 
-      const { data: insertedShows, error: showError } = await supabase
+      const { data: insertedSets, error: setError } = await supabase
         .from("shows")
-        .insert(showRows)
+        .insert(setRows)
         .select("id");
 
-      if (showError || !insertedShows) throw showError;
+      if (setError || !insertedSets) throw setError;
 
-      // Insert show_artists
-      const artistRows = insertedShows.map((show, i) => ({
-        show_id: show.id,
-        artist_name: newArtists[i],
-        is_headliner: true,
-      }));
+      // 3. Insert show_artists — parent gets all artists, each child gets one
+      const artistRows = [
+        ...newArtists.map((name, i) => ({
+          show_id: parent.id,
+          artist_name: name,
+          is_headliner: i === 0,
+        })),
+        ...insertedSets.map((set, i) => ({
+          show_id: set.id,
+          artist_name: newArtists[i],
+          is_headliner: true,
+        })),
+      ];
 
       const { error: artistError } = await supabase
         .from("show_artists")
@@ -75,17 +96,22 @@ export const useFestivalClaim = () => {
 
       if (artistError) throw artistError;
 
-      const addedShows: AddedShowData[] = insertedShows.map((show, i) => ({
+      // Return all records (parent + sets) for success screen
+      const allInserted = [parent, ...insertedSets];
+      const addedShows: AddedShowData[] = allInserted.map((show, i) => ({
         id: show.id,
-        artists: [{ name: newArtists[i], isHeadliner: true }],
+        artists: i === 0
+          ? newArtists.map((name, j) => ({ name, isHeadliner: j === 0 }))
+          : [{ name: newArtists[i - 1], isHeadliner: true }],
         venue: { name: venueName, location: venueLocation },
         date: showDate,
         rating: null,
         photo_url: null,
       }));
 
-      toast.success(`Added ${newArtists.length} show${newArtists.length !== 1 ? "s" : ""}`);
-      return { success: true, addedCount: newArtists.length, addedShows };
+      const total = newArtists.length + 1; // sets + festival
+      toast.success(`Added ${festival.event_name} + ${newArtists.length} set${newArtists.length !== 1 ? "s" : ""}`);
+      return { success: true, addedCount: total, addedShows };
     } catch (err: any) {
       console.error("Festival claim error:", err);
       toast.error("Failed to add shows");
