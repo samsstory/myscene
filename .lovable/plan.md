@@ -1,46 +1,74 @@
 
 
-# Copy Artist Image When Adding Shows to "Mine"
+## Fix Stale and Missing Spotify Artist Images
 
-## Problem
-When a user adds a show to their calendar from Friends, Discover/Edmtrain, or other sources, the `artist_image_url` is either not passed through (Edmtrain) or blindly copied (Friends -- could be a user-uploaded photo). This results in blank card images in the "Mine" section.
+### Problem
 
-## Two Entry Points to Fix
+Two categories of bad artist image data exist in the database:
 
-### 1. Edmtrain "Add to Schedule" (`Home.tsx`)
-The `handleEdmtrainAddToSchedule` function currently does NOT pass `artist_image_url` at all. Edmtrain events always have platform-sourced artist images (never user-uploaded), so this is safe to copy directly.
+1. **Stale preview URLs** -- 5 artists in `show_artists` and 2 in `upcoming_shows` have URLs pointing to `lovable.app/images/...` (demo photos copied as artist images). These are NOT real artist profile images and will 404 or show wrong content.
+   - Bicep, Bob Moses, DJ Stingray, Four Tet, Fred again.. (in `show_artists`)
+   - Bicep, Floating Points (in `upcoming_shows`)
 
-**Change:** Add `artist_image_url: event.artist_image_url || undefined` to the `saveUpcomingShow` call.
+2. **Missing images** -- DWLLRS and Mehro have completely NULL artist images. Several artists also lack `spotify_artist_id`.
 
-### 2. Friend Show Toggle (`useFriendShowToggle.ts`)
-This hook currently passes `artist_image_url: show.artist_image_url ?? undefined` -- which blindly copies whatever the friend has. If the friend uploaded a personal photo, that would get copied (wrong). If the friend has a Spotify/Edmtrain artist image, it should be copied (correct).
+3. **Incomplete heuristic** -- The `isUserUploadedImage()` function only catches Supabase storage URLs (`supabase` + `show-photos`). It misses `lovable.app/images/` preview URLs that were stored as artist images before the guard was added.
 
-**Problem:** There is no field on `upcoming_shows` that distinguishes "this image came from Spotify/Edmtrain" vs "this was uploaded by the user." However, user-uploaded photos go into the `show-photos` storage bucket and have URLs containing `show-photos` in the path, while Spotify/Edmtrain images are external URLs (e.g., `i.scdn.co`, `edmtrain.com`).
+---
 
-**Change:** Add a simple check -- if `artist_image_url` contains the Supabase storage domain (indicating user upload), skip it. Otherwise, copy it through. This is a lightweight heuristic that covers the current data patterns without requiring a schema change.
+### Plan
 
-### 3. Pass `event_name` from Edmtrain too
-While we're here, the Edmtrain add handler also doesn't pass `event_name`. We should pass it so the card shows the festival/event name properly.
+#### Step 1: Widen the image heuristic
 
-## Files to Change
+Update `src/lib/artist-image-utils.ts` to also flag `lovable.app` and `lovableproject.com` URLs as non-platform images:
 
-| File | Change |
-|------|--------|
-| `src/components/Home.tsx` | Add `artist_image_url` and `event_name` to `handleEdmtrainAddToSchedule` |
-| `src/hooks/useFriendShowToggle.ts` | Add image-source check before passing `artist_image_url` -- skip if URL contains Supabase storage path |
-
-## Image Source Heuristic
-
-A small helper function (inline or shared):
-
-```text
-function isUserUploadedImage(url: string): boolean
-  returns true if URL contains "supabase" and "show-photos"
-  (i.e., it's from the storage bucket, not an external artist image)
+```typescript
+export function isUserUploadedImage(url: string | null | undefined): boolean {
+  if (!url) return false;
+  if (url.includes("supabase") && url.includes("show-photos")) return true;
+  if (url.includes("lovable.app/images/") || url.includes("lovableproject.com/images/")) return true;
+  return false;
+}
 ```
 
-If the image is user-uploaded, we simply pass `undefined` for `artist_image_url`, and the card will fall back to the default placeholder. In the future, if you want to auto-resolve a Spotify artist image as a fallback, that would be a separate enhancement using the existing artist image lookup flow.
+This prevents these stale URLs from being copied into new records going forward.
 
-## Sequencing
-1. Update `useFriendShowToggle.ts` with the image-source check
-2. Update `Home.tsx` to pass `artist_image_url` and `event_name` from Edmtrain events
+#### Step 2: Data cleanup via SQL
+
+Run two UPDATE statements to NULL out the bad preview URLs so the backfill can re-populate them:
+
+**show_artists:**
+```sql
+UPDATE show_artists
+SET artist_image_url = NULL
+WHERE artist_image_url LIKE '%lovable.app/images/%'
+   OR artist_image_url LIKE '%lovableproject.com/images/%';
+```
+
+**upcoming_shows:**
+```sql
+UPDATE upcoming_shows
+SET artist_image_url = NULL
+WHERE artist_image_url LIKE '%lovable.app/images/%'
+   OR artist_image_url LIKE '%lovableproject.com/images/%';
+```
+
+This affects 5 `show_artists` rows and 2 `upcoming_shows` rows.
+
+#### Step 3: Run the backfill edge function
+
+Invoke the existing `backfill-artist-images` edge function, which queries `show_artists` rows with NULL `artist_image_url` or `spotify_artist_id`, looks up each artist on Spotify, and writes the correct image URL and Spotify ID. After the data cleanup in Step 2, this will now pick up all 7+ affected artists (Bicep, Bob Moses, DJ Stingray, Four Tet, Fred again.., DWLLRS, Mehro, etc.).
+
+#### Step 4: Verify
+
+Query the database to confirm all previously-stale rows now have valid `i.scdn.co` Spotify image URLs.
+
+---
+
+### Technical Details
+
+- **Files modified**: `src/lib/artist-image-utils.ts` only (1 small change to the heuristic)
+- **Data operations**: 2 UPDATE queries via the insert tool, 1 edge function invocation
+- **No schema changes** required
+- **No new secrets** needed -- the backfill function already uses `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`
+
