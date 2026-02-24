@@ -1,103 +1,115 @@
 
 
-# Phase 1: Festival Lineups Table + Admin Import UI
+# Step 1: Redesign PhotoSelectStep as Unified Method Picker
 
-## Overview
+## What Changes
 
-Create a `festival_lineups` reference catalog table and build an admin interface for manually uploading festival lineup data via JSON or CSV. This data will later power the user-facing "claim your festival history" flow.
+The `PhotoSelectStep` component gets redesigned from a simple photo upload box into a multi-method landing page. All four show-logging methods appear on a single screen inside the existing `BulkUploadFlow` dialog.
 
----
+No changes to `AddChoiceSheet`, `DashboardSheets`, or `Dashboard`. Everything stays inside `BulkUploadFlow`.
 
-## Step 1: Database Migration
+## New Layout
 
-Create the `festival_lineups` table to store scraped/imported festival data as a flat reference catalog.
-
-```sql
-CREATE TABLE public.festival_lineups (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_name text NOT NULL,
-  year integer NOT NULL,
-  date_start date,
-  date_end date,
-  venue_name text,
-  venue_location text,
-  venue_id uuid REFERENCES venues(id),
-  artists jsonb NOT NULL DEFAULT '[]'::jsonb,
-  source text DEFAULT 'manual',
-  source_url text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(lower(trim(event_name)), year)
-);
+```text
+┌─────────────────────────────────────┐
+│  Add a Show                    ✕    │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │  📸  [Camera icon]         │    │
+│  │  Tap to browse your         │    │
+│  │  photo library              │    │
+│  │                             │    │
+│  │  "We'll grab date/location  │    │
+│  │   from metadata, you add    │    │
+│  │   the artist"               │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  ────────── or ──────────           │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │  🎪 Add from Lineup         │    │
+│  │  Upload a festival poster   │    │
+│  │  or search our database —   │    │
+│  │  tap the artists you saw    │    │
+│  │  to add them all at once    │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  ── Other ways to add ────────      │
+│  📋 Paste a list from Notes         │
+│  🔍 Search manually                 │
+└─────────────────────────────────────┘
 ```
 
-**`artists` JSONB format:**
-```json
-[
-  { "name": "Fred Again..", "day": "Friday", "stage": null },
-  { "name": "Bicep", "day": "Saturday", "stage": null }
-]
-```
+## Visual Specifications
 
-**RLS Policies:**
-- SELECT: All authenticated users (they need to browse/search this catalog)
-- INSERT/UPDATE/DELETE: Admins only (`has_role(auth.uid(), 'admin')`)
+**Photo Upload Box** (existing dashed-border area):
+- Keeps current `Camera` icon, dashed border, and `h-48` height
+- Updated subtitle: "We'll grab date and location from metadata, you add the artist"
+- No styling changes — retains current appearance
 
-**Indexes:**
-- GIN index on `artists` for searching artist names within lineups
-- Trigram index on `event_name` for fuzzy festival name search
+**"or" divider**:
+- `border-t border-white/10` with centered "or" text at `text-xs text-white/30`
 
----
+**"Add from Lineup" card**:
+- `Tent` icon from lucide-react
+- Cyan/purple gradient icon container (matching the "Log a Show" card style from `AddChoiceSheet`)
+- `min-h-[120px]`, glassmorphism: `bg-white/[0.05] border border-white/[0.09]`
+- Title: "Add from Lineup" at 18px bold
+- Subtitle at 14px, 70% opacity
+- `motion.button` with `whileTap={{ scale: 0.97 }}` and arrow icon on right
+- Clear visual distinction from the dashed-border photo box above
 
-## Step 2: Admin UI -- "Festivals" Sub-Tab
+**"Other ways to add" section**:
+- Divider: `text-xs text-white/40 uppercase tracking-wider` label with `border-t border-white/10 pt-4 mt-6`
+- Two compact text rows (not cards): `ClipboardList` and `Search` icons, text only, smaller touch targets
+- Same text-link styling as current "Paste a list instead" and "Search manually" but with icons
 
-Add a new **"Festivals"** tab inside the existing Data tab (`DataTab.tsx`), alongside Venues, Shows, and AI Suggestions.
+## Code Changes
 
-### Components to create:
+### File 1: `src/components/bulk-upload/PhotoSelectStep.tsx`
 
-**`src/components/admin/data/FestivalsBrowser.tsx`**
-- Table view of all `festival_lineups` records, showing: event name, year, artist count, venue, source
-- Search bar (fuzzy match on event name)
-- Stat pills: total festivals, total unique artists across all lineups
-- Click a row to expand/view the full artist list
+**Props interface** — add `onFromLineup?: () => void` alongside existing `onPasteList` and `onAddManually`.
 
-**`src/components/admin/data/FestivalImportDialog.tsx`**
-- Dialog/sheet triggered by an "Import Lineups" button
-- Two import modes via tabs:
-  - **JSON mode**: Paste a JSON array matching the schema (event_name, year, artists array, venue info)
-  - **CSV mode**: Paste CSV with columns: `event_name, year, artist_name, day` (one row per artist; grouped by event_name+year on import)
-- Preview step: shows parsed festivals with artist counts before committing
-- "Import" button inserts into `festival_lineups`, deduplicating by event_name + year (upsert -- merges artist arrays if festival already exists)
-- Validation: reject entries missing event_name or year
+**When `selectedPhotos.length === 0`** (the initial state), replace the current layout with:
+1. Photo upload box (keep existing dashed-border button, update subtitle copy)
+2. "or" divider
+3. "Add from Lineup" card (new `motion.button` with `Tent` icon, cyan gradient, subtitle)
+4. "Other ways to add" divider
+5. "Paste a list from Notes" text row (currently "Paste a list instead")
+6. "Search manually" text row (keep existing behavior)
 
-### Updated file:
-- **`DataTab.tsx`**: Add a 4th tab trigger "Festivals" pointing to `<FestivalsBrowser />`
+**When `selectedPhotos.length > 0`** (photos selected), keep the existing photo grid + continue button exactly as-is. The lineup card and secondary options disappear once photos are selected — user has committed to the photo path.
 
----
+**Header section**: Remove the current centered Camera icon + "Add Multiple Shows At Once" header. The dialog title "Add a Show" from `BulkUploadFlow` already serves as the header. The methods below are self-explanatory.
 
-## Step 3: Edit & Delete Support
+### File 2: `src/components/BulkUploadFlow.tsx`
 
-Each festival row in the browser gets:
-- **Edit button**: Opens a dialog to rename the festival, change year/dates, edit venue, or manually add/remove artists from the JSONB array
-- **Delete button**: Removes the lineup record (with confirmation)
+**Step type**: Add `'lineup-choice'` to the `Step` union type. (Steps 2-3 will add `'lineup-search'` and `'lineup-grid'` later.)
 
----
+**Pass `onFromLineup`** to `PhotoSelectStep` — sets step to `'lineup-choice'`.
 
-## Technical Notes
+**`getTitle()`**: Add case for `'lineup-choice'` returning `'Add from Lineup'`.
 
-- The `festival_lineups` table is purely reference data -- it is NOT tied to any user's shows. It exists so users can later browse and "claim" shows from it.
-- The `source` column tracks provenance (`manual`, `firecrawl`, `scraper`) for Phase 2.
-- The `venue_id` FK is optional -- if a matching venue exists in the canonical `venues` table it can be linked, otherwise just store the name/location strings.
-- The unique constraint on `(lower(trim(event_name)), year)` prevents duplicate festival entries for the same year.
+**Back navigation**: `lineup-choice` → `select`.
 
----
+**Header back button**: Add `'lineup-choice'` to the condition that shows the back arrow.
 
-## Files Changed
+**Rendering**: For now, `lineup-choice` step renders a placeholder (or the `LineupChoiceStep` component if we build it in the same step — but per the plan we build it in Step 3). A simple "Coming soon" placeholder is fine for now so the navigation wiring is testable.
 
-| File | Change |
-|------|--------|
-| `supabase/migrations/` (new) | Create `festival_lineups` table, RLS policies, indexes |
-| `src/components/admin/data/FestivalsBrowser.tsx` (new) | Festival table browser with search, stats, expand |
-| `src/components/admin/data/FestivalImportDialog.tsx` (new) | JSON/CSV import dialog with preview + upsert |
-| `src/components/admin/DataTab.tsx` | Add "Festivals" tab |
+## What Does NOT Change
+
+- `AddChoiceSheet.tsx` — no changes
+- `DashboardSheets.tsx` — no changes  
+- `Dashboard.tsx` — no changes
+- The photo upload flow after selecting photos (grid, continue button, smart-match, review, success) — all unchanged
+- "Search Manually" behavior: closes `BulkUploadFlow` dialog and opens `AddShowFlow` wizard (existing `onAddManually` callback). The transition is not jarring because the dialog closes first, then the wizard opens after 150ms.
+
+## Testing
+
+After this step, you can:
+1. Tap FAB → "Log a Show" → see the new unified method picker
+2. Tap the photo upload box → existing photo flow works as before
+3. Tap "Add from Lineup" → navigates to placeholder step with back button
+4. Tap "Paste a list from Notes" → existing text import flow
+5. Tap "Search manually" → closes dialog, opens manual wizard
 
