@@ -1,7 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Star, MapPin, Music, Link2 } from "lucide-react";
-import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Star, MapPin, Music, Link2, Search } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 interface Suggestion {
   id: string;
@@ -12,6 +13,16 @@ interface Suggestion {
   details: Record<string, unknown>;
   status: string;
   created_at: string;
+}
+
+interface VenueRow {
+  id: string;
+  name: string;
+  city: string | null;
+  country: string | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -47,7 +58,7 @@ export function SuggestionCard({
             </Badge>
             <Badge variant="outline" className="text-[10px]">{s.entity_type}</Badge>
           </div>
-          {renderBody(s, expanded)}
+          {renderHeader(s)}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {s.status === "pending" && (
@@ -65,78 +76,200 @@ export function SuggestionCard({
           </Button>
         </div>
       </div>
+      {expanded && renderExpanded(s)}
     </div>
   );
 }
 
-/** Renders a key-value field row */
-function Field({ label, value, highlight }: { label: string; value: unknown; highlight?: boolean }) {
-  const display = value === null || value === undefined ? "—" : String(value);
-  const isEmpty = value === null || value === undefined || value === "";
-  return (
-    <div className="flex items-baseline gap-2 text-xs">
-      <span className="text-muted-foreground w-20 shrink-0 text-right">{label}</span>
-      <span className={
-        isEmpty ? "text-muted-foreground/50 italic" :
-        highlight ? "text-foreground font-medium" : "text-foreground"
-      }>
-        {isEmpty ? "null" : display}
-      </span>
-    </div>
-  );
+// ─── Address Autocomplete ──────────────────────────────────────────────
+
+interface AddressResult {
+  name: string;
+  city: string | null;
+  country: string | null;
+  location: string;
+  latitude: number;
+  longitude: number;
 }
 
-/** Renders a full venue record like a DB row */
-function VenueRecord({ data, isCanonical }: { data: any; isCanonical?: boolean }) {
+function AddressSearch({ onSelect }: { onSelect: (r: AddressResult) => void }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<AddressResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const search = useCallback(async (q: string) => {
+    if (q.length < 3) { setResults([]); return; }
+    try {
+      const { MAPBOX_TOKEN } = await import("@/lib/mapbox");
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&types=poi,address,place&limit=5`
+      );
+      const data = await res.json();
+      const mapped: AddressResult[] = (data.features || []).map((f: any) => {
+        const ctx = (f.context || []) as Array<{ id: string; text: string }>;
+        const city = ctx.find((c: any) => c.id.startsWith("place"))?.text || null;
+        const country = ctx.find((c: any) => c.id.startsWith("country"))?.text || null;
+        return {
+          name: f.text,
+          city,
+          country,
+          location: f.place_name,
+          latitude: f.center[1],
+          longitude: f.center[0],
+        };
+      });
+      setResults(mapped);
+      setOpen(true);
+    } catch { setResults([]); }
+  }, []);
+
+  useEffect(() => {
+    clearTimeout(timerRef.current);
+    if (query.length >= 3) {
+      timerRef.current = setTimeout(() => search(query), 300);
+    } else {
+      setResults([]);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [query, search]);
+
   return (
-    <div className={`rounded-md border p-2 space-y-0.5 ${
-      isCanonical 
-        ? "border-amber-500/30 bg-amber-500/5" 
-        : "border-white/[0.06] bg-white/[0.01]"
-    }`}>
-      <div className="flex items-center gap-1.5 mb-1">
-        {isCanonical && <Star className="h-3 w-3 text-amber-400" />}
-        <span className={`text-[10px] font-medium uppercase tracking-wider ${isCanonical ? "text-amber-400" : "text-muted-foreground"}`}>
-          {isCanonical ? "Keep (canonical)" : "Duplicate — will merge"}
-        </span>
+    <div className="relative">
+      <div className="relative">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search address…"
+          className="h-7 text-xs pl-7 bg-black/20 border-white/[0.08]"
+          onFocus={() => results.length > 0 && setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
+        />
       </div>
-      <Field label="id" value={data.id} />
-      <Field label="name" value={data.name} highlight />
-      <Field label="city" value={data.city} />
-      <Field label="country" value={data.country} />
-      <Field label="location" value={data.location} />
-      <Field label="latitude" value={data.latitude} />
-      <Field label="longitude" value={data.longitude} />
+      {open && results.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-white/[0.1] bg-popover shadow-lg max-h-48 overflow-y-auto">
+          {results.map((r, i) => (
+            <button
+              key={i}
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors"
+              onMouseDown={(e) => { e.preventDefault(); onSelect(r); setQuery(""); setOpen(false); }}
+            >
+              <div className="font-medium text-foreground">{r.name}</div>
+              <div className="text-muted-foreground text-[10px] truncate">{r.location}</div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function renderBody(s: Suggestion, expanded: boolean) {
+// ─── Editable Venue Table ──────────────────────────────────────────────
+
+const VENUE_FIELDS: { key: keyof VenueRow; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "location", label: "Address" },
+  { key: "city", label: "City" },
+  { key: "country", label: "Country" },
+];
+
+function EditableVenueTable({ canonical, duplicates }: { canonical: VenueRow; duplicates: VenueRow[] }) {
+  const allRows = [canonical, ...duplicates];
+  const [edits, setEdits] = useState<Record<string, Partial<VenueRow>>>({});
+
+  const getValue = (row: VenueRow, key: keyof VenueRow) => {
+    return edits[row.id]?.[key] !== undefined ? edits[row.id][key] : row[key];
+  };
+
+  const setValue = (rowId: string, key: keyof VenueRow, value: string) => {
+    setEdits((prev) => ({
+      ...prev,
+      [rowId]: { ...prev[rowId], [key]: value || null },
+    }));
+  };
+
+  const applyAddress = (rowId: string, r: AddressResult) => {
+    setEdits((prev) => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        location: r.location,
+        city: r.city,
+        country: r.country,
+        latitude: r.latitude,
+        longitude: r.longitude,
+      },
+    }));
+  };
+
+  return (
+    <div className="mt-2 space-y-3">
+      {/* Table header */}
+      <div className="grid gap-1" style={{ gridTemplateColumns: "auto 1fr 1.5fr 1fr 1fr" }}>
+        <div className="w-5" />
+        {VENUE_FIELDS.map((f) => (
+          <div key={f.key} className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">
+            {f.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Rows */}
+      {allRows.map((row, idx) => {
+        const isCanon = idx === 0;
+        return (
+          <div key={row.id} className={`rounded-md border p-2 space-y-1.5 ${
+            isCanon ? "border-amber-500/30 bg-amber-500/5" : "border-white/[0.06] bg-white/[0.01]"
+          }`}>
+            {/* Row label */}
+            <div className="flex items-center gap-1.5 mb-1">
+              {isCanon && <Star className="h-3 w-3 text-amber-400" />}
+              <span className={`text-[10px] font-medium uppercase tracking-wider ${isCanon ? "text-amber-400" : "text-muted-foreground"}`}>
+                {isCanon ? "Keep" : "Duplicate"}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono ml-auto">{row.id.slice(0, 8)}…</span>
+            </div>
+
+            {/* Editable fields grid */}
+            <div className="grid gap-1" style={{ gridTemplateColumns: "1fr 1.5fr 1fr 1fr" }}>
+              {VENUE_FIELDS.map((f) => (
+                <Input
+                  key={f.key}
+                  value={String(getValue(row, f.key) ?? "")}
+                  onChange={(e) => setValue(row.id, f.key, e.target.value)}
+                  placeholder={f.label}
+                  className="h-6 text-xs bg-black/20 border-white/[0.08] px-1.5"
+                />
+              ))}
+            </div>
+
+            {/* Address search */}
+            <AddressSearch onSelect={(r) => applyAddress(row.id, r)} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Render helpers ────────────────────────────────────────────────────
+
+function renderHeader(s: Suggestion) {
   const d = s.details as any;
 
-  // Duplicate venues — show full DB records
   if (s.suggestion_type === "duplicate" && s.entity_type === "venue") {
-    const dupeCount = (d.duplicates?.length || 0) + 1;
+    const count = (d.duplicates?.length || 0) + 1;
     return (
-      <div className="space-y-2">
-        <p className="text-sm font-medium">{dupeCount} records for "{d.canonical?.name || d.normalized_name}"</p>
-        {expanded ? (
-          <div className="space-y-2 mt-2">
-            <VenueRecord data={d.canonical} isCanonical />
-            {(d.duplicates || []).map((dup: any) => (
-              <VenueRecord key={dup.id} data={dup} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Expand to see all {dupeCount} records · {d.duplicates?.length} will be merged
-          </p>
-        )}
-      </div>
+      <p className="text-sm font-medium">
+        {count} records for "{d.canonical?.name || d.normalized_name}"
+        <span className="text-muted-foreground font-normal ml-1.5 text-xs">
+          · {d.duplicates?.length} to merge
+        </span>
+      </p>
     );
   }
 
-  // Missing venue metadata
   if (s.suggestion_type === "missing_data" && s.entity_type === "venue") {
     const missing = (d.missing_fields as string[]) || [];
     return (
@@ -149,54 +282,34 @@ function renderBody(s: Suggestion, expanded: boolean) {
             </Badge>
           ))}
         </div>
-        {expanded && (
-          <div className="mt-2 rounded-md border border-white/[0.06] bg-white/[0.01] p-2 space-y-0.5">
-            <Field label="id" value={d.venue_id} />
-            <Field label="name" value={d.venue_name} highlight />
-            {missing.map((f: string) => (
-              <Field key={f} label={f} value={null} />
-            ))}
-          </div>
-        )}
       </div>
     );
   }
 
-  // Artist name mismatch
   if (s.suggestion_type === "name_mismatch") {
     if (d.match_type === "exact_case") {
       const variants = (d.variants as Array<{ name: string; count: number }>) || [];
       const best = variants.reduce((a, b) => (b.count > a.count ? b : a), variants[0]);
       return (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <p className="text-sm font-medium">Case mismatch</p>
-          <div className="space-y-0.5">
+          <div className="flex flex-wrap gap-1.5">
             {variants.map((v) => (
-              <div key={v.name} className="flex items-center gap-1.5 text-xs">
-                {v.name === best?.name && <Star className="h-3 w-3 text-amber-400" />}
-                <span className={v.name === best?.name ? "text-foreground font-medium" : "text-muted-foreground line-through"}>
-                  "{v.name}"
-                </span>
-                <span className="text-muted-foreground">×{v.count}</span>
-              </div>
+              <span key={v.name} className={`text-xs ${v.name === best?.name ? "text-foreground font-medium" : "text-muted-foreground line-through"}`}>
+                "{v.name}" ×{v.count}
+              </span>
             ))}
           </div>
         </div>
       );
     }
     return (
-      <div className="space-y-1">
-        <p className="text-sm font-medium">
-          "{d.name_a}" ≈ "{d.name_b}" <span className="text-muted-foreground font-normal">({d.similarity}%)</span>
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {d.count_a} vs {d.count_b} occurrences — review if same artist
-        </p>
-      </div>
+      <p className="text-sm font-medium">
+        "{d.name_a}" ≈ "{d.name_b}" <span className="text-muted-foreground font-normal">({d.similarity}%)</span>
+      </p>
     );
   }
 
-  // Unlinked show → venue
   if (s.suggestion_type === "missing_data" && s.entity_type === "show") {
     return (
       <div className="space-y-1">
@@ -205,7 +318,6 @@ function renderBody(s: Suggestion, expanded: boolean) {
           <Link2 className="h-3 w-3 text-emerald-400" />
           <span className="text-emerald-400 font-medium">Link to:</span>
           <span className="text-foreground">"{d.candidate_venue_name}"</span>
-          <span className="text-muted-foreground font-mono">{truncateId(d.candidate_venue_id)}</span>
         </div>
       </div>
     );
@@ -214,7 +326,17 @@ function renderBody(s: Suggestion, expanded: boolean) {
   return <p className="text-sm font-medium">{s.title}</p>;
 }
 
-function truncateId(id?: string) {
-  if (!id) return "";
-  return id.slice(0, 8) + "…";
+function renderExpanded(s: Suggestion) {
+  const d = s.details as any;
+
+  if (s.suggestion_type === "duplicate" && s.entity_type === "venue" && d.canonical) {
+    return <EditableVenueTable canonical={d.canonical} duplicates={d.duplicates || []} />;
+  }
+
+  // Fallback: raw JSON
+  return (
+    <pre className="mt-3 text-xs text-muted-foreground bg-black/20 rounded p-2 overflow-x-auto">
+      {JSON.stringify(d, null, 2)}
+    </pre>
+  );
 }
