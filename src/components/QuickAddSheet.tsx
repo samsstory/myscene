@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { isUserUploadedImage } from "@/lib/artist-image-utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -283,7 +284,7 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded, queuePosition
           show_id: show.id,
           artist_name: prefill.artistName,
           is_headliner: true,
-          artist_image_url: prefill.artistImageUrl || null,
+          artist_image_url: isUserUploadedImage(prefill.artistImageUrl) ? null : (prefill.artistImageUrl || null),
         },
         ...extraArtists.map((a) => ({
           show_id: show.id,
@@ -299,8 +300,9 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded, queuePosition
 
       // If multi-artist, create child sets so each artist is independently rankable
       if (isMultiArtist) {
+        const headlinerImg = isUserUploadedImage(prefill.artistImageUrl) ? null : (prefill.artistImageUrl || null);
         const allArtistsForChildren = [
-          { name: prefill.artistName, imageUrl: prefill.artistImageUrl || null, spotifyId: null as string | null },
+          { name: prefill.artistName, imageUrl: headlinerImg, spotifyId: null as string | null },
           ...extraArtists.map((a) => ({ name: a.name, imageUrl: a.imageUrl || null, spotifyId: a.spotifyId || null })),
         ];
 
