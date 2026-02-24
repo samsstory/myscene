@@ -107,12 +107,14 @@ function LocationSearchInput({
   value,
   onChange,
   onSelect,
+  venueName,
   placeholder,
   className,
 }: {
   value: string;
   onChange: (val: string) => void;
   onSelect: (r: VenueResult) => void;
+  venueName?: string;
   placeholder?: string;
   className?: string;
 }) {
@@ -124,11 +126,14 @@ function LocationSearchInput({
   useEffect(() => {
     clearTimeout(timerRef.current);
     if (value.length < 3) { setResults([]); return; }
+    // Use the venue name as the search term so the API can match by name,
+    // rather than searching by city/address which gets filtered out.
+    const searchTerm = venueName && venueName.length >= 2 ? venueName : value;
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke("search-venues", {
-          body: { searchTerm: value, showType: "venue" },
+          body: { searchTerm, showType: "venue" },
         });
         if (error) throw error;
         const venues: VenueResult[] = (data?.suggestions || data?.primary || [])
@@ -255,6 +260,7 @@ function EditableVenueTable({ canonical, duplicates, editsRef }: { canonical: Ve
                 value={String(getValue(row, "location") ?? "")}
                 onChange={(val) => setValue(row.id, "location", val)}
                 onSelect={(r) => applyVenue(row.id, r)}
+                venueName={String(getValue(row, "name") ?? "")}
                 placeholder="Search or type location…"
                 className="h-6 text-xs bg-black/20 border-white/[0.08]"
               />
