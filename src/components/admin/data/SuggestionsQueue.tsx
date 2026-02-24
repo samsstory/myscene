@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronUp, Scan } from "lucide-react";
 
 interface Suggestion {
   id: string;
@@ -27,12 +27,13 @@ const TYPE_COLORS: Record<string, string> = {
 export function SuggestionsQueue() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
   const [filter, setFilter] = useState<"pending" | "approved" | "dismissed" | "all">("pending");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const fetch = async () => {
     setLoading(true);
-    let query = supabase.from("data_suggestions" as any).select("*").order("created_at", { ascending: false }).limit(100);
+    let query = supabase.from("data_suggestions").select("*").order("created_at", { ascending: false }).limit(100);
     if (filter !== "all") query = query.eq("status", filter);
     const { data, error } = await query;
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); }
@@ -41,6 +42,23 @@ export function SuggestionsQueue() {
   };
 
   useEffect(() => { fetch(); }, [filter]);
+
+  const runScan = async () => {
+    setScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scan-data-quality");
+      if (error) throw error;
+      toast({
+        title: "Scan complete",
+        description: `Found ${data.total} issues: ${data.duplicateVenues} duplicate venues, ${data.missingMetadata} missing metadata, ${data.artistVariants} artist variants, ${data.unlinkedShows} unlinked shows`,
+      });
+      fetch();
+    } catch (err: any) {
+      toast({ title: "Scan failed", description: err.message, variant: "destructive" });
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const resolve = async (id: string, status: "approved" | "dismissed") => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -55,13 +73,19 @@ export function SuggestionsQueue() {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex gap-2">
-        {(["pending", "approved", "dismissed", "all"] as const).map(f => (
-          <Button key={f} variant={filter === f ? "default" : "ghost"} size="sm" className="text-xs capitalize" onClick={() => setFilter(f)}>
-            {f}
-          </Button>
-        ))}
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex gap-2">
+          {(["pending", "approved", "dismissed", "all"] as const).map(f => (
+            <Button key={f} variant={filter === f ? "default" : "ghost"} size="sm" className="text-xs capitalize" onClick={() => setFilter(f)}>
+              {f}
+            </Button>
+          ))}
+        </div>
+        <Button size="sm" variant="glass" onClick={runScan} disabled={scanning}>
+          {scanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scan className="h-3.5 w-3.5" />}
+          {scanning ? "Scanning…" : "Run Scan"}
+        </Button>
       </div>
 
       {loading ? (
