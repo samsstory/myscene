@@ -46,7 +46,7 @@ const LineupChoiceStep = ({ onUploadPhoto, onSearchDatabase }: LineupChoiceStepP
     <ChoiceCard
       icon={Camera}
       title="Upload Photo"
-      subtitle="Snap or upload a lineup poster"
+      subtitle="Upload a photo of a show or festival lineup"
       onClick={onUploadPhoto}
       disabled
     />
