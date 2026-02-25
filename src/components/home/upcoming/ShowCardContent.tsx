@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import AvatarStack, { type AvatarPerson } from "./AvatarStack";
 
 interface ShowCardContentProps {
@@ -31,7 +32,10 @@ export default function ShowCardContent({
           {eventName}
         </p>
       )}
-      <p className="text-xs font-bold text-white leading-tight line-clamp-2" style={shadow}>
+      <p className={cn(
+        "font-bold text-white leading-tight line-clamp-2",
+        artistName.includes(" b2b ") ? "text-[10px]" : "text-xs"
+      )} style={shadow}>
         {artistName}
       </p>
       {truncVenue && (

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { AddedShowData } from "@/hooks/useBulkShowUpload";
 import type { FestivalResult } from "@/components/festival-claim/FestivalSearchStep";
+import { containsB2bDelimiter, splitB2bNames } from "@/lib/b2b-utils";
 
 export const useFestivalClaim = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,7 +54,14 @@ export const useFestivalClaim = () => {
         date_precision: festival.date_start ? "exact" : "month",
       };
 
-      // 1. Look up artist images via batch edge function (DB + Spotify fallback)
+      // 1. Look up artist images — expand B2B names into individual artists for enrichment
+      const individualNames = newArtists.flatMap((name) =>
+        containsB2bDelimiter(name) ? splitB2bNames(name) : [name]
+      );
+      const uniqueNames = [...new Set(individualNames.map((n) => n.toLowerCase()))].map(
+        (lower) => individualNames.find((n) => n.toLowerCase() === lower)!
+      );
+
       const artistImageMap = new Map<string, { image_url: string | null; id: string | null }>();
       try {
         const resp = await fetch(
@@ -64,7 +72,7 @@ export const useFestivalClaim = () => {
               "Content-Type": "application/json",
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-            body: JSON.stringify({ names: newArtists }),
+            body: JSON.stringify({ names: uniqueNames }),
           }
         );
         if (resp.ok) {
@@ -86,36 +94,58 @@ export const useFestivalClaim = () => {
 
       if (parentError || !parent) throw parentError;
 
-      // 3. Create child set records linked to parent
-      const setRows = newArtists.map(() => ({
+      // 3. Create child records — detect B2B artists and create appropriate show types
+      const childInserts: {
+        artistNames: string[];
+        isB2b: boolean;
+      }[] = newArtists.map((name) => {
+        if (containsB2bDelimiter(name)) {
+          return { artistNames: splitB2bNames(name), isB2b: true };
+        }
+        return { artistNames: [name], isB2b: false };
+      });
+
+      const childRows = childInserts.map((entry) => ({
         ...shared,
-        show_type: "set" as const,
+        show_type: entry.isB2b ? ("b2b" as const) : ("set" as const),
         parent_show_id: parent.id,
       }));
 
       const { data: insertedSets, error: setError } = await supabase
         .from("shows")
-        .insert(setRows)
+        .insert(childRows)
         .select("id");
 
       if (setError || !insertedSets) throw setError;
 
-      // 4. Insert show_artists with images from canonical artists table
-      const buildArtistRow = (showId: string, name: string, isHeadliner: boolean) => {
+      // 4. Insert show_artists with images — B2B shows get multiple artists
+      const buildArtistRow = (showId: string, name: string, isHeadliner: boolean, isB2b: boolean) => {
         const match = artistImageMap.get(name.toLowerCase());
         return {
           show_id: showId,
           artist_name: name,
           is_headliner: isHeadliner,
+          is_b2b: isB2b,
           artist_image_url: match?.image_url || null,
           artist_id: match?.id || null,
         };
       };
 
-      const artistRows = [
-        ...newArtists.map((name, i) => buildArtistRow(parent.id, name, i === 0)),
-        ...insertedSets.map((set, i) => buildArtistRow(set.id, newArtists[i], true)),
-      ];
+      const artistRows: ReturnType<typeof buildArtistRow>[] = [];
+
+      // Parent festival gets all artists (first one as headliner)
+      const allIndividualNames = childInserts.flatMap((entry) => entry.artistNames);
+      allIndividualNames.forEach((name, i) => {
+        artistRows.push(buildArtistRow(parent.id, name, i === 0, false));
+      });
+
+      // Each child set/b2b gets its own artists
+      insertedSets.forEach((set, i) => {
+        const entry = childInserts[i];
+        entry.artistNames.forEach((name) => {
+          artistRows.push(buildArtistRow(set.id, name, true, entry.isB2b));
+        });
+      });
 
       const { error: artistError } = await supabase
         .from("show_artists")
@@ -123,21 +153,24 @@ export const useFestivalClaim = () => {
 
       if (artistError) throw artistError;
 
-      // Return only child set records for success screen (skip parent to avoid duplicate artist chips)
-      const addedShows: AddedShowData[] = insertedSets.map((set, i) => ({
-        id: set.id,
-        artists: [{
-          name: newArtists[i],
-          isHeadliner: true,
-          image_url: artistImageMap.get(newArtists[i].toLowerCase())?.image_url || null,
-        }],
-        venue: { name: venueName, location: venueLocation },
-        date: showDate,
-        rating: null,
-        photo_url: null,
-      }));
+      // Return only child records for success screen
+      const addedShows: AddedShowData[] = insertedSets.map((set, i) => {
+        const entry = childInserts[i];
+        return {
+          id: set.id,
+          artists: entry.artistNames.map((name, j) => ({
+            name,
+            isHeadliner: true,
+            image_url: artistImageMap.get(name.toLowerCase())?.image_url || null,
+          })),
+          venue: { name: venueName, location: venueLocation },
+          date: showDate,
+          rating: null,
+          photo_url: null,
+        };
+      });
 
-      const total = newArtists.length + 1; // sets + festival
+      const total = newArtists.length + 1; // children + festival parent
       toast.success(`Added ${festival.event_name} + ${newArtists.length} set${newArtists.length !== 1 ? "s" : ""}`);
       return { success: true, addedCount: total, addedShows };
     } catch (err: any) {
