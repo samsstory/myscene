@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpDown, Plus, Search, X } from "lucide-react";
+import { getShowDisplayName, getB2bTextSize } from "@/lib/b2b-utils";
+import SplitArtistImage from "@/components/ui/SplitArtistImage";
 import { format, parseISO } from "date-fns";
 import { type Show, type ShowRanking } from "@/hooks/useShows";
 import SwipeableRankingCard from "@/components/rankings/SwipeableRankingCard";
@@ -28,7 +30,7 @@ interface MyShowsViewProps {
 
 type TimeFilter = "all-time" | "this-year" | "last-year" | "this-month";
 type SortMode = "best" | "worst" | "newest" | "oldest";
-type ShowTypeFilter = "all" | "set" | "show" | "festival";
+type ShowTypeFilter = "all" | "set" | "show" | "festival" | "b2b";
 
 const MyShowsView = ({
   shows,
@@ -266,12 +268,14 @@ const MyShowsView = ({
             set: shows.filter((s) => s.showType === "set").length,
             show: shows.filter((s) => s.showType === "show").length,
             festival: shows.filter((s) => s.showType === "festival").length,
+            b2b: shows.filter((s) => s.showType === "b2b").length,
           };
-          const hasMultipleTypes = [typeCounts.set > 0, typeCounts.show > 0, typeCounts.festival > 0].filter(Boolean).length > 1;
+          const hasMultipleTypes = [typeCounts.set > 0, typeCounts.show > 0, typeCounts.festival > 0, typeCounts.b2b > 0].filter(Boolean).length > 1;
           if (!hasMultipleTypes) return null;
           const pills: { value: ShowTypeFilter; label: string; count: number }[] = [
             { value: "all", label: "All", count: shows.length },
             ...(typeCounts.set > 0 ? [{ value: "set" as const, label: "Sets", count: typeCounts.set }] : []),
+            ...(typeCounts.b2b > 0 ? [{ value: "b2b" as const, label: "B2Bs", count: typeCounts.b2b }] : []),
             ...(typeCounts.show > 0 ? [{ value: "show" as const, label: "Shows", count: typeCounts.show }] : []),
             ...(typeCounts.festival > 0 ? [{ value: "festival" as const, label: "Festivals", count: typeCounts.festival }] : []),
           ];
@@ -364,10 +368,27 @@ const MyShowsView = ({
                   >
                     <CardContent className="p-4 relative">
                       <div className="flex gap-4 pr-2">
-                        {/* Thumbnail - three-tier fallback */}
+                        {/* Thumbnail - three-tier fallback with B2B split */}
                         {(() => {
+                          const isB2b = show.showType === "b2b";
+                          const b2bHeadliners = isB2b ? show.artists.filter(a => a.isHeadliner) : [];
                           const headliner = show.artists?.find((a) => a.isHeadliner) || show.artists?.[0];
                           const displayImage = show.photo_url || headliner?.imageUrl;
+
+                          if (isB2b && !show.photo_url && b2bHeadliners.length > 1) {
+                            return (
+                              <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/10">
+                                <SplitArtistImage
+                                  artists={b2bHeadliners.map(a => ({ imageUrl: a.imageUrl, name: a.name }))}
+                                  fallback={
+                                    <div className="w-full h-full bg-white/[0.05] flex items-center justify-center">
+                                      <span className="text-2xl text-white/40 select-none">✦</span>
+                                    </div>
+                                  }
+                                />
+                              </div>
+                            );
+                          }
 
                           if (displayImage) {
                             return (
@@ -413,16 +434,20 @@ const MyShowsView = ({
                         })()}
 
                         <div className="min-w-0 flex-1 space-y-1">
-                          {/* Artist name */}
-                          <div className="font-bold text-base leading-tight truncate" style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}>
-                            {show.artists.slice(0, 2).map((artist, idx) => (
-                              <span key={idx}>
-                                {artist.name}
-                                {idx < Math.min(show.artists.length - 1, 1) && <span className="text-white/40"> • </span>}
-                              </span>
-                            ))}
-                            {show.artists.length > 2 && <span className="text-white/40 font-normal"> +{show.artists.length - 2}</span>}
-                          </div>
+                          {/* Artist name — B2B aware */}
+                          {(() => {
+                            const displayName = getShowDisplayName(show.artists, show.showType);
+                            const isB2b = show.showType === "b2b";
+                            const b2bCount = isB2b ? show.artists.filter(a => a.isHeadliner).length : 0;
+                            return (
+                              <div className={cn(
+                                "font-bold leading-tight truncate",
+                                isB2b && b2bCount >= 3 ? "text-sm" : "text-base"
+                              )} style={{ textShadow: "0 0 12px rgba(255,255,255,0.3)" }}>
+                                {displayName}
+                              </div>
+                            );
+                          })()}
                           {/* Venue */}
                           <div className="text-sm text-white/60 truncate" style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}>
                             {show.venue.name}

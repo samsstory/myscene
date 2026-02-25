@@ -6,6 +6,8 @@ import SceneLogo from "@/components/ui/SceneLogo";
 import { Badge } from "@/components/ui/badge";
 import { useShareShow } from "@/hooks/useShareShow";
 import type { Show, RankInfo } from "@/types/show";
+import { getShowDisplayName, getB2bTextSize } from "@/lib/b2b-utils";
+import SplitArtistImage from "@/components/ui/SplitArtistImage";
 
 interface StackedShowCardProps {
   show: Show;
@@ -19,8 +21,12 @@ interface StackedShowCardProps {
 const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
   ({ show, rankInfo, isExpanded, onExpand, onTap, onShare }, ref) => {
     const { shareShow } = useShareShow();
+    const isB2b = show.showType === "b2b";
     const headliner = show.artists.find(a => a.isHeadliner) || show.artists[0];
-    const artistName = headliner?.name || "Unknown Artist";
+    const artistName = getShowDisplayName(show.artists, show.showType);
+    
+    // B2B artists for split image
+    const b2bArtists = isB2b ? show.artists.filter(a => a.isHeadliner) : [];
     
     // Determine the display image: user photo > artist Spotify image > gradient fallback
     const displayImage = show.photo_url || headliner?.imageUrl || null;
@@ -33,13 +39,19 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
     const formattedDate = formatShowDate(show.date, show.datePrecision);
 
     // Full artist display for expanded view
-    const artistDisplay = show.artists.slice(0, 2).map((a, idx) => (
-      <span key={idx}>
-        {a.name}
-        {idx < Math.min(show.artists.length - 1, 1) && <span className="text-white/70"> • </span>}
-      </span>
-    ));
-    const extraArtists = show.artists.length > 2 ? ` +${show.artists.length - 2}` : "";
+    const artistDisplay = isB2b ? (
+      <span className={getB2bTextSize(b2bArtists.length)}>{artistName}</span>
+    ) : (
+      <>
+        {show.artists.slice(0, 2).map((a, idx) => (
+          <span key={idx}>
+            {a.name}
+            {idx < Math.min(show.artists.length - 1, 1) && <span className="text-white/70"> • </span>}
+          </span>
+        ))}
+      </>
+    );
+    const extraArtists = !isB2b && show.artists.length > 2 ? ` +${show.artists.length - 2}` : "";
 
     if (!isExpanded) {
       // Collapsed State - Minimal glass peek header
@@ -94,7 +106,17 @@ const StackedShowCard = forwardRef<HTMLDivElement, StackedShowCardProps>(
         <Card className="border-white/[0.08] shadow-glow overflow-hidden bg-white/[0.02]">
           {/* Photo or Gradient Background */}
           <div className="relative aspect-[4/3] overflow-hidden">
-            {displayImage ? (
+            {/* B2B split image */}
+            {isB2b && !show.photo_url && b2bArtists.length > 1 ? (
+              <SplitArtistImage
+                artists={b2bArtists.map(a => ({ imageUrl: a.imageUrl, name: a.name }))}
+                fallback={
+                  <div className={cn("w-full h-full bg-gradient-to-br", scoreGradient, "flex items-center justify-center")}>
+                    <span className="text-4xl text-white/40 select-none" style={{ textShadow: "0 0 12px rgba(255,255,255,0.4)" }}>✦</span>
+                  </div>
+                }
+              />
+            ) : displayImage ? (
               <img
                 src={displayImage}
                 alt={`${artistName} show`}

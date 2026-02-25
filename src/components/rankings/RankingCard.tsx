@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { DbArtist, DbShow } from "@/types/show";
+import { getB2bTextSize } from "@/lib/b2b-utils";
+import SplitArtistImage from "@/components/ui/SplitArtistImage";
 
 interface RankingCardProps {
   show: DbShow;
@@ -22,8 +24,12 @@ const RankingCard = ({
   animationKey = 0,
   isExpanded = false
 }: RankingCardProps) => {
+  const isB2b = show.show_type === "b2b";
+  const b2bArtists = isB2b ? show.artists.filter(a => a.is_headliner) : [];
   const headliner = show.artists.find(a => a.is_headliner);
-  const artistName = headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
+  const artistName = isB2b && b2bArtists.length > 1
+    ? b2bArtists.map(a => a.artist_name).join(" b2b ")
+    : headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
   const artistImageUrl = headliner?.artist_image_url || show.artists[0]?.artist_image_url || null;
   const displayPhoto = show.photo_url || artistImageUrl;
   
@@ -67,9 +73,19 @@ const RankingCard = ({
         "bg-white/[0.04] backdrop-blur-sm border-2 rounded-2xl overflow-hidden transition-all duration-300",
         isWinner ? "border-green-500/80" : "border-white/[0.08]"
       )}>
-        {/* Photo Section */}
         <div className="relative aspect-[4/3] overflow-hidden">
-          {displayPhoto ? (
+          {isB2b && !show.photo_url && b2bArtists.length > 1 ? (
+            <SplitArtistImage
+              artists={b2bArtists.map(a => ({ imageUrl: a.artist_image_url, name: a.artist_name }))}
+              fallback={
+                <div className="w-full h-full relative overflow-hidden bg-[hsl(var(--background))]">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-5xl text-white/40">✦</span>
+                  </div>
+                </div>
+              }
+            />
+          ) : displayPhoto ? (
             <img
               src={displayPhoto}
               alt="Show photo"
@@ -111,7 +127,10 @@ const RankingCard = ({
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           
           <div className="absolute bottom-0 left-0 right-0 p-3">
-            <h3 className="font-bold text-white text-lg leading-tight truncate"
+            <h3 className={cn(
+                "font-bold text-white leading-tight truncate",
+                isB2b && b2bArtists.length >= 3 ? "text-sm" : "text-lg"
+              )}
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
               {artistName}
             </h3>

@@ -600,6 +600,7 @@ export type Database = {
           artist_name: string
           created_at: string
           id: string
+          is_b2b: boolean
           is_headliner: boolean
           show_id: string
           spotify_artist_id: string | null
@@ -610,6 +611,7 @@ export type Database = {
           artist_name: string
           created_at?: string
           id?: string
+          is_b2b?: boolean
           is_headliner?: boolean
           show_id: string
           spotify_artist_id?: string | null
@@ -620,6 +622,7 @@ export type Database = {
           artist_name?: string
           created_at?: string
           id?: string
+          is_b2b?: boolean
           is_headliner?: boolean
           show_id?: string
           spotify_artist_id?: string | null
