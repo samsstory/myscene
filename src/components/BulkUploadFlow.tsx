@@ -354,6 +354,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
                   stage: a.stage || null,
                   image_url: (a as any).image_url || null,
                   spotify_id: (a as any).spotify_id || null,
+                  matched: (a as any).matched,
                 })),
               });
               setStep('lineup-grid');
