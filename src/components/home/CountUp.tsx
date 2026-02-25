@@ -6,8 +6,8 @@ interface CountUpProps {
   className?: string;
   suffix?: string;
   prefix?: string;
-  /** Format large numbers with commas */
   formatted?: boolean;
+  style?: React.CSSProperties;
 }
 
 export default function CountUp({
@@ -17,6 +17,7 @@ export default function CountUp({
   suffix = "",
   prefix = "",
   formatted = false,
+  style,
 }: CountUpProps) {
   const [display, setDisplay] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
@@ -66,7 +67,7 @@ export default function CountUp({
     : display.toString();
 
   return (
-    <span ref={ref} className={className}>
+    <span ref={ref} className={className} style={style}>
       {prefix}{text}{suffix}
     </span>
   );

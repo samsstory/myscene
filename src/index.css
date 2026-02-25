@@ -229,3 +229,40 @@ All colors MUST be HSL.
     animation: tour-pulse 2s ease-in-out infinite;
   }
 }
+
+/* Stats Trophy Card — animated gradient border */
+@property --trophy-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.stats-trophy-wrapper {
+  background: linear-gradient(
+    var(--trophy-angle),
+    hsl(189 94% 55% / 0.25),
+    hsl(262 100% 69% / 0.15),
+    hsl(17 88% 60% / 0.12),
+    hsl(189 94% 55% / 0.25)
+  );
+  animation: trophy-border-rotate 6s linear infinite;
+}
+
+@keyframes trophy-border-rotate {
+  to {
+    --trophy-angle: 360deg;
+  }
+}
+
+/* Fallback for browsers without @property support */
+@supports not (background: paint(something)) {
+  .stats-trophy-wrapper {
+    background: linear-gradient(
+      135deg,
+      hsl(189 94% 55% / 0.2),
+      hsl(262 100% 69% / 0.12),
+      hsl(17 88% 60% / 0.1),
+      hsl(189 94% 55% / 0.2)
+    );
+  }
+}
