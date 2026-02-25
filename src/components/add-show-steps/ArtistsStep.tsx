@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { X, Loader2, Music } from "lucide-react";
+import { X, Loader2, Music, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useArtistSearch } from "@/hooks/useArtistSearch";
 
@@ -21,7 +21,7 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
   const artistsRef = useRef(artists);
   artistsRef.current = artists;
 
-  const { results: artistSuggestions, isSearching, clearResults } = useArtistSearch(currentArtist);
+  const { results: artistSuggestions, isSearching, spotifyUnavailable, clearResults } = useArtistSearch(currentArtist);
 
   const addArtist = (name: string, isHeadliner: boolean, imageUrl?: string, spotifyId?: string) => {
     if (name.trim()) {
@@ -122,6 +122,13 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
           <Loader2 className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-muted-foreground" />
         )}
       </div>
+
+      {spotifyUnavailable && artistSuggestions.length > 0 && (
+        <div className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+          <WifiOff className="h-3 w-3 flex-shrink-0" />
+          <span>Showing local results only</span>
+        </div>
+      )}
 
       {artistSuggestions.length > 0 && (
         <div className="space-y-2 max-h-[300px] overflow-y-auto">

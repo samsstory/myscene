@@ -317,10 +317,11 @@ serve(async (req) => {
       return 0;
     });
 
-    console.log(`[unified-search] Returning ${results.length} results (primary venues: ${venueResults.primary.length}, other: ${venueResults.other.length})`);
+    const spotifyUnavailable = isSpotifyBlocked();
+    console.log(`[unified-search] Returning ${results.length} results (primary venues: ${venueResults.primary.length}, other: ${venueResults.other.length}, spotifyUnavailable: ${spotifyUnavailable})`);
 
     return new Response(
-      JSON.stringify({ results }),
+      JSON.stringify({ results, spotifyUnavailable }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

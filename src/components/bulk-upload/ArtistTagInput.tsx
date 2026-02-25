@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, Loader2, Music } from "lucide-react";
+import { X, Loader2, Music, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useArtistSearch } from "@/hooks/useArtistSearch";
 
@@ -25,7 +25,7 @@ const ArtistTagInput = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { results: searchResults, isSearching, clearResults } = useArtistSearch(inputValue);
+  const { results: searchResults, isSearching, spotifyUnavailable, clearResults } = useArtistSearch(inputValue);
 
   const addArtist = (name: string) => {
     const trimmedName = name.trim();
@@ -121,6 +121,13 @@ const ArtistTagInput = ({
         <p className="text-xs text-muted-foreground mt-1 px-1">
           Press <kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">Enter</kbd> to add "{inputValue}"
         </p>
+      )}
+
+      {spotifyUnavailable && showResults && searchResults.length > 0 && (
+        <div className="flex items-center gap-1.5 px-1 mt-1 text-xs text-muted-foreground">
+          <WifiOff className="h-3 w-3 flex-shrink-0" />
+          <span>Showing local results only</span>
+        </div>
       )}
 
       {showResults && searchResults.length > 0 && (
