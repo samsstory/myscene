@@ -7,12 +7,21 @@ import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
 import FriendsGoingSection from "./FriendsGoingSection";
 import InlineCityPicker from "./InlineCityPicker";
 import VSHeroWidget from "./VSHeroWidget";
+import StatsTrophyCard from "./StatsTrophyCard";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { supabase } from "@/integrations/supabase/client";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import type { ShowTypeFilter } from "@/hooks/usePopularShows";
 import { usePopularNearMe, type GeoScope } from "@/hooks/usePopularNearMe";
+
+interface StatsForCard {
+  allTimeShows: number;
+  topGenre: string | null;
+  uniqueVenues: number;
+  milesDanced: number | null;
+  topArtists: { name: string; imageUrl: string | null }[];
+}
 
 interface SceneViewProps {
   onPlanShow: () => void;
@@ -28,6 +37,8 @@ interface SceneViewProps {
   hasNoUpcoming?: boolean;
   hasNoFollowing?: boolean;
   upcomingShows?: UpcomingShow[];
+  stats?: StatsForCard;
+  statsLoading?: boolean;
 }
 
 export default function SceneView({
@@ -44,6 +55,8 @@ export default function SceneView({
   hasNoUpcoming = false,
   hasNoFollowing = false,
   upcomingShows = [],
+  stats,
+  statsLoading = false,
 }: SceneViewProps) {
   const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
     console.log("Add to schedule:", event);
@@ -69,7 +82,18 @@ export default function SceneView({
 
   return (
     <div className="space-y-6">
-      {/* VS Hero Widget — always at the top */}
+      {/* Stats Trophy Card — always at the top */}
+      <StatsTrophyCard
+        totalShows={stats?.allTimeShows ?? 0}
+        topGenre={stats?.topGenre ?? null}
+        uniqueVenues={stats?.uniqueVenues ?? 0}
+        milesDanced={stats?.milesDanced ?? null}
+        topArtists={stats?.topArtists ?? []}
+        isLoading={statsLoading}
+        onAddShow={onAddShow}
+      />
+
+      {/* VS Hero Widget — below stats */}
       <VSHeroWidget onNavigateToRank={onNavigateToRank} onAddShow={onAddShow} />
 
       {isColdStart ? (
