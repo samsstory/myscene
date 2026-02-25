@@ -1,32 +1,57 @@
 
 
-## Plan: Update WelcomeCarousel Copy and Visual Layout
+## Plan: Enrich Missing Artist Images via Spotify for Both Discovery Feeds
 
-### File: `src/components/onboarding/WelcomeCarousel.tsx`
+### Problem
+Both the **Edmtrain Discovery Feed** (Schedule tab) and the **For You** feed render event cards that often lack artist images. The `edmtrain_events` table's `artist_image_url` is frequently null, resulting in blank gradient-fallback cards with a music icon instead of an artist photo.
 
-**Text Changes (lines ~22–141):**
+### Solution
+Add an image enrichment step in the shared `useEdmtrainEvents` hook so **all consumers** (Schedule tab, For You feed) automatically benefit. After events are fetched from the database, collect artist names with missing images, look them up in the canonical `artists` table first (cheap), then call the existing `batch-artist-images` edge function for any still missing (Spotify lookup), and patch the events in state.
 
-1. **Calendar label** (line ~24): `"Your shared concert calendar"` → `"Your concert timeline"`
-2. **Main headline** (line ~128): `"See who's going"` → `"Track, rank, and share every concert"`
-3. **Subcopy** (line ~132): `"Log shows, share your calendar, and never miss a concert your friends are at"` → `"Build your concert history, power-rank your favorite sets, and see which shows your friends are hitting."`
-4. **Button** (line ~137): `"Add My First Show"` → `"Log My First Show"`
+### Implementation
 
-**Visual Asset Update (HeroMockup component):**
+**File: `src/hooks/useEdmtrainEvents.ts`**
 
-Replace the current single Fred again.. card with a composite layout:
-- Keep the Fred again.. photo but apply stronger blur/fade as a background layer
-- Add a foreground mock of the ranking interface (two concert cards side-by-side with a "Which was better?" prompt, mimicking a swipe-compare UI)
-- Move the friend avatar row from below the card to overlay the top-right corner of the hero card (small, semi-transparent)
-- Remove the `Calendar` icon + label row and replace with the new `"Your concert timeline"` label using a `Clock` or `ListMusic` icon
+After the events are mapped from the database (line ~137), add an enrichment step:
+
+1. Collect all unique artist names from events that have no `artist_image_url`
+2. First, batch-query the canonical `artists` table for `image_url` by name (fast, no API call)
+3. For any still missing, call `batch-artist-images` edge function (which checks `show_artists` then Spotify)
+4. Patch the events in state with the resolved image URLs
+5. Also update the `edmtrain_events` rows in the database (fire-and-forget) so future loads are pre-enriched
+
+**File: `src/hooks/useDiscoverEvents.ts`**
+
+The `useDiscoverEvents` hook also constructs `DiscoverPick` objects with `artistImageUrl` from edmtrain events and platform shows. After picks are scored, add a similar enrichment pass:
+
+1. Collect pick artist names where `artistImageUrl` is null
+2. Query canonical `artists` table
+3. Call `batch-artist-images` for remaining misses
+4. Update pick image URLs before returning
 
 ### Technical Details
 
-All changes are in `src/components/onboarding/WelcomeCarousel.tsx`. The `HeroMockup` internal component will be restructured:
+The enrichment in `useEdmtrainEvents` works as a post-fetch step:
 
-- Background: Fred again.. image with `brightness(0.6) blur(2px)` for atmospheric depth
-- Foreground: Two mini cards (e.g. "Fred again.." vs "ODESZA") with a "Which was better?" label, styled as a compact compare UI
-- Friend avatars: Repositioned to absolute top-right of the card with a subtle backdrop blur pill
-- The `"3 friends going"` badge is removed (no longer calendar-focused)
+```text
+fetchEvents()
+  ├── fetch from edmtrain_events table
+  ├── map rows to EdmtrainEvent[]
+  ├── identify events with null artist_image_url
+  ├── batch lookup canonical artists table (SELECT name, image_url WHERE lower(name) IN (...))
+  ├── for remaining nulls → supabase.functions.invoke("batch-artist-images", { names })
+  ├── patch events with resolved URLs
+  ├── fire-and-forget: UPDATE edmtrain_events SET artist_image_url = ? WHERE edmtrain_id = ?
+  └── setEvents(enrichedEvents)
+```
 
-No database or backend changes needed. Single file edit.
+For `useDiscoverEvents`, the enrichment happens inside the `useMemo` or as a separate `useEffect` that runs after picks are computed, patching `artistImageUrl` on each pick.
+
+The `batch-artist-images` edge function already exists and handles:
+- Checking `show_artists` table first (cheapest)
+- Falling back to Spotify API search
+- Rate limit protection (caps at 30, breaks on 429)
+- Fire-and-forget enrichment of `show_artists` rows
+
+No new edge functions, no database migrations needed. The canonical `artists` table lookup is added as an optimization layer before hitting the edge function.
 
