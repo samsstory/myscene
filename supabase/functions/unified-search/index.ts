@@ -135,7 +135,8 @@ serve(async (req) => {
   }
 
   try {
-    const { searchTerm } = await req.json();
+    const { searchTerm, searchType } = await req.json();
+    // searchType: 'artist' | 'venue' | undefined (undefined = search all)
 
     if (!searchTerm || searchTerm.trim().length < 2) {
       return new Response(
@@ -186,11 +187,14 @@ serve(async (req) => {
       }
     }
 
+    const wantArtists = searchType !== 'venue';
+    const wantVenues = searchType !== 'artist';
+
     const [artistResults, venueResults, userShowsResults, eventResults] = await Promise.all([
-      searchSpotify(searchTerm),
-      searchVenues(searchTerm.trim(), searchLower, lat, lon),
+      wantArtists ? searchSpotify(searchTerm) : Promise.resolve([]),
+      wantVenues ? searchVenues(searchTerm.trim(), searchLower, lat, lon) : Promise.resolve({ primary: [], other: [] }),
       userId && supabaseClient ? searchUserHistory(searchTerm, userId, supabaseClient) : Promise.resolve({ artists: [], venues: [] }),
-      supabaseClient ? searchEvents(searchTerm, supabaseClient) : Promise.resolve([]),
+      wantVenues && supabaseClient ? searchEvents(searchTerm, supabaseClient) : Promise.resolve([]),
     ]);
 
     // Add user's own artists first (highest priority)
@@ -326,9 +330,10 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
 
     // Handle 429 rate limit — wait and retry once
     if (response.status === 429) {
-      const retryAfter = parseInt(response.headers.get('Retry-After') || '1', 10);
-      const waitMs = Math.min(retryAfter * 1000, 3000); // cap at 3s
-      console.log(`[unified-search] Spotify 429, retrying after ${waitMs}ms`);
+      const retryAfterRaw = response.headers.get('Retry-After');
+      const retryAfter = parseInt(retryAfterRaw || '5', 10);
+      const waitMs = Math.min(retryAfter * 1000, 10000);
+      console.log(`[unified-search] Spotify 429, Retry-After: ${retryAfterRaw}, waiting ${waitMs}ms`);
       await new Promise(resolve => setTimeout(resolve, waitMs));
       response = await doFetch(token);
     }
@@ -343,7 +348,8 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
 
     if (!response.ok) {
       console.error('[unified-search] Spotify error:', response.status);
-      return [];
+      // Fallback to local artists DB
+      return await searchLocalArtists(searchTerm);
     }
 
     const data = await response.json();
@@ -355,6 +361,30 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
     }));
   } catch (error) {
     console.error('[unified-search] Spotify error:', error);
+    return await searchLocalArtists(searchTerm);
+  }
+}
+
+async function searchLocalArtists(searchTerm: string): Promise<Array<{ id: string; name: string; imageUrl?: string; genres?: string[] }>> {
+  try {
+    console.log('[unified-search] Falling back to local artists DB');
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const { data } = await supabaseAdmin
+      .from('artists')
+      .select('id, name, image_url, genres, spotify_artist_id')
+      .ilike('name', `%${searchTerm.trim()}%`)
+      .limit(8);
+    return (data || []).map((a: any) => ({
+      id: a.spotify_artist_id || a.id,
+      name: a.name,
+      imageUrl: a.image_url || null,
+      genres: a.genres?.slice(0, 2) || [],
+    }));
+  } catch (e) {
+    console.error('[unified-search] Local artist fallback failed:', e);
     return [];
   }
 }

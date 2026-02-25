@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,9 +56,10 @@ serve(async (req) => {
 
     // Handle 429 rate limit — wait and retry once
     if (response.status === 429) {
-      const retryAfter = parseInt(response.headers.get('Retry-After') || '1', 10);
-      const waitMs = Math.min(retryAfter * 1000, 3000);
-      console.log('Spotify 429, retrying after', waitMs, 'ms');
+      const retryAfterRaw = response.headers.get('Retry-After');
+      const retryAfter = parseInt(retryAfterRaw || '5', 10);
+      const waitMs = Math.min(retryAfter * 1000, 10000);
+      console.log('Spotify 429, Retry-After:', retryAfterRaw, 'waiting', waitMs, 'ms');
       await new Promise(resolve => setTimeout(resolve, waitMs));
       response = await fetch(
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=10`,
@@ -77,8 +79,10 @@ serve(async (req) => {
     }
 
     if (!response.ok) {
-      console.error('Spotify API error:', response.status, await response.text());
-      return new Response(JSON.stringify({ artists: [] }), {
+      console.error('Spotify API error:', response.status);
+      // Fallback to local artists DB
+      const artists = await searchLocalArtists(searchTerm);
+      return new Response(JSON.stringify({ artists }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -104,3 +108,29 @@ serve(async (req) => {
     );
   }
 });
+
+async function searchLocalArtists(searchTerm: string) {
+  try {
+    console.log('Falling back to local artists DB for:', searchTerm);
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const { data } = await supabaseAdmin
+      .from('artists')
+      .select('id, name, image_url, genres, spotify_artist_id')
+      .ilike('name', `%${searchTerm.trim()}%`)
+      .limit(10);
+    return (data || []).map((a: any) => ({
+      id: a.spotify_artist_id || a.id,
+      name: a.name,
+      imageUrl: a.image_url || null,
+      imageSmall: a.image_url || null,
+      genres: a.genres?.slice(0, 3) || [],
+      popularity: 0,
+    }));
+  } catch (e) {
+    console.error('Local artist fallback failed:', e);
+    return [];
+  }
+}
