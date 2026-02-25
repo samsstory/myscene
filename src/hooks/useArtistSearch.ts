@@ -54,6 +54,7 @@ export function useArtistSearch(
 
   const [results, setResults] = useState<ArtistSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [spotifyUnavailable, setSpotifyUnavailable] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -116,6 +117,13 @@ export function useArtistSearch(
 
         if (error) throw error;
 
+        // Track whether Spotify was unavailable for this search
+        if (data?.spotifyUnavailable) {
+          setSpotifyUnavailable(true);
+        } else {
+          setSpotifyUnavailable(false);
+        }
+
         const remoteResults: ArtistSearchResult[] = (data?.results || [])
           .filter((r: any) => r.type === "artist")
           .map((r: any) => ({
@@ -159,5 +167,5 @@ export function useArtistSearch(
     setIsSearching(false);
   }, []);
 
-  return { results, isSearching, clearResults };
+  return { results, isSearching, spotifyUnavailable, clearResults };
 }
