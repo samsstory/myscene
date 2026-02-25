@@ -19,6 +19,9 @@ interface StatsForCard {
   allTimeShows: number;
   topGenre: string | null;
   uniqueVenues: number;
+  uniqueArtists: number;
+  uniqueCities: number;
+  uniqueCountries: number;
   milesDanced: number | null;
   topArtists: { name: string; imageUrl: string | null }[];
 }
@@ -87,6 +90,9 @@ export default function SceneView({
         totalShows={stats?.allTimeShows ?? 0}
         topGenre={stats?.topGenre ?? null}
         uniqueVenues={stats?.uniqueVenues ?? 0}
+        uniqueArtists={stats?.uniqueArtists ?? 0}
+        uniqueCities={stats?.uniqueCities ?? 0}
+        uniqueCountries={stats?.uniqueCountries ?? 0}
         milesDanced={stats?.milesDanced ?? null}
         topArtists={stats?.topArtists ?? []}
         isLoading={statsLoading}

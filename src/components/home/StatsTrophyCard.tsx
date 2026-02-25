@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Music, MapPin, CalendarPlus, Sparkles } from "lucide-react";
+import { MapPin, CalendarPlus, Sparkles, Music2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CountUp from "./CountUp";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,16 +14,38 @@ interface StatsTrophyCardProps {
   totalShows: number;
   topGenre: string | null;
   uniqueVenues: number;
+  uniqueArtists: number;
+  uniqueCities: number;
+  uniqueCountries: number;
   milesDanced: number | null;
   topArtists: TopArtist[];
   isLoading: boolean;
   onAddShow?: () => void;
 }
 
+/** Maps genre + show count → persona title */
+function getSceneTitle(topGenre: string | null, totalShows: number): string {
+  if (!topGenre) return "Music Lover";
+  const g = topGenre.toLowerCase();
+  if (g.includes("electronic") || g.includes("edm") || g.includes("bass"))
+    return totalShows >= 50 ? "Rave Veteran" : "Raver";
+  if (g.includes("house")) return "House Head";
+  if (g.includes("techno")) return "Techno Purist";
+  if (g.includes("hip hop") || g.includes("hip-hop") || g.includes("rap")) return "Hypebeast";
+  if (g.includes("rock") || g.includes("metal")) return "Headbanger";
+  if (g.includes("indie")) return "Indie Kid";
+  if (g.includes("pop")) return "Pop Stan";
+  if (g === "eclectic") return "Genre Fluid";
+  return "Music Lover";
+}
+
 export default function StatsTrophyCard({
   totalShows,
   topGenre,
   uniqueVenues,
+  uniqueArtists,
+  uniqueCities,
+  uniqueCountries,
   milesDanced,
   topArtists,
   isLoading,
@@ -72,7 +94,7 @@ export default function StatsTrophyCard({
             </p>
             <div className="flex gap-2.5">
               <StatBox label="Shows" value="24" />
-              <StatBox label="Genre" value="House" icon={<Music className="h-3 w-3" />} />
+              <StatBox label="Artists" value="63" icon={<Music2 className="h-2.5 w-2.5" />} />
               <StatBox label="Venues" value="8" icon={<MapPin className="h-3 w-3" />} />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -82,7 +104,6 @@ export default function StatsTrophyCard({
 
           {/* Unlock overlay */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3.5 px-6 text-center">
-            {/* Glow circle behind icon */}
             <div className="relative">
               <div
                 className="absolute inset-0 rounded-full blur-xl"
@@ -114,6 +135,8 @@ export default function StatsTrophyCard({
     );
   }
 
+  const sceneTitle = getSceneTitle(topGenre, totalShows);
+
   return (
     <div className="stats-trophy-wrapper rounded-2xl p-[1px]">
       <section className="rounded-2xl bg-card/80 backdrop-blur-xl p-5 space-y-4 relative overflow-hidden">
@@ -131,14 +154,26 @@ export default function StatsTrophyCard({
           }}
         />
 
-        {/* Header */}
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground relative z-10">
-          Your Scene Stats
-        </p>
+        {/* Title badge + Header */}
+        <div className="relative z-10 space-y-1">
+          <span
+            className="inline-block text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-0.5 rounded-full animate-pulse"
+            style={{
+              background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(280 60% 60% / 0.2))",
+              color: "hsl(var(--primary))",
+              border: "1px solid hsl(var(--primary) / 0.25)",
+            }}
+          >
+            🎵 {sceneTitle}
+          </span>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Your Scene Stats
+          </p>
+        </div>
 
         {/* Stats row */}
         <div className="flex gap-2.5 relative z-10">
-          {/* Shows — hero stat, emphasized */}
+          {/* Shows — hero stat */}
           <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
             <CountUp
               value={totalShows}
@@ -151,23 +186,16 @@ export default function StatsTrophyCard({
             </p>
           </div>
 
-          {/* Genre */}
-          <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center flex flex-col items-center justify-center gap-0.5">
-            {topGenre ? (
-              <>
-                <span className="text-[15px] font-semibold text-foreground block truncate w-full leading-tight">
-                  {topGenre}
-                </span>
-                <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium flex items-center gap-1">
-                  <Music className="h-2.5 w-2.5" /> Genre
-                </p>
-              </>
-            ) : (
-              <>
-                <span className="text-[15px] font-semibold text-muted-foreground/40 block">—</span>
-                <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">Genre</p>
-              </>
-            )}
+          {/* Artists */}
+          <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
+            <CountUp
+              value={uniqueArtists}
+              className="text-[32px] font-bold text-foreground block leading-tight"
+              formatted
+            />
+            <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium flex items-center justify-center gap-1">
+              <Music2 className="h-2.5 w-2.5" /> Artists
+            </p>
           </div>
 
           {/* Venues */}
@@ -213,7 +241,27 @@ export default function StatsTrophyCard({
             </AnimatePresence>
           )}
 
+          {/* Geographic stats */}
+          {(uniqueCities > 0 || uniqueCountries > 0) && (
+            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span className="text-[13px]">🌍</span>
+              <span>
+                {uniqueCities > 0 && (
+                  <span className="text-foreground font-medium">{uniqueCities}</span>
+                )}
+                {uniqueCities > 0 && ` ${uniqueCities === 1 ? "city" : "cities"}`}
+                {uniqueCities > 0 && uniqueCountries > 1 && " · "}
+                {uniqueCountries > 1 && (
+                  <>
+                    <span className="text-foreground font-medium">{uniqueCountries}</span>
+                    {` ${uniqueCountries === 1 ? "country" : "countries"}`}
+                  </>
+                )}
+              </span>
+            </div>
+          )}
 
+          {/* Top Artists */}
           {topArtists.length > 0 && (
             <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">🏆</span>

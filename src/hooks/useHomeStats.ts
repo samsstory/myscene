@@ -393,6 +393,8 @@ export const useHomeStats = (): UseHomeStatsReturn => {
             // Title-case the top genre
             const raw = sorted[0][0];
             topGenre = raw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          } else {
+            topGenre = "Eclectic";
           }
         }
       }
