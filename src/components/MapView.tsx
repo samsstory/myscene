@@ -460,7 +460,8 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
 
     const updateMap = () => {
       if (!map.current?.isStyleLoaded()) {
-        map.current?.once('load', updateMap);
+        // 'load' only fires once; use 'idle' which fires after every style change
+        map.current?.once('idle', updateMap);
         return;
       }
 
