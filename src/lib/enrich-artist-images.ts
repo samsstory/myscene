@@ -41,24 +41,33 @@ export async function enrichArtistImages(
     console.warn("enrich: canonical artists lookup failed", e);
   }
 
-  // 2. For remaining misses, call batch-artist-images edge function
+  // 2. For remaining misses, call batch-artist-images edge function in batches of 30
   const stillMissing = unique.filter((n) => !result.has(n.toLowerCase()));
   if (stillMissing.length > 0) {
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "batch-artist-images",
-        { body: { names: stillMissing.slice(0, 30) } }
-      );
-      if (!error && data?.artists) {
-        for (const [key, val] of Object.entries(data.artists)) {
-          const v = val as { image_url: string; spotify_id: string | null };
-          if (v.image_url) {
-            result.set(key.toLowerCase(), v.image_url);
+    const BATCH_SIZE = 30;
+    const batches = [];
+    for (let i = 0; i < stillMissing.length; i += BATCH_SIZE) {
+      batches.push(stillMissing.slice(i, i + BATCH_SIZE));
+    }
+    // Process up to 3 batches (90 artists max) to avoid excessive API calls
+    for (const batch of batches.slice(0, 3)) {
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "batch-artist-images",
+          { body: { names: batch } }
+        );
+        if (!error && data?.artists) {
+          for (const [key, val] of Object.entries(data.artists)) {
+            const v = val as { image_url: string; spotify_id: string | null };
+            if (v.image_url) {
+              result.set(key.toLowerCase(), v.image_url);
+            }
           }
         }
+      } catch (e) {
+        console.warn("enrich: batch-artist-images call failed", e);
+        break; // Stop on failure
       }
-    } catch (e) {
-      console.warn("enrich: batch-artist-images call failed", e);
     }
   }
 
