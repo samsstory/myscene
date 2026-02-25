@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { ArrowLeft, UserPlus, Plus } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import PhotoSelectStep from "./bulk-upload/PhotoSelectStep";
 import BulkReviewStep from "./bulk-upload/BulkReviewStep";
@@ -10,6 +11,14 @@ import { PhotoWithExif, cleanupPhotoUrls } from "@/lib/exif-utils";
 import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useDemoBulkUpload, DemoAddedShowData } from "@/hooks/useDemoBulkUpload";
 import { Badge } from "./ui/badge";
+import {
+  staggerContainer,
+  fadeUp,
+  fireConfetti,
+  SuccessRing,
+  ActionButton,
+  avatarPop,
+} from "@/components/success/SuccessPrimitives";
 
 interface DemoBulkUploadFlowProps {
   open: boolean;
@@ -58,6 +67,7 @@ const DemoBulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateTo
     if (result.success) {
       setAddedCount(result.addedCount);
       setAddedShows(result.addedShows);
+      fireConfetti();
       setStep('success');
     }
   };
@@ -144,110 +154,96 @@ const DemoBulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateTo
     const hasMultiple = addedShows.length > 1;
 
     return (
-      <div className="text-center space-y-6 py-4">
-        {/* Success header */}
-        <div className="flex items-center justify-center gap-3">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-2xl">🎉</span>
-          </div>
-          <h2 className="text-xl font-bold">
-            {addedCount} show{addedCount !== 1 ? 's' : ''} added!
-          </h2>
-        </div>
+      <motion.div variants={staggerContainer} initial="hidden" animate="show" className="text-center space-y-6 py-4 relative">
+        {/* ── Animated header ── */}
+        <motion.div variants={fadeUp} className="space-y-3">
+          <SuccessRing />
+          <motion.div variants={fadeUp}>
+            <h2 className="text-2xl font-bold tracking-tight" style={{ textShadow: "0 0 24px hsl(189 94% 55% / 0.25)" }}>
+              {addedCount} show{addedCount !== 1 ? "s" : ""} added!
+            </h2>
+          </motion.div>
+        </motion.div>
 
-        {/* Demo badge */}
-        <Badge variant="secondary" className="bg-amber-500/20 text-amber-200 border-amber-500/30">
-          Demo Mode - Not Saved
-        </Badge>
+        <motion.div variants={fadeUp}>
+          <Badge variant="secondary" className="bg-amber-500/20 text-amber-200 border-amber-500/30">
+            Demo Mode - Not Saved
+          </Badge>
+        </motion.div>
 
-        {/* Single show preview */}
+        {/* ── Single show hero ── */}
         {!hasMultiple && firstShow && (
-          <div className="rounded-xl overflow-hidden bg-muted">
+          <motion.div variants={fadeUp} className="rounded-2xl overflow-hidden ring-1 ring-white/[0.06]">
             {firstShow.photo_url ? (
               <div className="relative aspect-[4/3] w-full">
-                <img 
-                  src={firstShow.photo_url} 
-                  alt="Show photo"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-3 left-3 right-3 text-left text-white">
-                  <p className="font-semibold text-lg leading-tight">
-                    {firstShow.artists.map(a => a.name).join(', ')}
+                <img src={firstShow.photo_url} alt="Show photo" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 text-left text-white">
+                  <p className="font-bold text-lg leading-tight" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>
+                    {firstShow.artists.map(a => a.name).join(", ")}
                   </p>
-                  <p className="text-sm text-white/80">
-                    {firstShow.venue.name}
-                  </p>
+                  <p className="text-sm text-white/75 mt-0.5">{firstShow.venue.name}</p>
                 </div>
               </div>
             ) : (
-              <div className="aspect-[4/3] w-full flex flex-col items-center justify-center gap-2 p-4 bg-muted/50">
-                <span className="text-4xl">✦</span>
+              <div className="aspect-[4/3] w-full flex flex-col items-center justify-center gap-3 p-4 bg-white/[0.03]">
+                <span className="text-5xl select-none" style={{ textShadow: "0 0 20px hsl(189 94% 55% / 0.4)" }}>✦</span>
                 <div className="text-center">
-                  <p className="font-semibold">
-                    {firstShow.artists.map(a => a.name).join(', ')}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {firstShow.venue.name}
-                  </p>
+                  <p className="font-bold text-lg">{firstShow.artists.map(a => a.name).join(", ")}</p>
+                  <p className="text-sm text-muted-foreground">{firstShow.venue.name}</p>
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
-        {/* Multiple shows grid */}
+        {/* ── Multi show grid ── */}
         {hasMultiple && (
-          <div className="grid grid-cols-2 gap-3">
-            {addedShows.map((show) => (
-              <button 
-                key={show.id}
-                onClick={() => handleOpenEditor(show)}
-                className="text-center space-y-1.5 p-2 rounded-lg hover:bg-muted/50 transition-colors w-full"
-              >
-                <div className="aspect-[4/5] rounded-lg overflow-hidden bg-muted">
-                  {show.photo_url ? (
-                    <img src={show.photo_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <span className="text-2xl text-muted-foreground/60">✦</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs font-medium truncate">
-                  {show.artists[0]?.name || "Show"}
-                </p>
-              </button>
-            ))}
-          </div>
+          <motion.div variants={fadeUp} className="space-y-2">
+            <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-2 gap-3">
+              {addedShows.map((show, i) => (
+                <motion.button
+                  key={show.id}
+                  variants={avatarPop(i)}
+                  onClick={() => handleOpenEditor(show)}
+                  className="text-center space-y-1.5 p-2 rounded-xl hover:bg-white/[0.04] transition-colors w-full group"
+                >
+                  <div className="aspect-[4/5] rounded-xl overflow-hidden bg-muted ring-1 ring-white/[0.06] group-hover:ring-primary/30 transition-all duration-300">
+                    {show.photo_url ? (
+                      <img src={show.photo_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-white/[0.03]">
+                        <span className="text-2xl text-muted-foreground/40 select-none" style={{ textShadow: "0 0 12px hsl(189 94% 55% / 0.3)" }}>✦</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs font-medium truncate text-foreground/80">
+                    {show.artists[0]?.name || "Show"}
+                  </p>
+                </motion.button>
+              ))}
+            </motion.div>
+          </motion.div>
         )}
 
-        {/* Sign up CTA - Primary action */}
-        <div className="space-y-3 pt-2">
-          <Button 
-            onClick={handleSignUp}
-            className="w-full bg-gradient-to-r from-primary to-cyan-400 hover:opacity-90"
-            size="lg"
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Sign Up to Save Your Shows
-          </Button>
-
+        {/* ── Actions ── */}
+        <motion.div variants={fadeUp} className="space-y-2.5 pt-1">
+          <ActionButton onClick={handleSignUp} icon={UserPlus} label="Sign Up to Save Your Shows" variant="primary" />
           <p className="text-xs text-muted-foreground">
             Shows in demo mode won't be saved after you leave
           </p>
-        </div>
+        </motion.div>
 
-        {/* Secondary actions */}
-        <div className="flex gap-3 pt-2">
-          <Button onClick={handleAddMore} variant="outline" className="flex-1">
+        <motion.div variants={fadeUp} className="flex gap-2 pt-2">
+          <button onClick={handleAddMore} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+            <Plus className="h-3.5 w-3.5" />
             Add More
-          </Button>
-          <Button onClick={handleClose} variant="ghost" className="flex-1">
+          </button>
+          <button onClick={handleClose} className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
             Done
-          </Button>
-        </div>
-      </div>
+          </button>
+        </motion.div>
+      </motion.div>
     );
   };
 

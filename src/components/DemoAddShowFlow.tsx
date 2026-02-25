@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { ArrowLeft, UserPlus, Plus } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep from "./add-show-steps/UnifiedSearchStep";
 import VenueStep from "./add-show-steps/VenueStep";
@@ -11,6 +12,13 @@ import RatingStep from "./add-show-steps/RatingStep";
 import { Badge } from "./ui/badge";
 import { useDemoMode, DemoLocalShow } from "@/contexts/DemoContext";
 import { toast } from "sonner";
+import {
+  staggerContainer,
+  fadeUp,
+  fireConfetti,
+  SuccessRing,
+  ActionButton,
+} from "@/components/success/SuccessPrimitives";
 
 interface DemoAddShowFlowProps {
   open: boolean;
@@ -162,6 +170,7 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
 
     addDemoShow(demoShow);
     toast.success("Show added to your demo collection!");
+    fireConfetti();
     setStep(6);
   };
 
@@ -198,46 +207,42 @@ const DemoAddShowFlow = ({ open, onOpenChange, onShowAdded }: DemoAddShowFlowPro
   const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   const renderSuccessStep = () => (
-    <div className="text-center space-y-6 py-4">
-      <div className="flex items-center justify-center gap-3">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-2xl">🎉</span>
-        </div>
-        <h2 className="text-xl font-bold">Show added!</h2>
-      </div>
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="text-center space-y-6 py-4 relative">
+      <motion.div variants={fadeUp} className="space-y-3">
+        <SuccessRing />
+        <motion.div variants={fadeUp}>
+          <h2 className="text-2xl font-bold tracking-tight" style={{ textShadow: "0 0 24px hsl(189 94% 55% / 0.25)" }}>
+            Show Added!
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {showData.artists.map(a => a.name).join(', ')} @ {showData.venue}
+          </p>
+        </motion.div>
+      </motion.div>
 
-      <Badge variant="secondary" className="bg-amber-500/20 text-amber-200 border-amber-500/30">
-        Demo Mode - Not Saved
-      </Badge>
+      <motion.div variants={fadeUp}>
+        <Badge variant="secondary" className="bg-amber-500/20 text-amber-200 border-amber-500/30">
+          Demo Mode - Not Saved
+        </Badge>
+      </motion.div>
 
-      <div className="rounded-xl p-4 bg-muted/50">
-        <p className="font-semibold">{showData.artists.map(a => a.name).join(', ')}</p>
-        <p className="text-sm text-muted-foreground">{showData.venue}</p>
-      </div>
-
-      <div className="space-y-3 pt-2">
-        <Button 
-          onClick={handleSignUp}
-          className="w-full bg-gradient-to-r from-primary to-cyan-400 hover:opacity-90"
-          size="lg"
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Sign Up to Save Your Shows
-        </Button>
+      <motion.div variants={fadeUp} className="space-y-2.5 pt-1">
+        <ActionButton onClick={handleSignUp} icon={UserPlus} label="Sign Up to Save Your Shows" variant="primary" />
         <p className="text-xs text-muted-foreground">
           Shows in demo mode won't be saved after you leave
         </p>
-      </div>
+      </motion.div>
 
-      <div className="flex gap-3 pt-2">
-        <Button onClick={() => resetFlow()} variant="outline" className="flex-1">
+      <motion.div variants={fadeUp} className="flex gap-2 pt-2">
+        <button onClick={() => resetFlow()} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+          <Plus className="h-3.5 w-3.5" />
           Add Another
-        </Button>
-        <Button onClick={handleClose} variant="ghost" className="flex-1">
+        </button>
+        <button onClick={handleClose} className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
           Done
-        </Button>
-      </div>
-    </div>
+        </button>
+      </motion.div>
+    </motion.div>
   );
 
   return (
