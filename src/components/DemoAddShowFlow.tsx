@@ -32,7 +32,7 @@ interface ShowData {
   venueId: string | null;
   venueLatitude?: number;
   venueLongitude?: number;
-  showType: 'set' | 'show' | 'festival';
+  showType: 'set' | 'show' | 'festival' | 'b2b';
   eventName: string;
   date: Date | undefined;
   datePrecision: "exact" | "approximate" | "unknown";

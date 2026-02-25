@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Music, MapPin, Sparkles, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Loader2, Music, MapPin, Sparkles, ChevronDown, X, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export type SearchResultType = 'artist' | 'venue';
-export type UnifiedShowType = 'set' | 'show' | 'festival';
+export type UnifiedShowType = 'set' | 'show' | 'festival' | 'b2b';
 
 interface UnifiedSearchResult {
   type: SearchResultType;
@@ -25,26 +26,39 @@ interface UnifiedSearchResult {
   venueName?: string;
 }
 
+export interface B2bArtist {
+  id: string;
+  name: string;
+  imageUrl?: string;
+}
+
 interface UnifiedSearchStepProps {
   onSelect: (result: UnifiedSearchResult) => void;
+  onB2bSelect?: (artists: B2bArtist[]) => void;
   showType?: UnifiedShowType;
 }
 
-const UnifiedSearchStep = ({ onSelect, showType = 'set' }: UnifiedSearchStepProps) => {
+const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedSearchStepProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
 
+  // B2B state
+  const [b2bArtists, setB2bArtists] = useState<B2bArtist[]>([]);
+  const [b2bMode, setB2bMode] = useState(false);
+
   const isEventMode = showType === 'show' || showType === 'festival';
 
   const getHeading = () => {
+    if (b2bMode && b2bArtists.length > 0) return 'Add B2B partner';
     if (showType === 'show') return 'Name this event or night';
     if (showType === 'festival') return 'Name this festival';
     return 'Search for an artist';
   };
 
   const getPlaceholder = () => {
+    if (b2bMode) return 'Search B2B partner...';
     if (showType === 'show') return 'Elrow, Circoloco, Anjunadeep...';
     if (showType === 'festival') return 'Coachella, EDC, ARC...';
     return 'Search artists...';
@@ -83,16 +97,68 @@ const UnifiedSearchStep = ({ onSelect, showType = 'set' }: UnifiedSearchStepProp
   const primaryVenues = results.filter(r => r.type === 'venue' && r.tier !== 'other');
   const otherVenues = results.filter(r => r.type === 'venue' && r.tier === 'other');
 
+  // Filter out already-added B2B artists
+  const filteredArtistResults = b2bMode
+    ? artistResults.filter(r => !b2bArtists.some(a => a.name.toLowerCase() === r.name.toLowerCase()))
+    : artistResults;
+
+  const handleArtistSelect = (result: UnifiedSearchResult) => {
+    if (b2bMode) {
+      // In B2B mode, add to the B2B list
+      setB2bArtists(prev => [...prev, { id: result.id, name: result.name, imageUrl: result.imageUrl }]);
+      setSearchTerm("");
+      setResults([]);
+    } else {
+      // Normal flow — just pass through
+      onSelect(result);
+    }
+  };
+
   const handleManualArtistAdd = () => {
-    if (searchTerm.trim()) {
+    if (!searchTerm.trim()) return;
+    if (b2bMode) {
+      setB2bArtists(prev => [...prev, { id: `manual-${Date.now()}`, name: searchTerm.trim() }]);
+      setSearchTerm("");
+      setResults([]);
+    } else {
       onSelect({ type: 'artist', id: `manual-${Date.now()}`, name: searchTerm.trim() });
     }
   };
 
   const handleManualEventAdd = () => {
     if (searchTerm.trim()) {
-      // In event mode, manual add goes in as a venue type (for event_name storage upstream)
       onSelect({ type: 'venue', id: `manual-${Date.now()}`, name: searchTerm.trim() });
+    }
+  };
+
+  const enterB2bMode = (firstArtist: UnifiedSearchResult) => {
+    setB2bArtists([{ id: firstArtist.id, name: firstArtist.name, imageUrl: firstArtist.imageUrl }]);
+    setB2bMode(true);
+    setSearchTerm("");
+    setResults([]);
+  };
+
+  const enterB2bModeManual = () => {
+    if (!searchTerm.trim()) return;
+    setB2bArtists([{ id: `manual-${Date.now()}`, name: searchTerm.trim() }]);
+    setB2bMode(true);
+    setSearchTerm("");
+    setResults([]);
+  };
+
+  const removeB2bArtist = (index: number) => {
+    setB2bArtists(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length === 0) {
+        setB2bMode(false);
+      }
+      return next;
+    });
+  };
+
+  const confirmB2b = () => {
+    if (b2bArtists.length >= 2 && onB2bSelect) {
+      onB2bSelect(b2bArtists);
     }
   };
 
@@ -101,6 +167,45 @@ const UnifiedSearchStep = ({ onSelect, showType = 'set' }: UnifiedSearchStepProp
       <p className="text-sm text-muted-foreground text-center">
         {getHeading()}
       </p>
+
+      {/* B2B artist chips */}
+      {b2bMode && b2bArtists.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-primary px-1">
+            <Users className="h-3.5 w-3.5" />
+            B2B Set
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {b2bArtists.map((artist, index) => (
+              <div
+                key={artist.id}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full",
+                  "bg-primary/10 border border-primary/30 text-sm"
+                )}
+              >
+                {artist.imageUrl ? (
+                  <img src={artist.imageUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <Music className="h-3.5 w-3.5 text-primary" />
+                )}
+                <span className="font-medium">{artist.name}</span>
+                {index > 0 && (
+                  <span className="text-xs text-muted-foreground -ml-1">b2b</span>
+                )}
+                <button onClick={() => removeB2bArtist(index)} className="ml-0.5 hover:text-destructive">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {b2bArtists.length >= 2 && (
+            <Button onClick={confirmB2b} className="w-full h-10 text-sm">
+              Continue with {b2bArtists.map(a => a.name).join(' b2b ')}
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="relative">
         <Search className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
@@ -135,30 +240,57 @@ const UnifiedSearchStep = ({ onSelect, showType = 'set' }: UnifiedSearchStepProp
               <div className="text-xs text-muted-foreground">Add as event</div>
             </button>
           ) : (
-            <button onClick={handleManualArtistAdd} className={cn(
-              "w-full p-3 rounded-lg transition-all duration-200 text-left",
-              "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
-              "hover:border-primary/50 hover:bg-primary/5",
-              "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
-            )}>
-              <div className="font-medium text-sm">"{searchTerm}"</div>
-              <div className="text-xs text-muted-foreground">Add as artist</div>
-            </button>
+            <div className="space-y-1.5">
+              <button onClick={handleManualArtistAdd} className={cn(
+                "w-full p-3 rounded-lg transition-all duration-200 text-left",
+                "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
+                "hover:border-primary/50 hover:bg-primary/5",
+                "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+              )}>
+                <div className="font-medium text-sm">"{searchTerm}"</div>
+                <div className="text-xs text-muted-foreground">
+                  {b2bMode ? 'Add as B2B partner' : 'Add as artist'}
+                </div>
+              </button>
+              {/* B2B manual entry shortcut — only when NOT already in B2B mode */}
+              {!b2bMode && onB2bSelect && (
+                <button onClick={enterB2bModeManual} className={cn(
+                  "w-full p-3 rounded-lg transition-all duration-200 text-left",
+                  "bg-white/[0.03] backdrop-blur-sm border border-white/[0.1]",
+                  "hover:border-primary/50 hover:bg-primary/5",
+                  "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
+                )}>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    <div>
+                      <div className="font-medium text-sm">"{searchTerm}" b2b …</div>
+                      <div className="text-xs text-muted-foreground">Start a B2B set</div>
+                    </div>
+                  </div>
+                </button>
+              )}
+            </div>
           )
         )}
 
-        {/* Artists section — show only for solo shows */}
-        {!isEventMode && artistResults.length > 0 && (
+        {/* Artists section — show only for solo/set shows */}
+        {!isEventMode && filteredArtistResults.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-1">Artists</div>
-            {artistResults.map((result) => (
-              <ArtistResultCard key={result.id} result={result} onSelect={onSelect} />
+            {filteredArtistResults.map((result) => (
+              <ArtistResultCard
+                key={result.id}
+                result={result}
+                onSelect={handleArtistSelect}
+                onB2b={!b2bMode && onB2bSelect ? () => enterB2bMode(result) : undefined}
+                isB2bMode={b2bMode}
+              />
             ))}
           </div>
         )}
 
         {/* Venue/event results — always shown in event mode, also in show mode */}
-        {primaryVenues.length > 0 && (
+        {!b2bMode && primaryVenues.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-1">
               <MapPin className="h-4 w-4" />
@@ -171,7 +303,7 @@ const UnifiedSearchStep = ({ onSelect, showType = 'set' }: UnifiedSearchStepProp
         )}
 
         {/* Other locations (collapsed) */}
-        {otherVenues.length > 0 && (
+        {!b2bMode && otherVenues.length > 0 && (
           <Collapsible open={otherOpen} onOpenChange={setOtherOpen}>
             <CollapsibleTrigger className={cn(
               "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm",
@@ -204,10 +336,19 @@ const UnifiedSearchStep = ({ onSelect, showType = 'set' }: UnifiedSearchStepProp
 
 // ─── Sub-components ──────────────────────────────────────────────────
 
-function ArtistResultCard({ result, onSelect }: { result: UnifiedSearchResult; onSelect: (r: UnifiedSearchResult) => void }) {
+function ArtistResultCard({
+  result,
+  onSelect,
+  onB2b,
+  isB2bMode,
+}: {
+  result: UnifiedSearchResult;
+  onSelect: (r: UnifiedSearchResult) => void;
+  onB2b?: () => void;
+  isB2bMode?: boolean;
+}) {
   return (
-    <button
-      onClick={() => onSelect(result)}
+    <div
       className={cn(
         "w-full text-left p-4 rounded-lg transition-all duration-200",
         "bg-white/[0.03] backdrop-blur-sm border border-white/[0.08]",
@@ -215,20 +356,36 @@ function ArtistResultCard({ result, onSelect }: { result: UnifiedSearchResult; o
         "hover:shadow-[0_0_12px_hsl(189_94%_55%/0.15)]"
       )}
     >
-      <div className="flex items-start gap-3">
-        {result.imageUrl ? (
-          <img src={result.imageUrl} alt={result.name} className="h-10 w-10 rounded-full object-cover border border-white/10 flex-shrink-0" />
-        ) : (
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Music className="h-5 w-5 text-primary" />
+      <button onClick={() => onSelect(result)} className="w-full text-left">
+        <div className="flex items-start gap-3">
+          {result.imageUrl ? (
+            <img src={result.imageUrl} alt={result.name} className="h-10 w-10 rounded-full object-cover border border-white/10 flex-shrink-0" />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Music className="h-5 w-5 text-primary" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold">{result.name}</div>
+            {result.subtitle && <div className="text-sm text-muted-foreground truncate">{result.subtitle}</div>}
           </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold">{result.name}</div>
-          {result.subtitle && <div className="text-sm text-muted-foreground truncate">{result.subtitle}</div>}
         </div>
-      </div>
-    </button>
+      </button>
+      {/* B2B action — only when not already in B2B mode */}
+      {onB2b && !isB2bMode && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onB2b(); }}
+          className={cn(
+            "mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium",
+            "text-primary/80 hover:text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20",
+            "transition-all duration-150"
+          )}
+        >
+          <Users className="h-3.5 w-3.5" />
+          Add as B2B
+        </button>
+      )}
+    </div>
   );
 }
 
