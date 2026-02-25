@@ -1,74 +1,81 @@
 
 
-## Plan: Stats Trophy Card Enhancements — Title Badge, Artists Grid, Geographic Stats
+## Plan: Animation Polish + Top Percentile Stat
 
-The distance comparison rotation is already implemented and working. This plan adds the four remaining enhancements.
+### Overview
 
-### Changes Overview
+Four coordinated changes: session-aware CountUp, slower/staggered animations, gentle badge glow, and a gold percentile pill.
 
-```text
-BEFORE                              AFTER
-┌──────────────────────────┐       ┌──────────────────────────┐
-│  YOUR SCENE STATS        │       │  🎵 BASS HEAD    (pill)  │
-│                          │       │  YOUR SCENE STATS        │
-│  47      │ —     │ 8     │       │                          │
-│  SHOWS   │ GENRE │VENUES │       │  47     │ 89     │ 8     │
-│                          │       │  SHOWS  │ARTISTS │VENUES │
-│  📍 1,240 miles danced   │       │                          │
-│  🏆 Fred again.., Bonobo │       │  📍 1,240 miles danced   │
-└──────────────────────────┘       │  "25% across the USA"    │
-                                   │  🌍 12 cities · 4 countries│
-                                   │  🏆 Fred again.., Bonobo │
-                                   └──────────────────────────┘
+### 1. `src/components/home/CountUp.tsx` — Session-Aware Animation
+
+- Read `sessionStorage.getItem("scene_stats_animated")` on mount
+- If already set: initialize `display = value` and `hasAnimated = true` (skip animation)
+- After first animation completes: `sessionStorage.setItem("scene_stats_animated", "1")`
+- Result: numbers count up on cold start, stay static when switching tabs
+
+### 2. `src/hooks/useHomeStats.ts` — Add `totalUsers` Count
+
+Add to `StatsData` interface:
+```typescript
+totalUsers: number;
 ```
 
-### Files to Modify
+After the existing stats queries (around line 449), add:
+```typescript
+const { count: totalUsers } = await supabase
+  .from('profiles')
+  .select('*', { count: 'exact', head: true });
+```
 
-**1. `src/hooks/useHomeStats.ts`** (1 line)
+Pass `totalUsers: totalUsers ?? 0` in the `setStats` call.
 
-After the genre calculation block (around line 396), if `topGenre` is still `null` but `allArtists` has entries, set `topGenre = "Eclectic"`. This eliminates the "—" fallback in the UI.
+### 3. `src/components/home/StatsTrophyCard.tsx` — All Visual Changes
 
-**2. `src/components/home/StatsTrophyCard.tsx`** (main changes)
+**Props**: Add `totalUsers?: number`
 
-Four additions to the existing component:
+**Rotation interval**: Change from `5000` → `8000` ms, with a 2-second delay before first rotation starts
 
-- **Props**: Add `uniqueArtists: number`, `uniqueCities: number`, `uniqueCountries: number` to the interface. Keep `topGenre` (used by title badge now, not grid).
+**Badge glow**: Replace `animate-pulse` with inline CSS keyframe `badge-breathe` (4s cycle, opacity 0.7→1.0):
+```css
+@keyframes badge-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+```
 
-- **Title badge**: A pure function `getSceneTitle(topGenre, totalShows)` maps genre + show count to a persona string. Renders as a small gradient pill (cyan→purple, `text-[10px] uppercase tracking-widest`) above "YOUR SCENE STATS". Has a subtle slow pulse glow via CSS `animate-pulse`. Hidden when `totalShows === 0`. Falls back to "Music Lover" if genre is null.
+**Staggered entrance**: Wrap bottom details section in `motion.div` with framer-motion variants:
+- Container: `staggerChildren: 0.25, delayChildren: 0.3`
+- Each row (miles, comparison, geo, artists): `motion.div` with fade-in variant (opacity 0→1, y 4→0, 400ms)
 
-  Genre mapping:
-  - Electronic → "Rave Veteran" (50+) / "Raver" (<50)
-  - House → "House Head"
-  - Techno → "Techno Purist"
-  - Hip Hop → "Hypebeast"
-  - Rock → "Headbanger"
-  - Indie → "Indie Kid"
-  - Pop → "Pop Stan"
-  - Eclectic → "Genre Fluid"
-  - Default → "Music Lover"
+**Percentile pill**: Add `getPercentile(showCount, totalUsers)` function:
+- Returns `null` if `showCount < 5` (hidden)
+- If `totalUsers < 50`: returns `"Early Adopter ⭐"`
+- Otherwise uses tiered brackets:
+  - 100+ shows → "Top 1%"
+  - 50+ → "Top 5%" (meaning user has more shows than 95% of users)
+  - 20+ → "Top 10%"
+  - 10+ → "Top 25%"
+  - 5+ → "Top 50%"
+- Rendered as gold/amber gradient pill next to "Your Scene Stats" text
+- Styling: `text-[10px] uppercase`, amber gradient background, gold text, gold border
 
-- **Middle stat box**: Replace the Genre text box with a `CountUp` for `uniqueArtists`, labeled "🎵 Artists". Same visual style as Shows and Venues boxes.
+### 4. `src/components/home/SceneView.tsx` — Thread `totalUsers`
 
-- **Geographic row**: Below the distance comparison tagline, render `🌍 X cities · Y countries` in the same `text-[12px] text-muted-foreground` style. Only shown if `uniqueCities > 0 || uniqueCountries > 0`. If only 1 country, show just cities.
+Add `totalUsers?: number` to `StatsForCard` interface. Pass `stats?.totalUsers` to `StatsTrophyCard`.
 
-- **Empty state blur**: Update the blurred placeholder to show "Artists" instead of "Genre" in the middle box.
+### Files Changed
 
-**3. `src/components/home/SceneView.tsx`** (prop threading)
-
-Update `StatsForCard` interface to include `uniqueArtists`, `uniqueCities`, `uniqueCountries`. Pass them to `StatsTrophyCard`.
-
-**4. `src/index.css`** (optional)
-
-Add a `title-badge-glow` keyframe if the existing `animate-pulse` doesn't produce a subtle enough effect. This would be a 3-second opacity oscillation between 0.8 and 1.0.
-
-### No Database Changes
-
-All data (`uniqueArtists`, `uniqueCities`, `uniqueCountries`, `topGenre`) is already computed in `useHomeStats` and available in the `stats` object passed through `Home.tsx` → `SceneView.tsx`.
+| File | Change |
+|------|--------|
+| `CountUp.tsx` | sessionStorage guard for animation |
+| `useHomeStats.ts` | Add `totalUsers` count query + interface |
+| `StatsTrophyCard.tsx` | 8s rotation, 2s delay, stagger, badge breathe, percentile pill |
+| `SceneView.tsx` | Thread `totalUsers` prop |
 
 ### Implementation Order
 
-1. Fix genre fallback in `useHomeStats.ts`
-2. Update `StatsTrophyCard.tsx` — title badge, swap genre→artists, geographic row
-3. Thread props in `SceneView.tsx`
-4. Test all states: 0 shows (blur), 1 show, full stats
+1. `CountUp.tsx` — sessionStorage guard
+2. `useHomeStats.ts` — add `totalUsers`
+3. `StatsTrophyCard.tsx` — all visual changes
+4. `SceneView.tsx` — thread prop
 
