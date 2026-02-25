@@ -75,7 +75,10 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
 
       try {
         const { data, error } = await supabase.functions.invoke('unified-search', {
-          body: { searchTerm: searchTerm.trim() }
+          body: { 
+            searchTerm: searchTerm.trim(),
+            searchType: isEventMode ? 'venue' : 'artist'
+          }
         });
 
         if (error) throw error;
