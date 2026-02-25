@@ -47,11 +47,34 @@ serve(async (req) => {
 
     console.log('Searching Spotify for artist:', searchTerm);
 
-    const token = await getSpotifyToken();
-    const response = await fetch(
+    let token = await getSpotifyToken();
+    let response = await fetch(
       `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=10`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
+
+    // Handle 429 rate limit — wait and retry once
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '1', 10);
+      const waitMs = Math.min(retryAfter * 1000, 3000);
+      console.log('Spotify 429, retrying after', waitMs, 'ms');
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+      response = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=10`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+    }
+
+    // Handle 401 — refresh token
+    if (response.status === 401) {
+      spotifyToken = null;
+      tokenExpiry = 0;
+      token = await getSpotifyToken();
+      response = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=10`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+    }
 
     if (!response.ok) {
       console.error('Spotify API error:', response.status, await response.text());
