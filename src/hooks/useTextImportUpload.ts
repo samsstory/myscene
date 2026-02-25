@@ -38,24 +38,24 @@ export function useTextImportUpload() {
       if (!session?.user) throw new Error("Not authenticated");
       const userId = session.user.id;
 
+      // Pre-fetch existing shows for duplicate detection
+      const { data: existingShows } = await supabase
+        .from("shows")
+        .select("id, show_date, venue_name, show_artists(artist_name)")
+        .eq("user_id", userId);
+
+      const existingKeys = new Set<string>();
+      (existingShows || []).forEach((s: any) => {
+        const artists = (s.show_artists || []).map((a: any) => a.artist_name.toLowerCase()).sort();
+        const key = `${s.show_date}|${s.venue_name.toLowerCase()}|${artists.join(",")}`;
+        existingKeys.add(key);
+      });
+
+      let skippedCount = 0;
+
       for (const show of shows) {
         try {
-          // 1. Venue
-          let venueIdToUse: string | null = null;
-          if (show.venue.trim()) {
-            if (show.venueId) {
-              venueIdToUse = show.venueId;
-            } else {
-              const { data: newVenue } = await supabase
-                .from('venues')
-                .insert({ name: show.venue, location: show.venueLocation || null })
-                .select('id')
-                .single();
-              if (newVenue) venueIdToUse = newVenue.id;
-            }
-          }
-
-          // 2. Date
+          // 1. Compute date early for duplicate check
           let showDate: string;
           let dbDatePrecision: string;
 
@@ -72,6 +72,30 @@ export function useTextImportUpload() {
           } else {
             showDate = new Date().toISOString().split('T')[0];
             dbDatePrecision = "unknown";
+          }
+
+          // Duplicate auto-skip: same date + venue + artists
+          const venueName = show.venue || 'Unknown Venue';
+          const artistKey = show.artists.map(a => a.name.toLowerCase()).sort().join(",");
+          const dupeKey = `${showDate}|${venueName.toLowerCase()}|${artistKey}`;
+          if (existingKeys.has(dupeKey)) {
+            skippedCount++;
+            continue;
+          }
+
+          // 2. Venue
+          let venueIdToUse: string | null = null;
+          if (show.venue.trim()) {
+            if (show.venueId) {
+              venueIdToUse = show.venueId;
+            } else {
+              const { data: newVenue } = await supabase
+                .from('venues')
+                .insert({ name: show.venue, location: show.venueLocation || null })
+                .select('id')
+                .single();
+              if (newVenue) venueIdToUse = newVenue.id;
+            }
           }
 
           // 3. Create show — use 'b2b' show_type if flagged
@@ -134,6 +158,7 @@ export function useTextImportUpload() {
       }
 
       if (addedCount > 0) toast.success(`Added ${addedCount} show${addedCount !== 1 ? 's' : ''}!`);
+      if (skippedCount > 0) toast.info(`Skipped ${skippedCount} duplicate${skippedCount !== 1 ? 's' : ''}`);
       if (failedCount > 0) toast.error(`Failed to add ${failedCount} show${failedCount !== 1 ? 's' : ''}`);
 
       return { success: addedCount > 0, addedCount, failedCount, addedShows };

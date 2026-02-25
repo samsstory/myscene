@@ -13,7 +13,7 @@ export interface FestivalResult {
   date_start: string | null;
   date_end: string | null;
   venue_id: string | null;
-  artists: { name: string; day?: string; stage?: string }[];
+  artists: { name: string; day?: string; stage?: string; matched?: boolean }[];
 }
 
 interface FestivalSearchStepProps {

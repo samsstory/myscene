@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, Plus, X, Search } from "lucide-react";
+import { Check, Plus, X, Search, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ export interface LineupArtist {
   name: string;
   day?: string;
   stage?: string;
+  /** false = OCR extracted but not matched to canonical DB (low confidence) */
+  matched?: boolean;
 }
 
 interface LineupSelectionGridProps {
@@ -30,10 +32,12 @@ const ArtistCard = ({
   name,
   selected,
   onToggle,
+  lowConfidence,
 }: {
   name: string;
   selected: boolean;
   onToggle: () => void;
+  lowConfidence?: boolean;
 }) => (
   <motion.button
     type="button"
@@ -46,6 +50,9 @@ const ArtistCard = ({
         : "bg-white/[0.04] border-white/[0.08] text-muted-foreground hover:bg-white/[0.08]"
     )}
   >
+    {lowConfidence && (
+      <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+    )}
     <span className="truncate flex-1">{name}</span>
     {selected && (
       <div className="flex-shrink-0 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
@@ -86,6 +93,7 @@ const DayGroup = ({
               name={a.name}
               selected={selected.has(a.name)}
               onToggle={() => onToggle(a.name)}
+              lowConfidence={a.matched === false}
             />
           ))}
         </div>
@@ -190,6 +198,14 @@ const LineupSelectionGrid = ({
         />
       </div>
 
+      {/* Low confidence note */}
+      {filteredArtists.some(a => a.matched === false) && (
+        <div className="flex items-center gap-2 text-xs text-amber-400/80 bg-amber-400/[0.06] border border-amber-400/[0.12] rounded-lg px-3 py-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>Names with ⚠ couldn't be verified — double-check spelling</span>
+        </div>
+      )}
+
       {/* Artist grid / grouped */}
       <div className="max-h-[45vh] overflow-y-auto pr-1 -mr-1">
         {grouped ? (
@@ -210,6 +226,7 @@ const LineupSelectionGrid = ({
                 name={a.name}
                 selected={selected.has(a.name)}
                 onToggle={() => toggle(a.name)}
+                lowConfidence={a.matched === false}
               />
             ))}
           </div>

@@ -39,6 +39,8 @@ export const useFestivalClaim = () => {
         (name) => !existingArtists.has(name.toLowerCase())
       );
 
+      const skippedCount = selectedArtists.length - newArtists.length;
+
       if (newArtists.length === 0) {
         toast.info("All selected artists are already logged for this festival");
         return { success: true, addedCount: 0, addedShows: [] };
@@ -171,7 +173,8 @@ export const useFestivalClaim = () => {
       });
 
       const total = newArtists.length + 1; // children + festival parent
-      toast.success(`Added ${festival.event_name} + ${newArtists.length} set${newArtists.length !== 1 ? "s" : ""}`);
+      const skippedMsg = skippedCount > 0 ? ` (${skippedCount} duplicate${skippedCount !== 1 ? 's' : ''} skipped)` : '';
+      toast.success(`Added ${festival.event_name} + ${newArtists.length} set${newArtists.length !== 1 ? "s" : ""}${skippedMsg}`);
       return { success: true, addedCount: total, addedShows };
     } catch (err: any) {
       console.error("Festival claim error:", err);

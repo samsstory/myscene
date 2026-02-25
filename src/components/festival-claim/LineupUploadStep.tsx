@@ -10,7 +10,7 @@ interface ExtractedLineup {
   date_end?: string | null;
   venue_name?: string | null;
   venue_location?: string | null;
-  artists: { name: string; day?: string | null; stage?: string | null }[];
+  artists: { name: string; day?: string | null; stage?: string | null; matched?: boolean }[];
 }
 
 interface LineupUploadStepProps {
