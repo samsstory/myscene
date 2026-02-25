@@ -8,6 +8,11 @@ interface TopShow {
   venueName: string;
 }
 
+interface TopArtist {
+  name: string;
+  imageUrl: string | null;
+}
+
 interface StatsData {
   allTimeShows: number;
   showsThisYear: number;
@@ -23,6 +28,10 @@ interface StatsData {
   incompleteTagsCount: number;
   missingPhotosCount: number;
   profileIncomplete: boolean;
+  topArtists: TopArtist[];
+  topGenre: string | null;
+  uniqueVenues: number;
+  milesDanced: number | null;
 }
 
 interface UseHomeStatsReturn {
@@ -35,6 +44,18 @@ interface UseHomeStatsReturn {
 const truncate = (str: string, maxLen: number): string => {
   if (str.length <= maxLen) return str;
   return str.slice(0, maxLen - 1) + '…';
+};
+
+/** Haversine distance in miles between two lat/lng points */
+const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 export const useHomeStats = (): UseHomeStatsReturn => {
@@ -53,6 +74,10 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     incompleteTagsCount: 0,
     missingPhotosCount: 0,
     profileIncomplete: false,
+    topArtists: [],
+    topGenre: null,
+    uniqueVenues: 0,
+    milesDanced: null,
   });
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -306,13 +331,120 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         ? (totalCappedBackToBacks / (totalShows * MAX_BACK_TO_BACKS)) * 100 
         : 0;
 
-      // Check profile completeness (username, full_name, home_city)
+      // Check profile completeness (username, full_name, home_city, home coords)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, full_name, home_city')
+        .select('username, full_name, home_city, home_latitude, home_longitude')
         .eq('id', userId)
         .single();
       const profileIncomplete = !profile?.username || !profile?.full_name || !profile?.home_city;
+
+      // --- NEW STATS ---
+
+      // Top 3 artists by ELO
+      const topArtists: TopArtist[] = [];
+      if (rankings && rankings.length > 0) {
+        const sortedByElo = [...rankings]
+          .filter(r => r.comparisons_count > 0)
+          .sort((a, b) => b.elo_score - a.elo_score)
+          .slice(0, 3);
+
+        for (const ranking of sortedByElo) {
+          const { data: artistRow } = await supabase
+            .from('show_artists')
+            .select('artist_name, artist_image_url')
+            .eq('show_id', ranking.show_id)
+            .eq('is_headliner', true)
+            .limit(1)
+            .single();
+          if (artistRow) {
+            topArtists.push({
+              name: artistRow.artist_name,
+              imageUrl: artistRow.artist_image_url,
+            });
+          }
+        }
+      }
+
+      // Top genre — aggregate genres from artists table for user's show artists
+      let topGenre: string | null = null;
+      if (allArtists && allArtists.length > 0) {
+        const artistNames = [...new Set(allArtists.map(a => a.artist_name))];
+        // Query artists table in batches for genres
+        const { data: artistsWithGenres } = await supabase
+          .from('artists')
+          .select('genres')
+          .in('name', artistNames.slice(0, 100)); // limit to avoid huge query
+
+        if (artistsWithGenres) {
+          const genreCounts = new Map<string, number>();
+          for (const artist of artistsWithGenres) {
+            if (artist.genres) {
+              for (const genre of artist.genres) {
+                const normalized = genre.toLowerCase().trim();
+                if (normalized) {
+                  genreCounts.set(normalized, (genreCounts.get(normalized) || 0) + 1);
+                }
+              }
+            }
+          }
+          if (genreCounts.size > 0) {
+            const sorted = [...genreCounts.entries()].sort((a, b) => b[1] - a[1]);
+            // Title-case the top genre
+            const raw = sorted[0][0];
+            topGenre = raw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          }
+        }
+      }
+
+      // Unique venues
+      const venueNames = new Set<string>();
+      shows?.forEach(s => {
+        // venue_name is on the shows table but not selected above — use showsWithLocation
+      });
+      // Re-query for unique venue names
+      const { data: venueData } = await supabase
+        .from('shows')
+        .select('venue_name')
+        .eq('user_id', userId);
+      venueData?.forEach(s => venueNames.add(s.venue_name));
+      const uniqueVenues = venueNames.size;
+
+      // Miles danced — sum haversine from home to each unique venue
+      let milesDanced: number | null = null;
+      if (profile?.home_latitude && profile?.home_longitude) {
+        const homeLat = Number(profile.home_latitude);
+        const homeLng = Number(profile.home_longitude);
+
+        // Get unique venues with coordinates
+        const venueIds = new Set<string>();
+        const { data: showVenues } = await supabase
+          .from('shows')
+          .select('venue_id')
+          .eq('user_id', userId)
+          .not('venue_id', 'is', null);
+        showVenues?.forEach(s => { if (s.venue_id) venueIds.add(s.venue_id); });
+
+        if (venueIds.size > 0) {
+          const { data: venuesWithCoords } = await supabase
+            .from('venues')
+            .select('id, latitude, longitude')
+            .in('id', [...venueIds].slice(0, 200));
+
+          if (venuesWithCoords) {
+            let totalMiles = 0;
+            for (const v of venuesWithCoords) {
+              if (v.latitude && v.longitude) {
+                totalMiles += haversineDistance(
+                  homeLat, homeLng,
+                  Number(v.latitude), Number(v.longitude)
+                );
+              }
+            }
+            if (totalMiles > 0) milesDanced = totalMiles;
+          }
+        }
+      }
 
       setStats({
         allTimeShows: totalShows,
@@ -329,6 +461,10 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         incompleteTagsCount,
         missingPhotosCount,
         profileIncomplete,
+        topArtists,
+        topGenre,
+        uniqueVenues,
+        milesDanced,
       });
       setInsights(generatedInsights);
     } catch (error) {
