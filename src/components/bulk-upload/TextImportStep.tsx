@@ -11,6 +11,8 @@ export interface ParsedShow {
   venue: string;
   date: string;
   confidence: "high" | "medium" | "low";
+  is_b2b?: boolean;
+  artists?: { name: string; spotifyId: string | null; imageUrl: string | null; genres: string[] }[];
   spotify: {
     id: string;
     imageUrl: string | null;

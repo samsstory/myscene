@@ -23,6 +23,7 @@ interface ReviewedTextShow {
   selectedMonth: string;
   selectedYear: string;
   isValid: boolean;
+  isB2b?: boolean;
 }
 
 interface TextReviewStepProps {
@@ -45,13 +46,21 @@ const TextReviewCard = ({
   isExpanded: boolean;
   onToggle: () => void;
 }) => {
-  // Parse initial artists from the comma-separated string
-  const initialArtists: Artist[] = show.artist.split(',').map((name, i) => ({
-    name: name.trim(),
-    isHeadliner: i === 0,
-    imageUrl: i === 0 ? (show.spotify?.imageUrl || undefined) : undefined,
-    spotifyId: i === 0 ? (show.spotify?.id || undefined) : undefined,
-  }));
+  // Parse initial artists — for B2B shows, use the enriched individual artists
+  const isB2b = show.is_b2b ?? false;
+  const initialArtists: Artist[] = isB2b && show.artists && show.artists.length > 1
+    ? show.artists.map((a, i) => ({
+        name: a.name,
+        isHeadliner: true, // all B2B artists are headliners
+        imageUrl: a.imageUrl || undefined,
+        spotifyId: a.spotifyId || undefined,
+      }))
+    : show.artist.split(',').map((name, i) => ({
+        name: name.trim(),
+        isHeadliner: i === 0,
+        imageUrl: i === 0 ? (show.spotify?.imageUrl || undefined) : undefined,
+        spotifyId: i === 0 ? (show.spotify?.id || undefined) : undefined,
+      }));
 
   const [artists, setArtists] = useState<Artist[]>(initialArtists);
   const [venue, setVenue] = useState(show.venue);
@@ -119,6 +128,7 @@ const TextReviewCard = ({
       selectedMonth,
       selectedYear,
       isValid,
+      isB2b,
     });
   }, [artists, venue, venueId, venueLocation, date, datePrecision, selectedMonth, selectedYear, isValid]);
 

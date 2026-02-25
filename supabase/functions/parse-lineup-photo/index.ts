@@ -13,6 +13,19 @@ interface ArtistEntry {
   image_url?: string | null;
   spotify_id?: string | null;
   matched?: boolean;
+  is_b2b?: boolean;
+  b2b_artists?: { name: string; image_url?: string | null; spotify_id?: string | null }[];
+}
+
+/** Detect B2B/B3B/vs delimiters */
+const B2B_REGEX = /\s+(?:b2b|b3b|b4b|back\s+to\s+back|vs\.?)\s+/i;
+
+function detectB2b(name: string): boolean {
+  return B2B_REGEX.test(name);
+}
+
+function splitB2bNames(name: string): string[] {
+  return name.split(B2B_REGEX).map(s => s.trim()).filter(Boolean);
 }
 
 interface ExtractedLineup {
@@ -240,7 +253,7 @@ Deno.serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "Extract the complete lineup from this festival/event poster. Include every artist name, the event name, year, and any venue or date information visible.",
+                text: "Extract the complete lineup from this festival/event poster. Include every artist name, the event name, year, and any venue or date information visible. IMPORTANT: If artists are listed as a B2B, B3B, or 'vs' set (e.g. 'Pete Tong b2b Ahmed Spins'), keep them as a single entry with the full string — do NOT split them into separate artists.",
               },
               {
                 type: "image_url",
@@ -315,6 +328,19 @@ Deno.serve(async (req) => {
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
+    });
+
+    // Detect B2B sets in extracted artist names and flag them
+    parsed.artists = parsed.artists.map((a) => {
+      if (detectB2b(a.name)) {
+        const individualNames = splitB2bNames(a.name);
+        return {
+          ...a,
+          is_b2b: true,
+          b2b_artists: individualNames.map(n => ({ name: n })),
+        };
+      }
+      return { ...a, is_b2b: false };
     });
 
     console.log(`OCR extracted: "${parsed.event_name}" ${parsed.year} — ${parsed.artists.length} artists`);
