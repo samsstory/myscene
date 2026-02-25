@@ -50,30 +50,9 @@ const EXTRACTION_SCHEMA = {
   required: ["event_name", "year", "artists"],
 };
 
-/* ── Spotify token cache ── */
-let spotifyToken: string | null = null;
-let tokenExpiry = 0;
-
-async function getSpotifyToken(): Promise<string> {
-  if (spotifyToken && Date.now() < tokenExpiry) return spotifyToken;
-  const clientId = Deno.env.get("SPOTIFY_CLIENT_ID");
-  const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET");
-  if (!clientId || !clientSecret) throw new Error("Spotify credentials not configured");
-
-  const resp = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!resp.ok) throw new Error(`Spotify auth failed: ${resp.status}`);
-  const data = await resp.json();
-  spotifyToken = data.access_token;
-  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-  return spotifyToken!;
-}
+/* ── Spotify enrichment removed from OCR reconciliation ──
+   Image/ID enrichment happens lazily during the claim step
+   via batch-artist-images to avoid wasted API calls */
 
 /* ── Reconcile extracted names against canonical artists table + Spotify ── */
 async function reconcileArtists(artists: ArtistEntry[]): Promise<ArtistEntry[]> {
@@ -160,53 +139,9 @@ async function reconcileArtists(artists: ArtistEntry[]): Promise<ArtistEntry[]> 
     }
   }
 
-  // Step 2: Spotify fallback for unmatched artists (cap at 20 to respect rate limits)
-  if (unmatchedForSpotify.length > 0) {
-    try {
-      const token = await getSpotifyToken();
-      const toCheck = unmatchedForSpotify.slice(0, 20);
-
-      for (const idx of toCheck) {
-        const entry = reconciled[idx];
-        try {
-          const resp = await fetch(
-            `https://api.spotify.com/v1/search?q=${encodeURIComponent(entry.name)}&type=artist&limit=1`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          if (resp.status === 429) {
-            await resp.text();
-            console.warn("Spotify rate limited — stopping enrichment");
-            break;
-          }
-          if (!resp.ok) {
-            await resp.text();
-            continue;
-          }
-          const data = await resp.json();
-          const artist = data.artists?.items?.[0];
-          if (artist) {
-            // Check name similarity before accepting Spotify's result
-            const similarity = jaroWinkler(entry.name.toLowerCase(), artist.name.toLowerCase());
-            if (similarity > 0.8) {
-              reconciled[idx] = {
-                ...entry,
-                name: artist.name, // Prefer Spotify's canonical name
-                image_url: artist.images?.[0]?.url || null,
-                spotify_id: artist.id,
-                matched: true,
-              };
-            }
-          }
-          // Small delay between calls
-          await new Promise((r) => setTimeout(r, 80));
-        } catch {
-          // Skip this artist
-        }
-      }
-    } catch (err) {
-      console.warn("Spotify enrichment failed:", err);
-    }
-  }
+  // Unmatched artists are left as-is — Spotify enrichment happens later
+  // during the claim step (via batch-artist-images) to avoid wasted API calls
+  console.log(`DB reconciliation: ${reconciled.filter(a => a.matched).length}/${reconciled.length} matched from canonical artists table`);
 
   return reconciled;
 }
