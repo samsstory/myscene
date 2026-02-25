@@ -248,12 +248,12 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Open add flow once dashboard has rendered for new users
+  // Open welcome carousel for new users once dashboard has rendered
   useEffect(() => {
     const loading = !dataReady || quoteHoldActive;
     if (!loading && pendingAddFlowRef.current) {
       pendingAddFlowRef.current = false;
-      setShowUnifiedAdd(true);
+      setShowWelcomeCarousel(true);
     }
   }, [dataReady, quoteHoldActive]);
 
