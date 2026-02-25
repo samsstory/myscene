@@ -515,7 +515,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
             </SheetHeader>
             <div className="space-y-3">
               {/* Artist search with Spotify suggestions */}
-              <div className="relative">
+              <div>
                 <div className="relative">
                   {manualArtistImageUrl ? (
                     <img src={manualArtistImageUrl} alt={editArtist} className="absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full object-cover border border-white/10" />
@@ -536,9 +536,9 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                   />
                 </div>
 
-                {/* Spotify suggestions — absolutely positioned dropdown */}
+                {/* Spotify suggestions — inline dropdown (not absolute, avoids overflow clipping) */}
                 {artistSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-[60] max-h-[220px] overflow-y-auto rounded-xl border border-white/[0.12] bg-background shadow-xl p-1">
+                  <div className="mt-1 max-h-[220px] overflow-y-auto rounded-xl border border-white/[0.12] bg-background shadow-xl p-1">
                     {artistSuggestions.map((s) => (
                       <button
                         key={s.id}
