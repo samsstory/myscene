@@ -1,57 +1,36 @@
 
 
-## Plan: Enrich Missing Artist Images via Spotify for Both Discovery Feeds
+## Plan: Never Show Blank Artist Cards + Simplify Image Pipeline
 
 ### Problem
-Both the **Edmtrain Discovery Feed** (Schedule tab) and the **For You** feed render event cards that often lack artist images. The `edmtrain_events` table's `artist_image_url` is frequently null, resulting in blank gradient-fallback cards with a music icon instead of an artist photo.
+EDMTrain does not provide artist images. The current system attempts async enrichment but still renders cards with gradient fallbacks (music icon) while waiting or when enrichment fails. This creates a poor user experience with blank-looking cards across the Schedule tab and For You feed.
 
 ### Solution
-Add an image enrichment step in the shared `useEdmtrainEvents` hook so **all consumers** (Schedule tab, For You feed) automatically benefit. After events are fetched from the database, collect artist names with missing images, look them up in the canonical `artists` table first (cheap), then call the existing `batch-artist-images` edge function for any still missing (Spotify lookup), and patch the events in state.
+Two changes:
 
-### Implementation
+1. **Filter out image-less cards at the display layer** -- both `EdmtrainDiscoveryFeed` and `ForYouFeed` will only render events/picks that have a resolved `artist_image_url`. Events still enriching will simply not appear until their image is ready, then a state update will cause them to appear.
 
-**File: `src/hooks/useEdmtrainEvents.ts`**
+2. **Fix the For You feed's nested object bug** -- when `useDiscoverEvents` enriches a pick's `artistImageUrl`, it must also patch the nested `edmtrainEvent.artist_image_url` so that `EdmtrainEventCard` (which reads from `event.artist_image_url`) actually renders the image.
 
-After the events are mapped from the database (line ~137), add an enrichment step:
+### Files to Change
 
-1. Collect all unique artist names from events that have no `artist_image_url`
-2. First, batch-query the canonical `artists` table for `image_url` by name (fast, no API call)
-3. For any still missing, call `batch-artist-images` edge function (which checks `show_artists` then Spotify)
-4. Patch the events in state with the resolved image URLs
-5. Also update the `edmtrain_events` rows in the database (fire-and-forget) so future loads are pre-enriched
+**`src/components/home/EdmtrainDiscoveryFeed.tsx`** (~2 lines)
+- After scoring and sorting `displayed`, filter to only include events where `event.artist_image_url` is truthy before rendering.
 
-**File: `src/hooks/useDiscoverEvents.ts`**
+**`src/components/home/ForYouFeed.tsx`** (~2 lines)  
+- Filter `picks` to only render items where `pick.artistImageUrl` is truthy (covers both edmtrain and platform picks).
 
-The `useDiscoverEvents` hook also constructs `DiscoverPick` objects with `artistImageUrl` from edmtrain events and platform shows. After picks are scored, add a similar enrichment pass:
-
-1. Collect pick artist names where `artistImageUrl` is null
-2. Query canonical `artists` table
-3. Call `batch-artist-images` for remaining misses
-4. Update pick image URLs before returning
+**`src/hooks/useDiscoverEvents.ts`** (~5 lines)
+- In the `enrichedPicks` memo, when patching `artistImageUrl` from the enriched map, also patch `edmtrainEvent.artist_image_url` so the nested object used by `EdmtrainEventCard` has the URL.
 
 ### Technical Details
 
-The enrichment in `useEdmtrainEvents` works as a post-fetch step:
+The enrichment pipeline stays the same:
+1. Events fetched from `edmtrain_events` table (no images)
+2. `enrichArtistImages()` queries canonical `artists` table (fast, no API)
+3. For misses, calls `batch-artist-images` edge function (checks `show_artists`, then Spotify)
+4. Resolved URLs patched into state, triggering re-render
+5. Cards only appear once an image is resolved
 
-```text
-fetchEvents()
-  ├── fetch from edmtrain_events table
-  ├── map rows to EdmtrainEvent[]
-  ├── identify events with null artist_image_url
-  ├── batch lookup canonical artists table (SELECT name, image_url WHERE lower(name) IN (...))
-  ├── for remaining nulls → supabase.functions.invoke("batch-artist-images", { names })
-  ├── patch events with resolved URLs
-  ├── fire-and-forget: UPDATE edmtrain_events SET artist_image_url = ? WHERE edmtrain_id = ?
-  └── setEvents(enrichedEvents)
-```
-
-For `useDiscoverEvents`, the enrichment happens inside the `useMemo` or as a separate `useEffect` that runs after picks are computed, patching `artistImageUrl` on each pick.
-
-The `batch-artist-images` edge function already exists and handles:
-- Checking `show_artists` table first (cheapest)
-- Falling back to Spotify API search
-- Rate limit protection (caps at 30, breaks on 429)
-- Fire-and-forget enrichment of `show_artists` rows
-
-No new edge functions, no database migrations needed. The canonical `artists` table lookup is added as an optimization layer before hitting the edge function.
+Events that fail enrichment (artist not on Spotify, rate limited, etc.) simply won't appear in the feed -- this is acceptable since showing a blank card is worse than showing fewer cards.
 
