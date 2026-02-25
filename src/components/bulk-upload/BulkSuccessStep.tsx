@@ -143,8 +143,8 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             {isFestival
-              ? `${addedCount} set${addedCount !== 1 ? "s" : ""} added to your rankings`
-              : `${addedCount} show${addedCount !== 1 ? "s" : ""} added`}
+              ? `${addedCount} set${addedCount !== 1 ? "s" : ""} added to your Scene`
+              : `${addedCount} show${addedCount !== 1 ? "s" : ""} added to your Scene`}
           </p>
         </motion.div>
       </motion.div>
