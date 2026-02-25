@@ -168,7 +168,20 @@ const LineupSelectionGrid = ({
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(a);
     }
-    return map;
+    // Sort day groups chronologically (Mon→Sun), with "Other" last
+    const dayOrder: Record<string, number> = {
+      monday: 0, tuesday: 1, wednesday: 2, thursday: 3,
+      friday: 4, saturday: 5, sunday: 6,
+    };
+    const parseDayRank = (label: string): number => {
+      // Extract weekday name from labels like "Friday, June 20" or just "Friday"
+      const first = label.split(/[,\s]/)[0].toLowerCase();
+      return dayOrder[first] ?? 99;
+    };
+    const sorted = new Map(
+      Array.from(map.entries()).sort(([a], [b]) => parseDayRank(a) - parseDayRank(b))
+    );
+    return sorted;
   }, [filteredArtists, hasDays]);
 
   return (
