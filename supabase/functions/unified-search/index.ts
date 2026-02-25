@@ -313,12 +313,33 @@ serve(async (req) => {
 // ─── Spotify Search ──────────────────────────────────────────────────
 
 async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; name: string; imageUrl?: string; genres?: string[] }>> {
-  try {
-    const token = await getSpotifyToken();
-    const response = await fetch(
+  const doFetch = async (token: string) => {
+    return fetch(
       `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=8`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
+  };
+
+  try {
+    let token = await getSpotifyToken();
+    let response = await doFetch(token);
+
+    // Handle 429 rate limit — wait and retry once
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '1', 10);
+      const waitMs = Math.min(retryAfter * 1000, 3000); // cap at 3s
+      console.log(`[unified-search] Spotify 429, retrying after ${waitMs}ms`);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+      response = await doFetch(token);
+    }
+
+    // Handle 401 — token may have expired, refresh and retry
+    if (response.status === 401) {
+      spotifyToken = null;
+      tokenExpiry = 0;
+      token = await getSpotifyToken();
+      response = await doFetch(token);
+    }
 
     if (!response.ok) {
       console.error('[unified-search] Spotify error:', response.status);
