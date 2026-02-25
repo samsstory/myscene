@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,8 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
   const [currentArtist, setCurrentArtist] = useState("");
   const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const artistsRef = useRef(artists);
+  artistsRef.current = artists;
 
   useEffect(() => {
     const searchArtists = async () => {
@@ -59,7 +61,35 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
 
   const addArtist = (name: string, isHeadliner: boolean, imageUrl?: string, spotifyId?: string) => {
     if (name.trim()) {
-      onArtistsChange([...artists, { name: name.trim(), isHeadliner, imageUrl, spotifyId }]);
+      const trimmed = name.trim();
+      if (imageUrl) {
+        // Already have image from Spotify suggestion
+        onArtistsChange([...artists, { name: trimmed, isHeadliner, imageUrl, spotifyId }]);
+      } else {
+        // Manual add — enrich via batch lookup in background
+        onArtistsChange([...artists, { name: trimmed, isHeadliner }]);
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/batch-artist-images`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ names: [trimmed] }),
+        })
+          .then((r) => r.json())
+          .then(({ artists: resolved }) => {
+            const match = resolved?.[trimmed.toLowerCase()];
+            if (match?.image_url) {
+              const updated = artistsRef.current.map((a) =>
+                a.name.toLowerCase() === trimmed.toLowerCase()
+                  ? { ...a, imageUrl: match.image_url, spotifyId: match.spotify_id || undefined }
+                  : a
+              );
+              onArtistsChange(updated);
+            }
+          })
+          .catch(() => {}); // Fail silently — placeholder is fine
+      }
       setCurrentArtist("");
       setArtistSuggestions([]);
     }
