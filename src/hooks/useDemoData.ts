@@ -20,6 +20,7 @@ interface DemoStats {
   globalConfirmationPercentage: number;
   uniqueCities: number;
   uniqueCountries: number;
+  uniqueArtists: number;
   incompleteTagsCount: number;
   underRankedCount: number;
   missingPhotosCount: number;
@@ -51,6 +52,7 @@ const defaultStats: DemoStats = {
   globalConfirmationPercentage: 0,
   uniqueCities: 0,
   uniqueCountries: 0,
+  uniqueArtists: 0,
   incompleteTagsCount: 0,
   underRankedCount: 0,
   missingPhotosCount: 0,

@@ -256,6 +256,7 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
   const [referralRank, setReferralRank] = useState<{rank: number;total: number;} | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [totalShows, setTotalShows] = useState(0);
+  const [uniqueArtists, setUniqueArtists] = useState(0);
 
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
@@ -296,6 +297,16 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
         setHomeCity(profileData.home_city || "");
       }
       if (!showCountRes.error && showCountRes.count !== null) setTotalShows(showCountRes.count);
+
+      // Count unique artists (each B2B participant counts individually)
+      const { data: userShows } = await supabase.from("shows").select("id").eq("user_id", user.id);
+      const userShowIds = userShows?.map(s => s.id) || [];
+      if (userShowIds.length > 0) {
+        const { data: artistRows } = await supabase.from("show_artists").select("artist_name").in("show_id", userShowIds);
+        const names = new Set<string>();
+        artistRows?.forEach(a => names.add(a.artist_name.toLowerCase()));
+        setUniqueArtists(names.size);
+      }
       if (rankRes.data?.[0]) {
         const row = rankRes.data[0];
         setReferralCount(Number(row.invite_count));
@@ -498,6 +509,11 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
               <div className="text-center">
                 <p className="text-sm font-bold text-white/80" style={{ textShadow: "0 0 10px rgba(255,255,255,0.2)" }}>{totalShows}</p>
                 <p className="text-[9px] uppercase tracking-[0.15em] text-white/35">Shows</p>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="text-center">
+                <p className="text-sm font-bold text-white/80" style={{ textShadow: "0 0 10px rgba(255,255,255,0.2)" }}>{uniqueArtists}</p>
+                <p className="text-[9px] uppercase tracking-[0.15em] text-white/35">Artists</p>
               </div>
               <div className="w-px h-6 bg-white/10" />
               <div className="text-center">

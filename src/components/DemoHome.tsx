@@ -231,6 +231,13 @@ const DemoHome = ({ initialView = 'home', onViewChange, onNavigateToRank }: Demo
       icon: Globe,
       action: 'globe' as StatPillAction,
     }] : []),
+    ...(stats.uniqueArtists > 0 ? [{
+      id: 'artists',
+      label: 'Artists',
+      value: stats.uniqueArtists,
+      icon: Music,
+      action: null as StatPillAction,
+    }] : []),
     {
       id: 'this-year',
       label: new Date().getFullYear().toString(),

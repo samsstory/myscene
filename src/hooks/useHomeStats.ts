@@ -19,6 +19,7 @@ interface StatsData {
   globalConfirmationPercentage: number;
   uniqueCities: number;
   uniqueCountries: number;
+  uniqueArtists: number;
   incompleteTagsCount: number;
   missingPhotosCount: number;
   profileIncomplete: boolean;
@@ -48,6 +49,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     globalConfirmationPercentage: 0,
     uniqueCities: 0,
     uniqueCountries: 0,
+    uniqueArtists: 0,
     incompleteTagsCount: 0,
     missingPhotosCount: 0,
     profileIncomplete: false,
@@ -169,7 +171,16 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         }
       });
 
-      // Get rankings to find unranked shows and top show
+      // Count unique artists (each B2B participant counts individually)
+      const { data: allArtists } = await supabase
+        .from('show_artists')
+        .select('artist_name, show_id')
+        .in('show_id', showIds.length > 0 ? showIds : ['__none__']);
+      const uniqueArtistNames = new Set<string>();
+      allArtists?.forEach(a => uniqueArtistNames.add(a.artist_name.toLowerCase()));
+      const uniqueArtists = uniqueArtistNames.size;
+
+
       const { data: rankings } = await supabase
         .from('show_rankings')
         .select('show_id, comparisons_count, elo_score')
@@ -314,6 +325,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         globalConfirmationPercentage,
         uniqueCities: cities.size,
         uniqueCountries: countries.size,
+        uniqueArtists,
         incompleteTagsCount,
         missingPhotosCount,
         profileIncomplete,
