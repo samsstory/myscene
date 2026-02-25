@@ -6,6 +6,7 @@ import PopularFeedGrid from "./PopularFeedGrid";
 import EdmtrainDiscoveryFeed from "./EdmtrainDiscoveryFeed";
 import FriendsGoingSection from "./FriendsGoingSection";
 import InlineCityPicker from "./InlineCityPicker";
+import VSHeroWidget from "./VSHeroWidget";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,8 @@ import { usePopularNearMe, type GeoScope } from "@/hooks/usePopularNearMe";
 interface SceneViewProps {
   onPlanShow: () => void;
   onNavigateToFriends?: () => void;
+  onNavigateToRank?: () => void;
+  onAddShow?: () => void;
   onQuickAdd: (item: any) => void;
   onAddEdmtrainToSchedule?: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   userArtistNames?: string[];
@@ -30,6 +33,8 @@ interface SceneViewProps {
 export default function SceneView({
   onPlanShow,
   onNavigateToFriends,
+  onNavigateToRank,
+  onAddShow,
   onQuickAdd,
   onAddEdmtrainToSchedule,
   userArtistNames = [],
@@ -64,6 +69,9 @@ export default function SceneView({
 
   return (
     <div className="space-y-6">
+      {/* VS Hero Widget — always at the top */}
+      <VSHeroWidget onNavigateToRank={onNavigateToRank} onAddShow={onAddShow} />
+
       {isColdStart ? (
         <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 space-y-4">
           <div className="space-y-1">

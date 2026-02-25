@@ -135,6 +135,8 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
             <SceneView
               onPlanShow={() => sheets.setPlanShowOpen(true)}
               onNavigateToFriends={() => setViewMode('friends')}
+              onNavigateToRank={() => setViewMode('rank')}
+              onAddShow={onAddSingleShow}
               onQuickAdd={handleQuickAddFromPopular}
               onAddEdmtrainToSchedule={handleEdmtrainAddToSchedule}
               userArtistNames={userArtistNames}
