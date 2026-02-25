@@ -24,10 +24,10 @@ interface VenueStepProps {
   value: string;
   location: string;
   locationFilter: string;
-  showType: 'set' | 'show' | 'festival';
+  showType: 'set' | 'show' | 'festival' | 'b2b';
   onSelect: (venue: string, location: string, venueId: string | null, latitude?: number, longitude?: number) => void;
   onLocationFilterChange: (filter: string) => void;
-  onShowTypeChange: (type: 'set' | 'show' | 'festival') => void;
+  onShowTypeChange: (type: 'set' | 'show' | 'festival' | 'b2b') => void;
   isLoadingDefaultCity?: boolean;
   isEditing?: boolean;
   onSave?: () => void;

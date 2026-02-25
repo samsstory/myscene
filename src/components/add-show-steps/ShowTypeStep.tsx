@@ -1,7 +1,7 @@
 import { Music, Layers, Tent } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ShowType = 'set' | 'show' | 'festival';
+export type ShowType = 'set' | 'show' | 'festival' | 'b2b';
 
 interface ShowTypeStepProps {
   onSelect: (type: ShowType) => void;

@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, MapPin, Calendar, Music, Star, Camera, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
+import type { B2bArtist } from "./add-show-steps/UnifiedSearchStep";
 import ShowTypeStep from "./add-show-steps/ShowTypeStep";
 import type { ShowType } from "./add-show-steps/ShowTypeStep";
 import VenueStep from "./add-show-steps/VenueStep";
@@ -414,6 +415,48 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     }
   };
 
+  // Handle B2B selection from UnifiedSearchStep
+  const handleB2bSelect = (artists: B2bArtist[]) => {
+    setHasUnsavedChanges(true);
+    setEntryPoint('artist');
+    updateShowData({
+      showType: 'b2b',
+      artists: artists.map((a) => ({
+        name: a.name,
+        isHeadliner: true,
+        imageUrl: a.imageUrl,
+        spotifyId: a.id.startsWith('manual-') ? undefined : a.id,
+      })),
+    });
+    setStep(2); // Go to venue step
+
+    // Background-enrich any manual artists
+    const manualArtists = artists.filter((a) => a.id.startsWith('manual-') && !a.imageUrl);
+    if (manualArtists.length > 0) {
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/batch-artist-images`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ names: manualArtists.map((a) => a.name) }),
+      })
+        .then((r) => r.json())
+        .then(({ artists: resolved }) => {
+          if (!resolved) return;
+          updateShowData({
+            artists: artists.map((a) => {
+              const match = resolved[a.name.toLowerCase()];
+              return match?.image_url
+                ? { name: a.name, isHeadliner: true, imageUrl: match.image_url, spotifyId: match.spotify_id || undefined }
+                : { name: a.name, isHeadliner: true, imageUrl: a.imageUrl, spotifyId: a.id.startsWith('manual-') ? undefined : a.id };
+            }),
+          });
+        })
+        .catch(() => {});
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -604,10 +647,12 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         });
       }
 
+      const isB2bShow = showData.showType === 'b2b';
       const artistsToInsert = showData.artists.map((artist, index) => ({
         show_id: show.id,
         artist_name: artist.name,
-        is_headliner: index === 0,
+        is_headliner: isB2bShow ? true : index === 0,
+        is_b2b: isB2bShow,
         artist_image_url: artist.imageUrl || null,
         spotify_artist_id: artist.spotifyId || null
       }));
@@ -999,7 +1044,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onSave={handleSubmit} />);
       }
       // New show - unified search, context-aware
-      return <UnifiedSearchStep onSelect={handleUnifiedSelect} showType={showData.showType} />;
+      return <UnifiedSearchStep onSelect={handleUnifiedSelect} onB2bSelect={handleB2bSelect} showType={showData.showType} />;
     }
 
     // After step 1, flow depends on entry point
