@@ -695,8 +695,8 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
       <div className="relative flex-1 min-h-0">
         <div 
           ref={mapContainer} 
-          className="absolute inset-0 rounded-xl overflow-hidden [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden" 
-          style={{ backgroundColor: 'hsl(222, 47%, 11%)' }}
+          className="rounded-xl overflow-hidden [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden" 
+          style={{ position: 'absolute', inset: 0, backgroundColor: 'hsl(222, 47%, 11%)' }}
         />
 
         {/* Empty state when no shows */}
