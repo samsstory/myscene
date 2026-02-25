@@ -178,14 +178,31 @@ const Dashboard = () => {
     const checkOnboarding = async (userId: string) => {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_step")
+        .select("onboarding_step, onboarding_completed_at")
         .eq("id", userId)
         .maybeSingle();
 
       if (!isMounted) return;
-      if (!profile?.onboarding_step || profile.onboarding_step !== "completed") {
-        pendingAddFlowRef.current = true;
-        supabase.from("profiles").update({ onboarding_step: "completed" }).eq("id", userId);
+
+      // Only trigger add-flow for genuinely new users who have never completed onboarding
+      // AND have no shows yet (i.e. truly first session)
+      if (profile && !profile.onboarding_completed_at) {
+        const { count } = await supabase
+          .from("shows")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId);
+
+        if (!isMounted) return;
+
+        if (count === 0) {
+          // Brand-new user — show welcome carousel
+          pendingAddFlowRef.current = true;
+        }
+        // Mark onboarding as done so this never triggers again
+        supabase.from("profiles").update({
+          onboarding_step: "completed",
+          onboarding_completed_at: new Date().toISOString(),
+        }).eq("id", userId);
       }
     };
 
