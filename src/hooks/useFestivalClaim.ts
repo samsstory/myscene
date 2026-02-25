@@ -53,16 +53,39 @@ export const useFestivalClaim = () => {
         date_precision: festival.date_start ? "exact" : "month",
       };
 
-      // 1. Look up canonical artist images
+      // 1. Look up canonical artist images (artists table first, then show_artists fallback)
       const { data: knownArtists } = await supabase
         .from("artists")
         .select("name, image_url, id")
         .in("name", newArtists);
 
-      const artistImageMap = new Map<string, { image_url: string | null; id: string }>();
+      const artistImageMap = new Map<string, { image_url: string | null; id: string | null }>();
       (knownArtists || []).forEach((a) => {
-        artistImageMap.set(a.name.toLowerCase(), { image_url: a.image_url, id: a.id });
+        if (a.image_url) {
+          artistImageMap.set(a.name.toLowerCase(), { image_url: a.image_url, id: a.id });
+        }
       });
+
+      // Fallback: for artists not found in canonical table, check show_artists
+      const missingNames = newArtists.filter((n) => !artistImageMap.has(n.toLowerCase()));
+      if (missingNames.length > 0) {
+        const { data: saRows } = await supabase
+          .from("show_artists")
+          .select("artist_name, artist_image_url, artist_id")
+          .in("artist_name", missingNames)
+          .not("artist_image_url", "is", null)
+          .limit(missingNames.length * 3);
+
+        // Pick first non-user-uploaded image per artist
+        for (const row of saRows || []) {
+          const key = row.artist_name.toLowerCase();
+          if (artistImageMap.has(key)) continue;
+          const url = row.artist_image_url;
+          if (url && !url.includes("show-photos") && !url.includes("lovable.app/images/") && !url.includes("lovableproject.com/images/")) {
+            artistImageMap.set(key, { image_url: url, id: row.artist_id || null });
+          }
+        }
+      }
 
       // 2. Create parent festival record
       const { data: parent, error: parentError } = await supabase
@@ -115,8 +138,16 @@ export const useFestivalClaim = () => {
       const addedShows: AddedShowData[] = allInserted.map((show, i) => ({
         id: show.id,
         artists: i === 0
-          ? newArtists.map((name, j) => ({ name, isHeadliner: j === 0 }))
-          : [{ name: newArtists[i - 1], isHeadliner: true }],
+          ? newArtists.map((name, j) => ({
+              name,
+              isHeadliner: j === 0,
+              image_url: artistImageMap.get(name.toLowerCase())?.image_url || null,
+            }))
+          : [{
+              name: newArtists[i - 1],
+              isHeadliner: true,
+              image_url: artistImageMap.get(newArtists[i - 1].toLowerCase())?.image_url || null,
+            }],
         venue: { name: venueName, location: venueLocation },
         date: showDate,
         rating: null,

@@ -110,7 +110,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
     if (isFestival && festivalLineupId) {
       const artists = addedShows.map((s) => ({
         name: s.artists[0]?.name || "Artist",
-        image_url: (s.artists[0] as any)?.image_url || null,
+        image_url: s.artists[0]?.image_url || null,
       }));
       await shareFestivalFromLineup({
         festivalLineupId,
@@ -165,7 +165,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
               <ArtistChip
                 key={show.id}
                 name={show.artists[0]?.name || "Artist"}
-                imageUrl={(show.artists[0] as any)?.image_url}
+                imageUrl={show.artists[0]?.image_url}
               />
             ))}
           </div>
