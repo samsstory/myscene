@@ -14,6 +14,7 @@ import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
 import { useTextImportUpload } from "@/hooks/useTextImportUpload";
 import LineupChoiceStep from "./festival-claim/LineupChoiceStep";
+import LineupUploadStep from "./festival-claim/LineupUploadStep";
 import FestivalSearchStep, { FestivalResult } from "./festival-claim/FestivalSearchStep";
 import LineupSelectionGrid from "./festival-claim/LineupSelectionGrid";
 import { useFestivalClaim } from "@/hooks/useFestivalClaim";
@@ -33,7 +34,7 @@ interface BulkUploadFlowProps {
   initialFestival?: InitialFestivalState | null;
 }
 
-type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice' | 'lineup-search' | 'lineup-grid';
+type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice' | 'lineup-search' | 'lineup-grid' | 'lineup-upload';
 
 const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually, initialFestival }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>(initialFestival ? 'lineup-grid' : 'select');
@@ -160,8 +161,14 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
       setStep('select');
     } else if (step === 'lineup-search') {
       setStep('lineup-choice');
+    } else if (step === 'lineup-upload') {
+      setStep('lineup-choice');
     } else if (step === 'lineup-grid') {
-      setStep('lineup-search');
+      if (selectedFestival?.id?.startsWith('ocr-')) {
+        setStep('lineup-upload');
+      } else {
+        setStep('lineup-search');
+      }
     }
   };
 
@@ -212,6 +219,8 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         return 'Add from Lineup';
       case 'lineup-search':
         return 'Search Festivals';
+      case 'lineup-upload':
+        return 'Upload Lineup';
       case 'lineup-grid':
         return 'Select Artists';
       default:
@@ -322,8 +331,34 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
 
         {step === 'lineup-choice' && (
           <LineupChoiceStep
-            onUploadPhoto={() => {/* Step 6 - future */}}
+            onUploadPhoto={() => setStep('lineup-upload')}
             onSearchDatabase={() => setStep('lineup-search')}
+          />
+        )}
+
+        {step === 'lineup-upload' && (
+          <LineupUploadStep
+            onExtracted={(data) => {
+              setSelectedFestival({
+                id: `ocr-${Date.now()}`,
+                event_name: data.event_name,
+                year: data.year,
+                date_start: data.date_start || null,
+                date_end: data.date_end || null,
+                venue_name: data.venue_name || null,
+                venue_location: data.venue_location || null,
+                venue_id: null,
+                artists: data.artists.map((a) => ({
+                  name: a.name,
+                  day: a.day || null,
+                  stage: a.stage || null,
+                  image_url: (a as any).image_url || null,
+                  spotify_id: (a as any).spotify_id || null,
+                })),
+              });
+              setStep('lineup-grid');
+            }}
+            onBack={() => setStep('lineup-choice')}
           />
         )}
 
