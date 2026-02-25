@@ -253,7 +253,14 @@ export function useDiscoverEvents(userArtistNames: string[] = []) {
     return picks.map((p) => {
       if (p.artistImageUrl) return p;
       const url = enrichedImages.get(p.artistName.toLowerCase());
-      return url ? { ...p, artistImageUrl: url } : p;
+      if (!url) return p;
+      return {
+        ...p,
+        artistImageUrl: url,
+        edmtrainEvent: p.edmtrainEvent
+          ? { ...p.edmtrainEvent, artist_image_url: url }
+          : undefined,
+      };
     });
   }, [picks, enrichedImages]);
 

@@ -101,7 +101,7 @@ export default function DiscoverFeed({ userArtistNames = [], onAddToSchedule }: 
   // Has picks
   return (
     <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-      {picks.map((pick, i) => {
+      {picks.filter(p => !!p.artistImageUrl).map((pick, i) => {
         if (pick.type === "edmtrain" && pick.edmtrainEvent) {
           return (
             <EdmtrainEventCard
