@@ -103,7 +103,7 @@ export default function EdmtrainDiscoveryFeed({
   });
 
   scored.sort((a, b) => b.score - a.score || a.event.event_date.localeCompare(b.event.event_date));
-  const displayed = scored.slice(0, 12);
+  const displayed = scored.filter(({ event }) => !!event.artist_image_url).slice(0, 12);
 
   if (isLoading) {
     return (
