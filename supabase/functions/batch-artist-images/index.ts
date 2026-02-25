@@ -44,7 +44,7 @@ serve(async (req) => {
     }
 
     // Cap at 30 to stay within reasonable Spotify rate limits
-    const artistNames: string[] = names.slice(0, 30);
+    const artistNames: string[] = names.slice(0, 20);
 
     // 1. Check show_artists table first (cheapest)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -126,8 +126,8 @@ serve(async (req) => {
                 }
               });
           }
-          // Small delay between Spotify calls
-          await new Promise((r) => setTimeout(r, 100));
+          // Delay between Spotify calls to avoid rate limiting
+          await new Promise((r) => setTimeout(r, 200));
         } catch {
           // Skip this artist
         }
