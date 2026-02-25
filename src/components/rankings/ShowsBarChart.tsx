@@ -43,7 +43,7 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
       };
     });
 
-    data.reverse();
+    
 
     const maxCount = Math.max(...data.map((d) => d.count), 1);
     return { data, maxCount };
@@ -73,6 +73,13 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
   useEffect(() => {
     if (!monthData) return;
     setVisibleYear(monthData.data[0]?.year || "");
+    // Auto-scroll to the right (newest months)
+    const container = scrollRef.current;
+    if (container) {
+      requestAnimationFrame(() => {
+        container.scrollLeft = container.scrollWidth;
+      });
+    }
   }, [monthData]);
 
   useEffect(() => {
