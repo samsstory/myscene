@@ -5,6 +5,7 @@ import { Search, Loader2, Music, MapPin, Sparkles, ChevronDown, X, Users } from 
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useArtistSearch } from "@/hooks/useArtistSearch";
 
 export type SearchResultType = 'artist' | 'venue';
 export type UnifiedShowType = 'set' | 'show' | 'festival' | 'b2b';
@@ -64,39 +65,56 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
     return 'Search artists...';
   };
 
+  // Use shared hook for artist search (DB-first, cached, debounced)
+  const { results: artistHookResults, isSearching: isArtistSearching } = useArtistSearch(
+    isEventMode ? "" : searchTerm, // skip artist search in event mode
+    { minChars: 3, debounceMs: 500 }
+  );
+
+  // Venue search still uses unified-search edge function
   useEffect(() => {
-    const search = async () => {
-      if (searchTerm.trim().length < 2) {
-        setResults([]);
-        return;
-      }
+    if (!isEventMode && searchTerm.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    if (isEventMode && searchTerm.trim().length < 2) {
+      setResults([]);
+      return;
+    }
 
-      setIsSearching(true);
+    setIsSearching(true);
 
+    const timer = setTimeout(async () => {
       try {
         const { data, error } = await supabase.functions.invoke('unified-search', {
           body: { 
             searchTerm: searchTerm.trim(),
-            searchType: isEventMode ? 'venue' : 'artist'
+            searchType: 'venue'
           }
         });
 
         if (error) throw error;
-        setResults(data?.results || []);
+        // Only keep venue results from edge function
+        setResults((data?.results || []).filter((r: any) => r.type === 'venue'));
       } catch (error) {
-        console.error('Error in unified search:', error);
+        console.error('Error in venue search:', error);
         setResults([]);
       } finally {
         setIsSearching(false);
       }
-    };
+    }, 500);
 
-    const timer = setTimeout(search, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, isEventMode]);
 
-  // Filter results based on show type
-  const artistResults = isEventMode ? [] : results.filter(r => r.type === 'artist');
+  // Artist results come from the shared hook; venue results from the edge function
+  const artistResults: UnifiedSearchResult[] = isEventMode ? [] : artistHookResults.map(r => ({
+    type: 'artist' as const,
+    id: r.id,
+    name: r.name,
+    subtitle: r.genres?.join(', ') || r.subtitle,
+    imageUrl: r.imageUrl,
+  }));
   const primaryVenues = results.filter(r => r.type === 'venue' && r.tier !== 'other');
   const otherVenues = results.filter(r => r.type === 'venue' && r.tier === 'other');
 
@@ -224,14 +242,14 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
           )}
           autoFocus
         />
-        {isSearching && (
+        {(isSearching || isArtistSearching) && (
           <Loader2 className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-muted-foreground" />
         )}
       </div>
 
       <div className="space-y-4 max-h-[400px] overflow-y-auto">
         {/* Manual add option(s) */}
-        {searchTerm.trim().length >= 2 && !isSearching && (
+        {searchTerm.trim().length >= 2 && !(isSearching || isArtistSearching) && (
           isEventMode ? (
             <button onClick={handleManualEventAdd} className={cn(
               "w-full p-3 rounded-lg transition-all duration-200 text-left",
@@ -325,7 +343,7 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
         )}
 
         {/* Empty state */}
-        {!isSearching && searchTerm.trim().length >= 2 && results.length === 0 && (
+        {!(isSearching || isArtistSearching) && searchTerm.trim().length >= 2 && results.length === 0 && artistResults.length === 0 && (
           <div className="text-center py-8 text-muted-foreground text-sm">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No results found</p>

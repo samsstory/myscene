@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { X, Loader2, Music } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useArtistSearch } from "@/hooks/useArtistSearch";
 
 import type { Artist } from "@/types/show";
 
@@ -16,58 +16,21 @@ interface ArtistsStepProps {
   onSave?: () => void;
 }
 
-interface ArtistSuggestion {
-  id: string;
-  name: string;
-  imageUrl?: string;
-  genres?: string[];
-  popularity?: number;
-}
-
 const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }: ArtistsStepProps) => {
   const [currentArtist, setCurrentArtist] = useState("");
-  const [artistSuggestions, setArtistSuggestions] = useState<ArtistSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const artistsRef = useRef(artists);
   artistsRef.current = artists;
 
-  useEffect(() => {
-    const searchArtists = async () => {
-      if (currentArtist.trim().length < 2) {
-        setArtistSuggestions([]);
-        return;
-      }
-
-      setIsSearching(true);
-
-      try {
-        const { data, error } = await supabase.functions.invoke('search-artists', {
-          body: { searchTerm: currentArtist.trim() }
-        });
-
-        if (error) throw error;
-        setArtistSuggestions(data?.artists || []);
-      } catch (error) {
-        console.error('Error searching artists:', error);
-        setArtistSuggestions([]);
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    const timer = setTimeout(searchArtists, 300);
-    return () => clearTimeout(timer);
-  }, [currentArtist]);
+  const { results: artistSuggestions, isSearching, clearResults } = useArtistSearch(currentArtist);
 
   const addArtist = (name: string, isHeadliner: boolean, imageUrl?: string, spotifyId?: string) => {
     if (name.trim()) {
       const trimmed = name.trim();
       if (imageUrl) {
-        // Already have image from Spotify suggestion
         onArtistsChange([...artists, { name: trimmed, isHeadliner, imageUrl, spotifyId }]);
       } else {
-        // Manual add — enrich via batch lookup in background
         onArtistsChange([...artists, { name: trimmed, isHeadliner }]);
+        // Background enrichment
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/batch-artist-images`, {
           method: "POST",
           headers: {
@@ -88,10 +51,10 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
               onArtistsChange(updated);
             }
           })
-          .catch(() => {}); // Fail silently — placeholder is fine
+          .catch(() => {});
       }
       setCurrentArtist("");
-      setArtistSuggestions([]);
+      clearResults();
     }
   };
 
@@ -114,7 +77,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         </p>
       </div>
 
-      {/* Added artists */}
       {artists.length > 0 && (
         <div className="space-y-2">
           {artists.map((artist, index) => (
@@ -143,7 +105,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         </div>
       )}
 
-      {/* Search input */}
       <div className="relative">
         <Input
           placeholder="Search for artist..."
@@ -162,7 +123,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         )}
       </div>
 
-      {/* Artist suggestions with images */}
       {artistSuggestions.length > 0 && (
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
           {artistSuggestions.map((suggestion) => (
@@ -177,7 +137,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
               onClick={() => addArtist(suggestion.name, true, suggestion.imageUrl, suggestion.id)}
             >
               <div className="flex items-center gap-3">
-                {/* Artist image */}
                 {suggestion.imageUrl ? (
                   <img
                     src={suggestion.imageUrl}
@@ -217,8 +176,7 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         </div>
       )}
 
-      {/* Manual add button */}
-      {currentArtist.trim() && artistSuggestions.length === 0 && !isSearching && (
+      {currentArtist.trim() && artistSuggestions.length === 0 && !isSearching && currentArtist.trim().length >= 3 && (
         <Button
           variant="outline"
           onClick={() => handleManualAdd(true)}
@@ -232,7 +190,6 @@ const ArtistsStep = ({ artists, onArtistsChange, onContinue, isEditing, onSave }
         </Button>
       )}
 
-      {/* Continue/Save button */}
       {isEditing && onSave ? (
         <Button
           onClick={onSave}
