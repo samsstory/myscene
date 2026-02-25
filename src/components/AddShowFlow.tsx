@@ -315,10 +315,37 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     if (!isEventMode && result.type === 'artist') {
       // Solo Show: artist selected → go to venue step
       setEntryPoint('artist');
-      updateShowData({
-        artists: [{ name: result.name, isHeadliner: true, imageUrl: result.imageUrl, spotifyId: result.id }]
-      });
+      const isManual = result.id.startsWith('manual-');
+      const newArtist = {
+        name: result.name,
+        isHeadliner: true,
+        imageUrl: result.imageUrl,
+        spotifyId: isManual ? undefined : result.id,
+      };
+      updateShowData({ artists: [newArtist] });
       setStep(2); // Go to venue step
+
+      // If manual add (no image from Spotify suggestion), enrich in background
+      if (isManual && !result.imageUrl) {
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/batch-artist-images`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ names: [result.name] }),
+        })
+          .then((r) => r.json())
+          .then(({ artists: resolved }) => {
+            const match = resolved?.[result.name.toLowerCase()];
+            if (match?.image_url) {
+              updateShowData({
+                artists: [{ ...newArtist, imageUrl: match.image_url, spotifyId: match.spotify_id || undefined }],
+              });
+            }
+          })
+          .catch(() => {});
+      }
     } else if (result.eventId && result.venueName) {
       // Event from registry: pre-fill venue info and skip venue step
       setEntryPoint('venue');
