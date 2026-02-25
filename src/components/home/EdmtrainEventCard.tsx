@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CalendarPlus, Music, Ticket, CheckCircle2, CircleHelp } from "lucide-react";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { format } from "date-fns";
@@ -25,10 +26,15 @@ function formatDateRange(startIso: string, endIso?: string): string {
 }
 
 export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onClick, scheduledStatus, reasonLabel }: EdmtrainEventCardProps) {
+  const [imgError, setImgError] = useState(false);
   const artistNames = event.artists.map((a) => a.name).join(", ");
   const displayName = event.event_name || artistNames || "Event";
   const dateStr = formatDateRange(event.event_date, endDate);
-  const hasImage = !!event.artist_image_url;
+  const hasImage = !!event.artist_image_url && !imgError;
+
+  // Hide card entirely if image fails to load (no blank cards)
+  if (imgError && !event.artist_image_url) return null;
+  if (imgError) return null;
 
   return (
     <div
@@ -42,6 +48,7 @@ export default function EdmtrainEventCard({ event, endDate, onAddToSchedule, onC
           alt={displayName}
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
+          onError={() => setImgError(true)}
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-white/[0.02] flex items-center justify-center">
