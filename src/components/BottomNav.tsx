@@ -38,10 +38,13 @@ export default function BottomNav({
   const showsTourActive = showSpotlightTour && tourStepIndex === 2;
 
   return (
-    <div className={cn(
-      "fixed bottom-6 left-0 right-0 flex justify-between items-end px-6 gap-4 pb-safe",
-      shouldElevateNavZ ? "z-[10001]" : "z-50"
-    )}>
+    <div
+      className={cn(
+        "flex justify-between items-end px-6 gap-4 pb-safe",
+        shouldElevateNavZ ? "z-[10001]" : "z-50"
+      )}
+      style={{ position: 'fixed', bottom: 24, left: 0, right: 0 }}
+    >
       {/* Left spacer */}
       <div className="w-0 shrink-0" />
 
