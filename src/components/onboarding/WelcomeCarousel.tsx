@@ -86,7 +86,7 @@ const HeroMockup = () => (
           <MiniCard
             name="ODESZA"
             venue="Red Rocks"
-            imgSrc="/images/rufus-du-sol-red-rocks.png"
+            imgSrc="/images/odesza-red-rocks.png"
           />
         </div>
       </div>
