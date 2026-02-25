@@ -6,6 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ─── Spotify Circuit Breaker ─────────────────────────────────────────
+let spotifyBlockedUntil = 0;
+
+function isSpotifyBlocked(): boolean {
+  return Date.now() < spotifyBlockedUntil;
+}
+
+function tripSpotifyBreaker(retryAfterHeader: string | null) {
+  const retryAfterSec = parseInt(retryAfterHeader || '60', 10);
+  const cappedSec = Math.min(retryAfterSec, 14400);
+  spotifyBlockedUntil = Date.now() + cappedSec * 1000;
+  console.log(`[batch-artist-images] Spotify circuit breaker TRIPPED — blocked for ${cappedSec}s`);
+}
+
 let spotifyToken: string | null = null;
 let tokenExpiry = 0;
 
@@ -73,19 +87,21 @@ serve(async (req) => {
       }
     }
 
-    // 2. For remaining artists, search Spotify
+    // 2. For remaining artists, search Spotify (skip if circuit breaker is open)
     const missing = artistNames.filter((n) => !result[n.toLowerCase()]);
-    if (missing.length > 0) {
+    if (missing.length > 0 && !isSpotifyBlocked()) {
       const token = await getSpotifyToken();
       for (const name of missing) {
+        if (isSpotifyBlocked()) break; // Re-check in case we just got rate-limited
         try {
           const resp = await fetch(
             `https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
             { headers: { 'Authorization': `Bearer ${token}` } }
           );
           if (resp.status === 429) {
+            tripSpotifyBreaker(resp.headers.get('Retry-After'));
             await resp.text();
-            break; // Stop on rate limit
+            break; // Stop immediately
           }
           if (!resp.ok) { await resp.text(); continue; }
           const data = await resp.json();
@@ -105,7 +121,6 @@ serve(async (req) => {
               .is("artist_image_url", null)
               .then(() => {});
             // Fire-and-forget: persist into canonical artists table
-            // Use insert + catch since unique index is on lower(trim(name))
             supabase
               .from("artists")
               .insert({
@@ -116,7 +131,6 @@ serve(async (req) => {
               })
               .then(({ error: insertErr }) => {
                 if (insertErr) {
-                  // Already exists - update image if missing
                   supabase
                     .from("artists")
                     .update({ image_url: imgUrl, spotify_artist_id: spotifyId, genres: artist.genres || [] })
@@ -132,6 +146,8 @@ serve(async (req) => {
           // Skip this artist
         }
       }
+    } else if (missing.length > 0) {
+      console.log(`[batch-artist-images] Spotify circuit breaker OPEN — skipping ${missing.length} lookups`);
     }
 
     return new Response(JSON.stringify({ artists: result }), {

@@ -45,6 +45,25 @@ const relevantGoogleTypes = new Set([
   'church', 'museum', 'art_gallery', 'zoo', 'aquarium',
 ]);
 
+// ─── Spotify Circuit Breaker ─────────────────────────────────────────
+// Module-level state survives across requests within the same isolate.
+// When Spotify returns 429, we store the block-until timestamp and skip
+// all Spotify calls until it expires — no retries, no wasted time.
+
+let spotifyBlockedUntil = 0; // epoch ms — 0 means not blocked
+
+function isSpotifyBlocked(): boolean {
+  return Date.now() < spotifyBlockedUntil;
+}
+
+function tripSpotifyBreaker(retryAfterHeader: string | null) {
+  const retryAfterSec = parseInt(retryAfterHeader || '60', 10);
+  // Respect the header but cap at 4 hours to avoid stale state
+  const cappedSec = Math.min(retryAfterSec, 14400);
+  spotifyBlockedUntil = Date.now() + cappedSec * 1000;
+  console.log(`[unified-search] Spotify circuit breaker TRIPPED — blocked for ${cappedSec}s (until ${new Date(spotifyBlockedUntil).toISOString()})`);
+}
+
 // ─── Spotify Auth ────────────────────────────────────────────────────
 
 let spotifyToken: string | null = null;
@@ -317,6 +336,12 @@ serve(async (req) => {
 // ─── Spotify Search ──────────────────────────────────────────────────
 
 async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; name: string; imageUrl?: string; genres?: string[] }>> {
+  // Circuit breaker: skip Spotify entirely if we're rate-limited
+  if (isSpotifyBlocked()) {
+    console.log('[unified-search] Spotify circuit breaker OPEN — skipping, using local DB');
+    return await searchLocalArtists(searchTerm);
+  }
+
   const doFetch = async (token: string) => {
     return fetch(
       `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist&limit=8`,
@@ -328,17 +353,14 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
     let token = await getSpotifyToken();
     let response = await doFetch(token);
 
-    // Handle 429 rate limit — wait and retry once
+    // Handle 429 rate limit — trip circuit breaker, no retry
     if (response.status === 429) {
-      const retryAfterRaw = response.headers.get('Retry-After');
-      const retryAfter = parseInt(retryAfterRaw || '5', 10);
-      const waitMs = Math.min(retryAfter * 1000, 10000);
-      console.log(`[unified-search] Spotify 429, Retry-After: ${retryAfterRaw}, waiting ${waitMs}ms`);
-      await new Promise(resolve => setTimeout(resolve, waitMs));
-      response = await doFetch(token);
+      tripSpotifyBreaker(response.headers.get('Retry-After'));
+      await response.text(); // consume body
+      return await searchLocalArtists(searchTerm);
     }
 
-    // Handle 401 — token may have expired, refresh and retry
+    // Handle 401 — token may have expired, refresh and retry once
     if (response.status === 401) {
       spotifyToken = null;
       tokenExpiry = 0;
@@ -346,9 +368,15 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
       response = await doFetch(token);
     }
 
+    if (response.status === 429) {
+      tripSpotifyBreaker(response.headers.get('Retry-After'));
+      await response.text();
+      return await searchLocalArtists(searchTerm);
+    }
+
     if (!response.ok) {
       console.error('[unified-search] Spotify error:', response.status);
-      // Fallback to local artists DB
+      await response.text();
       return await searchLocalArtists(searchTerm);
     }
 
