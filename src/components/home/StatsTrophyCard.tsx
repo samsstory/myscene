@@ -21,6 +21,7 @@ interface StatsTrophyCardProps {
   topArtists: TopArtist[];
   isLoading: boolean;
   onAddShow?: () => void;
+  totalUsers?: number;
 }
 
 /** Maps genre + show count → persona title */
@@ -39,6 +40,40 @@ function getSceneTitle(topGenre: string | null, totalShows: number): string {
   return "Music Lover";
 }
 
+/** Returns percentile label or null. "Top X%" means user has more shows than (100-X)% of users. */
+function getPercentile(showCount: number, totalUsers?: number): string | null {
+  if (showCount < 5) return null;
+  if (!totalUsers || totalUsers < 50) {
+    return showCount >= 1 ? "Early Adopter ⭐" : null;
+  }
+  // Tiered brackets
+  if (showCount >= 100) return "Top 1% 🏆";
+  if (showCount >= 50) return "Top 5% 🏆";
+  if (showCount >= 20) return "Top 10% 🏆";
+  if (showCount >= 10) return "Top 25%";
+  return "Top 50%";
+}
+
+/* Stagger variants for bottom details */
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.25, delayChildren: 0.3 },
+  },
+};
+const staggerChild = {
+  hidden: { opacity: 0, y: 4 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as const } },
+};
+
+/* Badge breathe keyframe (injected once) */
+const badgeBreatheStyle = `
+@keyframes badge-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+`;
+
 export default function StatsTrophyCard({
   totalShows,
   topGenre,
@@ -50,6 +85,7 @@ export default function StatsTrophyCard({
   topArtists,
   isLoading,
   onAddShow,
+  totalUsers,
 }: StatsTrophyCardProps) {
   const [comparisonIndex, setComparisonIndex] = useState(0);
   const comparisons = useMemo(
@@ -60,10 +96,15 @@ export default function StatsTrophyCard({
   useEffect(() => {
     if (comparisons.length <= 1) return;
     setComparisonIndex(0);
-    const interval = setInterval(() => {
+    // 2-second delay before first rotation, then every 8 seconds
+    const timeout = setTimeout(() => {
       setComparisonIndex((prev) => (prev + 1) % comparisons.length);
-    }, 5000);
-    return () => clearInterval(interval);
+      const interval = setInterval(() => {
+        setComparisonIndex((prev) => (prev + 1) % comparisons.length);
+      }, 8000);
+      return () => clearInterval(interval);
+    }, 2000);
+    return () => clearTimeout(timeout);
   }, [comparisons]);
 
   if (isLoading) {
@@ -87,7 +128,6 @@ export default function StatsTrophyCard({
     return (
       <div className="stats-trophy-wrapper rounded-2xl p-[1px]">
         <section className="relative rounded-2xl bg-card/80 backdrop-blur-xl overflow-hidden">
-          {/* Blurred placeholder content */}
           <div className="p-5 space-y-4 filter blur-[8px] select-none pointer-events-none opacity-40" aria-hidden>
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Your Scene Stats
@@ -102,7 +142,6 @@ export default function StatsTrophyCard({
             </p>
           </div>
 
-          {/* Unlock overlay */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3.5 px-6 text-center">
             <div className="relative">
               <div
@@ -136,9 +175,13 @@ export default function StatsTrophyCard({
   }
 
   const sceneTitle = getSceneTitle(topGenre, totalShows);
+  const percentileLabel = getPercentile(totalShows, totalUsers);
 
   return (
     <div className="stats-trophy-wrapper rounded-2xl p-[1px]">
+      {/* Inject badge-breathe keyframe */}
+      <style>{badgeBreatheStyle}</style>
+
       <section className="rounded-2xl bg-card/80 backdrop-blur-xl p-5 space-y-4 relative overflow-hidden">
         {/* Subtle mesh gradient overlay */}
         <div
@@ -157,23 +200,37 @@ export default function StatsTrophyCard({
         {/* Title badge + Header */}
         <div className="relative z-10 space-y-1">
           <span
-            className="inline-block text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-0.5 rounded-full animate-pulse"
+            className="inline-block text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-0.5 rounded-full"
             style={{
               background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(280 60% 60% / 0.2))",
               color: "hsl(var(--primary))",
               border: "1px solid hsl(var(--primary) / 0.25)",
+              animation: "badge-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
             }}
           >
             🎵 {sceneTitle}
           </span>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Your Scene Stats
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Your Scene Stats
+            </p>
+            {percentileLabel && (
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full"
+                style={{
+                  background: "linear-gradient(135deg, hsl(45 90% 50% / 0.15), hsl(35 90% 55% / 0.15))",
+                  color: "hsl(45 90% 55%)",
+                  border: "1px solid hsl(45 90% 50% / 0.25)",
+                }}
+              >
+                {percentileLabel}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Stats row */}
         <div className="flex gap-2.5 relative z-10">
-          {/* Shows — hero stat */}
           <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
             <CountUp
               value={totalShows}
@@ -186,7 +243,6 @@ export default function StatsTrophyCard({
             </p>
           </div>
 
-          {/* Artists */}
           <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
             <CountUp
               value={uniqueArtists}
@@ -198,7 +254,6 @@ export default function StatsTrophyCard({
             </p>
           </div>
 
-          {/* Venues */}
           <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
             <CountUp
               value={uniqueVenues}
@@ -210,11 +265,16 @@ export default function StatsTrophyCard({
           </div>
         </div>
 
-        {/* Bottom details row */}
-        <div className="relative z-10 space-y-1.5">
+        {/* Bottom details row — staggered entrance */}
+        <motion.div
+          className="relative z-10 space-y-1.5"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Miles danced */}
           {milesDanced !== null && milesDanced > 0 && (
-            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">📍</span>
               <CountUp
                 value={Math.round(milesDanced)}
@@ -222,28 +282,30 @@ export default function StatsTrophyCard({
                 formatted
               />
               <span>miles danced</span>
-            </div>
+            </motion.div>
           )}
 
           {/* Distance comparison tagline */}
           {comparisons.length > 0 && (
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={comparisonIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-sm text-cyan-400/80 italic"
-              >
-                {comparisons[comparisonIndex]}
-              </motion.p>
-            </AnimatePresence>
+            <motion.div variants={staggerChild}>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={comparisonIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-sm text-cyan-400/80 italic"
+                >
+                  {comparisons[comparisonIndex]}
+                </motion.p>
+              </AnimatePresence>
+            </motion.div>
           )}
 
           {/* Geographic stats */}
           {(uniqueCities > 0 || uniqueCountries > 0) && (
-            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">🌍</span>
               <span>
                 {uniqueCities > 0 && (
@@ -258,21 +320,21 @@ export default function StatsTrophyCard({
                   </>
                 )}
               </span>
-            </div>
+            </motion.div>
           )}
 
           {/* Top Artists */}
           {topArtists.length > 0 && (
-            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">🏆</span>
               <span className="truncate">
                 <span className="text-foreground font-medium">
                   {topArtists.map((a) => a.name).join(", ")}
                 </span>
               </span>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </section>
     </div>
   );

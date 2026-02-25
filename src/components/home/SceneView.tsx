@@ -24,6 +24,7 @@ interface StatsForCard {
   uniqueCountries: number;
   milesDanced: number | null;
   topArtists: { name: string; imageUrl: string | null }[];
+  totalUsers: number;
 }
 
 interface SceneViewProps {
@@ -97,6 +98,7 @@ export default function SceneView({
         topArtists={stats?.topArtists ?? []}
         isLoading={statsLoading}
         onAddShow={onAddShow}
+        totalUsers={stats?.totalUsers}
       />
 
       {/* VS Hero Widget — below stats */}

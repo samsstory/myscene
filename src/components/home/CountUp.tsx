@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+const SESSION_KEY = "scene_stats_animated";
+
 interface CountUpProps {
   value: number;
   duration?: number;
@@ -19,13 +21,13 @@ export default function CountUp({
   formatted = false,
   style,
 }: CountUpProps) {
-  const [display, setDisplay] = useState(0);
+  const alreadyAnimatedThisSession = sessionStorage.getItem(SESSION_KEY) === "1";
+  const [display, setDisplay] = useState(alreadyAnimatedThisSession ? value : 0);
   const ref = useRef<HTMLSpanElement>(null);
-  const hasAnimated = useRef(false);
+  const hasAnimated = useRef(alreadyAnimatedThisSession);
 
   useEffect(() => {
     if (hasAnimated.current) {
-      // If value changes after initial animation, just set it
       setDisplay(value);
       return;
     }
@@ -54,10 +56,14 @@ export default function CountUp({
     const step = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplay(Math.round(eased * value));
-      if (progress < 1) requestAnimationFrame(step);
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        // Mark session as animated after first complete animation
+        sessionStorage.setItem(SESSION_KEY, "1");
+      }
     };
     requestAnimationFrame(step);
   }
