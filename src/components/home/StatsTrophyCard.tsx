@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { MapPin, CalendarPlus, Sparkles, Music2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CountUp from "./CountUp";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getComparisonsForMiles } from "@/lib/distance-comparisons";
+import { staggerContainer, staggerChild } from "@/lib/motion-variants";
+import { useRotatingIndex } from "@/hooks/useRotatingIndex";
 
 interface TopArtist {
   name: string;
@@ -54,17 +56,6 @@ function getPercentile(showCount: number, totalUsers?: number): string | null {
   return "Top 50%";
 }
 
-/* Stagger variants for bottom details */
-const staggerContainer = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.25, delayChildren: 0.3 }
-  }
-};
-const staggerChild = {
-  hidden: { opacity: 0, y: 4 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as const } }
-};
 
 /* Badge breathe keyframe (injected once) */
 const badgeBreatheStyle = `
@@ -87,25 +78,11 @@ export default function StatsTrophyCard({
   onAddShow,
   totalUsers
 }: StatsTrophyCardProps) {
-  const [comparisonIndex, setComparisonIndex] = useState(0);
   const comparisons = useMemo(
     () => milesDanced !== null && milesDanced > 0 ? getComparisonsForMiles(Math.round(milesDanced)) : [],
     [milesDanced]
   );
-
-  useEffect(() => {
-    if (comparisons.length <= 1) return;
-    setComparisonIndex(0);
-    // 2-second delay before first rotation, then every 8 seconds
-    const timeout = setTimeout(() => {
-      setComparisonIndex((prev) => (prev + 1) % comparisons.length);
-      const interval = setInterval(() => {
-        setComparisonIndex((prev) => (prev + 1) % comparisons.length);
-      }, 8000);
-      return () => clearInterval(interval);
-    }, 2000);
-    return () => clearTimeout(timeout);
-  }, [comparisons]);
+  const comparisonIndex = useRotatingIndex(comparisons.length);
 
   if (isLoading) {
     return (
