@@ -116,33 +116,32 @@ export default function VSHeroWidget({
           animationKey={pairKey}
         />
 
-        {/* VS Badge — glowing, centered on photo area
-            Photo is aspect-[4/3] on each card. We use a helper div
-            that mirrors the photo aspect ratio to position the badge. */}
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 z-10 pointer-events-none"
-          style={{ width: "calc((100% - 12px) / 2)", aspectRatio: "4/3" }}
+        {/* VS Badge — hard-locked to viewport horizontal center */}
+        <motion.div
+          key={pairKey}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{
+            type: "spring",
+            stiffness: 400,
+            damping: 15,
+            delay: 0.1,
+          }}
+          className="absolute left-[50vw] -translate-x-1/2 -translate-y-1/2 z-10
+            w-6 h-6 rounded-full flex items-center justify-center
+            bg-gradient-to-br from-[#00D9FF] to-[#7B61FF]
+            -rotate-[5deg]"
+          style={{
+            boxShadow: "0 0 12px rgba(0,217,255,0.4)",
+            // Center of photo area for side-by-side cards:
+            // cardWidth = (containerWidth - 12px) / 2
+            // photoHeight = cardWidth * 3/4
+            // photoCenterY = photoHeight / 2 = (containerWidth - 12px) * 3/16
+            top: "calc(((100% - 12px) * 3) / 16)",
+          }}
         >
-          <motion.div
-            key={pairKey}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 15,
-              delay: 0.1,
-            }}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-              w-6 h-6 rounded-full flex items-center justify-center
-              bg-gradient-to-br from-[#00D9FF] to-[#7B61FF]
-              -rotate-[5deg] pointer-events-auto"
-            style={{
-              boxShadow: "0 0 12px rgba(0,217,255,0.4)",
-            }}
-          >
-            <span className="text-white font-bold text-[10px]">VS</span>
-          </motion.div>
-        </div>
+          <span className="text-white font-bold text-[10px]">VS</span>
+        </motion.div>
 
         <RankingCard
           show={pair[1]}
