@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { enrichArtistImages } from "@/lib/enrich-artist-images";
 
 export interface EdmtrainEvent {
   id: number;
@@ -59,6 +60,50 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
   const [events, setEvents] = useState<EdmtrainEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const enrichedRef = useRef<Set<string>>(new Set());
+
+  // Post-fetch enrichment: resolve missing artist images
+  const enrichMissingImages = useCallback(async (mapped: EdmtrainEvent[]) => {
+    // Collect artist names from events with no image, skip already-enriched
+    const namesNeeded: string[] = [];
+    const eventsByArtist = new Map<string, EdmtrainEvent[]>();
+
+    for (const ev of mapped) {
+      if (ev.artist_image_url) continue;
+      for (const a of ev.artists) {
+        const lower = a.name.toLowerCase();
+        if (enrichedRef.current.has(lower)) continue;
+        namesNeeded.push(a.name);
+        if (!eventsByArtist.has(lower)) eventsByArtist.set(lower, []);
+        eventsByArtist.get(lower)!.push(ev);
+      }
+    }
+
+    if (namesNeeded.length === 0) return;
+
+    const imageMap = await enrichArtistImages(namesNeeded);
+    if (imageMap.size === 0) return;
+
+    // Mark as enriched
+    for (const key of imageMap.keys()) enrichedRef.current.add(key);
+
+    // Patch events in state
+    setEvents((prev) => {
+      const updated = prev.map((ev) => {
+        if (ev.artist_image_url) return ev;
+        for (const a of ev.artists) {
+          const url = imageMap.get(a.name.toLowerCase());
+          if (url) return { ...ev, artist_image_url: url };
+        }
+        return ev;
+      });
+      return updated;
+    });
+
+    // Note: edmtrain_events table doesn't allow client updates (no UPDATE RLS policy).
+    // The batch-artist-images edge function already persists images to show_artists + artists tables,
+    // so subsequent enrichment calls will resolve from the canonical artists table (fast path).
+  }, []);
 
   const hasOverride = overrideLat != null && overrideLng != null;
 
@@ -134,7 +179,11 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
         artist_image_url: row.artist_image_url || null,
       }));
 
+      // Set events immediately so UI renders fast
       setEvents(mapped);
+
+      // Kick off async image enrichment for events missing artist images
+      enrichMissingImages(mapped);
     } catch (err: any) {
       console.error("useEdmtrainEvents error:", err);
       setError(err.message || "Failed to fetch events");
