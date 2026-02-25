@@ -46,9 +46,8 @@ const LineupChoiceStep = ({ onUploadPhoto, onSearchDatabase }: LineupChoiceStepP
     <ChoiceCard
       icon={Camera}
       title="Upload Photo"
-      subtitle="Upload a photo of a show or festival lineup"
+      subtitle="Upload a photo of a festival lineup poster"
       onClick={onUploadPhoto}
-      disabled
     />
 
     {/* Divider */}
@@ -65,10 +64,6 @@ const LineupChoiceStep = ({ onUploadPhoto, onSearchDatabase }: LineupChoiceStepP
       onClick={onSearchDatabase}
     />
 
-    {/* Coming soon note for upload */}
-    <p className="text-[11px] text-muted-foreground/60 text-center pt-2">
-      Photo upload coming soon — search works now
-    </p>
   </div>
 );
 

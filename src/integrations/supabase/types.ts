@@ -1155,6 +1155,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      crowdsource_festival_lineup: {
+        Args: {
+          p_artists?: Json
+          p_date_end?: string
+          p_date_start?: string
+          p_event_name: string
+          p_source?: string
+          p_source_url?: string
+          p_venue_id?: string
+          p_venue_location?: string
+          p_venue_name?: string
+          p_year: number
+        }
+        Returns: string
+      }
       generate_referral_code: { Args: never; Returns: string }
       get_discover_upcoming_near_me: {
         Args: { p_city: string; p_user_id: string }
