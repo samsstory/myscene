@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { isUserUploadedImage } from "@/lib/artist-image-utils";
+import { containsB2bDelimiter, splitB2bNames } from "@/lib/b2b-utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -255,8 +256,16 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded, queuePosition
         }
       }
 
+      // ── B2B detection ──────────────────────────────────────────────
+      const isB2b = containsB2bDelimiter(prefill.artistName);
+      const b2bNames = isB2b ? splitB2bNames(prefill.artistName) : [];
+
       const isMultiArtist = extraArtists.length > 0;
-      const resolvedShowType = (prefill.showType === "set" && isMultiArtist) ? "show" : prefill.showType;
+      const resolvedShowType = isB2b
+        ? "b2b"
+        : (prefill.showType === "set" && isMultiArtist)
+          ? "show"
+          : prefill.showType;
 
       // Insert the main show
       const { data: show, error: showError } = await supabase
@@ -278,22 +287,45 @@ const QuickAddSheet = ({ open, onOpenChange, prefill, onShowAdded, queuePosition
 
       if (showError) throw showError;
 
-      // All artists for the parent show
-      const allArtistRows = [
-        {
+      // Build artist rows — split B2B into individual headliners
+      let allArtistRows: any[];
+      if (isB2b && b2bNames.length > 1) {
+        // Each B2B participant is a headliner with is_b2b = true
+        allArtistRows = b2bNames.map((name) => ({
           show_id: show.id,
-          artist_name: prefill.artistName,
+          artist_name: name,
           is_headliner: true,
-          artist_image_url: isUserUploadedImage(prefill.artistImageUrl) ? null : (prefill.artistImageUrl || null),
-        },
-        ...extraArtists.map((a) => ({
-          show_id: show.id,
-          artist_name: a.name,
-          is_headliner: false,
-          artist_image_url: a.imageUrl || null,
-          spotify_artist_id: a.spotifyId || null,
-        })),
-      ];
+          is_b2b: true,
+          artist_image_url: null,
+        }));
+        // Append any manually-added extra artists as non-headliners
+        allArtistRows.push(
+          ...extraArtists.map((a) => ({
+            show_id: show.id,
+            artist_name: a.name,
+            is_headliner: false,
+            is_b2b: false,
+            artist_image_url: a.imageUrl || null,
+            spotify_artist_id: a.spotifyId || null,
+          }))
+        );
+      } else {
+        allArtistRows = [
+          {
+            show_id: show.id,
+            artist_name: prefill.artistName,
+            is_headliner: true,
+            artist_image_url: isUserUploadedImage(prefill.artistImageUrl) ? null : (prefill.artistImageUrl || null),
+          },
+          ...extraArtists.map((a) => ({
+            show_id: show.id,
+            artist_name: a.name,
+            is_headliner: false,
+            artist_image_url: a.imageUrl || null,
+            spotify_artist_id: a.spotifyId || null,
+          })),
+        ];
+      }
 
       const { error: artistsError } = await supabase.from("show_artists").insert(allArtistRows);
       if (artistsError) throw artistsError;
