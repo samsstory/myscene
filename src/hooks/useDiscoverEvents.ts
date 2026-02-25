@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { type EdmtrainEvent, useEdmtrainEvents } from "./useEdmtrainEvents";
 import { useSpotifyConnection } from "./useSpotifyConnection";
+import { enrichArtistImages } from "@/lib/enrich-artist-images";
 
 export interface DiscoverPick {
   type: "edmtrain" | "platform";
@@ -222,10 +223,44 @@ export function useDiscoverEvents(userArtistNames: string[] = []) {
     return scoredPicks.sort((a, b) => b.score - a.score).slice(0, 8);
   }, [edmtrainEvents, platformShows, userArtistNames, spotifyArtists, associations]);
 
+  // Enrich missing images on picks
+  const enrichedRef = useRef<Set<string>>(new Set());
+  const [enrichedImages, setEnrichedImages] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const missing = picks.filter(
+      (p) => !p.artistImageUrl && !enrichedRef.current.has(p.artistName.toLowerCase())
+    );
+    if (missing.length === 0) return;
+
+    const names = missing.map((p) => p.artistName);
+    names.forEach((n) => enrichedRef.current.add(n.toLowerCase()));
+
+    enrichArtistImages(names).then((imageMap) => {
+      if (imageMap.size > 0) {
+        setEnrichedImages((prev) => {
+          const next = new Map(prev);
+          for (const [k, v] of imageMap) next.set(k, v);
+          return next;
+        });
+      }
+    });
+  }, [picks]);
+
+  // Apply enriched images to picks
+  const enrichedPicks = useMemo(() => {
+    if (enrichedImages.size === 0) return picks;
+    return picks.map((p) => {
+      if (p.artistImageUrl) return p;
+      const url = enrichedImages.get(p.artistName.toLowerCase());
+      return url ? { ...p, artistImageUrl: url } : p;
+    });
+  }, [picks, enrichedImages]);
+
   return {
-    picks,
+    picks: enrichedPicks,
     isLoading: isLoading || edmtrainLoading || spotifyLoading,
-    isEmpty: !isLoading && !edmtrainLoading && !spotifyLoading && picks.length === 0,
+    isEmpty: !isLoading && !edmtrainLoading && !spotifyLoading && enrichedPicks.length === 0,
     spotifyConnected,
     hasSignals: userArtistNames.length > 0 || spotifyArtists.length > 0,
   };
