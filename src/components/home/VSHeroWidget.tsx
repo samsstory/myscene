@@ -100,7 +100,7 @@ export default function VSHeroWidget({
       <div>
         <h2 className="text-lg font-bold text-foreground">Which was better?</h2>
         <p className="text-sm text-muted-foreground">
-          Tap to settle the score
+          Tap to rank your all time favorites
         </p>
       </div>
 
