@@ -24,13 +24,11 @@ export const interpolateGreatCircle = (
   const lon2 = toRadians(end[0]);
   const lat2 = toRadians(end[1]);
 
-  // Calculate the angular distance between points
   const d = Math.acos(
     Math.sin(lat1) * Math.sin(lat2) +
     Math.cos(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1)
   );
 
-  // Handle case where points are the same or very close
   if (d < 0.0001) {
     return start;
   }
@@ -56,7 +54,6 @@ export const wouldExceedLatitude = (
   end: [number, number],
   maxLatitude: number = 52
 ): boolean => {
-  // Sample the path to check max latitude
   for (let i = 0; i <= 20; i++) {
     const t = i / 20;
     const point = interpolateGreatCircle(start, end, t);
@@ -75,11 +72,9 @@ export const generateArcPath = (
   start: [number, number],
   end: [number, number],
   numPoints: number = 50,
-  maxLatitude: number = 52 // Reject routes that go above this
+  maxLatitude: number = 52
 ): [number, number][] => {
-  // Check if this route would go too far north/south
   if (wouldExceedLatitude(start, end, maxLatitude)) {
-    // Return a straight line at lower opacity instead (will be filtered)
     return [];
   }
   
@@ -126,119 +121,27 @@ export const createMultiArcGeoJSON = (
 });
 
 // Animation timing constants
-export const ARC_DURATION = 500; // ms per arc
-export const ARC_DELAY = 80; // ms pause between arcs
-export const HOLD_DURATION = 2000; // ms to hold complete journey
-export const FADE_DURATION = 500; // ms to fade out
+export const ARC_DURATION = 500;
+export const ARC_DELAY = 80;
+export const HOLD_DURATION = 2000;
+export const FADE_DURATION = 500;
 
 // Journey sequences with NYC (index 0) as home base
-// CRITICAL: Only use routes that stay below 52° latitude to avoid polar arcs
-// Avoid: transpacific routes (LA↔Tokyo), transatlantic to northern Europe from west coast
-
-// 2024: Americas + Europe only - safe routes
 export const JOURNEY_2024 = [
-  0, 7,       // NYC → Austin
-  7, 8,       // Austin → Chicago  
-  8, 1,       // Chicago → LA
-  1, 21,      // LA → Mexico City
-  21, 0,      // Mexico City → NYC
-  0, 6,       // NYC → São Paulo
-  6, 13,      // São Paulo → Buenos Aires
-  13, 0,      // Buenos Aires → NYC
-  0, 2,       // NYC → London
-  2, 10,      // London → Paris
-  10, 11,     // Paris → Barcelona
-  11, 2,      // Barcelona → London
-  2, 0,       // London → NYC
+  0, 7, 7, 8, 8, 1, 1, 21, 21, 0, 0, 6, 6, 13, 13, 0, 0, 2, 2, 10, 10, 11, 11, 2, 2, 0,
 ];
 
-// 2025: Americas + Europe + Australia via South America (no transpacific)
 export const JOURNEY_2025 = [
-  0, 1,       // NYC → LA
-  1, 15,      // LA → SF
-  15, 21,     // SF → Mexico City
-  21, 0,      // Mexico City → NYC
-  0, 6,       // NYC → São Paulo
-  6, 13,      // São Paulo → Buenos Aires
-  13, 5,      // Buenos Aires → Sydney (southern route)
-  5, 14,      // Sydney → Melbourne
-  14, 6,      // Melbourne → São Paulo (southern return)
-  6, 0,       // São Paulo → NYC
-  0, 2,       // NYC → London
-  2, 9,       // London → Amsterdam
-  9, 3,       // Amsterdam → Berlin
-  3, 10,      // Berlin → Paris
-  10, 11,     // Paris → Barcelona
-  11, 2,      // Barcelona → London
-  2, 0,       // London → NYC
+  0, 1, 1, 15, 15, 21, 21, 0, 0, 6, 6, 13, 13, 5, 5, 14, 14, 6, 6, 0, 0, 2, 2, 9, 9, 3, 3, 10, 10, 11, 11, 2, 2, 0,
 ];
 
-// 2026: Global with all southern/equatorial routing
 export const JOURNEY_2026 = [
-  0, 16,      // NYC → Toronto
-  16, 8,      // Toronto → Chicago
-  8, 7,       // Austin (if available) or Chicago → Austin
-  7, 21,      // Austin → Mexico City
-  21, 15,     // Mexico City → SF
-  15, 1,      // SF → LA
-  1, 0,       // LA → NYC
-  0, 6,       // NYC → São Paulo
-  6, 20,      // São Paulo → Cape Town
-  20, 13,     // Cape Town → Buenos Aires
-  13, 5,      // Buenos Aires → Sydney (southern)
-  5, 19,      // Sydney → Singapore
-  19, 18,     // Singapore → Bangkok
-  18, 12,     // Bangkok → Seoul
-  12, 4,      // Seoul → Tokyo
-  4, 19,      // Tokyo → Singapore (stay in Asia)
-  19, 6,      // Singapore → São Paulo (via southern route)
-  6, 0,       // São Paulo → NYC
-  0, 2,       // NYC → London
-  2, 10,      // London → Paris
-  10, 17,     // Paris → Ibiza
-  17, 11,     // Ibiza → Barcelona
-  11, 3,      // Barcelona → Berlin
-  3, 9,       // Berlin → Amsterdam
-  9, 2,       // Amsterdam → London
-  2, 0,       // London → NYC
+  0, 16, 16, 8, 8, 7, 7, 21, 21, 15, 15, 1, 1, 0, 0, 6, 6, 20, 20, 13, 13, 5, 5, 19, 19, 18, 18, 12, 12, 4, 4, 19, 19, 6, 6, 0, 0, 2, 2, 10, 10, 17, 17, 11, 11, 3, 3, 9, 9, 2, 2, 0,
 ];
 
-// All years: Epic journey using only safe routes
 export const JOURNEY_ALL = [
-  // Americas
-  0, 16,      // NYC → Toronto
-  16, 8,      // Toronto → Chicago
-  8, 7,       // Chicago → Austin
-  7, 21,      // Austin → Mexico City
-  21, 15,     // Mexico City → SF
-  15, 1,      // SF → LA
-  1, 0,       // LA → NYC
-  // South America + Africa
-  0, 6,       // NYC → São Paulo
-  6, 13,      // São Paulo → Buenos Aires
-  13, 20,     // Buenos Aires → Cape Town
-  20, 6,      // Cape Town → São Paulo
-  6, 0,       // São Paulo → NYC
-  // Europe
-  0, 2,       // NYC → London
-  2, 10,      // London → Paris
-  10, 17,     // Paris → Ibiza
-  17, 11,     // Ibiza → Barcelona
-  11, 9,      // Barcelona → Amsterdam
-  9, 3,       // Amsterdam → Berlin
-  3, 2,       // Berlin → London
-  2, 0,       // London → NYC
-  // Asia-Pacific via southern route
-  0, 6,       // NYC → São Paulo
-  6, 5,       // São Paulo → Sydney (southern)
-  5, 14,      // Sydney → Melbourne
-  14, 19,     // Melbourne → Singapore
-  19, 18,     // Singapore → Bangkok
-  18, 12,     // Bangkok → Seoul
-  12, 4,      // Seoul → Tokyo
-  4, 18,      // Tokyo → Bangkok (stay regional)
-  18, 19,     // Bangkok → Singapore
-  19, 5,      // Singapore → Sydney
-  5, 6,       // Sydney → São Paulo (southern return)
-  6, 0,       // São Paulo → NYC
+  0, 16, 16, 8, 8, 7, 7, 21, 21, 15, 15, 1, 1, 0,
+  0, 6, 6, 13, 13, 20, 20, 6, 6, 0,
+  0, 2, 2, 10, 10, 17, 17, 11, 11, 9, 9, 3, 3, 2, 2, 0,
+  0, 6, 6, 5, 5, 14, 14, 19, 19, 18, 18, 12, 12, 4, 4, 18, 18, 19, 19, 5, 5, 6, 6, 0,
 ];
