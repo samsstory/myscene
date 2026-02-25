@@ -91,17 +91,40 @@ serve(async (req) => {
           const data = await resp.json();
           const artist = data.artists?.items?.[0];
           if (artist?.images?.[0]?.url) {
+            const imgUrl = artist.images[0].url;
+            const spotifyId = artist.id;
             result[name.toLowerCase()] = {
-              image_url: artist.images[0].url,
-              spotify_id: artist.id,
+              image_url: imgUrl,
+              spotify_id: spotifyId,
             };
-            // Also update show_artists rows for this artist (fire-and-forget enrichment)
+            // Fire-and-forget: update show_artists rows
             supabase
               .from("show_artists")
-              .update({ artist_image_url: artist.images[0].url, spotify_artist_id: artist.id })
+              .update({ artist_image_url: imgUrl, spotify_artist_id: spotifyId })
               .ilike("artist_name", name)
               .is("artist_image_url", null)
               .then(() => {});
+            // Fire-and-forget: persist into canonical artists table
+            // Use insert + catch since unique index is on lower(trim(name))
+            supabase
+              .from("artists")
+              .insert({
+                name: name.trim(),
+                image_url: imgUrl,
+                spotify_artist_id: spotifyId,
+                genres: artist.genres || [],
+              })
+              .then(({ error: insertErr }) => {
+                if (insertErr) {
+                  // Already exists - update image if missing
+                  supabase
+                    .from("artists")
+                    .update({ image_url: imgUrl, spotify_artist_id: spotifyId, genres: artist.genres || [] })
+                    .ilike("name", name.trim())
+                    .is("image_url", null)
+                    .then(() => {});
+                }
+              });
           }
           // Small delay between Spotify calls
           await new Promise((r) => setTimeout(r, 100));
