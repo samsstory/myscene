@@ -32,6 +32,7 @@ interface StatsData {
   topGenre: string | null;
   uniqueVenues: number;
   milesDanced: number | null;
+  totalUsers: number;
 }
 
 interface UseHomeStatsReturn {
@@ -78,6 +79,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     topGenre: null,
     uniqueVenues: 0,
     milesDanced: null,
+    totalUsers: 0,
   });
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -448,6 +450,11 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         }
       }
 
+      // Total user count for percentile calculation
+      const { count: totalUsersCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
       setStats({
         allTimeShows: totalShows,
         showsThisYear,
@@ -467,6 +474,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         topGenre,
         uniqueVenues,
         milesDanced,
+        totalUsers: totalUsersCount ?? 0,
       });
       setInsights(generatedInsights);
     } catch (error) {
