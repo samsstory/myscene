@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Image, MessageCircle, Scale, Share, Music } from "lucide-react";
+import { Plus, Image, MessageCircle, Scale, Share, Music, Tent } from "lucide-react";
 import { motion } from "framer-motion";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
 import { useShareShow } from "@/hooks/useShareShow";
@@ -231,6 +231,30 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
           <ActionButton onClick={handleSendToFriends} icon={MessageCircle} label="Send to Friends" variant="tertiary" />
         )}
       </motion.div>
+
+      {/* ── Contribute a lineup prompt (non-festival only) ── */}
+      {!isFestival && (
+        <motion.div
+          variants={fadeUp}
+          className="rounded-2xl p-4 bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Tent className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Been to a festival?</p>
+              <p className="text-xs text-muted-foreground">Contribute a lineup to help the community</p>
+            </div>
+          </div>
+          <button
+            onClick={onAddMore}
+            className="mt-3 w-full py-2 px-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-sm font-medium transition-all hover:border-primary/30 active:scale-[0.98] text-foreground"
+          >
+            Add from Lineup
+          </button>
+        </motion.div>
+      )}
 
       {/* ── Footer ── */}
       <motion.div variants={fadeUp} className="flex gap-2 pt-2">

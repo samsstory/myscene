@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Camera, ImagePlus, X, Loader2, Tent, ChevronRight, ClipboardList, Search } from "lucide-react";
+import { Camera, ImagePlus, X, Loader2, Tent, ChevronRight, ClipboardList, Search, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhotoWithExif, processPhotosWithExif } from "@/lib/exif-utils";
 import { motion } from "framer-motion";
@@ -160,6 +160,16 @@ const PhotoSelectStep = ({
                     Search manually
                   </button>
                 )}
+                <button
+                  disabled
+                  className="w-full flex items-center gap-3 text-sm text-muted-foreground/40 py-2 cursor-not-allowed"
+                >
+                  <Mail className="h-4 w-4 flex-shrink-0" />
+                  Find in My Email
+                  <span className="ml-auto text-[10px] uppercase tracking-wider font-semibold bg-white/[0.08] text-muted-foreground/50 px-1.5 py-0.5 rounded-full">
+                    Coming Soon
+                  </span>
+                </button>
               </div>
             </div>
           )}
