@@ -543,7 +543,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
             </SheetHeader>
             <div className="space-y-3">
               {/* Artist search with Spotify suggestions */}
-              <div className="space-y-2 relative z-10">
+              <div className="relative">
                 <div className="relative">
                   {manualArtistImageUrl ? (
                     <img src={manualArtistImageUrl} alt={editArtist} className="absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full object-cover border border-white/10" />
@@ -557,16 +557,16 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                     value={editArtist}
                     onChange={(e) => {
                       setEditArtist(e.target.value);
-                      setManualArtistImageUrl(undefined); // clear selected image if user re-types
+                      setManualArtistImageUrl(undefined);
                     }}
                     className={`${manualArtistImageUrl ? "pl-11" : "pl-9"} ${inputFieldClass}`}
                     autoFocus
                   />
                 </div>
 
-                {/* Spotify suggestions */}
+                {/* Spotify suggestions — absolutely positioned dropdown */}
                 {artistSuggestions.length > 0 && (
-                  <div className="space-y-1 max-h-[220px] overflow-y-auto rounded-xl border border-white/[0.08] bg-background/80 backdrop-blur-sm p-1">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-[60] max-h-[220px] overflow-y-auto rounded-xl border border-white/[0.12] bg-background shadow-xl p-1">
                     {artistSuggestions.map((s) => (
                       <button
                         key={s.id}
