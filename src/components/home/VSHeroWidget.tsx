@@ -116,32 +116,28 @@ export default function VSHeroWidget({
           animationKey={pairKey}
         />
 
-        {/* VS Badge — hard-locked to viewport horizontal center */}
-        <motion.div
-          key={pairKey}
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{
-            type: "spring",
-            stiffness: 400,
-            damping: 15,
-            delay: 0.1,
-          }}
-          className="absolute left-0 -translate-y-1/2 z-10
-            w-6 h-6 rounded-full flex items-center justify-center
-            bg-gradient-to-br from-[#00D9FF] to-[#7B61FF]
-            -rotate-[5deg]"
-          style={{
-            boxShadow: "0 0 12px rgba(0,217,255,0.4)",
-            // Center of photo area for side-by-side cards:
-            // cardWidth = (containerWidth - 12px) / 2
-            // photoHeight = cardWidth * 3/4
-            // photoCenterY = photoHeight / 2 = (containerWidth - 12px) * 3/16
-            top: "calc(((100% - 12px) * 3) / 16)",
-          }}
-        >
-          <span className="text-white font-bold text-[10px]">VS</span>
-        </motion.div>
+        {/* VS Badge — positioned exactly like Rank page: center of card container */}
+        <div className="absolute left-1/2 -translate-x-1/2 z-20 top-1/2 -translate-y-1/2 pointer-events-none">
+          <motion.div
+            key={pairKey}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 15,
+              delay: 0.1,
+            }}
+            className="w-6 h-6 rounded-full flex items-center justify-center
+              bg-gradient-to-br from-[#00D9FF] to-[#7B61FF]
+              -rotate-[5deg]"
+            style={{
+              boxShadow: "0 0 12px rgba(0,217,255,0.4)",
+            }}
+          >
+            <span className="text-white font-bold text-[10px]">VS</span>
+          </motion.div>
+        </div>
 
         <RankingCard
           show={pair[1]}
