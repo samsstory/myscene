@@ -1,17 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { X, Loader2, Music } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useArtistSearch } from "@/hooks/useArtistSearch";
 
 import type { BaseArtist as Artist } from "@/types/show";
-
-interface SearchResult {
-  type: 'artist' | 'venue';
-  id: string;
-  name: string;
-  subtitle?: string;
-  imageUrl?: string;
-}
 
 interface ArtistTagInputProps {
   artists: Artist[];
@@ -29,42 +21,11 @@ const ArtistTagInput = ({
   className
 }: ArtistTagInputProps) => {
   const [inputValue, setInputValue] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const search = async () => {
-      if (inputValue.trim().length < 2) {
-        setSearchResults([]);
-        return;
-      }
-
-      setIsSearching(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('unified-search', {
-          body: { searchTerm: inputValue.trim() }
-        });
-
-        if (!error && data?.results) {
-          setSearchResults(
-            data.results
-              .filter((r: SearchResult) => r.type === 'artist')
-              .slice(0, 5)
-          );
-        }
-      } catch (error) {
-        console.error('Artist search error:', error);
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    const timer = setTimeout(search, 300);
-    return () => clearTimeout(timer);
-  }, [inputValue]);
+  const { results: searchResults, isSearching, clearResults } = useArtistSearch(inputValue);
 
   const addArtist = (name: string) => {
     const trimmedName = name.trim();
@@ -72,14 +33,14 @@ const ArtistTagInput = ({
     
     if (artists.some(a => a.name.toLowerCase() === trimmedName.toLowerCase())) {
       setInputValue("");
-      setSearchResults([]);
+      clearResults();
       return;
     }
 
     const isHeadliner = artists.length === 0;
     onArtistsChange([...artists, { name: trimmedName, isHeadliner }]);
     setInputValue("");
-    setSearchResults([]);
+    clearResults();
     setShowResults(false);
   };
 
@@ -162,7 +123,6 @@ const ArtistTagInput = ({
         </p>
       )}
 
-      {/* Search results dropdown with artist images */}
       {showResults && searchResults.length > 0 && (
         <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover/95 backdrop-blur-sm border border-white/[0.1] rounded-md shadow-lg max-h-48 overflow-y-auto">
           {searchResults.map((result) => (
