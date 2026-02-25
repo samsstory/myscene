@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 export interface AddedShowData {
   id: string;
-  artists: { name: string; isHeadliner: boolean }[];
+  artists: { name: string; isHeadliner: boolean; image_url?: string | null }[];
   venue: { name: string; location: string };
   date: string;
   rating: number;
