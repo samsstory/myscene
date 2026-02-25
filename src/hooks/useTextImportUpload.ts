@@ -14,6 +14,7 @@ interface ReviewedTextShow {
   selectedMonth: string;
   selectedYear: string;
   isValid: boolean;
+  isB2b?: boolean;
 }
 
 interface UploadResult {
@@ -73,7 +74,8 @@ export function useTextImportUpload() {
             dbDatePrecision = "unknown";
           }
 
-          // 3. Create show (no photo)
+          // 3. Create show — use 'b2b' show_type if flagged
+          const showType = show.isB2b ? 'b2b' : 'set';
           const { data: newShow, error: showError } = await supabase
             .from('shows')
             .insert({
@@ -83,6 +85,7 @@ export function useTextImportUpload() {
               venue_id: venueIdToUse,
               show_date: showDate,
               date_precision: dbDatePrecision,
+              show_type: showType,
               rating: null,
               photo_url: null,
               photo_declined: true,
@@ -92,12 +95,13 @@ export function useTextImportUpload() {
 
           if (showError) throw showError;
 
-          // 4. Artists
+          // 4. Artists — mark is_b2b for B2B shows
           if (show.artists.length > 0) {
             const artistInserts = show.artists.map(a => ({
               show_id: newShow.id,
               artist_name: a.name,
               is_headliner: a.isHeadliner,
+              is_b2b: show.isB2b ?? false,
               artist_image_url: a.imageUrl || null,
               spotify_artist_id: a.spotifyId || null,
             }));

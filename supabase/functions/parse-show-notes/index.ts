@@ -53,6 +53,17 @@ async function searchSpotifyArtist(artistName: string): Promise<{ id: string; im
   }
 }
 
+/** Detect B2B/B3B/vs delimiters in a string */
+const B2B_REGEX = /\s+(?:b2b|b3b|b4b|back\s+to\s+back|vs\.?)\s+/i;
+
+function isB2b(artist: string): boolean {
+  return B2B_REGEX.test(artist);
+}
+
+function splitB2bNames(artist: string): string[] {
+  return artist.split(B2B_REGEX).map(s => s.trim()).filter(Boolean);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -91,7 +102,11 @@ Rules:
 - Artist names should be properly capitalized (e.g., "bicep" → "Bicep", "fred again" → "Fred Again..")
 - Recognize common venue abbreviations (e.g., "ally pally" = "Alexandra Palace", "printworks" = "Printworks London", "hï" or "hi ibiza" = "Hï Ibiza")
 - Parse dates in any format and return ISO strings (YYYY-MM-DD). For partial dates like "summer 2023", use "2023-07-01". For "dec 2023", use "2023-12-01"
-- Handle "b2b" or "&" as multi-artist shows — return as comma-separated in the artist field (e.g., "Bicep b2b Hammer" → "Bicep, Hammer")
+- IMPORTANT: For B2B / B3B / "vs" sets, keep the FULL original string as-is in the artist field. Do NOT split them into separate shows. Examples:
+  - "Pete Tong b2b Ahmed Spins" → artist: "Pete Tong b2b Ahmed Spins"
+  - "Solomun b2b Tale Of Us" → artist: "Solomun b2b Tale Of Us"
+  - "A b2b B b2b C" → artist: "A b2b B b2b C"
+  - "Kaskade vs deadmau5" → artist: "Kaskade vs deadmau5"
 - "@" typically separates artist from venue
 - Confidence: "high" = all fields clearly present, "medium" = some inference needed, "low" = significant guessing
 - Extract as many shows as you can find. Skip lines that don't look like show data.`
@@ -115,7 +130,7 @@ Rules:
                     items: {
                       type: 'object',
                       properties: {
-                        artist: { type: 'string', description: 'Artist or act name (properly capitalized). For multi-artist shows, comma-separate names.' },
+                        artist: { type: 'string', description: 'Artist or act name (properly capitalized). For B2B/vs sets, keep the full string e.g. "Artist A b2b Artist B".' },
                         venue: { type: 'string', description: 'Venue name if mentioned, properly formatted. Empty string if not found.' },
                         date: { type: 'string', description: 'Date in ISO format YYYY-MM-DD if mentioned. Empty string if not found.' },
                         confidence: { type: 'string', enum: ['high', 'medium', 'low'], description: 'How confident the extraction is' },
@@ -179,26 +194,46 @@ Rules:
     console.log(`Extracted ${parsedShows.length} shows, enriching with Spotify...`);
 
     // Phase 2: Spotify enrichment (parallel, non-fatal)
+    // For B2B sets, enrich each individual artist and return all results
     const enrichedShows = await Promise.all(
       parsedShows.map(async (show) => {
-        // For multi-artist shows, search for the first artist
-        const primaryArtist = show.artist.split(',')[0].trim();
-        const spotify = await searchSpotifyArtist(primaryArtist);
+        const b2bDetected = isB2b(show.artist);
+        const individualNames = b2bDetected ? splitB2bNames(show.artist) : [show.artist.trim()];
+
+        // Enrich each individual artist in parallel
+        const artistResults = await Promise.all(
+          individualNames.map(async (name) => {
+            const spotify = await searchSpotifyArtist(name);
+            return {
+              name,
+              spotifyId: spotify?.id || null,
+              imageUrl: spotify?.imageUrl || null,
+              genres: spotify?.genres || [],
+            };
+          })
+        );
+
         return {
           artist: show.artist,
           venue: show.venue || '',
           date: show.date || '',
           confidence: show.confidence,
-          spotify: spotify ? {
-            id: spotify.id,
-            imageUrl: spotify.imageUrl,
-            genres: spotify.genres,
+          is_b2b: b2bDetected,
+          // Individual artist enrichment data for B2B
+          artists: artistResults,
+          // Keep primary spotify for backwards compat (first artist)
+          spotify: artistResults[0]?.spotifyId ? {
+            id: artistResults[0].spotifyId,
+            imageUrl: artistResults[0].imageUrl,
+            genres: artistResults[0].genres,
           } : null,
         };
       })
     );
 
     console.log('Enrichment complete, returning', enrichedShows.length, 'shows');
+    const b2bCount = enrichedShows.filter(s => s.is_b2b).length;
+    if (b2bCount > 0) console.log(`Detected ${b2bCount} B2B/vs sets`);
 
     return new Response(JSON.stringify({ shows: enrichedShows }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
