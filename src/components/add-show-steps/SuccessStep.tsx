@@ -1,8 +1,17 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Camera, Instagram, Eye, Loader2, Download } from "lucide-react";
+import { Camera, Instagram, Eye, Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
+import {
+  staggerContainer,
+  fadeUp,
+  fireConfetti,
+  SuccessRing,
+  ActionButton,
+  InstallCTA,
+} from "@/components/success/SuccessPrimitives";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -33,11 +42,16 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   const [installDismissed, setInstallDismissed] = useState(false);
   const [showPushInterstitial, setShowPushInterstitial] = useState(false);
 
+  const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
+  const headlinerImage = show.artists.find(a => a.isHeadliner)?.imageUrl || show.artists[0]?.imageUrl;
+  const formattedDate = format(new Date(show.date), "MMM d, yyyy");
+
   useEffect(() => {
+    fireConfetti();
+
     const isFirstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
 
-    // Show push interstitial on first show, if not already seen and supported
     const pushSeen = localStorage.getItem("scene-push-prompt-seen");
     if (isFirstShow && !pushSeen && "Notification" in window) {
       setShowPushInterstitial(true);
@@ -67,10 +81,6 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     }
   };
 
-  const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
-  const headlinerImage = show.artists.find(a => a.isHeadliner)?.imageUrl || show.artists[0]?.imageUrl;
-  const formattedDate = format(new Date(show.date), "MMM d, yyyy");
-
   const handlePhotoClick = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -94,130 +104,73 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     input.click();
   };
 
-  // If we need to show the push interstitial, render it as the full content
   if (showPushInterstitial) {
-    return (
-      <PushNotificationInterstitial
-        onComplete={() => {
-          setShowPushInterstitial(false);
-          // After push flow, just show the rest of the success screen (don't auto-close)
-        }}
-      />
-    );
+    return <PushNotificationInterstitial onComplete={() => setShowPushInterstitial(false)} />;
   }
 
   return (
-    <div className="text-center space-y-6 py-4">
-      {/* Hero header with artist image backdrop */}
-      <div className="relative rounded-2xl overflow-hidden mx-0">
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="text-center space-y-6 py-4 relative">
+      {/* ── Animated header ── */}
+      <motion.div variants={fadeUp} className="space-y-3">
+        <SuccessRing />
+        <motion.div variants={fadeUp}>
+          <h2 className="text-2xl font-bold tracking-tight" style={{ textShadow: "0 0 24px hsl(189 94% 55% / 0.25)" }}>
+            Show Added!
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {headliner} @ {show.venue.name}
+          </p>
+          <p className="text-xs text-muted-foreground/60 mt-0.5">{formattedDate}</p>
+        </motion.div>
+      </motion.div>
+
+      {/* ── Hero image ── */}
+      <motion.div variants={fadeUp} className="rounded-2xl overflow-hidden ring-1 ring-white/[0.06]">
         {headlinerImage ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center scale-105"
-            style={{ backgroundImage: `url(${headlinerImage})` }}
-          />
+          <div className="relative aspect-[16/9] w-full">
+            <img src={headlinerImage} alt={headliner} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          </div>
         ) : (
-          <div className="absolute inset-0 bg-primary/10" />
+          <div className="aspect-[16/9] w-full flex items-center justify-center bg-white/[0.03]">
+            <span className="text-5xl select-none" style={{ textShadow: "0 0 20px hsl(189 94% 55% / 0.4)" }}>✦</span>
+          </div>
         )}
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+      </motion.div>
 
-        {/* Content */}
-        <div className="relative z-10 py-8 px-4 flex flex-col items-center gap-3">
-          <div className="h-14 w-14 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-            <CheckCircle2 className="h-7 w-7 text-white" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-white">Show Added!</h2>
-            <p className="text-white/80 text-sm font-medium">
-              {headliner} @ {show.venue.name}
-            </p>
-            <p className="text-white/60 text-xs">{formattedDate}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Inline Install CTA — first show only */}
+      {/* ── Install CTA ── */}
       {showInstallCTA && !installDismissed && (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
-              <Download className="h-5 w-5 text-primary" />
-            </div>
-            <div className="text-left flex-1">
-              <p className="text-sm font-semibold">Get SCENE on your home screen</p>
-              <p className="text-xs text-muted-foreground">Full app experience, one tap away</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={handleInstall} className="flex-1 py-2 px-3 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.12] text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/[0.10] hover:border-primary/30 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)] active:scale-[0.98]">
-              Install
-            </button>
-            <button onClick={() => { setInstallDismissed(true); localStorage.setItem("scene-pwa-prompt-dismissed", "true"); }} className="py-2 px-3 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
-              Later
-            </button>
-          </div>
-        </div>
+        <InstallCTA
+          onInstall={handleInstall}
+          onDismiss={() => { setInstallDismissed(true); localStorage.setItem("scene-pwa-prompt-dismissed", "true"); }}
+        />
       )}
 
-      {/* Action cards */}
-      <div className="space-y-2.5 pt-2">
-        <button 
-          className={`w-full flex items-center gap-3 p-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border transition-all duration-200 active:scale-[0.98] ${photoAdded ? 'border-primary/30 shadow-[0_0_16px_hsl(var(--primary)/0.15)]' : 'border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15]'}`}
-          onClick={!isUploading && !photoAdded ? handlePhotoClick : undefined}
-        >
-          <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
-            {isUploading ? (
-              <Loader2 className="h-5 w-5 text-primary animate-spin" />
-            ) : (
-              <Camera className="h-5 w-5 text-primary" />
-            )}
-          </div>
-          <div className="text-left flex-1">
-            <div className="font-medium text-sm">
-                              {photoAdded ? "Photo Added!" : "Add my Own Photo"}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {photoAdded ? "Looking good 📸" : "Capture the memory"}
-            </div>
-          </div>
-          {photoAdded && <CheckCircle2 className="h-5 w-5 text-primary" />}
-        </button>
+      {/* ── Actions ── */}
+      <motion.div variants={fadeUp} className="space-y-2.5 pt-1">
+        {!photoAdded ? (
+          <ActionButton
+            onClick={handlePhotoClick}
+            icon={isUploading ? Loader2 : Camera}
+            label={isUploading ? "Uploading..." : "Add My Photo"}
+            variant="primary"
+            disabled={isUploading}
+          />
+        ) : (
+          <ActionButton onClick={() => {}} icon={Camera} label="Photo Added! 📸" variant="secondary" />
+        )}
 
-        <button 
-          className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
-          onClick={onShare}
-        >
-          <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
-            <Instagram className="h-5 w-5 text-primary" />
-          </div>
-          <div className="text-left">
-            <div className="font-medium text-sm">Share to Instagram</div>
-            <div className="text-xs text-muted-foreground">Create a story or post</div>
-          </div>
-        </button>
+        <ActionButton onClick={onShare} icon={Instagram} label="Share to Instagram" variant="secondary" />
+        <ActionButton onClick={onViewDetails} icon={Eye} label="View Details" variant="tertiary" />
+      </motion.div>
 
-        <button 
-          className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
-          onClick={onViewDetails}
-        >
-          <div className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center shrink-0">
-            <Eye className="h-5 w-5 text-primary" />
-          </div>
-          <div className="text-left">
-            <div className="font-medium text-sm">View Details</div>
-            <div className="text-xs text-muted-foreground">See full show breakdown</div>
-          </div>
+      {/* ── Footer ── */}
+      <motion.div variants={fadeUp} className="pt-2">
+        <button onClick={onDone} className="w-full flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+          Done
         </button>
-      </div>
-
-      {/* Done button */}
-      <button 
-        onClick={onDone} 
-        className="w-full py-3 px-4 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-foreground active:scale-[0.98] mt-4"
-      >
-        Done
-      </button>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
