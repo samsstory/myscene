@@ -1,36 +1,48 @@
 
 
-## Plan: Never Show Blank Artist Cards + Simplify Image Pipeline
+## Root Cause Analysis
 
-### Problem
-EDMTrain does not provide artist images. The current system attempts async enrichment but still renders cards with gradient fallbacks (music icon) while waiting or when enrichment fails. This creates a poor user experience with blank-looking cards across the Schedule tab and For You feed.
+The globe map canvas exists in the DOM and Mapbox tiles are loading successfully (200 OK), but nothing is visible on screen. The issue is a **CSS specificity conflict** between Tailwind CSS and the Mapbox GL CSS.
 
-### Solution
-Two changes:
+### The Conflict
 
-1. **Filter out image-less cards at the display layer** -- both `EdmtrainDiscoveryFeed` and `ForYouFeed` will only render events/picks that have a resolved `artist_image_url`. Events still enriching will simply not appear until their image is ready, then a state update will cause them to appear.
+The map container element in `MapView.tsx` (line 697) has Tailwind classes `absolute inset-0`:
 
-2. **Fix the For You feed's nested object bug** -- when `useDiscoverEvents` enriches a pick's `artistImageUrl`, it must also patch the nested `edmtrainEvent.artist_image_url` so that `EdmtrainEventCard` (which reads from `event.artist_image_url`) actually renders the image.
+```
+<div ref={mapContainer} className="absolute inset-0 rounded-xl overflow-hidden ..." />
+```
 
-### Files to Change
+When Mapbox initializes, it adds the `.mapboxgl-map` class to this same element. The Mapbox CSS contains:
 
-**`src/components/home/EdmtrainDiscoveryFeed.tsx`** (~2 lines)
-- After scoring and sorting `displayed`, filter to only include events where `event.artist_image_url` is truthy before rendering.
+```css
+.mapboxgl-map { position: relative; overflow: hidden; }
+```
 
-**`src/components/home/ForYouFeed.tsx`** (~2 lines)  
-- Filter `picks` to only render items where `pick.artistImageUrl` is truthy (covers both edmtrain and platform picks).
+Both `.absolute` (Tailwind) and `.mapboxgl-map` (Mapbox CSS) have identical CSS specificity of `(0,1,0)`. When specificity is equal, the **last declaration in source order wins**.
 
-**`src/hooks/useDiscoverEvents.ts`** (~5 lines)
-- In the `enrichedPicks` memo, when patching `artistImageUrl` from the enriched map, also patch `edmtrainEvent.artist_image_url` so the nested object used by `EdmtrainEventCard` has the URL.
+With the previous dynamic `<link>` injection approach, there was a race condition where the Mapbox CSS sometimes loaded after the map had already computed its dimensions — meaning the map could sometimes work by accident. With the new static `import "mapbox-gl/dist/mapbox-gl.css"`, Vite bundles the CSS and injects it **after** Tailwind's styles (since `index.css` is imported in `main.tsx` before `MapView.tsx` is loaded). This means `.mapboxgl-map { position: relative }` consistently overrides `.absolute { position: absolute }`.
 
-### Technical Details
+The result: the map container loses its absolute positioning, becomes `position: relative` with no explicit height, and collapses to 0 visible height. The canvas inside renders at 0 dimensions.
 
-The enrichment pipeline stays the same:
-1. Events fetched from `edmtrain_events` table (no images)
-2. `enrichArtistImages()` queries canonical `artists` table (fast, no API)
-3. For misses, calls `batch-artist-images` edge function (checks `show_artists`, then Spotify)
-4. Resolved URLs patched into state, triggering re-render
-5. Cards only appear once an image is resolved
+### Fix Plan
 
-Events that fail enrichment (artist not on Spotify, rate limited, etc.) simply won't appear in the feed -- this is acceptable since showing a blank card is worse than showing fewer cards.
+**File: `src/components/MapView.tsx` (line 696-700)**
+
+Move the critical positioning properties (`position: absolute`, `inset: 0`) to **inline styles**, which always beat class-based rules regardless of source order:
+
+```tsx
+<div 
+  ref={mapContainer} 
+  className="rounded-xl overflow-hidden [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden" 
+  style={{ position: 'absolute', inset: 0, backgroundColor: 'hsl(222, 47%, 11%)' }}
+/>
+```
+
+This is the safest approach because inline styles have specificity `(1,0,0,0)` and always win over any class selector.
+
+**File: `src/components/landing/LandingGlobe.tsx`** — No change needed. The landing globe uses `w-full h-full` (explicit width/height), which is not overridden by `.mapboxgl-map { position: relative }`.
+
+### Verification
+
+After the fix, navigate to the Globe tab on the dashboard and confirm the map renders with visible tiles, markers, and zoom/pan interaction.
 
