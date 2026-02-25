@@ -260,7 +260,7 @@ export default function StatsTrophyCard({
               className="text-[32px] font-bold text-foreground block leading-tight" />
 
             <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium flex items-center justify-center gap-1">
-              <MapPin className="h-2.5 w-2.5" /> Venues
+               Venues
             </p>
           </div>
         </div>
