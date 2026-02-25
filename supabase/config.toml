@@ -7,9 +7,6 @@ enable_confirmations = false
 otp_length = 6
 otp_expiry = 3600
 
-[functions.search-artists]
-verify_jwt = false
-
 [functions.search-venues]
 verify_jwt = false
 
