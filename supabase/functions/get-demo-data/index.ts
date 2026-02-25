@@ -240,6 +240,11 @@ Deno.serve(async (req) => {
         !show.photo_url && !show.photo_declined
       ).length;
 
+      // Count unique artists (each B2B participant counts individually)
+      const uniqueArtistNames = new Set<string>();
+      (artistsData || []).forEach((a: { artist_name: string }) => uniqueArtistNames.add(a.artist_name.toLowerCase()));
+      const uniqueArtists = uniqueArtistNames.size;
+
       data.stats = {
         allTimeShows: totalShows,
         showsThisYear,
@@ -251,6 +256,7 @@ Deno.serve(async (req) => {
         globalConfirmationPercentage,
         uniqueCities: cities.size,
         uniqueCountries: countries.size,
+        uniqueArtists,
         incompleteTagsCount,
         underRankedCount,
         missingPhotosCount,
