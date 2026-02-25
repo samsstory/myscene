@@ -1,8 +1,19 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+interface ArtistEntry {
+  name: string;
+  day?: string | null;
+  stage?: string | null;
+  image_url?: string | null;
+  spotify_id?: string | null;
+  matched?: boolean;
+}
 
 interface ExtractedLineup {
   event_name: string;
@@ -11,7 +22,7 @@ interface ExtractedLineup {
   date_end?: string | null;
   venue_name?: string | null;
   venue_location?: string | null;
-  artists: { name: string; day?: string | null; stage?: string | null }[];
+  artists: ArtistEntry[];
 }
 
 const EXTRACTION_SCHEMA = {
@@ -39,6 +50,216 @@ const EXTRACTION_SCHEMA = {
   required: ["event_name", "year", "artists"],
 };
 
+/* ── Spotify token cache ── */
+let spotifyToken: string | null = null;
+let tokenExpiry = 0;
+
+async function getSpotifyToken(): Promise<string> {
+  if (spotifyToken && Date.now() < tokenExpiry) return spotifyToken;
+  const clientId = Deno.env.get("SPOTIFY_CLIENT_ID");
+  const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET");
+  if (!clientId || !clientSecret) throw new Error("Spotify credentials not configured");
+
+  const resp = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!resp.ok) throw new Error(`Spotify auth failed: ${resp.status}`);
+  const data = await resp.json();
+  spotifyToken = data.access_token;
+  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return spotifyToken!;
+}
+
+/* ── Reconcile extracted names against canonical artists table + Spotify ── */
+async function reconcileArtists(artists: ArtistEntry[]): Promise<ArtistEntry[]> {
+  if (!artists.length) return artists;
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) {
+    console.warn("No Supabase credentials — skipping reconciliation");
+    return artists;
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const reconciled: ArtistEntry[] = [];
+
+  // Step 1: Batch lookup against canonical artists table using trigram similarity
+  // We query all artists at once to minimize DB round-trips
+  const names = artists.map((a) => a.name);
+  const { data: canonicalRows } = await supabase
+    .from("artists")
+    .select("name, image_url, spotify_artist_id")
+    .not("name", "is", null);
+
+  // Build a lowercase map for exact + near-exact matching
+  const canonicalMap = new Map<string, { name: string; image_url: string | null; spotify_id: string | null }>();
+  for (const row of canonicalRows || []) {
+    canonicalMap.set(row.name.toLowerCase().trim(), {
+      name: row.name,
+      image_url: row.image_url,
+      spotify_id: row.spotify_artist_id,
+    });
+  }
+
+  const unmatchedForSpotify: number[] = []; // indices into `artists`
+
+  for (let i = 0; i < artists.length; i++) {
+    const a = artists[i];
+    const key = a.name.toLowerCase().trim();
+
+    // Exact match (case-insensitive)
+    const exact = canonicalMap.get(key);
+    if (exact) {
+      reconciled.push({
+        ...a,
+        name: exact.name, // Use canonical casing
+        image_url: exact.image_url,
+        spotify_id: exact.spotify_id,
+        matched: true,
+      });
+      continue;
+    }
+
+    // Fuzzy match: try DB trigram similarity (threshold 0.4 — artist names can be short)
+    try {
+      const { data: fuzzyRows } = await supabase
+        .rpc("similarity", undefined as any) // Not available as RPC, use REST query instead
+        .select("*");
+      // Fallback: simple substring/prefix matching since we can't call similarity() via SDK
+    } catch {
+      // Expected — similarity() isn't an RPC. Fall through to alternative.
+    }
+
+    // Alternative fuzzy: search canonical map for close matches
+    let bestMatch: { name: string; image_url: string | null; spotify_id: string | null; score: number } | null = null;
+    for (const [canonKey, canonVal] of canonicalMap) {
+      const score = jaroWinkler(key, canonKey);
+      if (score > 0.88 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { ...canonVal, score };
+      }
+    }
+
+    if (bestMatch) {
+      reconciled.push({
+        ...a,
+        name: bestMatch.name,
+        image_url: bestMatch.image_url,
+        spotify_id: bestMatch.spotify_id,
+        matched: true,
+      });
+    } else {
+      // No DB match — queue for Spotify lookup
+      reconciled.push({ ...a, matched: false });
+      unmatchedForSpotify.push(i);
+    }
+  }
+
+  // Step 2: Spotify fallback for unmatched artists (cap at 20 to respect rate limits)
+  if (unmatchedForSpotify.length > 0) {
+    try {
+      const token = await getSpotifyToken();
+      const toCheck = unmatchedForSpotify.slice(0, 20);
+
+      for (const idx of toCheck) {
+        const entry = reconciled[idx];
+        try {
+          const resp = await fetch(
+            `https://api.spotify.com/v1/search?q=${encodeURIComponent(entry.name)}&type=artist&limit=1`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (resp.status === 429) {
+            await resp.text();
+            console.warn("Spotify rate limited — stopping enrichment");
+            break;
+          }
+          if (!resp.ok) {
+            await resp.text();
+            continue;
+          }
+          const data = await resp.json();
+          const artist = data.artists?.items?.[0];
+          if (artist) {
+            // Check name similarity before accepting Spotify's result
+            const similarity = jaroWinkler(entry.name.toLowerCase(), artist.name.toLowerCase());
+            if (similarity > 0.8) {
+              reconciled[idx] = {
+                ...entry,
+                name: artist.name, // Prefer Spotify's canonical name
+                image_url: artist.images?.[0]?.url || null,
+                spotify_id: artist.id,
+                matched: true,
+              };
+            }
+          }
+          // Small delay between calls
+          await new Promise((r) => setTimeout(r, 80));
+        } catch {
+          // Skip this artist
+        }
+      }
+    } catch (err) {
+      console.warn("Spotify enrichment failed:", err);
+    }
+  }
+
+  return reconciled;
+}
+
+/* ── Jaro-Winkler similarity (in-process, no DB needed) ── */
+function jaroWinkler(s1: string, s2: string): number {
+  if (s1 === s2) return 1;
+  const len1 = s1.length;
+  const len2 = s2.length;
+  if (len1 === 0 || len2 === 0) return 0;
+
+  const matchDist = Math.max(Math.floor(Math.max(len1, len2) / 2) - 1, 0);
+  const s1Matches = new Array(len1).fill(false);
+  const s2Matches = new Array(len2).fill(false);
+
+  let matches = 0;
+  let transpositions = 0;
+
+  for (let i = 0; i < len1; i++) {
+    const start = Math.max(0, i - matchDist);
+    const end = Math.min(i + matchDist + 1, len2);
+    for (let j = start; j < end; j++) {
+      if (s2Matches[j] || s1[i] !== s2[j]) continue;
+      s1Matches[i] = true;
+      s2Matches[j] = true;
+      matches++;
+      break;
+    }
+  }
+
+  if (matches === 0) return 0;
+
+  let k = 0;
+  for (let i = 0; i < len1; i++) {
+    if (!s1Matches[i]) continue;
+    while (!s2Matches[k]) k++;
+    if (s1[i] !== s2[k]) transpositions++;
+    k++;
+  }
+
+  const jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3;
+
+  // Winkler boost for common prefix (up to 4 chars)
+  let prefix = 0;
+  for (let i = 0; i < Math.min(4, Math.min(len1, len2)); i++) {
+    if (s1[i] === s2[i]) prefix++;
+    else break;
+  }
+
+  return jaro + prefix * 0.1 * (1 - jaro);
+}
+
+/* ── Main handler ── */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -63,7 +284,6 @@ Deno.serve(async (req) => {
     }
 
     const mediaType = mime_type || "image/jpeg";
-
     console.log("Sending lineup photo to Gemini Flash for OCR extraction...");
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -153,8 +373,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Extracted: "${parsed.event_name}" ${parsed.year} — ${parsed.artists?.length ?? 0} artists`);
-
     // Deduplicate artists by lowercase name
     const seen = new Set<string>();
     parsed.artists = (parsed.artists || []).filter((a) => {
@@ -163,6 +381,15 @@ Deno.serve(async (req) => {
       seen.add(key);
       return true;
     });
+
+    console.log(`OCR extracted: "${parsed.event_name}" ${parsed.year} — ${parsed.artists.length} artists`);
+
+    // Reconcile against canonical artists DB + Spotify
+    console.log("Reconciling artist names against database and Spotify...");
+    parsed.artists = await reconcileArtists(parsed.artists);
+
+    const matchedCount = parsed.artists.filter((a) => a.matched).length;
+    console.log(`Reconciliation complete: ${matchedCount}/${parsed.artists.length} matched`);
 
     return new Response(
       JSON.stringify({ success: true, data: parsed }),
