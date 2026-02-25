@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Camera, Loader2, AlertCircle, RotateCcw, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExtractedLineup {
   event_name: string;
@@ -24,6 +25,29 @@ const LineupUploadStep = ({ onExtracted, onBack }: LineupUploadStepProps) => {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /** Resize image to max 1600px on longest side and convert to JPEG to stay under edge function limits */
+  const compressImage = (file: File, maxDim = 1600, quality = 0.8): Promise<{ base64: string; mimeType: string }> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve({ base64: dataUrl.split(",")[1], mimeType: "image/jpeg" });
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+
   const handleFileSelect = async (file: File) => {
     setError(null);
 
@@ -42,10 +66,16 @@ const LineupUploadStep = ({ onExtracted, onBack }: LineupUploadStepProps) => {
     reader.onload = () => setPreview(reader.result as string);
     reader.readAsDataURL(file);
 
-    // Convert to base64
+    // Compress and send
     setIsProcessing(true);
     try {
-      const base64 = await fileToBase64(file);
+      const { base64, mimeType } = await compressImage(file);
+
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Please sign in to upload a lineup photo");
+      }
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-lineup-photo`,
@@ -53,11 +83,12 @@ const LineupUploadStep = ({ onExtracted, onBack }: LineupUploadStepProps) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             image_base64: base64,
-            mime_type: file.type,
+            mime_type: mimeType,
           }),
         }
       );
@@ -84,17 +115,6 @@ const LineupUploadStep = ({ onExtracted, onBack }: LineupUploadStepProps) => {
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Strip the data:...;base64, prefix
-        resolve(result.split(",")[1]);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
