@@ -53,7 +53,7 @@ export const useFestivalClaim = () => {
         date_precision: festival.date_start ? "exact" : "month",
       };
 
-      // 1. Look up canonical artist images (artists table first, then show_artists fallback)
+      // 1. Look up artist images (canonical artists table first, then show_artists fallback)
       const { data: knownArtists } = await supabase
         .from("artists")
         .select("name, image_url, id")
@@ -66,15 +66,19 @@ export const useFestivalClaim = () => {
         }
       });
 
-      // Fallback: for artists not found in canonical table, check show_artists
+      // Fallback: case-insensitive lookup in show_artists for artists still missing images
       const missingNames = newArtists.filter((n) => !artistImageMap.has(n.toLowerCase()));
       if (missingNames.length > 0) {
+        // Build an OR filter with ilike for case-insensitive matching
+        const ilikeFilter = missingNames
+          .map((n) => `artist_name.ilike.${n.replace(/[%_]/g, "")}`)
+          .join(",");
         const { data: saRows } = await supabase
           .from("show_artists")
           .select("artist_name, artist_image_url, artist_id")
-          .in("artist_name", missingNames)
+          .or(ilikeFilter)
           .not("artist_image_url", "is", null)
-          .limit(missingNames.length * 3);
+          .limit(missingNames.length * 5);
 
         // Pick first non-user-uploaded image per artist
         for (const row of saRows || []) {
@@ -133,21 +137,14 @@ export const useFestivalClaim = () => {
 
       if (artistError) throw artistError;
 
-      // Return all records (parent + sets) for success screen
-      const allInserted = [parent, ...insertedSets];
-      const addedShows: AddedShowData[] = allInserted.map((show, i) => ({
-        id: show.id,
-        artists: i === 0
-          ? newArtists.map((name, j) => ({
-              name,
-              isHeadliner: j === 0,
-              image_url: artistImageMap.get(name.toLowerCase())?.image_url || null,
-            }))
-          : [{
-              name: newArtists[i - 1],
-              isHeadliner: true,
-              image_url: artistImageMap.get(newArtists[i - 1].toLowerCase())?.image_url || null,
-            }],
+      // Return only child set records for success screen (skip parent to avoid duplicate artist chips)
+      const addedShows: AddedShowData[] = insertedSets.map((set, i) => ({
+        id: set.id,
+        artists: [{
+          name: newArtists[i],
+          isHeadliner: true,
+          image_url: artistImageMap.get(newArtists[i].toLowerCase())?.image_url || null,
+        }],
         venue: { name: venueName, location: venueLocation },
         date: showDate,
         rating: null,
