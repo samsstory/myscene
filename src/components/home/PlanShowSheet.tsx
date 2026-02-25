@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,39 +6,11 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Ticket, Loader2, Music, Calendar, MapPin, Sparkles, ImagePlus, X, Link2, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { usePlanUpcomingShow, type ParsedUpcomingEvent, type SaveUpcomingShowData } from "@/hooks/usePlanUpcomingShow";
+import { useArtistSearch } from "@/hooks/useArtistSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface ArtistSuggestion {
-  id: string;
-  name: string;
-  imageUrl?: string;
-  genres?: string[];
-}
-
-function useArtistSearch(query: string) {
-  const [suggestions, setSuggestions] = useState<ArtistSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    if (query.trim().length < 2) { setSuggestions([]); return; }
-    setIsSearching(true);
-    const timer = setTimeout(async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("search-artists", {
-          body: { searchTerm: query.trim() },
-        });
-        if (!error) setSuggestions(data?.artists || []);
-      } catch { /* silent */ } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  return { suggestions, isSearching, clearSuggestions: () => setSuggestions([]) };
-}
 
 interface PlanShowSheetProps {
   open: boolean;
@@ -102,7 +74,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const [manualArtistImageUrl, setManualArtistImageUrl] = useState<string | undefined>(undefined);
 
   // Spotify artist search for manual entry
-  const { suggestions: artistSuggestions, isSearching: isArtistSearching, clearSuggestions } = useArtistSearch(
+  const { results: artistSuggestions, isSearching: isArtistSearching, clearResults: clearSuggestions } = useArtistSearch(
     stage === "manual" ? editArtist : ""
   );
 
