@@ -1,15 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
-
-// Dynamically inject Mapbox CSS only when the map component mounts,
-// keeping it out of the critical CSS path on all pages.
-if (typeof document !== "undefined" && !document.getElementById("mapbox-gl-css")) {
-  const link = document.createElement("link");
-  link.id = "mapbox-gl-css";
-  link.rel = "stylesheet";
-  link.href = "https://api.mapbox.com/mapbox-gl-js/v3.16.0/mapbox-gl.css";
-  document.head.appendChild(link);
-}
+import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {

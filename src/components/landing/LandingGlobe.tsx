@@ -1,15 +1,6 @@
 import { useEffect, useRef, useMemo, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
-
-// Dynamically inject Mapbox CSS to keep it out of the critical CSS path
-// and avoid it being a render-blocking resource on the landing page.
-if (typeof document !== "undefined" && !document.getElementById("mapbox-gl-css")) {
-  const link = document.createElement("link");
-  link.id = "mapbox-gl-css";
-  link.rel = "stylesheet";
-  link.href = "https://api.mapbox.com/mapbox-gl-js/v3.16.0/mapbox-gl.css";
-  document.head.appendChild(link);
-}
+import "mapbox-gl/dist/mapbox-gl.css";
 import {
   generateArcPath,
   createMultiArcGeoJSON,
