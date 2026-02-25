@@ -53,42 +53,28 @@ export const useFestivalClaim = () => {
         date_precision: festival.date_start ? "exact" : "month",
       };
 
-      // 1. Look up artist images (canonical artists table first, then show_artists fallback)
-      const { data: knownArtists } = await supabase
-        .from("artists")
-        .select("name, image_url, id")
-        .in("name", newArtists);
-
+      // 1. Look up artist images via batch edge function (DB + Spotify fallback)
       const artistImageMap = new Map<string, { image_url: string | null; id: string | null }>();
-      (knownArtists || []).forEach((a) => {
-        if (a.image_url) {
-          artistImageMap.set(a.name.toLowerCase(), { image_url: a.image_url, id: a.id });
-        }
-      });
-
-      // Fallback: case-insensitive lookup in show_artists for artists still missing images
-      const missingNames = newArtists.filter((n) => !artistImageMap.has(n.toLowerCase()));
-      if (missingNames.length > 0) {
-        // Build an OR filter with ilike for case-insensitive matching
-        const ilikeFilter = missingNames
-          .map((n) => `artist_name.ilike.${n.replace(/[%_]/g, "")}`)
-          .join(",");
-        const { data: saRows } = await supabase
-          .from("show_artists")
-          .select("artist_name, artist_image_url, artist_id")
-          .or(ilikeFilter)
-          .not("artist_image_url", "is", null)
-          .limit(missingNames.length * 5);
-
-        // Pick first non-user-uploaded image per artist
-        for (const row of saRows || []) {
-          const key = row.artist_name.toLowerCase();
-          if (artistImageMap.has(key)) continue;
-          const url = row.artist_image_url;
-          if (url && !url.includes("show-photos") && !url.includes("lovable.app/images/") && !url.includes("lovableproject.com/images/")) {
-            artistImageMap.set(key, { image_url: url, id: row.artist_id || null });
+      try {
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/batch-artist-images`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ names: newArtists }),
+          }
+        );
+        if (resp.ok) {
+          const { artists: resolved } = await resp.json();
+          for (const [key, val] of Object.entries(resolved as Record<string, { image_url: string; spotify_id: string | null }>)) {
+            artistImageMap.set(key.toLowerCase(), { image_url: val.image_url, id: null });
           }
         }
+      } catch (err) {
+        console.warn("batch-artist-images lookup failed, continuing without images:", err);
       }
 
       // 2. Create parent festival record
