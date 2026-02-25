@@ -127,15 +127,15 @@ export default function VSHeroWidget({
             damping: 15,
             delay: 0.1,
           }}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10
-            w-12 h-12 rounded-full flex items-center justify-center
+          className="absolute left-1/2 top-[calc(50%-1rem)] -translate-x-1/2 -translate-y-1/2 z-10
+            w-6 h-6 rounded-full flex items-center justify-center
             bg-gradient-to-br from-[#00D9FF] to-[#7B61FF]
             -rotate-[5deg]"
           style={{
-            boxShadow: "0 0 20px rgba(0,217,255,0.4)",
+            boxShadow: "0 0 12px rgba(0,217,255,0.4)",
           }}
         >
-          <span className="text-white font-bold text-sm">VS</span>
+          <span className="text-white font-bold text-[10px]">VS</span>
         </motion.div>
 
         <RankingCard
