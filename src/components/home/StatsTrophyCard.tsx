@@ -1,7 +1,9 @@
+import { useState, useEffect, useMemo } from "react";
 import { Music, MapPin, CalendarPlus, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import CountUp from "./CountUp";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getComparisonsForMiles } from "@/lib/distance-comparisons";
 
 interface TopArtist {
   name: string;
@@ -27,6 +29,21 @@ export default function StatsTrophyCard({
   isLoading,
   onAddShow,
 }: StatsTrophyCardProps) {
+  const [comparisonIndex, setComparisonIndex] = useState(0);
+  const comparisons = useMemo(
+    () => (milesDanced !== null && milesDanced > 0 ? getComparisonsForMiles(Math.round(milesDanced)) : []),
+    [milesDanced]
+  );
+
+  useEffect(() => {
+    if (comparisons.length <= 1) return;
+    setComparisonIndex(0);
+    const interval = setInterval(() => {
+      setComparisonIndex((prev) => (prev + 1) % comparisons.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [comparisons]);
+
   if (isLoading) {
     return (
       <div className="stats-trophy-wrapper rounded-2xl p-[1px]">
@@ -180,7 +197,23 @@ export default function StatsTrophyCard({
             </div>
           )}
 
-          {/* Top Artists */}
+          {/* Distance comparison tagline */}
+          {comparisons.length > 0 && (
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={comparisonIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-sm text-cyan-400/80 italic"
+              >
+                {comparisons[comparisonIndex]}
+              </motion.p>
+            </AnimatePresence>
+          )}
+
+
           {topArtists.length > 0 && (
             <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">🏆</span>
