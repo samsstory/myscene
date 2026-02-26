@@ -205,40 +205,36 @@ const UniversalSearchSection = React.memo(function UniversalSearchSection() {
 
 interface ForwardingCardProps {
   address: string;
-  displayAddress: string;
 }
 
-const ForwardingCard = React.memo<ForwardingCardProps>(function ForwardingCard({ address, displayAddress }) {
+const ForwardingCard = React.memo<ForwardingCardProps>(function ForwardingCard({ address }) {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(address);
-    toast.success("Copied!");
+    toast.success(`Copied: ${address}`);
   }, [address]);
 
   return (
-    <motion.button
+    <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
-      onClick={handleCopy}
-      className="w-full text-left rounded-2xl border border-white/[0.12] p-5 space-y-2.5 transition-colors hover:border-white/[0.20] active:scale-[0.99]"
+      className="rounded-2xl border border-white/[0.12] p-5 space-y-3"
       style={{
-        background: "linear-gradient(135deg, hsl(270 50% 50% / 0.12), hsl(210 70% 50% / 0.08), hsl(185 70% 50% / 0.12))",
+        background: "linear-gradient(135deg, hsl(270 50% 50% / 0.10), hsl(210 70% 50% / 0.06), hsl(185 70% 50% / 0.10))",
       }}
-      aria-label="Copy forwarding address"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "hsl(185 70% 60%)" }}>
-        Found them? Forward to
+      <p className="text-sm font-semibold text-foreground">Ready to forward your tickets?</p>
+      <Button
+        onClick={handleCopy}
+        className="w-full h-12 rounded-xl gap-2 text-sm font-semibold bg-primary hover:bg-primary/90"
+      >
+        <Copy className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+        Copy Scene Address
+      </Button>
+      <p className="text-[11px] text-muted-foreground/60 leading-relaxed text-center">
+        Paste this into the <span className="font-medium text-foreground/70">To:</span> field and send all your emails that appear when you search — we'll automatically filter out non-show confirmations.
       </p>
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-mono text-foreground break-all flex-1 leading-relaxed">
-          {displayAddress}
-        </span>
-        <div className="flex-shrink-0 h-9 w-9 rounded-lg bg-white/[0.08] flex items-center justify-center">
-          <Copy className="h-4 w-4 text-foreground/70" strokeWidth={1.5} />
-        </div>
-      </div>
-      <p className="text-[11px] text-muted-foreground/50">Tap to copy</p>
-    </motion.button>
+    </motion.div>
   );
 });
 
@@ -247,37 +243,24 @@ const ForwardingCard = React.memo<ForwardingCardProps>(function ForwardingCard({
 const EmailImportScreen: React.FC<EmailImportScreenProps> = ({ userId, onManualEntry }) => {
   const forwardingAddress = `add+${userId}@tryscene.app`;
 
-  const displayAddress = useMemo(() => {
-    if (userId.length <= 12) return forwardingAddress;
-    return `add+${userId.slice(0, 8)}…${userId.slice(-4)}@tryscene.app`;
-  }, [userId, forwardingAddress]);
-
   return (
     <div className="space-y-5 pb-4">
-      {/* Conversational subheader */}
       <p className="text-xs text-muted-foreground/70 leading-relaxed">
         We'll search your email for tickets from Ticketmaster, Dice, StubHub, and 50+ platforms — then extract the details automatically.
       </p>
 
-      {/* 3-Step Diagram (top) */}
       <StepFlowDiagram />
+
+      <ForwardingCard address={forwardingAddress} />
 
       <div className="border-t border-white/[0.06]" />
 
-      {/* Gmail Section */}
       <GmailSection />
 
       <div className="border-t border-white/[0.06]" />
 
-      {/* Universal Search */}
       <UniversalSearchSection />
 
-      <div className="border-t border-white/[0.06]" />
-
-      {/* Forwarding Card */}
-      <ForwardingCard address={forwardingAddress} displayAddress={displayAddress} />
-
-      {/* Manual fallback */}
       <button
         onClick={onManualEntry}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors w-full"
