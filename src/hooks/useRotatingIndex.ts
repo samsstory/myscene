@@ -19,16 +19,16 @@ export function useRotatingIndex(
     }
     setIndex(0);
 
+    let cleanupRef: (() => void) | null = null;
+
     const timeout = setTimeout(() => {
       setIndex((prev) => (prev + 1) % length);
       const interval = setInterval(() => {
         setIndex((prev) => (prev + 1) % length);
       }, intervalMs);
-      // Store cleanup for interval inside the timeout callback
       cleanupRef = () => clearInterval(interval);
     }, delayMs);
 
-    let cleanupRef: (() => void) | null = null;
     return () => {
       clearTimeout(timeout);
       cleanupRef?.();
