@@ -1,37 +1,15 @@
 
 
-## Plan: Optimize Spotify Circuit Breaker (#1 + #2)
+## URL Length Check — Result
 
-### What changes
-Two edge functions contain identical circuit breaker logic that caps the cooldown at **14,400s (4 hours)** regardless of the actual `Retry-After` header. We'll fix both.
+The fully constructed Gmail search URL with all 26 domains is approximately **630 characters**. This is well under the ~2000-character safe limit for browser address bars, leaving over 1300 characters of headroom.
 
-**Files to edit:**
-- `supabase/functions/batch-artist-images/index.ts`
-- `supabase/functions/unified-search/index.ts`
+**No changes needed to the plan.** All 26 domains stay in the Gmail button URLs.
 
-### Changes per file
-
-**`tripSpotifyBreaker` function** — replace the hardcoded 4-hour cap with:
-- Use the actual `Retry-After` header value when present (Spotify typically sends 1–60s)
-- Default to **30 seconds** when no header is present (instead of 60s)
-- Cap at **120 seconds** max (instead of 14,400s) — enough to respect Spotify's sliding window without blocking for hours
-
+For reference, the constructed URL:
 ```text
-Before:  const retryAfterSec = parseInt(retryAfterHeader || '60', 10);
-         const cappedSec = Math.min(retryAfterSec, 14400);
-
-After:   const retryAfterSec = parseInt(retryAfterHeader || '30', 10);
-         const cappedSec = Math.min(Math.max(retryAfterSec, 5), 120);
+https://mail.google.com/mail/u/0/#search/from%3A(ticketmaster.com+OR+livenation.com+OR+axs.com+OR+dice.fm+OR+posh.vip+OR+shotgun.live+OR+eventbrite.com+OR+tixr.com+OR+seetickets.com+OR+stubhub.com+OR+seatgeek.com+OR+vividseats.com+OR+tickpick.com+OR+etix.com+OR+ticketweb.com+OR+frontgatetickets.com+OR+insomniac.com+OR+universe.com+OR+showclix.com+OR+fixr.co+OR+ra.co+OR+skiddle.com+OR+ticketek.com+OR+eventim.de+OR+billetto.com+OR+vivenu.com)+subject%3A(order+OR+confirmation+OR+tickets+OR+admission+OR+transfer)
 ```
 
-This means:
-- Floor of 5 seconds (avoid zero-second breakers)
-- Ceiling of 2 minutes (instead of 4 hours)
-- Spotify's actual `Retry-After` is respected between those bounds
-
-### Scope
-- Two files, same ~3-line change in each
-- No database changes
-- No frontend changes
-- Edge functions auto-deploy
+**Length: ~630 chars** — 68% headroom remaining. Ready to implement.
 
