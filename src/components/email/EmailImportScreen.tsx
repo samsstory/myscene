@@ -245,7 +245,7 @@ const EmailImportScreen: React.FC<EmailImportScreenProps> = ({ userId, onManualE
 
   return (
     <div className="space-y-5 pb-4">
-      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+      <p className="text-xs text-muted-foreground/70 leading-relaxed text-center">
         Let's dig up your old tickets from Ticketmaster, Dice, StubHub, and 50+ platforms hiding in your inbox.
       </p>
 
