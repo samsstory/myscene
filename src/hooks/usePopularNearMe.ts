@@ -18,7 +18,14 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "set", geoScope: GeoScope = "city") {
+export function usePopularNearMe(
+  enabled: boolean,
+  showType: ShowTypeFilter = "set",
+  geoScope: GeoScope = "city",
+  overrideLat?: number | null,
+  overrideLng?: number | null,
+  overrideCity?: string | null,
+) {
   const [items, setItems] = useState<PopularItem[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,9 +51,11 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
 
       if (cancelled) return;
 
-      const homeLat = profile?.home_latitude ? Number(profile.home_latitude) : null;
-      const homeLng = profile?.home_longitude ? Number(profile.home_longitude) : null;
-      if (profile?.home_city) setCityName(profile.home_city);
+      // Use override coords/city if provided, otherwise fall back to profile
+      const homeLat = overrideLat ?? (profile?.home_latitude ? Number(profile.home_latitude) : null);
+      const homeLng = overrideLng ?? (profile?.home_longitude ? Number(profile.home_longitude) : null);
+      const resolvedCity = overrideCity ?? profile?.home_city ?? null;
+      if (resolvedCity) setCityName(resolvedCity);
 
       if (geoScope !== "world" && (!homeLat || !homeLng)) {
         setHasLocation(false);
@@ -327,7 +336,7 @@ export function usePopularNearMe(enabled: boolean, showType: ShowTypeFilter = "s
 
     load();
     return () => { cancelled = true; };
-  }, [enabled, showType, geoScope]);
+  }, [enabled, showType, geoScope, overrideLat, overrideLng, overrideCity]);
 
   return { items, totalUsers, isLoading, hasLocation, cityName, countryName };
 }

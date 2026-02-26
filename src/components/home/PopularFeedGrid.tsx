@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Zap, ChevronDown, MapPin, Globe, Map } from "lucide-react";
+import { Users, Plus, Zap, ChevronDown, MapPin, Globe, Map, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { MAPBOX_TOKEN } from "@/lib/mapbox";
 import type { PopularItem, ShowTypeFilter } from "@/hooks/usePopularShows";
 import type { GeoScope } from "@/hooks/usePopularNearMe";
+
+export interface CityOverride {
+  name: string;
+  lat: number;
+  lng: number;
+}
 
 interface PopularFeedGridProps {
   items: PopularItem[];
@@ -18,6 +26,7 @@ interface PopularFeedGridProps {
   onGeoScopeChange: (scope: GeoScope) => void;
   cityName?: string | null;
   countryName?: string | null;
+  onCityOverride?: (city: CityOverride | null) => void;
 }
 
 const TYPE_PILLS: { id: ShowTypeFilter; label: string }[] = [
@@ -36,8 +45,13 @@ function getTitle(): string {
   return "The Scene Charts";
 }
 
+/** Extract short city name: "Los Angeles, California, United States" → "Los Angeles" */
+function shortCity(full: string): string {
+  return full.split(",")[0].trim() || full;
+}
+
 function getGeoLabel(geoScope: GeoScope, cityName?: string | null, countryName?: string | null): string {
-  if (geoScope === "city" && cityName) return cityName;
+  if (geoScope === "city" && cityName) return shortCity(cityName);
   if (geoScope === "country" && countryName) return countryName;
   return GEO_OPTIONS.find(g => g.id === geoScope)?.label ?? "Nearby";
 }
@@ -117,39 +131,107 @@ function GeoDropdown({
   onChange,
   cityName,
   countryName,
+  onCityOverride,
 }: {
   geoScope: GeoScope;
   onChange: (s: GeoScope) => void;
   cityName?: string | null;
   countryName?: string | null;
+  onCityOverride?: (city: CityOverride | null) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<CityOverride[]>([]);
+  const [searching, setSearching] = useState(false);
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const label = getGeoLabel(geoScope, cityName, countryName);
 
+  const searchCity = useCallback((q: string) => {
+    setQuery(q);
+    if (timeout.current) clearTimeout(timeout.current);
+    if (q.length < 2) { setSuggestions([]); return; }
+    timeout.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=place&limit=5&access_token=${MAPBOX_TOKEN}`
+        );
+        const data = await res.json();
+        setSuggestions((data.features || []).map((f: any) => ({
+          name: f.place_name,
+          lat: f.center[1],
+          lng: f.center[0],
+        })));
+      } catch { setSuggestions([]); }
+      finally { setSearching(false); }
+    }, 300);
+  }, []);
+
+  const selectCity = (city: CityOverride) => {
+    onCityOverride?.(city);
+    onChange("city");
+    setOpen(false);
+    setQuery("");
+    setSuggestions([]);
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setQuery(""); setSuggestions([]); } }}>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.1em] font-semibold text-white/40 hover:text-white/60 transition-colors">
+        <button className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.1em] font-semibold text-muted-foreground hover:text-foreground/60 transition-colors">
           Showing: {label}
           <ChevronDown className="h-3 w-3" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-44 p-1.5 bg-card border-white/[0.08]" align="start" sideOffset={6}>
+      <PopoverContent className="w-56 p-1.5 bg-card border-border z-50" align="start" sideOffset={6}>
+        {/* City search input */}
+        <div className="relative mb-1.5">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => searchCity(e.target.value)}
+            placeholder="Search city…"
+            className="h-7 text-xs bg-muted/50 border-border text-foreground placeholder:text-muted-foreground pl-7 pr-3"
+          />
+        </div>
+
+        {/* Search results */}
+        {searching && (
+          <div className="flex justify-center py-2">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {suggestions.length > 0 && (
+          <div className="mb-1.5 max-h-36 overflow-y-auto rounded-lg border border-border bg-background">
+            {suggestions.map((city, i) => (
+              <button
+                key={i}
+                onClick={() => selectCity(city)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-foreground/70 hover:bg-muted transition-colors border-b border-border last:border-b-0"
+              >
+                <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="truncate">{city.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Geo scope options */}
         {GEO_OPTIONS.map((opt) => {
           const Icon = opt.icon;
           const isActive = geoScope === opt.id;
-          const displayLabel = opt.id === "city" && cityName ? cityName
+          const displayLabel = opt.id === "city" && cityName ? shortCity(cityName)
             : opt.id === "country" && countryName ? countryName
             : opt.label;
           return (
             <button
               key={opt.id}
-              onClick={() => { onChange(opt.id); setOpen(false); }}
+              onClick={() => { onChange(opt.id); setOpen(false); setQuery(""); setSuggestions([]); }}
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors",
                 isActive
                   ? "bg-primary/15 text-primary"
-                  : "text-white/50 hover:bg-white/[0.06] hover:text-white/70"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground/70"
               )}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -157,6 +239,16 @@ function GeoDropdown({
             </button>
           );
         })}
+
+        {/* Reset to home city */}
+        {onCityOverride && (
+          <button
+            onClick={() => { onCityOverride(null); onChange("city"); setOpen(false); }}
+            className="w-full text-[10px] text-primary/60 hover:text-primary py-1.5 transition-colors"
+          >
+            Reset to home city
+          </button>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -195,6 +287,7 @@ export default function PopularFeedGrid({
   onGeoScopeChange,
   cityName,
   countryName,
+  onCityOverride,
 }: PopularFeedGridProps) {
   const title = getTitle();
 
@@ -208,7 +301,7 @@ export default function PopularFeedGrid({
 
       {/* Filter row */}
       <div className="flex items-center gap-2 flex-wrap">
-        <GeoDropdown geoScope={geoScope} onChange={onGeoScopeChange} cityName={cityName} countryName={countryName} />
+        <GeoDropdown geoScope={geoScope} onChange={onGeoScopeChange} cityName={cityName} countryName={countryName} onCityOverride={onCityOverride} />
         <div className="w-px h-4 bg-white/[0.08]" />
         <SubTabs active={showType} onChange={onShowTypeChange} />
       </div>
