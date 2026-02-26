@@ -64,18 +64,18 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
 
   // Post-fetch enrichment: resolve missing artist images
   const enrichMissingImages = useCallback(async (mapped: EdmtrainEvent[]) => {
-    // Collect artist names from events with no image, skip already-enriched
+    // Only collect names from events that truly have NO image at all
     const namesNeeded: string[] = [];
-    const eventsByArtist = new Map<string, EdmtrainEvent[]>();
+    const seenNames = new Set<string>();
 
     for (const ev of mapped) {
+      // Skip events that already have an artist image — no enrichment needed
       if (ev.artist_image_url) continue;
       for (const a of ev.artists) {
         const lower = a.name.toLowerCase();
-        if (enrichedRef.current.has(lower)) continue;
+        if (enrichedRef.current.has(lower) || seenNames.has(lower)) continue;
+        seenNames.add(lower);
         namesNeeded.push(a.name);
-        if (!eventsByArtist.has(lower)) eventsByArtist.set(lower, []);
-        eventsByArtist.get(lower)!.push(ev);
       }
     }
 
