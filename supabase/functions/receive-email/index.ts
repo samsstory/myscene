@@ -1,6 +1,65 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Decode base64 content safely
+function decodeBase64(str: string): string {
+  try {
+    return atob(str);
+  } catch {
+    return '';
+  }
+}
+
+// Extract text/html from a raw .eml (MIME) string
+function extractTextFromEml(eml: string): { text: string; html: string } {
+  let text = '';
+  let html = '';
+
+  const boundaryMatch = eml.match(/boundary="?([^\s"]+)"?/);
+  if (!boundaryMatch) {
+    // Not multipart — treat entire body (after headers) as plain text
+    const headerEnd = eml.indexOf('\n\n');
+    return { text: headerEnd > -1 ? eml.slice(headerEnd + 2) : eml, html: '' };
+  }
+
+  const boundary = boundaryMatch[1];
+  const parts = eml.split(`--${boundary}`);
+
+  for (const part of parts) {
+    const isPlain = /Content-Type:\s*text\/plain/i.test(part);
+    const isHtml = /Content-Type:\s*text\/html/i.test(part);
+
+    if (!isPlain && !isHtml) continue;
+
+    // Body starts after the first blank line in the MIME part
+    const bodyStart = part.indexOf('\n\n');
+    if (bodyStart === -1) continue;
+
+    let body = part.slice(bodyStart + 2).trim();
+
+    // Handle quoted-printable decoding
+    if (/Content-Transfer-Encoding:\s*quoted-printable/i.test(part)) {
+      body = body
+        .replace(/=\r?\n/g, '')                       // soft line breaks
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>    // encoded chars
+          String.fromCharCode(parseInt(hex, 16))
+        );
+    }
+
+    // Handle base64-encoded MIME parts
+    if (/Content-Transfer-Encoding:\s*base64/i.test(part)) {
+      try {
+        body = atob(body.replace(/\s/g, ''));
+      } catch { /* leave as-is */ }
+    }
+
+    if (isPlain) text += body + '\n';
+    if (isHtml) html += body + '\n';
+  }
+
+  return { text, html };
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
@@ -20,9 +79,29 @@ serve(async (req) => {
 
     const from = payload.From || payload.FromFull?.Email || '';
     const subject = payload.Subject || '';
-    const textBody: string = payload.TextBody || '';
-    const htmlBody: string = payload.HtmlBody || '';
+    let textBody: string = payload.TextBody || '';
+    let htmlBody: string = payload.HtmlBody || '';
     const toAddress: string = payload.To || '';
+
+    // Process .eml attachments (Gmail "forward as attachment")
+    const attachments: Array<{ Name: string; Content: string; ContentType: string }> =
+      payload.Attachments || [];
+
+    for (const att of attachments) {
+      const isEml =
+        att.Name?.endsWith('.eml') ||
+        att.ContentType?.includes('message/rfc822');
+
+      if (!isEml) continue;
+
+      console.log('Processing .eml attachment:', att.Name);
+      const decoded = decodeBase64(att.Content);
+      if (!decoded) continue;
+
+      const { text, html } = extractTextFromEml(decoded);
+      if (text) textBody += `\n\n--- Forwarded Email (${att.Name}) ---\n\n${text}`;
+      if (html) htmlBody += `\n\n<!-- Forwarded: ${att.Name} -->\n${html}`;
+    }
 
     // Extract userId from recipient: {userId}@add.tryscene.app
     const toMatch = toAddress.match(/([a-f0-9-]{36})@add\.tryscene\.app/i);
