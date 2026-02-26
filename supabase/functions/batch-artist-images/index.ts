@@ -57,8 +57,8 @@ serve(async (req) => {
       });
     }
 
-    // Cap at 30 to stay within reasonable Spotify rate limits
-    const artistNames: string[] = names.slice(0, 20);
+    // Cap at 50 — single consolidated call from client
+    const artistNames: string[] = names.slice(0, 50);
 
     // 1. Check show_artists table first (cheapest)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
