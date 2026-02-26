@@ -11,11 +11,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  try {
     // Fetch artists with NULL image_url, limit to 50 per run
     const { data: artists, error } = await supabase
       .from('artists')
@@ -25,6 +25,7 @@ serve(async (req) => {
 
     if (error) {
       console.error('[backfill-artist-images] DB query error:', error.message);
+      await logRun(supabase, 0, 0, 'cron', { error: error.message });
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -33,6 +34,7 @@ serve(async (req) => {
 
     if (!artists || artists.length === 0) {
       console.log('[backfill-artist-images] No artists with NULL image_url — nothing to do');
+      await logRun(supabase, 0, 0, 'cron', { message: 'catalog fully enriched' });
       return new Response(JSON.stringify({ message: 'No artists to backfill', processed: 0 }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -55,6 +57,7 @@ serve(async (req) => {
     if (!resp.ok) {
       const text = await resp.text();
       console.error(`[backfill-artist-images] batch-artist-images returned ${resp.status}: ${text}`);
+      await logRun(supabase, names.length, 0, 'cron', { error: `batch call failed: ${resp.status}` });
       return new Response(JSON.stringify({ error: `batch call failed: ${resp.status}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,6 +70,9 @@ serve(async (req) => {
     ).length;
 
     console.log(`[backfill-artist-images] Enriched ${enrichedCount}/${names.length} artists`);
+    await logRun(supabase, names.length, enrichedCount, 'cron', {
+      artist_names: names.slice(0, 10),
+    });
 
     return new Response(
       JSON.stringify({
@@ -78,9 +84,29 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error('[backfill-artist-images] Error:', err);
+    await logRun(supabase, 0, 0, 'cron', { error: err instanceof Error ? err.message : 'Unknown' });
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+
+async function logRun(
+  supabase: ReturnType<typeof createClient>,
+  requested: number,
+  enriched: number,
+  source: string,
+  details: Record<string, unknown>
+) {
+  try {
+    await supabase.from('backfill_logs').insert({
+      requested,
+      enriched,
+      source,
+      details,
+    });
+  } catch (e) {
+    console.error('[backfill-artist-images] Failed to write log:', e);
+  }
+}

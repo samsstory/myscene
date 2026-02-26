@@ -89,6 +89,33 @@ export type Database = {
         }
         Relationships: []
       }
+      backfill_logs: {
+        Row: {
+          details: Json | null
+          enriched: number
+          id: string
+          requested: number
+          run_at: string
+          source: string
+        }
+        Insert: {
+          details?: Json | null
+          enriched?: number
+          id?: string
+          requested?: number
+          run_at?: string
+          source?: string
+        }
+        Update: {
+          details?: Json | null
+          enriched?: number
+          id?: string
+          requested?: number
+          run_at?: string
+          source?: string
+        }
+        Relationships: []
+      }
       bug_reports: {
         Row: {
           created_at: string
