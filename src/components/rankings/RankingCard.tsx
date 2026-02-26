@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { DbArtist, DbShow } from "@/types/show";
 import { getB2bTextSize } from "@/lib/b2b-utils";
@@ -14,7 +15,24 @@ interface RankingCardProps {
   isExpanded?: boolean;
 }
 
-const RankingCard = ({ 
+/* Hoisted style constants for referential stability */
+const placeholderGlowCyan: React.CSSProperties = {
+  background: "radial-gradient(ellipse at 20% 20%, hsl(189 94% 55% / 0.15) 0%, transparent 50%)"
+};
+const placeholderGlowCoral: React.CSSProperties = {
+  background: "radial-gradient(ellipse at 80% 80%, hsl(17 88% 60% / 0.15) 0%, transparent 50%)"
+};
+const noiseSvgStyle: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+};
+const sparkleTextShadow: React.CSSProperties = {
+  textShadow: '0 0 12px rgba(255,255,255,0.4), 0 0 24px rgba(255,255,255,0.2)'
+};
+const artistNameShadow: React.CSSProperties = {
+  textShadow: '0 2px 8px rgba(0,0,0,0.5)'
+};
+
+const RankingCard = memo(function RankingCard({ 
   show, 
   onClick, 
   disabled, 
@@ -23,24 +41,36 @@ const RankingCard = ({
   isLoser = false,
   animationKey = 0,
   isExpanded = false
-}: RankingCardProps) => {
+}: RankingCardProps) {
   const isB2b = show.show_type === "b2b";
-  const b2bArtists = isB2b ? show.artists.filter(a => a.is_headliner) : [];
-  const headliner = show.artists.find(a => a.is_headliner);
-  const artistName = isB2b && b2bArtists.length > 1
-    ? b2bArtists.map(a => a.artist_name).join(" b2b ")
-    : headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
-  const artistImageUrl = headliner?.artist_image_url || show.artists[0]?.artist_image_url || null;
-  const displayPhoto = show.photo_url || artistImageUrl;
+  const b2bArtists = useMemo(
+    () => isB2b ? show.artists.filter(a => a.is_headliner) : [],
+    [isB2b, show.artists]
+  );
+
+  const artistName = useMemo(() => {
+    if (isB2b && b2bArtists.length > 1) {
+      return b2bArtists.map(a => a.artist_name).join(" b2b ");
+    }
+    const headliner = show.artists.find(a => a.is_headliner);
+    return headliner?.artist_name || show.artists[0]?.artist_name || "Unknown";
+  }, [isB2b, b2bArtists, show.artists]);
+
+  const displayPhoto = useMemo(() => {
+    const headliner = show.artists.find(a => a.is_headliner);
+    const artistImageUrl = headliner?.artist_image_url || show.artists[0]?.artist_image_url || null;
+    return show.photo_url || artistImageUrl;
+  }, [show.photo_url, show.artists]);
+
+  const venueShort = useMemo(
+    () => show.venue_name.length > 18 ? show.venue_name.substring(0, 16) + "..." : show.venue_name,
+    [show.venue_name]
+  );
   
-  const venueShort = show.venue_name.length > 18 
-    ? show.venue_name.substring(0, 16) + "..." 
-    : show.venue_name;
-  
-  const dateFormatted = new Date(show.show_date).toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-  });
+  const dateFormatted = useMemo(
+    () => new Date(show.show_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+    [show.show_date]
+  );
 
   const tags = show.tags || [];
   const displayTags = isExpanded ? tags : tags.slice(0, 3);
@@ -93,31 +123,11 @@ const RankingCard = ({
             />
           ) : (
             <div className="w-full h-full relative overflow-hidden bg-[hsl(var(--background))]">
-              <div 
-                className="absolute inset-0 animate-pulse-glow"
-                style={{
-                  background: "radial-gradient(ellipse at 20% 20%, hsl(189 94% 55% / 0.15) 0%, transparent 50%)"
-                }}
-              />
-              <div 
-                className="absolute inset-0"
-                style={{
-                  background: "radial-gradient(ellipse at 80% 80%, hsl(17 88% 60% / 0.15) 0%, transparent 50%)"
-                }}
-              />
-              <div 
-                className="absolute inset-0 opacity-[0.03]"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
-                }}
-              />
+              <div className="absolute inset-0 animate-pulse-glow" style={placeholderGlowCyan} />
+              <div className="absolute inset-0" style={placeholderGlowCoral} />
+              <div className="absolute inset-0 opacity-[0.03]" style={noiseSvgStyle} />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span 
-                  className="text-5xl text-white/40 animate-pulse-glow"
-                  style={{ 
-                    textShadow: '0 0 12px rgba(255,255,255,0.4), 0 0 24px rgba(255,255,255,0.2)' 
-                  }}
-                >
+                <span className="text-5xl text-white/40 animate-pulse-glow" style={sparkleTextShadow}>
                   ✦
                 </span>
               </div>
@@ -131,7 +141,7 @@ const RankingCard = ({
                 "font-bold text-white leading-tight truncate",
                 isB2b && b2bArtists.length >= 3 ? "text-sm" : "text-lg"
               )}
-                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+              style={artistNameShadow}>
               {artistName}
             </h3>
             <p className="text-white/70 text-xs mt-0.5">
@@ -172,6 +182,15 @@ const RankingCard = ({
       </div>
     </button>
   );
-};
+}, (prev, next) =>
+  prev.show.id === next.show.id &&
+  prev.animationKey === next.animationKey &&
+  prev.isWinner === next.isWinner &&
+  prev.isLoser === next.isLoser &&
+  prev.isExpanded === next.isExpanded &&
+  prev.disabled === next.disabled &&
+  prev.position === next.position &&
+  prev.onClick === next.onClick
+);
 
 export default RankingCard;
