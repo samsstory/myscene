@@ -6,6 +6,36 @@ import type { Artist, Show, ShowRanking } from "@/types/show";
 
 export type { Artist, Show, ShowRanking };
 
+/** Shape returned by the nested select query */
+interface ShowArtistRow {
+  artist_name: string;
+  is_headliner: boolean;
+  artist_image_url: string | null;
+  spotify_artist_id: string | null;
+}
+
+interface ShowTagRow {
+  tag: string;
+}
+
+interface ShowQueryRow {
+  id: string;
+  venue_name: string;
+  venue_location: string | null;
+  show_date: string;
+  date_precision: string;
+  notes: string | null;
+  venue_id: string | null;
+  photo_url: string | null;
+  photo_declined: boolean;
+  event_name: string | null;
+  event_description: string | null;
+  show_type: string;
+  venues: { latitude: number | null; longitude: number | null } | null;
+  show_artists: ShowArtistRow[];
+  show_tags: ShowTagRow[];
+}
+
 interface UseShowsOptions {
   /** Called after realtime changes to refresh external stats */
   onRealtimeChange?: () => void;
@@ -44,9 +74,9 @@ export function useShows({ onRealtimeChange }: UseShowsOptions = {}) {
         setRankings(rankingsData || []);
       }
 
-      const showsWithArtists = (showsData || []).map((show) => ({
+      const showsWithArtists = (showsData as unknown as ShowQueryRow[] || []).map((show) => ({
         id: show.id,
-        artists: ((show as any).show_artists || []).map((a: any) => ({
+        artists: (show.show_artists || []).map((a) => ({
           name: a.artist_name,
           isHeadliner: a.is_headliner,
           imageUrl: a.artist_image_url || undefined,
@@ -55,7 +85,7 @@ export function useShows({ onRealtimeChange }: UseShowsOptions = {}) {
         venue: { name: show.venue_name, location: show.venue_location || '' },
         date: show.show_date,
         datePrecision: show.date_precision,
-        tags: ((show as any).show_tags || []).map((t: any) => t.tag),
+        tags: (show.show_tags || []).map((t) => t.tag),
         notes: show.notes,
         venueId: show.venue_id,
         latitude: show.venues?.latitude,
@@ -63,7 +93,7 @@ export function useShows({ onRealtimeChange }: UseShowsOptions = {}) {
         photo_url: show.photo_url,
         photo_declined: show.photo_declined,
         eventName: show.event_name,
-        eventDescription: (show as any).event_description,
+        eventDescription: show.event_description,
         showType: show.show_type,
       }));
 
