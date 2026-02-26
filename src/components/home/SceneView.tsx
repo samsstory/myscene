@@ -19,6 +19,7 @@ const EMPTY_ARTISTS: { name: string; imageUrl: string | null }[] = [];
 const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
   console.log("Add to schedule:", event);
 };
+const NOOP = () => {};
 
 interface StatsForCard {
   allTimeShows: number;
@@ -143,7 +144,7 @@ export default function SceneView({
               <SectionLabel>Friends Going</SectionLabel>
               <FriendsGoingSection
                 friendShows={friendShows}
-                onAddToSchedule={onAddFriendShowToSchedule ?? (() => {})}
+                onAddToSchedule={onAddFriendShowToSchedule ?? NOOP}
                 onShowTap={onFriendShowTap}
               />
             </section>

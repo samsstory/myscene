@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { CalendarPlus, ChevronRight, Trophy } from "lucide-react";
 import RankingCard from "@/components/rankings/RankingCard";
@@ -9,7 +10,11 @@ interface VSHeroWidgetProps {
   onAddShow?: () => void;
 }
 
-export default function VSHeroWidget({
+const vsBadgeShadow: React.CSSProperties = {
+  boxShadow: "0 0 12px rgba(0,217,255,0.4)",
+};
+
+function VSHeroWidgetInner({
   onNavigateToRank,
   onAddShow,
 }: VSHeroWidgetProps) {
@@ -23,6 +28,15 @@ export default function VSHeroWidget({
     handleChoice,
     allRankedUp,
   } = useVSHeroPair();
+
+  const onClickLeft = useCallback(
+    () => { if (pair) handleChoice(pair[0].id); },
+    [pair, handleChoice]
+  );
+  const onClickRight = useCallback(
+    () => { if (pair) handleChoice(pair[1].id); },
+    [pair, handleChoice]
+  );
 
   // Loading skeleton
   if (isLoading) {
@@ -108,7 +122,7 @@ export default function VSHeroWidget({
       <div className="relative flex gap-3 items-start">
         <RankingCard
           show={pair[0]}
-          onClick={() => handleChoice(pair[0].id)}
+          onClick={onClickLeft}
           disabled={comparing}
           position="left"
           isWinner={selectedWinner === pair[0].id}
@@ -116,7 +130,7 @@ export default function VSHeroWidget({
           animationKey={pairKey}
         />
 
-        {/* VS Badge — positioned exactly like Rank page: center of card container */}
+        {/* VS Badge */}
         <div className="absolute left-1/2 -translate-x-1/2 z-20 top-1/2 -translate-y-1/2 pointer-events-none">
           <motion.div
             key={pairKey}
@@ -131,9 +145,7 @@ export default function VSHeroWidget({
             className="w-6 h-6 rounded-full flex items-center justify-center
               bg-gradient-to-br from-[#00D9FF] to-[#7B61FF]
               -rotate-[5deg]"
-            style={{
-              boxShadow: "0 0 12px rgba(0,217,255,0.4)",
-            }}
+            style={vsBadgeShadow}
           >
             <span className="text-white font-bold text-[10px]">VS</span>
           </motion.div>
@@ -141,7 +153,7 @@ export default function VSHeroWidget({
 
         <RankingCard
           show={pair[1]}
-          onClick={() => handleChoice(pair[1].id)}
+          onClick={onClickRight}
           disabled={comparing}
           position="right"
           isWinner={selectedWinner === pair[1].id}
@@ -160,3 +172,7 @@ export default function VSHeroWidget({
     </section>
   );
 }
+
+const VSHeroWidget = memo(VSHeroWidgetInner);
+
+export default VSHeroWidget;
