@@ -15,15 +15,18 @@ function extractTextFromEml(eml: string): { text: string; html: string } {
   let text = '';
   let html = '';
 
-  const boundaryMatch = eml.match(/boundary="?([^\s"]+)"?/);
+  // Normalize line endings to \n for consistent parsing
+  const normalized = eml.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const boundaryMatch = normalized.match(/boundary="?([^\s";]+)"?/i);
   if (!boundaryMatch) {
     // Not multipart — treat entire body (after headers) as plain text
-    const headerEnd = eml.indexOf('\n\n');
-    return { text: headerEnd > -1 ? eml.slice(headerEnd + 2) : eml, html: '' };
+    const headerEnd = normalized.indexOf('\n\n');
+    return { text: headerEnd > -1 ? normalized.slice(headerEnd + 2) : normalized, html: '' };
   }
 
   const boundary = boundaryMatch[1];
-  const parts = eml.split(`--${boundary}`);
+  const parts = normalized.split(`--${boundary}`);
 
   for (const part of parts) {
     const isPlain = /Content-Type:\s*text\/plain/i.test(part);
@@ -40,8 +43,8 @@ function extractTextFromEml(eml: string): { text: string; html: string } {
     // Handle quoted-printable decoding
     if (/Content-Transfer-Encoding:\s*quoted-printable/i.test(part)) {
       body = body
-        .replace(/=\r?\n/g, '')                       // soft line breaks
-        .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>    // encoded chars
+        .replace(/=\n/g, '')                           // soft line breaks
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, hex: string) =>
           String.fromCharCode(parseInt(hex, 16))
         );
     }
@@ -53,8 +56,20 @@ function extractTextFromEml(eml: string): { text: string; html: string } {
       } catch { /* leave as-is */ }
     }
 
+    // Strip HTML tags for html parts to get usable text
     if (isPlain) text += body + '\n';
     if (isHtml) html += body + '\n';
+  }
+
+  // If we got HTML but no plain text, create text from HTML
+  if (!text.trim() && html.trim()) {
+    text = html
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   return { text, html };
@@ -99,6 +114,7 @@ serve(async (req) => {
       if (!decoded) continue;
 
       const { text, html } = extractTextFromEml(decoded);
+      console.log(`.eml extraction result — text: ${text.length} chars, html: ${html.length} chars`);
       if (text) textBody += `\n\n--- Forwarded Email (${att.Name}) ---\n\n${text}`;
       if (html) htmlBody += `\n\n<!-- Forwarded: ${att.Name} -->\n${html}`;
     }
