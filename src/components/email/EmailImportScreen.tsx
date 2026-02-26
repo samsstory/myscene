@@ -242,7 +242,7 @@ const ForwardingCard = React.memo<ForwardingCardProps>(function ForwardingCard({
 /* ── Main Screen ──────────────────────────────────────── */
 
 const EmailImportScreen: React.FC<EmailImportScreenProps> = ({ userId, onManualEntry }) => {
-  const forwardingAddress = `add+${userId}@in.tryscene.app`;
+  const forwardingAddress = `add+${userId}@tryscene.app`;
 
   return (
     <div className="space-y-5 pb-4">
