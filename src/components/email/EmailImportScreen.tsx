@@ -158,7 +158,6 @@ const GmailSection = React.memo(function GmailSection() {
 /* ── Universal Search Section ─────────────────────────── */
 
 const PROVIDER_LOGOS = [
-  { src: gmailIcon, alt: "Gmail" },
   { src: outlookIcon, alt: "Outlook" },
   { src: appleMailIcon, alt: "Apple Mail" },
   { src: yahooIcon, alt: "Yahoo" },
