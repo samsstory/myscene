@@ -1,67 +1,37 @@
 
 
-## Plan: Community Rankings Section Overhaul
+## Plan: Optimize Spotify Circuit Breaker (#1 + #2)
 
-### Summary
-Redesign the "Top Rated Near You" section to emphasize community aggregate rankings with win rate/matchup data from the ELO system, conversational copy, and a refreshed card design.
+### What changes
+Two edge functions contain identical circuit breaker logic that caps the cooldown at **14,400s (4 hours)** regardless of the actual `Retry-After` header. We'll fix both.
 
-### Current State
-- **SceneView.tsx** renders a `<SectionLabel>Top Rated Near You</SectionLabel>` followed by a `TopRatedSection` component
-- **TopRatedSection** delegates to `PopularFeedGrid` which shows numbered leaderboard rows with rank numbers, artist images, venue names, user counts, and a "+" button
-- **PopularFeedGrid** has `GeoTabs` (City/Country/World pills) and `SubTabs` (Sets/Shows/Festivals pills) as filter controls
-- **usePopularNearMe** fetches shows filtered by geo scope, aggregates by artist or event, returns `PopularItem[]` with `userCount`
-- **usePopularShows** defines `PopularItem` types (`PopularArtist` | `PopularEvent`) — neither includes win rate or matchup count
-- The ELO data exists in `show_rankings` (elo_score, comparisons_count) and `show_comparisons` (show1_id, show2_id, winner_id) — win rate can be computed from comparisons
+**Files to edit:**
+- `supabase/functions/batch-artist-images/index.ts`
+- `supabase/functions/unified-search/index.ts`
 
-### Technical Details
+### Changes per file
 
-#### 1. Extend PopularItem types (`src/hooks/usePopularShows.ts`)
-Add three new optional fields to both `PopularArtist` and `PopularEvent`:
-- `winRate: number | null` — percentage (0–100), computed from show_comparisons
-- `matchupCount: number` — total comparisons across all users
-- `userCountRanked: number` — users who have this in their ranked list (with comparisons > 0)
+**`tripSpotifyBreaker` function** — replace the hardcoded 4-hour cap with:
+- Use the actual `Retry-After` header value when present (Spotify typically sends 1–60s)
+- Default to **30 seconds** when no header is present (instead of 60s)
+- Cap at **120 seconds** max (instead of 14,400s) — enough to respect Spotify's sliding window without blocking for hours
 
-#### 2. Enrich data in `usePopularNearMe` hook (`src/hooks/usePopularNearMe.ts`)
-After fetching shows and aggregating by artist/event, also:
-- Fetch `show_rankings` rows for the relevant show IDs to get `comparisons_count`
-- Fetch `show_comparisons` rows to compute win counts per show (where `winner_id = show_id`)
-- Aggregate win rate at the artist/event level: sum wins / sum total appearances in comparisons
-- Pass `winRate`, `matchupCount`, `userCountRanked` into each `PopularItem`
-- Also return the user's resolved city name (already available from profile) so the header can display it
+```text
+Before:  const retryAfterSec = parseInt(retryAfterHeader || '60', 10);
+         const cappedSec = Math.min(retryAfterSec, 14400);
 
-#### 3. Update hook return value
-`usePopularNearMe` will additionally return `cityName: string | null` so SceneView can display "Top Ranked in Los Angeles"
+After:   const retryAfterSec = parseInt(retryAfterHeader || '30', 10);
+         const cappedSec = Math.min(Math.max(retryAfterSec, 5), 120);
+```
 
-#### 4. Redesign `PopularFeedGrid` (`src/components/home/PopularFeedGrid.tsx`)
+This means:
+- Floor of 5 seconds (avoid zero-second breakers)
+- Ceiling of 2 minutes (instead of 4 hours)
+- Spotify's actual `Retry-After` is respected between those bounds
 
-**Header area changes:**
-- Accept `cityName` prop and `geoScope` to construct the title: "Top Ranked in [City]" / "Top Ranked in [Country]" / "Top Ranked Worldwide"
-- Add subtitle: "Shows that dominate their matchups"
-- Replace the `GeoTabs` pill strip with a simpler dropdown showing "Showing: Los Angeles ▼" that expands to Nearby / Country / Worldwide options
-- Keep the Sets/Shows/Festivals SubTabs
-
-**LeaderboardRow card changes:**
-- Remove the rank number column (#1, #2, #3)
-- Keep artist image (slightly larger, 12×12 rounded-xl)
-- Keep artist name + venue name
-- Replace the small user count badge with a stats line: `⚡ 94% wins · 203 matchups · 👥 89 users`
-- If win rate data isn't available for an item, show a softer fallback: `👥 89 users`
-- Change the "+" button label to "Add to My Scene"
-- Add a subtle distinct background tint (e.g., `bg-white/[0.03]` with a faint amber/warm border) to differentiate from Upcoming Shows
-
-#### 5. Update SceneView section (`src/components/home/SceneView.tsx`)
-- Remove the standalone `<SectionLabel>Top Rated Near You</SectionLabel>` — the title is now rendered inside PopularFeedGrid
-- Pass `cityName` from the hook into PopularFeedGrid
-- The `TopRatedSection` wrapper remains but passes the new prop through
-
-### Files Modified
-1. `src/hooks/usePopularShows.ts` — extend PopularItem interfaces
-2. `src/hooks/usePopularNearMe.ts` — fetch ELO/comparison data, return cityName
-3. `src/components/home/PopularFeedGrid.tsx` — full redesign of header + card layout
-4. `src/components/home/SceneView.tsx` — update section rendering
-
-### What Stays Unchanged
-- VS Hero Widget, Stats Trophy Card, Upcoming Shows, WhatsNextStrip — untouched
-- The ELO system itself — no schema changes needed
-- The show_rankings and show_comparisons tables — read-only usage
+### Scope
+- Two files, same ~3-line change in each
+- No database changes
+- No frontend changes
+- Edge functions auto-deploy
 
