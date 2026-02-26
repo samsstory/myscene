@@ -464,6 +464,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_email_imports: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          email_from: string | null
+          email_subject: string | null
+          error_message: string | null
+          id: string
+          parsed_shows: Json
+          processed_at: string | null
+          raw_content: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string
+          email_from?: string | null
+          email_subject?: string | null
+          error_message?: string | null
+          id?: string
+          parsed_shows?: Json
+          processed_at?: string | null
+          raw_content?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string
+          email_from?: string | null
+          email_subject?: string | null
+          error_message?: string | null
+          id?: string
+          parsed_shows?: Json
+          processed_at?: string | null
+          raw_content?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
