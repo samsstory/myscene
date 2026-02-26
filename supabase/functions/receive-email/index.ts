@@ -12,15 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    // Webhook secret validation
-    const webhookSecret = req.headers.get('x-webhook-secret');
-    const expectedSecret = Deno.env.get('EMAIL_WEBHOOK_SECRET');
-    if (!expectedSecret || webhookSecret !== expectedSecret) {
-      console.error('Invalid webhook secret');
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Postmark inbound webhooks don't support custom headers.
+    // Security: we validate that the recipient UUID exists in profiles before processing.
 
     // Parse Postmark inbound webhook JSON
     const payload = await req.json();
