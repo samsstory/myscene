@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +21,31 @@ interface UnifiedSearchResult {
   eventId?: string;
   eventType?: string;
   venueName?: string;
+}
+
+/** Spotify artist from search API */
+interface SpotifyArtistResult {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  genres?: string[];
+}
+
+/** Raw Spotify artist from their API */
+interface SpotifyArtistRaw {
+  id: string;
+  name: string;
+  images?: Array<{ url: string }>;
+  genres?: string[];
+}
+
+/** Google Places v2 response shape */
+interface GooglePlaceV2 {
+  id?: string;
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  location?: { latitude?: number; longitude?: number };
+  types?: string[];
 }
 
 // ─── Category Whitelists (ported from search-venues) ─────────────────
@@ -166,7 +191,7 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     let userId: string | null = null;
-    let supabaseClient: any = null;
+    let supabaseClient: SupabaseClient | null = null;
 
     if (authHeader?.startsWith('Bearer ')) {
       try {
@@ -220,7 +245,7 @@ serve(async (req) => {
     if (userShowsResults.artists.length > 0) {
       for (const artist of userShowsResults.artists.slice(0, 3)) {
         const spotifyMatch = artistResults.find(
-          (s: any) => s.name.toLowerCase() === artist.name.toLowerCase()
+          (s) => s.name.toLowerCase() === artist.name.toLowerCase()
         );
         results.push({
           type: 'artist',
@@ -336,7 +361,7 @@ serve(async (req) => {
 
 // ─── Spotify Search ──────────────────────────────────────────────────
 
-async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; name: string; imageUrl?: string; genres?: string[] }>> {
+async function searchSpotify(searchTerm: string): Promise<SpotifyArtistResult[]> {
   // Circuit breaker: skip Spotify entirely if we're rate-limited
   if (isSpotifyBlocked()) {
     console.log('[unified-search] Spotify circuit breaker OPEN — skipping, using local DB');
@@ -382,7 +407,7 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
     }
 
     const data = await response.json();
-    return (data.artists?.items || []).map((artist: any) => ({
+    return (data.artists?.items || []).map((artist: SpotifyArtistRaw) => ({
       id: artist.id,
       name: artist.name,
       imageUrl: artist.images?.[artist.images.length > 1 ? 1 : 0]?.url || null,
@@ -394,7 +419,7 @@ async function searchSpotify(searchTerm: string): Promise<Array<{ id: string; na
   }
 }
 
-async function searchLocalArtists(searchTerm: string): Promise<Array<{ id: string; name: string; imageUrl?: string; genres?: string[] }>> {
+async function searchLocalArtists(searchTerm: string): Promise<SpotifyArtistResult[]> {
   try {
     console.log('[unified-search] Falling back to local artists DB');
     const supabaseAdmin = createClient(
@@ -406,7 +431,7 @@ async function searchLocalArtists(searchTerm: string): Promise<Array<{ id: strin
       .select('id, name, image_url, genres, spotify_artist_id')
       .ilike('name', `%${searchTerm.trim()}%`)
       .limit(8);
-    return (data || []).map((a: any) => ({
+    return (data || []).map((a: { id: string; name: string; image_url: string | null; genres: string[] | null; spotify_artist_id: string | null }) => ({
       id: a.spotify_artist_id || a.id,
       name: a.name,
       imageUrl: a.image_url || null,
@@ -502,7 +527,7 @@ async function searchGooglePlacesModern(
 ): Promise<GooglePlace[]> {
   try {
     const searchQuery = `${searchTerm} music venue OR festival`;
-    const body: any = { textQuery: searchQuery, maxResultCount: 15 };
+    const body: { textQuery: string; maxResultCount: number; locationBias?: { circle: { center: { latitude: number; longitude: number }; radius: number } } } = { textQuery: searchQuery, maxResultCount: 15 };
 
     if (lat && lon) {
       body.locationBias = {
@@ -531,7 +556,7 @@ async function searchGooglePlacesModern(
     const places = data.places || [];
     console.log(`[unified-search] Google returned ${places.length} results`);
 
-    return places.map((p: any) => ({
+    return places.map((p: GooglePlaceV2) => ({
       place_id: p.id || '',
       name: p.displayName?.text || '',
       formatted_address: p.formattedAddress || '',
@@ -587,7 +612,7 @@ async function searchFoursquare(
 
 // ─── Events Registry Search ──────────────────────────────────────────
 
-async function searchEvents(searchTerm: string, supabaseClient: any): Promise<UnifiedSearchResult[]> {
+async function searchEvents(searchTerm: string, supabaseClient: SupabaseClient): Promise<UnifiedSearchResult[]> {
   try {
     const { data } = await supabaseClient
       .from('events')
@@ -626,7 +651,7 @@ async function searchEvents(searchTerm: string, supabaseClient: any): Promise<Un
 async function searchUserHistory(
   searchTerm: string,
   userId: string,
-  supabaseClient: any
+  supabaseClient: SupabaseClient
 ): Promise<{ artists: Array<{ name: string; count: number }>; venues: Array<{ id?: string; name: string; location: string; count: number }> }> {
   const searchWords = searchTerm.trim().toLowerCase().split(/\s+/);
   const artists: Array<{ name: string; count: number }> = [];

@@ -6,6 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+interface GoogleAddressComponent {
+  types: string[];
+  longText?: string;
+}
+
+interface GooglePlaceV2 {
+  id?: string;
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  location?: { latitude?: number; longitude?: number };
+  addressComponents?: GoogleAddressComponent[];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -73,12 +86,12 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const places = data.places || [];
+    const places: GooglePlaceV2[] = data.places || [];
 
-    const results = places.map((p: any) => {
+    const results = places.map((p) => {
       const components = p.addressComponents || [];
       const getComponent = (type: string) =>
-        components.find((c: any) => c.types?.includes(type))?.longText || '';
+        components.find((c) => c.types?.includes(type))?.longText || '';
 
       const city = getComponent('locality') || getComponent('sublocality') ||
         getComponent('administrative_area_level_2') || '';

@@ -1,10 +1,35 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+/** Spotify artist search result item */
+interface SpotifyArtistItem {
+  id: string;
+  name: string;
+  images?: Array<{ url: string }>;
+}
+
+/** Raw Edmtrain event from their API */
+interface EdmtrainRawEvent {
+  id: number;
+  name?: string;
+  link: string;
+  date: string;
+  festivalInd?: boolean;
+  ages?: string;
+  venue?: {
+    name?: string;
+    location?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  artistList?: Array<{ id: number; name: string; link?: string; b2bInd?: boolean }>;
+}
 
 const EDMTRAIN_BASE = "https://edmtrain.com/api/events";
 
@@ -54,10 +79,10 @@ async function resolveArtistImageFromSpotify(artistName: string, token: string):
       return null;
     }
     const data = await resp.json();
-    const items = data.artists?.items || [];
-    const exactMatch = items.find((i: any) => i.name.toLowerCase() === artistName.toLowerCase() && i.images?.length > 0);
-    if (exactMatch) return exactMatch.images[0].url;
-    const withImage = items.find((i: any) => i.images?.length > 0);
+    const items: SpotifyArtistItem[] = data.artists?.items || [];
+    const exactMatch = items.find((i) => i.name.toLowerCase() === artistName.toLowerCase() && i.images && i.images.length > 0);
+    if (exactMatch) return exactMatch.images![0].url;
+    const withImage = items.find((i) => i.images && i.images.length > 0);
     return withImage?.images?.[0]?.url || null;
   } catch {
     return null;
@@ -65,7 +90,7 @@ async function resolveArtistImageFromSpotify(artistName: string, token: string):
 }
 
 // Build a lookup map from show_artists + previously resolved edmtrain_events
-async function buildLocalArtistImageCache(supabase: any): Promise<Record<string, string>> {
+async function buildLocalArtistImageCache(supabase: SupabaseClient): Promise<Record<string, string>> {
   const localCache: Record<string, string> = {};
   try {
     // Source 1: show_artists table (user's logged shows)
@@ -295,7 +320,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const events = edmData.data || [];
+    const events: EdmtrainRawEvent[] = edmData.data || [];
     console.log(`Received ${events.length} events from Edmtrain`);
 
     // Delete stale data for this location + any past events globally
@@ -320,7 +345,7 @@ Deno.serve(async (req) => {
     console.log(`Resolved ${localResolved}/${events.length} images from local DB`);
 
     // STEP 2: Upsert ALL events immediately (with whatever images we have from local DB)
-    const rows = events.map((e: any) => ({
+    const rows = events.map((e) => ({
       edmtrain_id: e.id,
       event_name: e.name || null,
       event_link: e.link,
@@ -333,7 +358,7 @@ Deno.serve(async (req) => {
       venue_latitude: e.venue?.latitude || null,
       venue_longitude: e.venue?.longitude || null,
       artists: JSON.stringify(
-        (e.artistList || []).map((a: any) => ({
+        (e.artistList || []).map((a) => ({
           id: a.id,
           name: a.name,
           link: a.link,
@@ -358,7 +383,7 @@ Deno.serve(async (req) => {
     }
 
     // STEP 3: Spotify image resolution as best-effort UPDATE pass (won't block data availability)
-    const unresolved = events.filter((e: any) => !eventImages[e.id] && (e.artistList || []).length > 0);
+    const unresolved = events.filter((e) => !eventImages[e.id] && (e.artistList || []).length > 0);
     let spotifyResolved = 0;
 
     if (unresolved.length > 0) {
@@ -381,7 +406,7 @@ Deno.serve(async (req) => {
         for (const e of unresolved) {
           if (spotifyRateLimited || callCount >= MAX_CALLS || (Date.now() - startTime) > TIME_BUDGET_MS) break;
 
-          const artistList = (e.artistList || []).map((a: any) => ({ name: a.name }));
+          const artistList = (e.artistList || []).map((a) => ({ name: a.name }));
           // Only try the first artist to conserve budget
           const firstArtist = artistList[0];
           if (!firstArtist) continue;

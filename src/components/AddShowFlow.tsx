@@ -843,7 +843,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           show_date: groupingMeta.showDate,
           date_precision: groupingMeta.datePrecision,
           show_type: "show",
-        } as any)
+        })
         .select("id")
         .single();
 
@@ -853,7 +853,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       const childIds = groupingSiblings.map((s) => s.id);
       const { error: linkError } = await supabase
         .from("shows")
-        .update({ parent_show_id: parentShow.id } as any)
+        .update({ parent_show_id: parentShow.id })
         .in("id", childIds);
 
       if (linkError) throw linkError;
