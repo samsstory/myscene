@@ -106,9 +106,22 @@ const StepFlowDiagram = React.memo(function StepFlowDiagram() {
 /* ── Gmail Section ────────────────────────────────────── */
 
 const GmailSection = React.memo(function GmailSection() {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   const handleOpen = useCallback((idx: number) => {
     window.open(buildGmailUrl(idx), "_blank", "noopener");
   }, []);
+
+  const gmailSearchQuery = useMemo(() => {
+    const fromPart = `from:(${GMAIL_DOMAINS.join(" OR ")})`;
+    const subjectPart = `subject:(${SUBJECT_TERMS.join(" OR ")})`;
+    return `${fromPart} ${subjectPart}`;
+  }, []);
+
+  const handleCopyGmailSearch = useCallback(() => {
+    navigator.clipboard.writeText(gmailSearchQuery);
+    toast.success("Search copied — paste it in Gmail");
+  }, [gmailSearchQuery]);
 
   return (
     <div className="space-y-3">
@@ -117,40 +130,61 @@ const GmailSection = React.memo(function GmailSection() {
         <h3 className="text-sm font-semibold text-foreground">Let's check your Gmail</h3>
       </div>
 
-      {/* Primary — Account #1 */}
-      <button
-        onClick={() => handleOpen(0)}
-        className="flex items-center justify-center gap-3 w-full h-14 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.10] transition-colors"
-      >
-        <img src={gmailIcon} alt="" className="h-5 w-5" aria-hidden="true" />
-        <span className="text-sm font-medium text-foreground">Open Gmail</span>
-        <span className="text-[10px] font-bold text-muted-foreground bg-white/[0.08] rounded-md px-1.5 py-0.5">
-          Account #1
-        </span>
-      </button>
-
-      {/* Secondary label */}
-      <p className="text-center text-xs text-muted-foreground/60 py-0.5">
-        Check my other Gmail accounts
-      </p>
-
-      {/* Secondary — Accounts #2-4 */}
-      <div className="grid grid-cols-3 gap-2">
-        {[1, 2, 3].map((num) => (
-          <button
-            key={num}
-            onClick={() => handleOpen(num)}
-            className="flex items-center justify-center gap-1.5 h-10 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-xs text-foreground/70 transition-colors"
+      {isMobile ? (
+        <>
+          <p className="text-xs text-muted-foreground/70 leading-relaxed">
+            Copy this search, open the Gmail app, and paste it in the search bar.
+          </p>
+          <Button
+            variant="glass"
+            className="w-full h-14 gap-2.5 text-sm"
+            onClick={handleCopyGmailSearch}
           >
-            Account #{num + 1}
-            <ExternalLink className="h-3 w-3 opacity-40 flex-shrink-0" strokeWidth={1.5} />
+            <Copy className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+            Copy Gmail Search
+          </Button>
+          <p className="text-[11px] text-muted-foreground/50 text-center leading-snug">
+            Searches Ticketmaster, DICE, AXS, StubHub & 20+ platforms
+          </p>
+        </>
+      ) : (
+        <>
+          {/* Primary — Account #1 */}
+          <button
+            onClick={() => handleOpen(0)}
+            className="flex items-center justify-center gap-3 w-full h-14 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.10] transition-colors"
+          >
+            <img src={gmailIcon} alt="" className="h-5 w-5" aria-hidden="true" />
+            <span className="text-sm font-medium text-foreground">Open Gmail</span>
+            <span className="text-[10px] font-bold text-muted-foreground bg-white/[0.08] rounded-md px-1.5 py-0.5">
+              Account #1
+            </span>
           </button>
-        ))}
-      </div>
 
-      <p className="text-[11px] text-muted-foreground/50 text-center leading-snug">
-        Have more tickets elsewhere? Search your other inboxes
-      </p>
+          {/* Secondary label */}
+          <p className="text-center text-xs text-muted-foreground/60 py-0.5">
+            Check my other Gmail accounts
+          </p>
+
+          {/* Secondary — Accounts #2-4 */}
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 3].map((num) => (
+              <button
+                key={num}
+                onClick={() => handleOpen(num)}
+                className="flex items-center justify-center gap-1.5 h-10 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-xs text-foreground/70 transition-colors"
+              >
+                Account #{num + 1}
+                <ExternalLink className="h-3 w-3 opacity-40 flex-shrink-0" strokeWidth={1.5} />
+              </button>
+            ))}
+          </div>
+
+          <p className="text-[11px] text-muted-foreground/50 text-center leading-snug">
+            Have more tickets elsewhere? Search your other inboxes
+          </p>
+        </>
+      )}
     </div>
   );
 });
