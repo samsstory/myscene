@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { MapPin, CalendarPlus, Sparkles, Music2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CountUp from "./CountUp";
@@ -42,20 +42,18 @@ function getSceneTitle(topGenre: string | null, totalShows: number): string {
   return "Music Lover";
 }
 
-/** Returns percentile label or null. "Top X%" means user has more shows than (100-X)% of users. */
+/** Returns percentile label or null. */
 function getPercentile(showCount: number, totalUsers?: number): string | null {
   if (showCount < 5) return null;
   if (!totalUsers || totalUsers < 50) {
     return showCount >= 1 ? "Early Adopter ⭐" : null;
   }
-  // Tiered brackets
   if (showCount >= 100) return "Top 1% 🏆";
   if (showCount >= 50) return "Top 5% 🏆";
   if (showCount >= 20) return "Top 10% 🏆";
   if (showCount >= 10) return "Top 25%";
   return "Top 50%";
 }
-
 
 /* Badge breathe keyframe (injected once) */
 const badgeBreatheStyle = `
@@ -65,7 +63,29 @@ const badgeBreatheStyle = `
 }
 `;
 
-export default function StatsTrophyCard({
+/* Hoisted style objects for referential stability */
+const meshGradientTopLeft: React.CSSProperties = {
+  background: "radial-gradient(circle at 0% 0%, hsl(var(--primary)), transparent 70%)"
+};
+const meshGradientBottomRight: React.CSSProperties = {
+  background: "radial-gradient(circle at 100% 100%, hsl(var(--secondary)), transparent 70%)"
+};
+const sceneBadgeStyle: React.CSSProperties = {
+  background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(280 60% 60% / 0.2))",
+  color: "hsl(var(--primary))",
+  border: "1px solid hsl(var(--primary) / 0.25)",
+  animation: "badge-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+};
+const percentileBadgeStyle: React.CSSProperties = {
+  background: "linear-gradient(135deg, hsl(45 90% 50% / 0.15), hsl(35 90% 55% / 0.15))",
+  color: "hsl(45 90% 55%)",
+  border: "1px solid hsl(45 90% 50% / 0.25)"
+};
+const emptyStateGlowStyle: React.CSSProperties = {
+  background: "radial-gradient(circle, hsl(var(--primary) / 0.25), transparent 70%)"
+};
+
+function StatsTrophyCardInner({
   totalShows,
   topGenre,
   uniqueVenues,
@@ -78,11 +98,15 @@ export default function StatsTrophyCard({
   onAddShow,
   totalUsers
 }: StatsTrophyCardProps) {
+  // All hooks MUST be called before any early returns
   const comparisons = useMemo(
     () => milesDanced !== null && milesDanced > 0 ? getComparisonsForMiles(Math.round(milesDanced)) : [],
     [milesDanced]
   );
   const comparisonIndex = useRotatingIndex(comparisons.length);
+  const sceneTitle = useMemo(() => getSceneTitle(topGenre, totalShows), [topGenre, totalShows]);
+  const percentileLabel = useMemo(() => getPercentile(totalShows, totalUsers), [totalShows, totalUsers]);
+  const topArtistNames = useMemo(() => topArtists.map((a) => a.name).join(", "), [topArtists]);
 
   if (isLoading) {
     return (
@@ -96,8 +120,8 @@ export default function StatsTrophyCard({
           </div>
           <Skeleton className="h-3.5 w-44" />
         </section>
-      </div>);
-
+      </div>
+    );
   }
 
   // Blurred empty state (0 shows)
@@ -123,8 +147,7 @@ export default function StatsTrophyCard({
             <div className="relative">
               <div
                 className="absolute inset-0 rounded-full blur-xl"
-                style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.25), transparent 70%)" }} />
-
+                style={emptyStateGlowStyle} />
               <div className="relative w-12 h-12 rounded-full bg-white/[0.06] border border-white/[0.12] flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-primary" />
               </div>
@@ -141,18 +164,14 @@ export default function StatsTrophyCard({
               onClick={onAddShow}
               whileTap={{ scale: 0.97 }}
               className="mt-0.5 flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-
               <CalendarPlus className="h-4 w-4" />
               Add My First Show
             </motion.button>
           </div>
         </section>
-      </div>);
-
+      </div>
+    );
   }
-
-  const sceneTitle = getSceneTitle(topGenre, totalShows);
-  const percentileLabel = getPercentile(totalShows, totalUsers);
 
   return (
     <div className="stats-trophy-wrapper rounded-2xl p-[1px]">
@@ -163,28 +182,16 @@ export default function StatsTrophyCard({
         {/* Subtle mesh gradient overlay */}
         <div
           className="absolute top-0 left-0 w-40 h-40 opacity-[0.06] pointer-events-none"
-          style={{
-            background: "radial-gradient(circle at 0% 0%, hsl(var(--primary)), transparent 70%)"
-          }} />
-
+          style={meshGradientTopLeft} />
         <div
           className="absolute bottom-0 right-0 w-32 h-32 opacity-[0.04] pointer-events-none"
-          style={{
-            background: "radial-gradient(circle at 100% 100%, hsl(var(--secondary)), transparent 70%)"
-          }} />
-
+          style={meshGradientBottomRight} />
 
         {/* Title badge + Header */}
         <div className="relative z-10 space-y-1">
           <span
             className="inline-block text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-0.5 rounded-full"
-            style={{
-              background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(280 60% 60% / 0.2))",
-              color: "hsl(var(--primary))",
-              border: "1px solid hsl(var(--primary) / 0.25)",
-              animation: "badge-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite"
-            }}>
-
+            style={sceneBadgeStyle}>
             🎵 {sceneTitle}
           </span>
           <div className="flex items-center gap-2">
@@ -192,14 +199,9 @@ export default function StatsTrophyCard({
               Your Scene Stats
             </p>
             {percentileLabel &&
-            <span
-              className="text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full"
-              style={{
-                background: "linear-gradient(135deg, hsl(45 90% 50% / 0.15), hsl(35 90% 55% / 0.15))",
-                color: "hsl(45 90% 55%)",
-                border: "1px solid hsl(45 90% 50% / 0.25)"
-              }}>
-
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full"
+                style={percentileBadgeStyle}>
                 {percentileLabel}
               </span>
             }
@@ -214,7 +216,6 @@ export default function StatsTrophyCard({
               className="text-[32px] font-bold text-foreground block leading-tight"
               style={{ textShadow: "0 0 30px hsl(var(--primary) / 0.3)" }}
               formatted />
-
             <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">
               Shows
             </p>
@@ -225,7 +226,6 @@ export default function StatsTrophyCard({
               value={uniqueArtists}
               className="text-[32px] font-bold text-foreground block leading-tight"
               formatted />
-
             <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium flex items-center justify-center gap-1">
                Artists
             </p>
@@ -235,7 +235,6 @@ export default function StatsTrophyCard({
             <CountUp
               value={uniqueVenues}
               className="text-[32px] font-bold text-foreground block leading-tight" />
-
             <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium flex items-center justify-center gap-1">
                Venues
             </p>
@@ -251,29 +250,27 @@ export default function StatsTrophyCard({
 
           {/* Miles danced */}
           {milesDanced !== null && milesDanced > 0 &&
-          <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">📍</span>
               <CountUp
-              value={Math.round(milesDanced)}
-              className="font-semibold text-foreground"
-              formatted />
-
+                value={Math.round(milesDanced)}
+                className="font-semibold text-foreground"
+                formatted />
               <span>miles danced</span>
             </motion.div>
           }
 
           {/* Distance comparison tagline */}
           {comparisons.length > 0 &&
-          <motion.div variants={staggerChild}>
+            <motion.div variants={staggerChild}>
               <AnimatePresence mode="wait">
                 <motion.p
-                key={comparisonIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-sm text-cyan-400/80 italic">
-
+                  key={comparisonIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-sm text-cyan-400/80 italic">
                   {comparisons[comparisonIndex]}
                 </motion.p>
               </AnimatePresence>
@@ -282,57 +279,65 @@ export default function StatsTrophyCard({
 
           {/* Geographic stats */}
           {(uniqueCities > 0 || uniqueCountries > 0) &&
-          <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">🌍</span>
               <span>
                 {uniqueCities > 0 &&
-              <span className="text-foreground font-medium">{uniqueCities}</span>
-              }
+                  <span className="text-foreground font-medium">{uniqueCities}</span>
+                }
                 {uniqueCities > 0 && ` ${uniqueCities === 1 ? "city" : "cities"}`}
                 {uniqueCities > 0 && uniqueCountries > 1 && " · "}
                 {uniqueCountries > 1 &&
-              <>
+                  <>
                     <span className="text-foreground font-medium">{uniqueCountries}</span>
                     {` ${uniqueCountries === 1 ? "country" : "countries"}`}
                   </>
-              }
+                }
               </span>
             </motion.div>
           }
 
           {/* Top Artists */}
           {topArtists.length > 0 &&
-          <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <span className="text-[13px]">🏆</span>
               <span className="truncate">
                 <span className="text-foreground font-medium">
-                  {topArtists.map((a) => a.name).join(", ")}
+                  {topArtistNames}
                 </span>
               </span>
             </motion.div>
           }
         </motion.div>
       </section>
-    </div>);
-
+    </div>
+  );
 }
 
+const StatsTrophyCard = memo(StatsTrophyCardInner, (prev, next) =>
+  prev.totalShows === next.totalShows &&
+  prev.topGenre === next.topGenre &&
+  prev.uniqueVenues === next.uniqueVenues &&
+  prev.uniqueArtists === next.uniqueArtists &&
+  prev.uniqueCities === next.uniqueCities &&
+  prev.uniqueCountries === next.uniqueCountries &&
+  prev.milesDanced === next.milesDanced &&
+  prev.isLoading === next.isLoading &&
+  prev.totalUsers === next.totalUsers &&
+  prev.onAddShow === next.onAddShow &&
+  prev.topArtists.map(a => a.name).join(',') === next.topArtists.map(a => a.name).join(',')
+);
+
+export default StatsTrophyCard;
+
 /** Static placeholder stat box for blur state */
-function StatBox({
-  label,
-  value,
-  icon
-
-
-
-
-}: {label: string;value: string;icon?: React.ReactNode;}) {
+function StatBox({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
     <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
       <span className="text-[32px] font-bold text-foreground block leading-tight">{value}</span>
       <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium flex items-center justify-center gap-1">
         {icon} {label}
       </p>
-    </div>);
-
+    </div>
+  );
 }
