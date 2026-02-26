@@ -60,3 +60,6 @@ verify_jwt = false
 
 [functions.backfill-artist-images]
 verify_jwt = false
+
+[functions.receive-email]
+verify_jwt = false
