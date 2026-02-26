@@ -149,7 +149,7 @@ const GmailSection = React.memo(function GmailSection() {
       </div>
 
       <p className="text-[11px] text-muted-foreground/50 text-center leading-snug">
-        Don't see your tickets? We'll check each account until we find them.
+        Have more tickets elsewhere? Search your other inboxes
       </p>
     </div>
   );
