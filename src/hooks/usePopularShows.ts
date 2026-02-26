@@ -11,6 +11,9 @@ export interface PopularArtist {
   sampleVenueName: string | null;
   sampleShowDate: string | null;
   showType: ShowTypeFilter;
+  winRate: number | null;
+  matchupCount: number;
+  userCountRanked: number;
 }
 
 export interface PopularEvent {
@@ -22,6 +25,9 @@ export interface PopularEvent {
   topArtists: string[];
   sampleShowDate: string | null;
   showType: ShowTypeFilter;
+  winRate: number | null;
+  matchupCount: number;
+  userCountRanked: number;
 }
 
 export type PopularItem = PopularArtist | PopularEvent;
@@ -97,6 +103,9 @@ export function usePopularShows(enabled: boolean, showType: ShowTypeFilter = "se
             sampleVenueName: agg.latestShow.venueName,
             sampleShowDate: agg.latestShow.showDate,
             showType: showType,
+            winRate: null,
+            matchupCount: 0,
+            userCountRanked: 0,
           }))
           .filter(a => a.artistImageUrl)
           .sort((a, b) => b.userCount - a.userCount || a.artistName.localeCompare(b.artistName))
@@ -167,6 +176,9 @@ export function usePopularShows(enabled: boolean, showType: ShowTypeFilter = "se
             topArtists: [...e.artists].slice(0, 4),
             sampleShowDate: e.latestDate,
             showType: showType,
+            winRate: null,
+            matchupCount: 0,
+            userCountRanked: 0,
           }))
           .sort((a, b) => b.userCount - a.userCount || a.eventName.localeCompare(b.eventName))
           .slice(0, 12);
