@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
+import gmailIcon from "@/assets/icons/gmail.svg";
+import outlookIcon from "@/assets/icons/outlook.svg";
+import yahooIcon from "@/assets/icons/yahoo.svg";
+import protonmailIcon from "@/assets/icons/protonmail.svg";
+import appleMailIcon from "@/assets/icons/apple-mail.svg";
+
 interface EmailImportScreenProps {
   userId: string;
   onClose: () => void;
@@ -45,123 +51,6 @@ function buildCopyableQuery(): string {
   return `${fromPart} ${subjectPart}`;
 }
 
-/* ── Gmail "M" Icon ───────────────────────────────────── */
-
-const GmailIcon = React.memo(function GmailIcon({ size = 20 }: { size?: number }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-md font-black select-none"
-      style={{
-        width: size + 8,
-        height: size + 8,
-        fontSize: size * 0.75,
-        background: "linear-gradient(135deg, hsl(4 90% 58%), hsl(36 100% 50%))",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        backgroundColor: "hsl(var(--muted) / 0.15)",
-      }}
-      aria-hidden="true"
-    >
-      M
-    </span>
-  );
-});
-
-/* ── Provider Initial Badge ───────────────────────────── */
-
-interface ProviderBadgeProps {
-  label: string;
-  bg: string;
-}
-
-const ProviderBadge = React.memo<ProviderBadgeProps>(function ProviderBadge({ label, bg }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full text-[10px] font-bold text-foreground/80 select-none"
-      style={{ width: 28, height: 28, backgroundColor: bg }}
-      aria-hidden="true"
-    >
-      {label}
-    </span>
-  );
-});
-
-/* ── Gmail Section ────────────────────────────────────── */
-
-const GmailSection = React.memo(function GmailSection() {
-  const handleOpen = useCallback((idx: number) => {
-    window.open(buildGmailUrl(idx), "_blank", "noopener");
-  }, []);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <GmailIcon size={18} />
-        <h3 className="text-sm font-semibold text-foreground">Search Gmail</h3>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {[0, 1, 2, 3].map((i) => (
-          <button
-            key={i}
-            onClick={() => handleOpen(i)}
-            className="relative flex items-center gap-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] px-3 py-2.5 transition-colors"
-          >
-            <GmailIcon size={14} />
-            <span className="text-xs text-foreground/80 font-medium">Account</span>
-            <span className="ml-auto text-[10px] font-bold text-muted-foreground bg-white/[0.08] rounded-md px-1.5 py-0.5">
-              #{i + 1}
-            </span>
-            <ExternalLink className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" strokeWidth={1.5} />
-          </button>
-        ))}
-      </div>
-      <p className="text-[11px] text-muted-foreground/50 leading-snug">
-        Check each account until you find your tickets
-      </p>
-    </div>
-  );
-});
-
-/* ── Universal Search Section ─────────────────────────── */
-
-const PROVIDERS: ProviderBadgeProps[] = [
-  { label: "O", bg: "hsl(210 80% 45% / 0.25)" },
-  { label: "Y", bg: "hsl(270 60% 50% / 0.25)" },
-  { label: "", bg: "hsl(0 0% 60% / 0.2)" },
-  { label: "P", bg: "hsl(265 60% 55% / 0.25)" },
-];
-
-const UniversalSearchSection = React.memo(function UniversalSearchSection() {
-  const query = useMemo(() => buildCopyableQuery(), []);
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(query);
-    toast.success("Copied to clipboard");
-  }, [query]);
-
-  return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-foreground">Universal Search</h3>
-      <div className="flex items-center gap-1.5 opacity-60">
-        {PROVIDERS.map((p, i) => (
-          <ProviderBadge key={i} {...p} />
-        ))}
-      </div>
-      <Button
-        variant="glass"
-        className="w-full gap-2 text-sm"
-        onClick={handleCopy}
-      >
-        <Copy className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-        Copy Search Query
-      </Button>
-      <p className="text-[11px] text-muted-foreground/50 leading-snug">
-        Works with any email provider — paste into your search bar
-      </p>
-    </div>
-  );
-});
-
 /* ── 3-Step Flow Diagram ──────────────────────────────── */
 
 const STEPS = [
@@ -178,6 +67,7 @@ const StepFlowDiagram = React.memo(function StepFlowDiagram() {
       transition={{ delay: 0.1 }}
       className="space-y-2"
     >
+      <p className="text-center text-xs font-medium text-foreground/60">Find your tickets in 3 steps</p>
       <div className="flex items-center justify-center gap-0">
         {STEPS.map((step, i) => {
           const Icon = step.icon;
@@ -209,10 +99,106 @@ const StepFlowDiagram = React.memo(function StepFlowDiagram() {
           );
         })}
       </div>
-      <p className="text-center text-[11px] text-muted-foreground/50">
-        We'll extract artist, venue &amp; date automatically
-      </p>
     </motion.div>
+  );
+});
+
+/* ── Gmail Section ────────────────────────────────────── */
+
+const GmailSection = React.memo(function GmailSection() {
+  const handleOpen = useCallback((idx: number) => {
+    window.open(buildGmailUrl(idx), "_blank", "noopener");
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2.5">
+        <img src={gmailIcon} alt="" className="h-5 w-5" aria-hidden="true" />
+        <h3 className="text-sm font-semibold text-foreground">Let's check your Gmail</h3>
+      </div>
+
+      {/* Primary — Account #1 */}
+      <button
+        onClick={() => handleOpen(0)}
+        className="flex items-center justify-center gap-3 w-full h-14 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.10] transition-colors"
+      >
+        <img src={gmailIcon} alt="" className="h-5 w-5" aria-hidden="true" />
+        <span className="text-sm font-medium text-foreground">Open Gmail</span>
+        <span className="text-[10px] font-bold text-muted-foreground bg-white/[0.08] rounded-md px-1.5 py-0.5">
+          Account #1
+        </span>
+      </button>
+
+      {/* Secondary label */}
+      <p className="text-center text-xs text-muted-foreground/60 py-0.5">
+        Check my other Gmail accounts
+      </p>
+
+      {/* Secondary — Accounts #2-4 */}
+      <div className="grid grid-cols-3 gap-2">
+        {[1, 2, 3].map((num) => (
+          <button
+            key={num}
+            onClick={() => handleOpen(num)}
+            className="flex items-center justify-center gap-1.5 h-10 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-xs text-foreground/70 transition-colors"
+          >
+            Account #{num + 1}
+            <ExternalLink className="h-3 w-3 opacity-40 flex-shrink-0" strokeWidth={1.5} />
+          </button>
+        ))}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground/50 text-center leading-snug">
+        Don't see your tickets? We'll check each account until we find them.
+      </p>
+    </div>
+  );
+});
+
+/* ── Universal Search Section ─────────────────────────── */
+
+const PROVIDER_LOGOS = [
+  { src: gmailIcon, alt: "Gmail" },
+  { src: outlookIcon, alt: "Outlook" },
+  { src: appleMailIcon, alt: "Apple Mail" },
+  { src: yahooIcon, alt: "Yahoo" },
+  { src: protonmailIcon, alt: "ProtonMail" },
+];
+
+const UniversalSearchSection = React.memo(function UniversalSearchSection() {
+  const query = useMemo(() => buildCopyableQuery(), []);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(query);
+    toast.success("Copied to clipboard");
+  }, [query]);
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-foreground">Using Outlook, Apple Mail, or Yahoo?</h3>
+      <div className="flex items-center gap-2.5">
+        {PROVIDER_LOGOS.map((p) => (
+          <img
+            key={p.alt}
+            src={p.src}
+            alt={p.alt}
+            className="h-5 w-5 opacity-60"
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+      <Button
+        variant="glass"
+        className="w-full gap-2 text-sm"
+        onClick={handleCopy}
+      >
+        <Copy className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+        Copy Search Query
+      </Button>
+      <p className="text-[11px] text-muted-foreground/50 leading-snug text-center">
+        Paste into any email search bar
+      </p>
+    </div>
   );
 });
 
@@ -242,7 +228,7 @@ const ForwardingCard = React.memo<ForwardingCardProps>(function ForwardingCard({
       aria-label="Copy forwarding address"
     >
       <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "hsl(185 70% 60%)" }}>
-        Forward tickets to
+        Found them? Forward to
       </p>
       <div className="flex items-center gap-3">
         <span className="text-sm font-mono text-foreground break-all flex-1 leading-relaxed">
@@ -252,9 +238,7 @@ const ForwardingCard = React.memo<ForwardingCardProps>(function ForwardingCard({
           <Copy className="h-4 w-4 text-foreground/70" strokeWidth={1.5} />
         </div>
       </div>
-      <p className="text-[11px] text-muted-foreground/50">
-        Tap to copy · full address copied to clipboard
-      </p>
+      <p className="text-[11px] text-muted-foreground/50">Tap to copy</p>
     </motion.button>
   );
 });
@@ -271,16 +255,27 @@ const EmailImportScreen: React.FC<EmailImportScreenProps> = ({ userId, onManualE
 
   return (
     <div className="space-y-5 pb-4">
+      {/* Conversational subheader */}
+      <p className="text-xs text-muted-foreground/70 leading-relaxed">
+        We'll search your email for tickets from Ticketmaster, Dice, StubHub, and 50+ platforms — then extract the details automatically.
+      </p>
+
+      {/* 3-Step Diagram (top) */}
+      <StepFlowDiagram />
+
+      <div className="border-t border-white/[0.06]" />
+
+      {/* Gmail Section */}
       <GmailSection />
 
       <div className="border-t border-white/[0.06]" />
 
+      {/* Universal Search */}
       <UniversalSearchSection />
 
       <div className="border-t border-white/[0.06]" />
 
-      <StepFlowDiagram />
-
+      {/* Forwarding Card */}
       <ForwardingCard address={forwardingAddress} displayAddress={displayAddress} />
 
       {/* Manual fallback */}
