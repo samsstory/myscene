@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CalendarPlus, Users } from "lucide-react";
 import WhatsNextStrip from "./WhatsNextStrip";
 import SectionLabel from "./SectionLabel";
@@ -8,6 +8,9 @@ import FriendsGoingSection from "./FriendsGoingSection";
 import InlineCityPicker from "./InlineCityPicker";
 import VSHeroWidget from "./VSHeroWidget";
 import StatsTrophyCard from "./StatsTrophyCard";
+import PendingEmailBanner from "./PendingEmailBanner";
+import EmailImportReviewSheet from "./EmailImportReviewSheet";
+import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +71,19 @@ export default function SceneView({
   stats,
   statsLoading = false,
 }: SceneViewProps) {
+  // Pending email imports
+  const {
+    pendingImports,
+    pendingCount,
+    confirmedIndices,
+    confirmShow,
+    confirmAll,
+    dismissImport,
+  } = usePendingEmailImports();
+  const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
+
+  const handleOpenReview = useCallback(() => setReviewSheetOpen(true), []);
+
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
   useEffect(() => {
@@ -102,6 +118,9 @@ export default function SceneView({
         onAddShow={onAddShow}
         totalUsers={stats?.totalUsers}
       />
+
+      {/* Pending Email Imports Banner */}
+      <PendingEmailBanner pendingCount={pendingCount} onReview={handleOpenReview} />
 
       {/* VS Hero Widget — below stats */}
       <VSHeroWidget onNavigateToRank={onNavigateToRank} onAddShow={onAddShow} />
@@ -174,6 +193,17 @@ export default function SceneView({
       </section>
 
       <TopRatedSection onQuickAdd={onQuickAdd} />
+
+      {/* Email Import Review Sheet */}
+      <EmailImportReviewSheet
+        open={reviewSheetOpen}
+        onOpenChange={setReviewSheetOpen}
+        imports={pendingImports}
+        confirmedIndices={confirmedIndices}
+        onConfirmShow={confirmShow}
+        onConfirmAll={confirmAll}
+        onDismiss={dismissImport}
+      />
     </div>
   );
 }
