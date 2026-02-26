@@ -41,37 +41,24 @@ export async function enrichArtistImages(
     console.warn("enrich: canonical artists lookup failed", e);
   }
 
-  // 2. For remaining misses, call batch-artist-images edge function in batches of 20
-  // (smaller batches to stay within Spotify rate limits per invocation)
-  const stillMissing = unique.filter((n) => !result.has(n.toLowerCase()));
+  // 2. For remaining misses, send a single call to batch-artist-images (up to 50 names)
+  const stillMissing = unique.filter((n) => !result.has(n.toLowerCase())).slice(0, 50);
   if (stillMissing.length > 0) {
-    const BATCH_SIZE = 20;
-    const batches = [];
-    for (let i = 0; i < stillMissing.length; i += BATCH_SIZE) {
-      batches.push(stillMissing.slice(i, i + BATCH_SIZE));
-    }
-    // Process up to 5 batches (100 artists max), with inter-batch delay
-    // to allow Spotify rate limits to recover
-    for (let b = 0; b < Math.min(batches.length, 5); b++) {
-      // Wait 2s between batches to let Spotify rate limit window reset
-      if (b > 0) await new Promise((r) => setTimeout(r, 2000));
-      try {
-        const { data, error } = await supabase.functions.invoke(
-          "batch-artist-images",
-          { body: { names: batches[b] } }
-        );
-        if (!error && data?.artists) {
-          for (const [key, val] of Object.entries(data.artists)) {
-            const v = val as { image_url: string; spotify_id: string | null };
-            if (v.image_url) {
-              result.set(key.toLowerCase(), v.image_url);
-            }
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "batch-artist-images",
+        { body: { names: stillMissing } }
+      );
+      if (!error && data?.artists) {
+        for (const [key, val] of Object.entries(data.artists)) {
+          const v = val as { image_url: string; spotify_id: string | null };
+          if (v.image_url) {
+            result.set(key.toLowerCase(), v.image_url);
           }
         }
-      } catch (e) {
-        console.warn("enrich: batch-artist-images call failed", e);
-        break; // Stop on failure
       }
+    } catch (e) {
+      console.warn("enrich: batch-artist-images call failed", e);
     }
   }
 
