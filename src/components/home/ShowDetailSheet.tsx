@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   MapPin,
   CalendarDays,
@@ -125,12 +125,14 @@ export default function ShowDetailSheet({
   const [ticketInput, setTicketInput] = useState("");
   const [localTicketUrl, setLocalTicketUrl] = useState<string | null>(initialTicketUrl ?? null);
 
-  // Sync when the parent changes (e.g. different show selected)
-  // We rely on the parent re-mounting or keying the component
-  // but also handle prop changes for rsvp
-  if (currentRsvp !== rsvp && rsvpMode === "toggle") {
-    setRsvp(currentRsvp);
-  }
+  // Sync local rsvp only when the prop itself changes (e.g. different show selected)
+  const prevRsvpProp = useRef(currentRsvp);
+  useEffect(() => {
+    if (prevRsvpProp.current !== currentRsvp) {
+      prevRsvpProp.current = currentRsvp;
+      setRsvp(currentRsvp);
+    }
+  }, [currentRsvp]);
 
   const handleSaveTicket = () => {
     if (!ticketInput.trim()) return;
