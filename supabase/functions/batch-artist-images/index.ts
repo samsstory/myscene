@@ -14,8 +14,8 @@ function isSpotifyBlocked(): boolean {
 }
 
 function tripSpotifyBreaker(retryAfterHeader: string | null) {
-  const retryAfterSec = parseInt(retryAfterHeader || '60', 10);
-  const cappedSec = Math.min(retryAfterSec, 14400);
+  const retryAfterSec = parseInt(retryAfterHeader || '30', 10);
+  const cappedSec = Math.min(Math.max(retryAfterSec, 5), 120);
   spotifyBlockedUntil = Date.now() + cappedSec * 1000;
   console.log(`[batch-artist-images] Spotify circuit breaker TRIPPED — blocked for ${cappedSec}s`);
 }
