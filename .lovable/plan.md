@@ -1,81 +1,64 @@
 
 
-## Plan: Animation Polish + Top Percentile Stat
+## Phase 3 Step 1: StatsTrophyCard Performance Optimization — Updated Plan
 
-### Overview
+### User Feedback Incorporated
 
-Four coordinated changes: session-aware CountUp, slower/staggered animations, gentle badge glow, and a gold percentile pill.
+Two adjustments based on your review:
 
-### 1. `src/components/home/CountUp.tsx` — Session-Aware Animation
+---
 
-- Read `sessionStorage.getItem("scene_stats_animated")` on mount
-- If already set: initialize `display = value` and `hasAnimated = true` (skip animation)
-- After first animation completes: `sessionStorage.setItem("scene_stats_animated", "1")`
-- Result: numbers count up on cold start, stay static when switching tabs
+### 1. TopArtists Comparator — Use Content Check
 
-### 2. `src/hooks/useHomeStats.ts` — Add `totalUsers` Count
+The custom `React.memo` comparator will use a name-based content check instead of length-only:
 
-Add to `StatsData` interface:
-```typescript
-totalUsers: number;
+```text
+prev.topArtists.map(a => a.name).join(',') ===
+next.topArtists.map(a => a.name).join(',')
 ```
 
-After the existing stats queries (around line 449), add:
-```typescript
-const { count: totalUsers } = await supabase
-  .from('profiles')
-  .select('*', { count: 'exact', head: true });
+This catches reordering or name changes even when the array length stays the same. The array is always ≤3 items, so the `.map().join()` cost is negligible.
+
+---
+
+### 2. Stable Empty Array Fallback in SceneView
+
+**Problem identified**: In `SceneView.tsx` line 98:
+```text
+topArtists={stats?.topArtists ?? []}
 ```
+When `stats` is undefined (loading state), this creates a **new empty array** every render, which defeats `React.memo` on `StatsTrophyCard`.
 
-Pass `totalUsers: totalUsers ?? 0` in the `setStats` call.
-
-### 3. `src/components/home/StatsTrophyCard.tsx` — All Visual Changes
-
-**Props**: Add `totalUsers?: number`
-
-**Rotation interval**: Change from `5000` → `8000` ms, with a 2-second delay before first rotation starts
-
-**Badge glow**: Replace `animate-pulse` with inline CSS keyframe `badge-breathe` (4s cycle, opacity 0.7→1.0):
-```css
-@keyframes badge-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
+**Fix**: Hoist a module-level constant:
+```text
+const EMPTY_ARTISTS: { name: string; imageUrl: string | null }[] = [];
 ```
+Then use `stats?.topArtists ?? EMPTY_ARTISTS`.
 
-**Staggered entrance**: Wrap bottom details section in `motion.div` with framer-motion variants:
-- Container: `staggerChildren: 0.25, delayChildren: 0.3`
-- Each row (miles, comparison, geo, artists): `motion.div` with fade-in variant (opacity 0→1, y 4→0, 400ms)
+---
 
-**Percentile pill**: Add `getPercentile(showCount, totalUsers)` function:
-- Returns `null` if `showCount < 5` (hidden)
-- If `totalUsers < 50`: returns `"Early Adopter ⭐"`
-- Otherwise uses tiered brackets:
-  - 100+ shows → "Top 1%"
-  - 50+ → "Top 5%" (meaning user has more shows than 95% of users)
-  - 20+ → "Top 10%"
-  - 10+ → "Top 25%"
-  - 5+ → "Top 50%"
-- Rendered as gold/amber gradient pill next to "Your Scene Stats" text
-- Styling: `text-[10px] uppercase`, amber gradient background, gold text, gold border
+### 3. No Object Memoization Needed
 
-### 4. `src/components/home/SceneView.tsx` — Thread `totalUsers`
+The concern about memoizing a stats object before passing to `StatsTrophyCard` does **not apply** here. `SceneView` already destructures stats into individual primitive props (`totalShows={stats?.allTimeShows ?? 0}`, etc.). The `React.memo` comparator compares these primitives directly — no wrapper object to worry about.
 
-Add `totalUsers?: number` to `StatsForCard` interface. Pass `stats?.totalUsers` to `StatsTrophyCard`.
+---
+
+### Full Step 1 Changes
+
+**`src/components/home/StatsTrophyCard.tsx`**:
+- Wrap with `React.memo` using custom comparator (content check for `topArtists`)
+- `useMemo` for `sceneTitle`, `percentileLabel`, `topArtistNames`
+- Hoist gradient style objects to module-level constants
+
+**`src/components/home/SceneView.tsx`**:
+- Hoist `EMPTY_ARTISTS` constant to module level
+- Hoist `defaultEdmtrainHandler` to module level
+- Use `EMPTY_ARTISTS` in the `topArtists` prop fallback
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `CountUp.tsx` | sessionStorage guard for animation |
-| `useHomeStats.ts` | Add `totalUsers` count query + interface |
-| `StatsTrophyCard.tsx` | 8s rotation, 2s delay, stagger, badge breathe, percentile pill |
-| `SceneView.tsx` | Thread `totalUsers` prop |
-
-### Implementation Order
-
-1. `CountUp.tsx` — sessionStorage guard
-2. `useHomeStats.ts` — add `totalUsers`
-3. `StatsTrophyCard.tsx` — all visual changes
-4. `SceneView.tsx` — thread prop
+| `StatsTrophyCard.tsx` | `React.memo` with content-aware comparator, `useMemo` for derived values, hoisted styles |
+| `SceneView.tsx` | Module-level `EMPTY_ARTISTS` constant, hoisted `defaultEdmtrainHandler` |
 
