@@ -14,8 +14,8 @@ function isSpotifyBlocked(): boolean {
 }
 
 function tripSpotifyBreaker(retryAfterHeader: string | null) {
-  const retryAfterSec = parseInt(retryAfterHeader || '30', 10);
-  const cappedSec = Math.min(Math.max(retryAfterSec, 5), 120);
+  const retryAfterSec = parseInt(retryAfterHeader || '15', 10);
+  const cappedSec = Math.min(Math.max(retryAfterSec, 5), 60); // Reduced cap: 60s max (was 120s)
   spotifyBlockedUntil = Date.now() + cappedSec * 1000;
   console.log(`[batch-artist-images] Spotify circuit breaker TRIPPED — blocked for ${cappedSec}s`);
 }
@@ -89,21 +89,31 @@ serve(async (req) => {
 
     // 2. For remaining artists, search Spotify (skip if circuit breaker is open)
     const missing = artistNames.filter((n) => !result[n.toLowerCase()]);
+    const foundFromDb = Object.keys(result).length;
+    console.log(`[batch-artist-images] ${artistNames.length} requested, ${foundFromDb} from DB, ${missing.length} need Spotify`);
+
     if (missing.length > 0 && !isSpotifyBlocked()) {
+      let spotifyHits = 0;
       const token = await getSpotifyToken();
       for (const name of missing) {
-        if (isSpotifyBlocked()) break; // Re-check in case we just got rate-limited
+        if (isSpotifyBlocked()) break;
         try {
           const resp = await fetch(
             `https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
             { headers: { 'Authorization': `Bearer ${token}` } }
           );
           if (resp.status === 429) {
-            tripSpotifyBreaker(resp.headers.get('Retry-After'));
+            const retryAfter = resp.headers.get('Retry-After');
+            console.log(`[batch-artist-images] Spotify 429 on "${name}" — Retry-After: ${retryAfter}s`);
+            tripSpotifyBreaker(retryAfter);
             await resp.text();
-            break; // Stop immediately
+            break;
           }
-          if (!resp.ok) { await resp.text(); continue; }
+          if (!resp.ok) {
+            console.log(`[batch-artist-images] Spotify ${resp.status} on "${name}"`);
+            await resp.text();
+            continue;
+          }
           const data = await resp.json();
           const artist = data.artists?.items?.[0];
           if (artist?.images?.[0]?.url) {
@@ -113,6 +123,7 @@ serve(async (req) => {
               image_url: imgUrl,
               spotify_id: spotifyId,
             };
+            spotifyHits++;
             // Fire-and-forget: update show_artists rows
             supabase
               .from("show_artists")
@@ -140,14 +151,16 @@ serve(async (req) => {
                 }
               });
           }
-          // Delay between Spotify calls to avoid rate limiting
-          await new Promise((r) => setTimeout(r, 200));
+          // Reduced delay: 100ms (was 200ms) — client_credentials has higher rate limits
+          await new Promise((r) => setTimeout(r, 100));
         } catch {
           // Skip this artist
         }
       }
+      console.log(`[batch-artist-images] Spotify resolved ${spotifyHits}/${missing.length} artists`);
     } else if (missing.length > 0) {
-      console.log(`[batch-artist-images] Spotify circuit breaker OPEN — skipping ${missing.length} lookups`);
+      const remainingSec = Math.ceil((spotifyBlockedUntil - Date.now()) / 1000);
+      console.log(`[batch-artist-images] Spotify breaker OPEN (${remainingSec}s remaining) — skipping ${missing.length} lookups`);
     }
 
     return new Response(JSON.stringify({ artists: result }), {
