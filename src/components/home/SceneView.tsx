@@ -173,10 +173,7 @@ export default function SceneView({
         />
       </section>
 
-      <section className="space-y-2">
-        <SectionLabel>Top Rated Near You</SectionLabel>
-        <TopRatedSection onQuickAdd={onQuickAdd} />
-      </section>
+      <TopRatedSection onQuickAdd={onQuickAdd} />
     </div>
   );
 }
@@ -185,7 +182,7 @@ export default function SceneView({
 function TopRatedSection({ onQuickAdd }: { onQuickAdd: (item: any) => void }) {
   const [showType, setShowType] = useState<ShowTypeFilter>("set");
   const [geoScope, setGeoScope] = useState<GeoScope>("city");
-  const { items, totalUsers, isLoading, hasLocation } = usePopularNearMe(true, showType, geoScope);
+  const { items, totalUsers, isLoading, hasLocation, cityName, countryName } = usePopularNearMe(true, showType, geoScope);
 
   return (
     <PopularFeedGrid
@@ -197,6 +194,8 @@ function TopRatedSection({ onQuickAdd }: { onQuickAdd: (item: any) => void }) {
       onQuickAdd={onQuickAdd}
       geoScope={geoScope}
       onGeoScopeChange={setGeoScope}
+      cityName={cityName}
+      countryName={countryName}
       emptyMessage={hasLocation === false ? "Set your home city in your profile to see what's trending near you." : undefined}
     />
   );
