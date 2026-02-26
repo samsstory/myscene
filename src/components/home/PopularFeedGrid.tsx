@@ -32,12 +32,8 @@ const GEO_OPTIONS: { id: GeoScope; label: string; icon: typeof MapPin }[] = [
   { id: "world", label: "Worldwide", icon: Globe },
 ];
 
-function getTitle(geoScope: GeoScope, cityName?: string | null, countryName?: string | null): string {
-  if (geoScope === "city" && cityName) return `Top Ranked in ${cityName}`;
-  if (geoScope === "country" && countryName) return `Top Ranked in ${countryName}`;
-  if (geoScope === "world") return "Top Ranked Worldwide";
-  if (geoScope === "city") return "Top Ranked Near You";
-  return "Top Ranked in Your Country";
+function getTitle(): string {
+  return "The Scene Charts";
 }
 
 function getGeoLabel(geoScope: GeoScope, cityName?: string | null, countryName?: string | null): string {
@@ -200,7 +196,7 @@ export default function PopularFeedGrid({
   cityName,
   countryName,
 }: PopularFeedGridProps) {
-  const title = getTitle(geoScope, cityName, countryName);
+  const title = getTitle();
 
   return (
     <div className="space-y-3">
