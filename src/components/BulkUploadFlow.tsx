@@ -9,6 +9,7 @@ import SmartMatchStep from "./bulk-upload/SmartMatchStep";
 import TextImportStep, { ParsedShow } from "./bulk-upload/TextImportStep";
 import TextReviewStep, { ReviewedTextShow } from "./bulk-upload/TextReviewStep";
 import { PhotoOverlayEditor } from "./PhotoOverlayEditor";
+import EmailImportScreen from "./email/EmailImportScreen";
 import { PhotoWithExif, VenueSuggestion, cleanupPhotoUrls } from "@/lib/exif-utils";
 import { ReviewedShow } from "./bulk-upload/PhotoReviewCard";
 import { useBulkShowUpload, AddedShowData } from "@/hooks/useBulkShowUpload";
@@ -32,11 +33,12 @@ interface BulkUploadFlowProps {
   onShareShow?: (show: AddedShowData) => void;
   onAddManually?: () => void;
   initialFestival?: InitialFestivalState | null;
+  userId?: string;
 }
 
-type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice' | 'lineup-search' | 'lineup-grid' | 'lineup-upload';
+type Step = 'select' | 'smart-match' | 'review' | 'success' | 'editor' | 'text-import' | 'text-review' | 'lineup-choice' | 'lineup-search' | 'lineup-grid' | 'lineup-upload' | 'email-import';
 
-const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually, initialFestival }: BulkUploadFlowProps) => {
+const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank, onShareShow, onAddManually, initialFestival, userId }: BulkUploadFlowProps) => {
   const [step, setStep] = useState<Step>(initialFestival ? 'lineup-grid' : 'select');
   const [photos, setPhotos] = useState<PhotoWithExif[]>([]);
   const [addedCount, setAddedCount] = useState(0);
@@ -169,6 +171,8 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
       } else {
         setStep('lineup-search');
       }
+    } else if (step === 'email-import') {
+      setStep('select');
     }
   };
 
@@ -223,6 +227,8 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         return 'Upload Lineup';
       case 'lineup-grid':
         return 'Select Artists';
+      case 'email-import':
+        return 'Find in My Email';
       default:
         return 'Add Shows';
     }
@@ -271,7 +277,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
         <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center gap-3 mb-4">
-            {(step === 'smart-match' || step === 'review' || step === 'editor' || step === 'text-import' || step === 'text-review' || step === 'lineup-choice' || step === 'lineup-search' || step === 'lineup-grid') && (
+            {(step === 'smart-match' || step === 'review' || step === 'editor' || step === 'text-import' || step === 'text-review' || step === 'lineup-choice' || step === 'lineup-search' || step === 'lineup-grid' || step === 'email-import') && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -292,6 +298,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
             onAddManually={onAddManually ? handleAddManually : undefined}
             onPasteList={handlePasteList}
             onFromLineup={handleFromLineup}
+            onEmailImport={userId ? () => setStep('email-import') : undefined}
           />
         )}
 
@@ -387,6 +394,14 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
                 setStep('success');
               }
             }}
+          />
+        )}
+
+        {step === 'email-import' && userId && (
+          <EmailImportScreen
+            userId={userId}
+            onClose={() => setStep('select')}
+            onManualEntry={onAddManually ? handleAddManually : () => setStep('select')}
           />
         )}
 

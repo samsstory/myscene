@@ -10,6 +10,7 @@ interface PhotoSelectStepProps {
   onAddManually?: () => void;
   onPasteList?: () => void;
   onFromLineup?: () => void;
+  onEmailImport?: () => void;
 }
 
 const PhotoSelectStep = ({
@@ -18,6 +19,7 @@ const PhotoSelectStep = ({
   onAddManually,
   onPasteList,
   onFromLineup,
+  onEmailImport,
 }: PhotoSelectStepProps) => {
   const [selectedPhotos, setSelectedPhotos] = useState<PhotoWithExif[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -160,16 +162,26 @@ const PhotoSelectStep = ({
                     Search manually
                   </button>
                 )}
-                <button
-                  disabled
-                  className="w-full flex items-center gap-3 text-sm text-muted-foreground/40 py-2 cursor-not-allowed"
-                >
-                  <Mail className="h-4 w-4 flex-shrink-0" />
-                  Find in My Email
-                  <span className="ml-auto text-[10px] uppercase tracking-wider font-semibold bg-white/[0.08] text-muted-foreground/50 px-1.5 py-0.5 rounded-full">
-                    Coming Soon
-                  </span>
-                </button>
+                {onEmailImport ? (
+                  <button
+                    onClick={onEmailImport}
+                    className="w-full flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors py-2"
+                  >
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    Find in My Email
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full flex items-center gap-3 text-sm text-muted-foreground/40 py-2 cursor-not-allowed"
+                  >
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    Find in My Email
+                    <span className="ml-auto text-[10px] uppercase tracking-wider font-semibold bg-white/[0.08] text-muted-foreground/50 px-1.5 py-0.5 rounded-full">
+                      Coming Soon
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           )}

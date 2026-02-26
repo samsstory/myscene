@@ -119,6 +119,7 @@ const DashboardSheets = ({
         onNavigateToRank={() => { setActiveTab("home"); setHomeView("rank"); }}
         onAddManually={() => setShowAddDialog(true)}
         initialFestival={festivalInviteState}
+        userId={session.user.id}
       />
 
       <AddChoiceSheet
