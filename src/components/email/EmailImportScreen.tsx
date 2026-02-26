@@ -192,7 +192,7 @@ const UniversalSearchSection = React.memo(function UniversalSearchSection() {
         onClick={handleCopy}
       >
         <Copy className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-        Copy Search Query
+        Copy Ticket Search
       </Button>
       <p className="text-[11px] text-muted-foreground/50 leading-snug text-center">
         Paste into any email search bar
