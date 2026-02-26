@@ -228,9 +228,15 @@ export function useDiscoverEvents(userArtistNames: string[] = []) {
   const [enrichedImages, setEnrichedImages] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
-    const missing = picks.filter(
-      (p) => !p.artistImageUrl && !enrichedRef.current.has(p.artistName.toLowerCase())
-    );
+    // Phase 1: Only enrich picks that truly have no image and haven't been attempted
+    const missing = picks.filter((p) => {
+      if (p.artistImageUrl) return false; // already has image
+      if (enrichedRef.current.has(p.artistName.toLowerCase())) return false; // already attempted
+      // Also check if the underlying edmtrain event already has an image
+      // (it may have been enriched by useEdmtrainEvents after picks were computed)
+      if (p.edmtrainEvent?.artist_image_url) return false;
+      return true;
+    });
     if (missing.length === 0) return;
 
     const names = missing.map((p) => p.artistName);
