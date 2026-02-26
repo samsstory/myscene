@@ -15,6 +15,11 @@ import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import type { ShowTypeFilter } from "@/hooks/usePopularShows";
 import { usePopularNearMe, type GeoScope } from "@/hooks/usePopularNearMe";
 
+const EMPTY_ARTISTS: { name: string; imageUrl: string | null }[] = [];
+const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
+  console.log("Add to schedule:", event);
+};
+
 interface StatsForCard {
   allTimeShows: number;
   topGenre: string | null;
@@ -62,10 +67,6 @@ export default function SceneView({
   stats,
   statsLoading = false,
 }: SceneViewProps) {
-  const defaultEdmtrainHandler = (event: EdmtrainEvent) => {
-    console.log("Add to schedule:", event);
-  };
-
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function SceneView({
         uniqueCities={stats?.uniqueCities ?? 0}
         uniqueCountries={stats?.uniqueCountries ?? 0}
         milesDanced={stats?.milesDanced ?? null}
-        topArtists={stats?.topArtists ?? []}
+        topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
         isLoading={statsLoading}
         onAddShow={onAddShow}
         totalUsers={stats?.totalUsers}
