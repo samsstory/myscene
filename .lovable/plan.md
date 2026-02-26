@@ -1,14 +1,13 @@
 
 
-## Verification Result: Forwarding Address Copy Behavior
+## Verification: Dedup Sort Consistency
 
-**Status: Correct as-is.**
+Confirmed — the existing pattern in `useTextImportUpload.ts` already handles this correctly:
 
-- Line 159: `forwardingAddress = \`add+${userId}@tryscene.app\`` — uses full userId
-- Line 125: `navigator.clipboard.writeText(address)` — copies the full `address` prop
-- No truncation exists in the current code
+- **Existing shows side** (line 49): `.map(a => a.artist_name.toLowerCase()).sort()`
+- **New shows side** (line 73): `.map(a => a.name.toLowerCase()).sort().join(",")`
 
-**For the upcoming visual redesign:** The plan specifies truncated *display* (`add+{first8}...{last4}@tryscene.app`) but the `address` prop and clipboard copy will remain the full UUID. This is already how the plan is structured — display truncation is cosmetic only, the copy target stays unchanged.
+Both lowercase first, then alphabetical sort. Order-independent and case-normalized. The new `usePendingEmailImports` hook will copy this exact pattern verbatim.
 
-No code changes needed.
+No plan changes required. Ready to build.
 
