@@ -246,7 +246,7 @@ const EmailImportScreen: React.FC<EmailImportScreenProps> = ({ userId, onManualE
   return (
     <div className="space-y-5 pb-4">
       <p className="text-xs text-muted-foreground/70 leading-relaxed">
-        We'll search your email for tickets from Ticketmaster, Dice, StubHub, and 50+ platforms — then extract the details automatically.
+        Let's dig up your old tickets from Ticketmaster, Dice, StubHub, and 50+ platforms hiding in your inbox.
       </p>
 
       <StepFlowDiagram />
