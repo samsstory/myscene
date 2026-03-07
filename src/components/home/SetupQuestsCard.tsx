@@ -169,11 +169,12 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
           >
             <div className="px-4 pb-4 space-y-1.5">
               <AnimatePresence mode="popLayout">
-                {incompleteQuests.map((quest) => (
+                {incompleteQuests.map((quest, idx) => (
                   <QuestRow
                     key={quest.id}
                     quest={quest}
                     onTap={() => handleQuestTap(quest.id)}
+                    isStartHere={idx === 0 && quest.id === "install_pwa"}
                   />
                 ))}
               </AnimatePresence>
