@@ -24,15 +24,13 @@ export default function BottomNav({
   homeView,
   feedbackOpen,
   showSpotlightTour,
-  tourStepIndex,
-  showsStatRef,
   onHomePress,
   onCalendarPress,
   onFeedbackPress,
   onProfilePress,
   onAddPress,
 }: BottomNavProps) {
-  const shouldElevateNavZ = showSpotlightTour && tourStepIndex === 0;
+  const shouldElevateNavZ = showSpotlightTour;
 
   return (
     <div
