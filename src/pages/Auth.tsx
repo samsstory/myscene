@@ -267,7 +267,52 @@ const Auth = () => {
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(prev => !prev)}
+                  className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Forgot password?
+                </button>
               </form>
+              {showForgotPassword && (
+                <div className="mt-4 p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-3">
+                  {resetSent ? (
+                    <div className="text-center space-y-2">
+                      <p className="text-sm text-foreground">Reset link sent to <span className="text-primary">{resetEmail}</span></p>
+                      <p className="text-xs text-muted-foreground">Check your inbox and click the link to set a new password.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setResetSent(false); setShowForgotPassword(false); }}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Back to sign in
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Label htmlFor="reset-email" className="text-white/70">Enter your email to reset</Label>
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className={inputClassName}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleForgotPassword}
+                        className="w-full"
+                        variant="glass"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Sending..." : "Send Reset Link"}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="signup" className="mt-0">
