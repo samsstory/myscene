@@ -12,6 +12,7 @@ import VSHeroWidget from "./VSHeroWidget";
 import StatsTrophyCard from "./StatsTrophyCard";
 import SetupQuestsCard from "./SetupQuestsCard";
 import HomeCityPickerSheet from "./HomeCityPickerSheet";
+import SpotifyConnectSheet from "./SpotifyConnectSheet";
 import PendingEmailBanner from "./PendingEmailBanner";
 import EmailImportReviewSheet from "./EmailImportReviewSheet";
 import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
@@ -132,6 +133,7 @@ export default function SceneView({
   }, [questsLoading, allComplete]);
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const [spotifySheetOpen, setSpotifySheetOpen] = useState(false);
 
   const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
     switch (questId) {
@@ -142,13 +144,13 @@ export default function SceneView({
         setCityPickerOpen(true);
         break;
       case "connect_spotify":
-        onConnectSpotify?.();
+        setSpotifySheetOpen(true);
         break;
       case "add_photo":
         onAddProfilePhoto?.();
         break;
     }
-  }, [onAddShow, onConnectSpotify, onAddProfilePhoto]);
+  }, [onAddShow, onAddProfilePhoto]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
@@ -302,6 +304,12 @@ export default function SceneView({
             });
           });
         }}
+      />
+
+      {/* Spotify Connect Sheet (from quest) */}
+      <SpotifyConnectSheet
+        open={spotifySheetOpen}
+        onOpenChange={setSpotifySheetOpen}
       />
     </div>
   );
