@@ -906,6 +906,10 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     setGroupingSiblings([]);
     setGroupingNewShowId(null);
     setGroupingMeta(null);
+  };
+
+  const resetAndClose = () => {
+    resetState();
     onOpenChange(false);
   };
 
