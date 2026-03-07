@@ -143,7 +143,7 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
               top: spotlightStyle.top,
               width: spotlightStyle.width,
               height: spotlightStyle.height,
-              borderRadius: 20,
+              borderRadius: isCircle ? "50%" : 20,
               boxShadow:
                 "0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px hsl(189 94% 55% / 0.6), 0 0 60px hsl(189 94% 55% / 0.4)",
               pointerEvents: "none",
