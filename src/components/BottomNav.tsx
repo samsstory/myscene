@@ -11,7 +11,6 @@ interface BottomNavProps {
   homeView: ContentView;
   feedbackOpen: boolean;
   showSpotlightTour: boolean;
-  tourStepIndex: number;
   showsStatRef: React.RefObject<HTMLButtonElement>;
   onHomePress: () => void;
   onCalendarPress: () => void;
