@@ -132,20 +132,30 @@ export default function SceneView({
 
   return (
     <div className="space-y-6">
-      {/* Stats Trophy Card — always at the top */}
-      <StatsTrophyCard
-        totalShows={stats?.allTimeShows ?? 0}
-        topGenre={stats?.topGenre ?? null}
-        uniqueVenues={stats?.uniqueVenues ?? 0}
-        uniqueArtists={stats?.uniqueArtists ?? 0}
-        uniqueCities={stats?.uniqueCities ?? 0}
-        uniqueCountries={stats?.uniqueCountries ?? 0}
-        milesDanced={stats?.milesDanced ?? null}
-        topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
-        isLoading={statsLoading}
-        onAddShow={onAddShow}
-        totalUsers={stats?.totalUsers}
-      />
+      {/* Show quests card if incomplete, stats card if all done */}
+      {!questsLoading && !allComplete ? (
+        <SetupQuestsCard
+          quests={quests}
+          completedCount={completedCount}
+          totalCount={totalCount}
+          isLoading={questsLoading}
+          onQuestTap={handleQuestTap}
+        />
+      ) : (
+        <StatsTrophyCard
+          totalShows={stats?.allTimeShows ?? 0}
+          topGenre={stats?.topGenre ?? null}
+          uniqueVenues={stats?.uniqueVenues ?? 0}
+          uniqueArtists={stats?.uniqueArtists ?? 0}
+          uniqueCities={stats?.uniqueCities ?? 0}
+          uniqueCountries={stats?.uniqueCountries ?? 0}
+          milesDanced={stats?.milesDanced ?? null}
+          topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
+          isLoading={statsLoading || questsLoading}
+          onAddShow={onAddShow}
+          totalUsers={stats?.totalUsers}
+        />
+      )}
 
       {/* Pending Email Imports Banner */}
       <PendingEmailBanner pendingCount={pendingCount} onReview={handleOpenReview} />
