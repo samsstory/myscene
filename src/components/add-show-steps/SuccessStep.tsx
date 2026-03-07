@@ -37,6 +37,8 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   const [photoAdded, setPhotoAdded] = useState(false);
   const [showPwaNudge, setShowPwaNudge] = useState(false);
   const [showPushInterstitial, setShowPushInterstitial] = useState(false);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [isFirstShow, setIsFirstShow] = useState(false);
 
   const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
   const headlinerImage = show.artists.find(a => a.isHeadliner)?.imageUrl || show.artists[0]?.imageUrl;
