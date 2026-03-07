@@ -425,6 +425,17 @@ export default function SceneView({
         }}
       />
 
+      {/* Push Notification Interstitial (from quest) */}
+      <Sheet open={pushSheetOpen} onOpenChange={setPushSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl border-t border-white/[0.08] bg-card px-6 pb-8">
+          <PushNotificationInterstitial
+            onComplete={() => {
+              setPushSheetOpen(false);
+              refetchQuests();
+            }}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
