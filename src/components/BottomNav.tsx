@@ -94,7 +94,7 @@ export default function BottomNav({
 
 
       {/* FAB — add show */}
-      <div className={cn("flex flex-col items-center gap-3", showSpotlightTour && "z-[10001]")}>
+      <div className={cn("flex flex-col items-center gap-3", isFabStep && "relative z-[10003]")}>
         <button
           onClick={() => { if (!showSpotlightTour) { haptic(); onAddPress(); } }}
           data-tour="fab"
