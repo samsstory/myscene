@@ -35,7 +35,6 @@ export default function BottomNav({
   onAddPress,
 }: BottomNavProps) {
   const shouldElevateNavZ = showSpotlightTour && tourStepIndex === 0;
-  const showsTourActive = showSpotlightTour && tourStepIndex === 2;
 
   return (
     <div

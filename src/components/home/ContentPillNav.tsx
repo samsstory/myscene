@@ -38,8 +38,9 @@ export default function ContentPillNav({ activeView, onViewChange, rankNudge }: 
         {PILLS.map((pill) => {
           const isActive = activeView === pill.id;
           return (
-            <motion.button
+             <motion.button
               key={pill.id}
+              data-tour={pill.id === "rank" ? "pill-rank" : pill.id === "rankings" ? "pill-my-shows" : pill.id === "calendar" ? "pill-schedule" : undefined}
               whileTap={{ scale: 0.93 }}
               onClick={() => { navigator.vibrate?.(6); onViewChange(pill.id); }}
               className={cn(

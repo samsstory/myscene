@@ -1,16 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Joyride, { CallBackProps, STATUS, Step, TooltipRenderProps, ACTIONS, EVENTS } from "react-joyride";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Zap } from "lucide-react";
 
 interface SpotlightTourProps {
   run: boolean;
   onComplete: () => void;
   onStepChange?: (stepIndex: number) => void;
+  /** Called when user clicks "Log Your First Show" on final step */
+  onLogFirstShow?: () => void;
 }
+
+const TOTAL_STEPS = 4;
 
 // Custom tooltip component with glassmorphism styling
 const GlassTooltip = ({
-  continuous,
   index,
   step,
   backProps,
@@ -28,7 +31,6 @@ const GlassTooltip = ({
         boxShadow: "0 0 40px hsl(189 94% 55% / 0.2), 0 20px 60px -10px rgba(0,0,0,0.5)",
       }}
     >
-      {/* Content */}
       <div className="space-y-4">
         <p
           className="text-base font-medium text-white leading-relaxed"
@@ -37,9 +39,7 @@ const GlassTooltip = ({
           {step.content}
         </p>
 
-        {/* Actions */}
         <div className="flex items-center justify-between gap-3">
-          {/* Left side: Back button + Step counter */}
           <div className="flex items-center gap-2">
             {!isFirstStep && (
               <button
@@ -51,33 +51,43 @@ const GlassTooltip = ({
               </button>
             )}
             <span className="text-xs text-white/40">
-              {index + 1} of {step.data?.totalSteps || 5}
+              {index + 1} of {TOTAL_STEPS}
             </span>
           </div>
 
-          {/* Next/Done button */}
-          <button
-            {...primaryProps}
-            className="px-5 py-2 rounded-lg font-semibold text-sm text-primary-foreground transition-all duration-200 hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, hsl(189 94% 55%), hsl(250 80% 60%))",
-              boxShadow: "0 0 20px hsl(189 94% 55% / 0.4)",
-            }}
-          >
-            {isLastStep ? "Let's Go!" : "Next"}
-          </button>
+          {isLastStep ? (
+            <button
+              {...primaryProps}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm text-primary-foreground transition-all duration-200 hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, hsl(189 94% 55%), hsl(250 80% 60%))",
+                boxShadow: "0 0 24px hsl(189 94% 55% / 0.5)",
+              }}
+            >
+              <Zap className="h-4 w-4" />
+              Log Your First Show
+            </button>
+          ) : (
+            <button
+              {...primaryProps}
+              className="px-5 py-2 rounded-lg font-semibold text-sm text-primary-foreground transition-all duration-200 hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, hsl(189 94% 55%), hsl(250 80% 60%))",
+                boxShadow: "0 0 20px hsl(189 94% 55% / 0.4)",
+              }}
+            >
+              Next
+            </button>
+          )}
         </div>
       </div>
-
-      {/* Arrow indicator - styled via Joyride floaterProps */}
     </div>
   );
 };
 
-const SpotlightTour = ({ run, onComplete, onStepChange }: SpotlightTourProps) => {
+const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: SpotlightTourProps) => {
   const [stepIndex, setStepIndex] = useState(0);
 
-  // Reset step index when tour starts
   useEffect(() => {
     if (run) {
       setStepIndex(0);
@@ -85,71 +95,60 @@ const SpotlightTour = ({ run, onComplete, onStepChange }: SpotlightTourProps) =>
     }
   }, [run, onStepChange]);
 
-  // Notify parent when step changes
   useEffect(() => {
     onStepChange?.(stepIndex);
   }, [stepIndex, onStepChange]);
 
-  // Simplified tour with unified add flow (removed FAB menu steps)
   const steps: Step[] = [
     {
       target: '[data-tour="fab"]',
-      content: "Tap here to log your first show — just upload a photo or add manually",
+      content: "Log shows you've seen, add shows you want to see 🎵",
       placement: "left",
       disableBeacon: true,
-      data: { totalSteps: 5 },
       spotlightPadding: 12,
     },
     {
-      target: '[data-tour="nav-rank"]',
-      content: "Rank shows against each other to build your all-time list",
-      placement: "top",
-      disableBeacon: true,
-      data: { totalSteps: 5 },
-    },
-    {
-      target: '[data-tour="stat-shows"]',
-      content: "See all your shows here",
+      target: '[data-tour="pill-rank"]',
+      content: "1–5 stars mean nothing to us ⭐ Compare your shows head-to-head and let the rankings speak 🏆",
       placement: "bottom",
       disableBeacon: true,
-      data: { totalSteps: 5 },
     },
     {
-      target: '[data-tour="nav-globe"]',
-      content: "See everywhere you've been on the map",
-      placement: "top",
+      target: '[data-tour="pill-my-shows"]',
+      content: "See your show stats, all-time favorites, and badges you've earned 📊",
+      placement: "bottom",
       disableBeacon: true,
-      data: { totalSteps: 5 },
     },
     {
-      target: '[data-tour="fab"]',
-      content: "Let's go! Tap here to add more shows!",
-      placement: "left",
+      target: '[data-tour="pill-schedule"]',
+      content: "See upcoming shows your friends are going to and plan your next one 🗓️",
+      placement: "bottom",
       disableBeacon: true,
-      data: { totalSteps: 5, isFinal: true },
-      spotlightPadding: 12,
     },
   ];
 
-  const handleCallback = (data: CallBackProps) => {
+  const handleCallback = useCallback((data: CallBackProps) => {
     const { status, action, type, index } = data;
 
-    // Handle step advancement
     if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
+        // If last step, trigger the "Log first show" action
+        if (index === TOTAL_STEPS - 1) {
+          onComplete();
+          onLogFirstShow?.();
+          return;
+        }
         setStepIndex(index + 1);
       }
-      
       if (action === ACTIONS.PREV) {
         setStepIndex(index - 1);
       }
     }
 
-    // Tour finished or skipped
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       onComplete();
     }
-  };
+  }, [onComplete, onLogFirstShow]);
 
   return (
     <Joyride
@@ -177,7 +176,6 @@ const SpotlightTour = ({ run, onComplete, onStepChange }: SpotlightTourProps) =>
           borderRadius: 20,
           backgroundColor: "transparent",
           boxShadow: "0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px hsl(189 94% 55% / 0.6), 0 0 60px hsl(189 94% 55% / 0.4)",
-          animation: "spotlight-pulse 2s ease-in-out infinite",
         },
         overlay: {
           mixBlendMode: undefined,
