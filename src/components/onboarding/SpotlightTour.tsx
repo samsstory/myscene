@@ -185,16 +185,18 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
-            position: "absolute",
+            position: "fixed",
             left: "50%",
             top: "50%",
             transform: "translate(-50%, -50%)",
             zIndex: 10002,
+            pointerEvents: "none",
           }}
         >
           <div
             className="max-w-[300px] rounded-xl border border-white/20 bg-black/60 backdrop-blur-xl p-5 shadow-2xl"
             style={{
+              pointerEvents: "auto",
               boxShadow:
                 "0 0 40px hsl(189 94% 55% / 0.2), 0 20px 60px -10px rgba(0,0,0,0.5)",
             }}
