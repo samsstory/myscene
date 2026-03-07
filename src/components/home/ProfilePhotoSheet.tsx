@@ -42,7 +42,9 @@ function ProfilePhotoSheetInner({ open, onOpenChange, onPhotoUploaded }: Profile
       const filePath = `${user.id}/avatar.${fileExt}`;
       await supabase.storage.from("show-photos").upload(filePath, file, { upsert: true });
       const { data: { publicUrl } } = supabase.storage.from("show-photos").getPublicUrl(filePath);
-      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
+      // Add cache-buster so Profile page loads the fresh image
+      const freshUrl = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from("profiles").update({ avatar_url: freshUrl }).eq("id", user.id);
 
       toast.success("Profile photo added! 📸");
       onPhotoUploaded?.();
