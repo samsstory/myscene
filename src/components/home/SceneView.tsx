@@ -189,7 +189,7 @@ export default function SceneView({
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       supabase.from("profiles").select("home_city").eq("id", user.id).single().then(({ data }) => {
-        if (data?.home_city) setHomeCity(data.home_city);
+        setHomeCity(data?.home_city || "Austin, Texas, United States");
       });
     });
   }, []);
