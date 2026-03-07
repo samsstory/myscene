@@ -186,7 +186,17 @@ const Auth = () => {
           emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = error.message || "";
+        if (msg.toLowerCase().includes("security purposes") || msg.toLowerCase().includes("rate") || error.status === 429) {
+          // Extract seconds from message like "...after 50 seconds"
+          const match = msg.match(/(\d+)\s*second/i);
+          const secs = match ? parseInt(match[1], 10) : 60;
+          setResendCooldown(secs);
+          return; // No toast — the countdown on the button is feedback enough
+        }
+        throw error;
+      }
       setResendCooldown(60);
       toast.success("Verification email resent!");
     } catch (error: unknown) {
