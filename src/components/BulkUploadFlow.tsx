@@ -236,7 +236,7 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
 
   const handleAddManually = () => {
     handleClose();
-    onAddManually?.();
+    setTimeout(() => onAddManually?.(), 300);
   };
 
   // Normalize show data for PhotoOverlayEditor
