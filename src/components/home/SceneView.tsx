@@ -5,7 +5,7 @@ import { CalendarPlus, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import WhatsNextStrip from "./WhatsNextStrip";
 import SectionLabel from "./SectionLabel";
 import PopularFeedGrid from "./PopularFeedGrid";
