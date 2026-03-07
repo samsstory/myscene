@@ -13,7 +13,8 @@ interface PillNavItem {
 interface ContentPillNavProps {
   activeView: ContentView;
   onViewChange: (view: ContentView) => void;
-  rankNudge?: boolean; // shows a dot on Rank when there are unranked shows
+  rankNudge?: boolean;
+  elevated?: boolean;
 }
 
 const PILLS: PillNavItem[] = [
