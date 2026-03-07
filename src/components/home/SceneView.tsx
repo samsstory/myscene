@@ -4,8 +4,7 @@ import confetti from "canvas-confetti";
 import { CalendarPlus, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import WhatsNextStrip from "./WhatsNextStrip";
 import SectionLabel from "./SectionLabel";
 import PopularFeedGrid from "./PopularFeedGrid";
@@ -85,6 +84,7 @@ export default function SceneView({
   statsLoading = false,
 }: SceneViewProps) {
   const navigate = useNavigate();
+  const { subscribe } = usePushSubscription();
   // Pending email imports
   const {
     pendingImports,
@@ -133,7 +133,6 @@ export default function SceneView({
   }, [questsLoading, allComplete]);
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
-  const [pushSheetOpen, setPushSheetOpen] = useState(false);
   const [pwaRepromptDismissed, setPwaRepromptDismissed] = useState(
     () => typeof window !== "undefined" && localStorage.getItem("scene_pwa_reprompt_dismissed") === "true"
   );
@@ -184,10 +183,26 @@ export default function SceneView({
         avatarInputRef.current?.click();
         break;
       case "enable_push":
-        setPushSheetOpen(true);
+        if (!("Notification" in window)) {
+          toast.error("Notifications aren't supported on this browser");
+          return;
+        }
+        Notification.requestPermission().then(async (permission) => {
+          if (permission === "granted") {
+            try {
+              await subscribe();
+              toast.success("Notifications enabled! 🔔");
+            } catch {
+              toast.error("Something went wrong enabling notifications");
+            }
+          } else {
+            toast("You can enable notifications later in Settings");
+          }
+          refetchQuests();
+        });
         break;
     }
-  }, [onAddShow, navigate]);
+  }, [onAddShow, navigate, subscribe, refetchQuests]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
@@ -425,17 +440,6 @@ export default function SceneView({
         }}
       />
 
-      {/* Push Notification Interstitial (from quest) */}
-      <Sheet open={pushSheetOpen} onOpenChange={setPushSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl border-t border-white/[0.08] bg-card px-6 pb-8">
-          <PushNotificationInterstitial
-            onComplete={() => {
-              setPushSheetOpen(false);
-              refetchQuests();
-            }}
-          />
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
