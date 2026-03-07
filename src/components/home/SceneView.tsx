@@ -82,6 +82,7 @@ export default function SceneView({
   stats,
   statsLoading = false,
 }: SceneViewProps) {
+  const navigate = useNavigate();
   // Pending email imports
   const {
     pendingImports,
