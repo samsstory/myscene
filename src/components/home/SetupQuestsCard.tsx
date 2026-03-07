@@ -1,6 +1,6 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { type QuestStep, useSetupQuestsMinimized } from "@/hooks/useSetupQuests";
 import { Skeleton } from "@/components/ui/skeleton";
 
