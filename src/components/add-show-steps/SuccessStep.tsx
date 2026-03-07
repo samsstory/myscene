@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
+import ProfileSetupSheet from "@/components/onboarding/ProfileSetupSheet";
 import {
   staggerContainer,
   fadeUp,
