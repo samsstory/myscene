@@ -184,23 +184,7 @@ export default function SceneView({
         avatarInputRef.current?.click();
         break;
       case "enable_push":
-        if (!("Notification" in window)) {
-          toast.error("Notifications aren't supported on this browser");
-          return;
-        }
-        Notification.requestPermission().then(async (permission) => {
-          if (permission === "granted") {
-            try {
-              await subscribe();
-              toast.success("Notifications enabled! 🔔");
-            } catch {
-              toast.error("Something went wrong enabling notifications");
-            }
-          } else {
-            toast("You can enable notifications later in Settings");
-          }
-          refetchQuests();
-        });
+        setPushSheetOpen(true);
         break;
     }
   }, [onAddShow, navigate, subscribe, refetchQuests]);
