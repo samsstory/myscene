@@ -8,9 +8,11 @@ import FriendsGoingSection from "./FriendsGoingSection";
 import InlineCityPicker from "./InlineCityPicker";
 import VSHeroWidget from "./VSHeroWidget";
 import StatsTrophyCard from "./StatsTrophyCard";
+import SetupQuestsCard from "./SetupQuestsCard";
 import PendingEmailBanner from "./PendingEmailBanner";
 import EmailImportReviewSheet from "./EmailImportReviewSheet";
 import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
+import { useSetupQuests } from "@/hooks/useSetupQuests";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +43,7 @@ interface SceneViewProps {
   onNavigateToFriends?: () => void;
   onNavigateToRank?: () => void;
   onAddShow?: () => void;
-  onQuickAdd: (item: any) => void;
+  onQuickAdd: (item: unknown) => void;
   onAddEdmtrainToSchedule?: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   userArtistNames?: string[];
   friendShows?: FriendShow[];
@@ -52,6 +54,9 @@ interface SceneViewProps {
   upcomingShows?: UpcomingShow[];
   stats?: StatsForCard;
   statsLoading?: boolean;
+  onSetCity?: () => void;
+  onConnectSpotify?: () => void;
+  onAddProfilePhoto?: () => void;
 }
 
 export default function SceneView({
@@ -70,6 +75,9 @@ export default function SceneView({
   upcomingShows = [],
   stats,
   statsLoading = false,
+  onSetCity,
+  onConnectSpotify,
+  onAddProfilePhoto,
 }: SceneViewProps) {
   // Pending email imports
   const {
@@ -83,6 +91,26 @@ export default function SceneView({
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
 
   const handleOpenReview = useCallback(() => setReviewSheetOpen(true), []);
+
+  // Setup quests
+  const { quests, completedCount, totalCount, allComplete, isLoading: questsLoading, refetch: refetchQuests } = useSetupQuests();
+
+  const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
+    switch (questId) {
+      case "log_show":
+        onAddShow?.();
+        break;
+      case "set_city":
+        onSetCity?.();
+        break;
+      case "connect_spotify":
+        onConnectSpotify?.();
+        break;
+      case "add_photo":
+        onAddProfilePhoto?.();
+        break;
+    }
+  }, [onAddShow, onSetCity, onConnectSpotify, onAddProfilePhoto]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
@@ -104,20 +132,30 @@ export default function SceneView({
 
   return (
     <div className="space-y-6">
-      {/* Stats Trophy Card — always at the top */}
-      <StatsTrophyCard
-        totalShows={stats?.allTimeShows ?? 0}
-        topGenre={stats?.topGenre ?? null}
-        uniqueVenues={stats?.uniqueVenues ?? 0}
-        uniqueArtists={stats?.uniqueArtists ?? 0}
-        uniqueCities={stats?.uniqueCities ?? 0}
-        uniqueCountries={stats?.uniqueCountries ?? 0}
-        milesDanced={stats?.milesDanced ?? null}
-        topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
-        isLoading={statsLoading}
-        onAddShow={onAddShow}
-        totalUsers={stats?.totalUsers}
-      />
+      {/* Show quests card if incomplete, stats card if all done */}
+      {!questsLoading && !allComplete ? (
+        <SetupQuestsCard
+          quests={quests}
+          completedCount={completedCount}
+          totalCount={totalCount}
+          isLoading={questsLoading}
+          onQuestTap={handleQuestTap}
+        />
+      ) : (
+        <StatsTrophyCard
+          totalShows={stats?.allTimeShows ?? 0}
+          topGenre={stats?.topGenre ?? null}
+          uniqueVenues={stats?.uniqueVenues ?? 0}
+          uniqueArtists={stats?.uniqueArtists ?? 0}
+          uniqueCities={stats?.uniqueCities ?? 0}
+          uniqueCountries={stats?.uniqueCountries ?? 0}
+          milesDanced={stats?.milesDanced ?? null}
+          topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
+          isLoading={statsLoading || questsLoading}
+          onAddShow={onAddShow}
+          totalUsers={stats?.totalUsers}
+        />
+      )}
 
       {/* Pending Email Imports Banner */}
       <PendingEmailBanner pendingCount={pendingCount} onReview={handleOpenReview} />
