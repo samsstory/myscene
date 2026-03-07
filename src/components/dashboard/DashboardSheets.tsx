@@ -117,9 +117,12 @@ const DashboardSheets = ({
         open={showUnifiedAdd}
         onOpenChange={(v) => {
           setShowUnifiedAdd(v);
-          if (!v) onFestivalInviteClear();
+          if (!v) {
+            onFestivalInviteClear();
+            onShowAdded?.();
+          }
         }}
-        onNavigateToFeed={() => setActiveTab("home")}
+        onNavigateToFeed={() => { setActiveTab("home"); onShowAdded?.(); }}
         onNavigateToRank={() => { setActiveTab("home"); setHomeView("rank"); }}
         onAddManually={() => setShowAddDialog(true)}
         initialFestival={festivalInviteState}
