@@ -92,6 +92,26 @@ export default function SceneView({
 
   const handleOpenReview = useCallback(() => setReviewSheetOpen(true), []);
 
+  // Setup quests
+  const { quests, completedCount, totalCount, allComplete, isLoading: questsLoading, refetch: refetchQuests } = useSetupQuests();
+
+  const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
+    switch (questId) {
+      case "log_show":
+        onAddShow?.();
+        break;
+      case "set_city":
+        onSetCity?.();
+        break;
+      case "connect_spotify":
+        onConnectSpotify?.();
+        break;
+      case "add_photo":
+        onAddProfilePhoto?.();
+        break;
+    }
+  }, [onAddShow, onSetCity, onConnectSpotify, onAddProfilePhoto]);
+
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
   useEffect(() => {
