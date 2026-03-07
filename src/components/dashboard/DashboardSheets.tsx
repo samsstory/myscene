@@ -54,6 +54,7 @@ interface DashboardSheetsProps {
   festivalInviteState: { festival: FestivalResult; selectedArtists: string[] } | null;
   onFestivalInviteClear: () => void;
   onLogFirstShow: () => void;
+  onShowAdded?: () => void;
 }
 
 const DashboardSheets = ({
