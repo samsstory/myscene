@@ -4,7 +4,7 @@ import confetti from "canvas-confetti";
 import { CalendarPlus, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import WhatsNextStrip from "./WhatsNextStrip";
 import SectionLabel from "./SectionLabel";
