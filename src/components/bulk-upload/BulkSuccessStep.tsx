@@ -144,6 +144,23 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
     }
   }, [isFestival, festivalLineupId, festivalName, addedShows, shareFestivalFromLineup]);
 
+  const handleDone = useCallback(() => {
+    if (needsProfileSetup) {
+      setShowProfileSetup(true);
+    } else {
+      onDone();
+    }
+  }, [needsProfileSetup, onDone]);
+
+  const handleProfileComplete = useCallback(() => {
+    setShowProfileSetup(false);
+    onDone();
+  }, [onDone]);
+
+  if (showProfileSetup) {
+    return <ProfileSetupSheet onComplete={handleProfileComplete} />;
+  }
+
   if (showPushInterstitial) {
     return <PushNotificationInterstitial onComplete={() => setShowPushInterstitial(false)} />;
   }
