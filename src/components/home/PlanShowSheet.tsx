@@ -332,7 +332,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   className={`min-h-[130px] resize-none text-sm ${inputFieldClass}`}
-                  autoFocus
+                  autoFocus={false}
                 />
               </>
             )}
