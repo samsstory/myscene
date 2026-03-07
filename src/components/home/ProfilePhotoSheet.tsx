@@ -1,6 +1,6 @@
 import { memo, useState, useCallback, useRef } from "react";
 import { Camera, Loader2, ImagePlus } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -67,6 +67,7 @@ function ProfilePhotoSheetInner({ open, onOpenChange, onPhotoUploaded }: Profile
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader>
           <SheetTitle className="text-base font-bold tracking-tight">Add a Profile Photo</SheetTitle>
+          <SheetDescription className="sr-only">Upload a profile photo to complete your setup</SheetDescription>
         </SheetHeader>
 
         <div className="mt-5 space-y-5">
