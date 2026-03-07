@@ -15,7 +15,7 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" as const } },
 };
 
-import { RefObject } from "react";
+
 
 export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | 'todo-sheet' | 'rankings-attention' | null;
 
