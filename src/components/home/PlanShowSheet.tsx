@@ -292,10 +292,10 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
         {/* ─── INPUT STAGE ─────────────────────────────────────── */}
         {stage === "input" && (
           <div className="px-5 pt-2 pb-6 space-y-4">
-            <SheetHeader className="text-left space-y-0.5">
-              <SheetTitle className="text-lg font-bold">Plan a Show</SheetTitle>
+            <div className="text-left space-y-0.5">
+              <h2 className="text-lg font-bold">Plan a Show</h2>
               <p className="text-sm text-muted-foreground">AI reads links, captions, or screenshots</p>
-            </SheetHeader>
+            </div>
 
             {/* Tab switcher */}
             <div className="flex gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/[0.07]">
