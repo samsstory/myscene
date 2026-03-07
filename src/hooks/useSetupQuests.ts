@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface QuestStep {
-  id: "log_show" | "set_city" | "connect_spotify" | "add_photo";
+  id: "install_pwa" | "log_show" | "set_city" | "connect_spotify" | "add_photo";
   label: string;
   description: string;
   icon: string;
@@ -34,7 +34,12 @@ export function useSetupQuestsMinimized() {
   return { minimized, toggle };
 }
 
+const isInStandaloneMode = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as unknown as Record<string, unknown>).standalone === true;
+
 export function useSetupQuests(): UseSetupQuestsReturn {
+  const [hasPwa, setHasPwa] = useState(false);
   const [hasShow, setHasShow] = useState(false);
   const [hasCity, setHasCity] = useState(false);
   const [hasSpotify, setHasSpotify] = useState(false);
@@ -46,17 +51,29 @@ export function useSetupQuests(): UseSetupQuestsReturn {
     let cancelled = false;
 
     const check = async () => {
+      // Check standalone mode first (no DB needed)
+      const standalone = isInStandaloneMode();
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
       const [showRes, profileRes, spotifyRes] = await Promise.all([
         supabase.from("shows").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        supabase.from("profiles").select("home_city, avatar_url").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("home_city, avatar_url, pwa_installed").eq("id", user.id).maybeSingle(),
         supabase.from("spotify_connections").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
 
       if (cancelled) return;
 
+      // PWA is complete if running standalone OR previously marked in DB
+      const pwaInstalled = standalone || !!profileRes.data?.pwa_installed;
+
+      // If we just detected standalone mode but DB doesn't reflect it, update DB
+      if (standalone && !profileRes.data?.pwa_installed) {
+        supabase.from("profiles").upsert({ id: user.id, pwa_installed: true }).then(() => {});
+      }
+
+      setHasPwa(pwaInstalled);
       setHasShow((showRes.count ?? 0) > 0);
       setHasCity(!!profileRes.data?.home_city);
       setHasPhoto(!!profileRes.data?.avatar_url);
@@ -69,6 +86,13 @@ export function useSetupQuests(): UseSetupQuestsReturn {
   }, [tick]);
 
   const quests: QuestStep[] = useMemo(() => [
+    {
+      id: "install_pwa",
+      label: "Add Scene to home screen",
+      description: "Get the full app experience with one tap",
+      icon: "📲",
+      completed: hasPwa,
+    },
     {
       id: "log_show",
       label: "Log your first show",
@@ -97,7 +121,7 @@ export function useSetupQuests(): UseSetupQuestsReturn {
       icon: "📸",
       completed: hasPhoto,
     },
-  ], [hasShow, hasCity, hasSpotify, hasPhoto]);
+  ], [hasPwa, hasShow, hasCity, hasSpotify, hasPhoto]);
 
   const completedCount = quests.filter((q) => q.completed).length;
 
