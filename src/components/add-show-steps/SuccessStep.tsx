@@ -82,8 +82,30 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     input.click();
   };
 
+  const handleDone = useCallback(() => {
+    if (isFirstShow) {
+      setShowProfileSetup(true);
+    } else {
+      onDone();
+    }
+  }, [isFirstShow, onDone]);
+
+  const handleProfileComplete = useCallback(() => {
+    setShowProfileSetup(false);
+    const pushSeen = localStorage.getItem("scene-push-prompt-seen");
+    if (!pushSeen && "Notification" in window) {
+      setShowPushInterstitial(true);
+    } else {
+      onDone();
+    }
+  }, [onDone]);
+
+  if (showProfileSetup) {
+    return <ProfileSetupSheet onComplete={handleProfileComplete} />;
+  }
+
   if (showPushInterstitial) {
-    return <PushNotificationInterstitial onComplete={() => setShowPushInterstitial(false)} />;
+    return <PushNotificationInterstitial onComplete={() => { setShowPushInterstitial(false); onDone(); }} />;
   }
 
   return (
