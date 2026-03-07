@@ -90,17 +90,30 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === TOTAL_STEPS - 1;
 
+  const isCircle = stepIndex === 0; // FAB is circular
+
   // Spotlight cutout style
   const spotlightStyle = useMemo(() => {
     if (!targetRect) return {};
     const pad = 12;
+    if (isCircle) {
+      const size = Math.max(targetRect.width, targetRect.height) + pad * 2;
+      const cx = targetRect.left + targetRect.width / 2;
+      const cy = targetRect.top + targetRect.height / 2;
+      return {
+        left: cx - size / 2,
+        top: cy - size / 2,
+        width: size,
+        height: size,
+      };
+    }
     return {
       left: targetRect.left - pad,
       top: targetRect.top - pad,
       width: targetRect.width + pad * 2,
       height: targetRect.height + pad * 2,
     };
-  }, [targetRect]);
+  }, [targetRect, isCircle]);
 
   if (!run) return null;
 
