@@ -43,7 +43,6 @@ const Dashboard = () => {
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
   const [festivalInviteState, setFestivalInviteState] = useState<{ festival: FestivalResult; selectedArtists: string[] } | null>(null);
 
-  const showsStatRef = useRef<HTMLButtonElement | null>(null);
   const pendingAddFlowRef = useRef(false);
 
   const showLoader = !dataReady;
