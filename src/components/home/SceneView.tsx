@@ -187,7 +187,7 @@ export default function SceneView({
         setPushSheetOpen(true);
         break;
     }
-  }, [onAddShow, navigate, subscribe, refetchQuests]);
+  }, [onAddShow, navigate]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
