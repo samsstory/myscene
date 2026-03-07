@@ -271,7 +271,20 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
   const [detectingLocation, setDetectingLocation] = useState(false);
   const citySearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {fetchProfile();}, []);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Re-fetch profile when component becomes visible (tab switch via display:block/none)
+  useEffect(() => {
+    fetchProfile();
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) fetchProfile(); },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const fetchProfile = async () => {
     try {
