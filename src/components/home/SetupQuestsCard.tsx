@@ -53,7 +53,7 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
   );
 }
 
-function QuestRow({ quest, onTap }: { quest: QuestStep; onTap: () => void }) {
+function QuestRow({ quest, onTap, justCompleted }: { quest: QuestStep; onTap: () => void; justCompleted: boolean }) {
   return (
     <motion.button
       onClick={quest.completed ? undefined : onTap}
@@ -64,37 +64,40 @@ function QuestRow({ quest, onTap }: { quest: QuestStep; onTap: () => void }) {
       }`}
       layout
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      animate={
+        justCompleted
+          ? {
+              opacity: [1, 1, 1, 0],
+              scale: [1, 1, 1.08, 0.6],
+              x: [0, -4, 4, -3, 3, 0, 0, 0],
+              y: [0, 0, 0, -10],
+            }
+          : { opacity: 1, y: 0 }
+      }
+      exit={{ opacity: 0, scale: 0.6, y: -10, transition: { duration: 0.3 } }}
+      transition={
+        justCompleted
+          ? { duration: 0.8, ease: "easeInOut", times: [0, 0.4, 0.7, 1] }
+          : { duration: 0.25 }
+      }
     >
-      {/* Icon or checkmark */}
-      <div className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-        style={{
-          background: quest.completed
-            ? "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.1))"
-            : "hsl(var(--muted) / 0.3)",
-        }}
+      {/* Icon */}
+      <div
+        className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+        style={{ background: "hsl(var(--muted) / 0.3)" }}
       >
-        {quest.completed ? (
-          <Check className="h-4 w-4 text-primary" />
-        ) : (
-          <span className="text-sm">{quest.icon}</span>
-        )}
+        <span className="text-sm">{quest.icon}</span>
       </div>
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${quest.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-          {quest.label}
+        <p className="text-sm font-medium text-foreground">{quest.label}</p>
+        <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+          {quest.description}
         </p>
-        {!quest.completed && (
-          <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-            {quest.description}
-          </p>
-        )}
       </div>
 
-      {/* Arrow for incomplete */}
+      {/* Arrow */}
       {!quest.completed && (
         <div className="shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
           <ChevronDown className="h-3 w-3 text-primary rotate-[-90deg]" />
