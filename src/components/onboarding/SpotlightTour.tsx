@@ -119,36 +119,14 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 10000 }}>
-      {/* Dark overlay with cutout */}
-      <svg
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-        viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <mask id="tour-spotlight-mask">
-            <rect x="0" y="0" width="100%" height="100%" fill="white" />
-            {targetRect && (
-              <rect
-                x={spotlightStyle.left}
-                y={spotlightStyle.top}
-                width={spotlightStyle.width}
-                height={spotlightStyle.height}
-                rx="20"
-                fill="black"
-              />
-            )}
-          </mask>
-        </defs>
-        <rect
-          x="0"
-          y="0"
-          width="100%"
-          height="100%"
-          fill="rgba(0,0,0,0.85)"
-          mask="url(#tour-spotlight-mask)"
-        />
-      </svg>
+      {/* Dark overlay — fully opaque, no cutout */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.85)",
+        }}
+      />
 
       {/* Spotlight glow ring */}
       <AnimatePresence mode="wait">
