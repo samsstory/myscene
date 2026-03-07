@@ -129,13 +129,9 @@ export function useEdmtrainEvents(opts: UseEdmtrainEventsOptions = {}) {
           .eq("id", user.id)
           .single();
 
-        if (!profile?.home_latitude || !profile?.home_longitude) {
-          setEvents([]);
-          return;
-        }
-        lat = Number(profile.home_latitude);
-        lng = Number(profile.home_longitude);
-        cityStr = profile.home_city || "";
+      lat = Number(profile?.home_latitude) || 30.2672;
+      lng = Number(profile?.home_longitude) || -97.7431;
+      cityStr = profile?.home_city || "Austin, Texas, United States";
       }
 
       const state = extractState(cityStr);

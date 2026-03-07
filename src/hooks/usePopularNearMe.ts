@@ -54,17 +54,11 @@ export function usePopularNearMe(
 
       if (cancelled) return;
 
-      // Use override coords/city if provided, otherwise fall back to profile
-      const homeLat = overrideLat ?? (profile?.home_latitude ? Number(profile.home_latitude) : null);
-      const homeLng = overrideLng ?? (profile?.home_longitude ? Number(profile.home_longitude) : null);
-      const resolvedCity = overrideCity ?? profile?.home_city ?? null;
-      if (resolvedCity) setCityName(resolvedCity);
-
-      if (geoScope !== "world" && (!homeLat || !homeLng)) {
-        setHasLocation(false);
-        setIsLoading(false);
-        return;
-      }
+      // Use override coords/city if provided, otherwise fall back to profile, then Austin defaults
+      const homeLat = overrideLat ?? (profile?.home_latitude ? Number(profile.home_latitude) : null) ?? DEFAULT_LAT;
+      const homeLng = overrideLng ?? (profile?.home_longitude ? Number(profile.home_longitude) : null) ?? DEFAULT_LNG;
+      const resolvedCity = overrideCity ?? profile?.home_city ?? DEFAULT_CITY;
+      setCityName(resolvedCity);
       setHasLocation(true);
 
       let nearbyVenueIds: Set<string> | null = null;
