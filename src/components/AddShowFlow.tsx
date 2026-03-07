@@ -878,7 +878,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     setGroupingMeta(null);
   };
 
-  const resetAndClose = () => {
+  const resetState = () => {
     setShowData({
       venue: "",
       venueLocation: "",
