@@ -102,11 +102,6 @@ function VSHeroWidgetInner({
         {/* Glassmorphism overlay CTA */}
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <div className="w-full max-w-[280px] rounded-2xl bg-white/[0.04] backdrop-blur-md border border-white/[0.08] p-5 space-y-3 text-center">
-            <div className="mx-auto w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center"
-              style={{ boxShadow: "0 0 16px hsl(var(--primary) / 0.25)" }}
-            >
-              <Trophy className="h-4 w-4 text-primary" />
-            </div>
             <div className="space-y-1">
               <h2 className="text-base font-semibold text-foreground">Start Ranking</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
