@@ -89,6 +89,7 @@ const DashboardSheets = ({
   inviteNote,
   festivalInviteState,
   onFestivalInviteClear,
+  onLogFirstShow,
 }: DashboardSheetsProps) => {
   const handleSpotlightTourComplete = async () => {
     await supabase
