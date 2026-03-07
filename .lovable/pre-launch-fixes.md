@@ -87,7 +87,7 @@ Phase 1A (SpotlightTour)  →  1B (BulkUpload nav)  →  1C (Dual calendar)
 
 | Item | Status |
 |------|--------|
-| 1A. SpotlightTour | ⬜ Todo |
+| 1A. SpotlightTour | ✅ Done |
 | 1B. BulkUpload → Rank nav | ✅ Done |
 | 1C. Dual calendar removal | ✅ Done (resolved during Home decomposition) |
 | 2A. WelcomeCarousel rewrite | ✅ Done |
