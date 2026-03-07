@@ -245,6 +245,22 @@ export default function SceneView({
         onConfirmAll={confirmAll}
         onDismiss={dismissImport}
       />
+
+      {/* Home City Picker Sheet (from quest) */}
+      <HomeCityPickerSheet
+        open={cityPickerOpen}
+        onOpenChange={setCityPickerOpen}
+        onCitySaved={() => {
+          refetchQuests();
+          // Refresh homeCity display
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            if (!user) return;
+            supabase.from("profiles").select("home_city").eq("id", user.id).single().then(({ data }) => {
+              if (data?.home_city) setHomeCity(data.home_city);
+            });
+          });
+        }}
+      />
     </div>
   );
 }
