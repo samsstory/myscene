@@ -13,6 +13,7 @@ import StatsTrophyCard from "./StatsTrophyCard";
 import SetupQuestsCard from "./SetupQuestsCard";
 import HomeCityPickerSheet from "./HomeCityPickerSheet";
 import SpotifyConnectSheet from "./SpotifyConnectSheet";
+import ProfilePhotoSheet from "./ProfilePhotoSheet";
 import PendingEmailBanner from "./PendingEmailBanner";
 import EmailImportReviewSheet from "./EmailImportReviewSheet";
 import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
