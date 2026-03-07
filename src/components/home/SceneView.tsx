@@ -84,8 +84,9 @@ export default function SceneView({
   stats,
   statsLoading = false,
 }: SceneViewProps) {
+  const navigate = useNavigate();
   const { subscribe } = usePushSubscription();
-
+  // Pending email imports
   const {
     pendingImports,
     pendingCount,
