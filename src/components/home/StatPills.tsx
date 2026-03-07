@@ -39,12 +39,9 @@ interface StatPillsProps {
   stats: StatPill[];
   isLoading?: boolean;
   onPillTap?: (action: StatPillAction, payload?: string) => void;
-  // Tour-related props for Step 5
-  showsTourActive?: boolean;
-  showsRef?: RefObject<HTMLButtonElement>;
 }
 
-const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: StatPillsProps) => {
+const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
   if (isLoading) {
     return (
       <div className="flex gap-2.5 pb-2 items-stretch">
