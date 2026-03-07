@@ -11,7 +11,7 @@ interface AddChoiceSheetProps {
 
 export default function AddChoiceSheet({ open, onOpenChange, onLogShow, onPlanShow }: AddChoiceSheetProps) {
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} shouldScaleBackground={false}>
       <DrawerContent
         className="border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe"
         style={{ maxHeight: "60vh" }}
