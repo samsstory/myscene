@@ -90,52 +90,43 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === TOTAL_STEPS - 1;
 
+  const isCircle = stepIndex === 0; // FAB is circular
+
   // Spotlight cutout style
   const spotlightStyle = useMemo(() => {
     if (!targetRect) return {};
     const pad = 12;
+    if (isCircle) {
+      const size = Math.max(targetRect.width, targetRect.height) + pad * 2;
+      const cx = targetRect.left + targetRect.width / 2;
+      const cy = targetRect.top + targetRect.height / 2;
+      return {
+        left: cx - size / 2,
+        top: cy - size / 2,
+        width: size,
+        height: size,
+      };
+    }
     return {
       left: targetRect.left - pad,
       top: targetRect.top - pad,
       width: targetRect.width + pad * 2,
       height: targetRect.height + pad * 2,
     };
-  }, [targetRect]);
+  }, [targetRect, isCircle]);
 
   if (!run) return null;
 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 10000 }}>
-      {/* Dark overlay with cutout */}
-      <svg
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-        viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <mask id="tour-spotlight-mask">
-            <rect x="0" y="0" width="100%" height="100%" fill="white" />
-            {targetRect && (
-              <rect
-                x={spotlightStyle.left}
-                y={spotlightStyle.top}
-                width={spotlightStyle.width}
-                height={spotlightStyle.height}
-                rx="20"
-                fill="black"
-              />
-            )}
-          </mask>
-        </defs>
-        <rect
-          x="0"
-          y="0"
-          width="100%"
-          height="100%"
-          fill="rgba(0,0,0,0.85)"
-          mask="url(#tour-spotlight-mask)"
-        />
-      </svg>
+      {/* Dark overlay — fully opaque, no cutout */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.85)",
+        }}
+      />
 
       {/* Spotlight glow ring */}
       <AnimatePresence mode="wait">
@@ -152,7 +143,7 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
               top: spotlightStyle.top,
               width: spotlightStyle.width,
               height: spotlightStyle.height,
-              borderRadius: 20,
+              borderRadius: isCircle ? "50%" : 20,
               boxShadow:
                 "0 0 0 4px hsl(189 94% 55% / 0.8), 0 0 30px hsl(189 94% 55% / 0.6), 0 0 60px hsl(189 94% 55% / 0.4)",
               pointerEvents: "none",
