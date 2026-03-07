@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Camera, Instagram, Eye, Loader2, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
