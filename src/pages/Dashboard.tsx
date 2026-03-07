@@ -296,8 +296,6 @@ const Dashboard = () => {
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
-            showsTourActive={showSpotlightTour && tourStepIndex === 2}
-            showsRef={showsStatRef}
             onViewChange={(v) => setHomeView(v)}
           />
         </div>
