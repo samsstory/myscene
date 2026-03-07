@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { isUserUploadedImage, resolveArtistImage } from "@/lib/artist-image-utils";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ArrowLeft, MapPin, Calendar, Music, Star, Camera, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
@@ -1249,8 +1249,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
   return (
     <>
-    <Drawer open={open} onOpenChange={resetAndClose}>
-      <DrawerContent className="p-0 gap-0 bg-background relative flex flex-col border-white/[0.08]" style={{ maxHeight: '85vh', minHeight: '50vh' }}>
+    <Sheet open={open} onOpenChange={resetAndClose}>
+      <SheetContent side="bottom" className="rounded-t-3xl border-white/10 p-0 gap-0 bg-background relative flex flex-col h-[85vh]">
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-t-[10px] pointer-events-none">
           <div
@@ -1309,8 +1309,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           )}
           </div>
         }
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
 
     <GroupShowPrompt
       open={groupPromptOpen}
