@@ -54,26 +54,74 @@ function VSHeroWidgetInner({
     );
   }
 
-  // Empty state: fewer than 2 shows
+  // Empty state: fewer than 2 shows — blurred preview + glass overlay
   if (showCount < 2) {
     return (
-      <section className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-5 space-y-3">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-primary" />
-            Start Ranking
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Log 2 shows to start comparing your concerts head-to-head.
-          </p>
+      <section className="relative rounded-2xl overflow-hidden">
+        {/* Blurred mock of the real VS matchup UI */}
+        <div className="blur-[6px] opacity-40 pointer-events-none select-none" aria-hidden="true">
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Which was better?</h2>
+              <p className="text-sm text-muted-foreground">Tap to rank your all time favorites</p>
+            </div>
+            <div className="relative flex gap-3 items-start">
+              {/* Mock left card */}
+              <div className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+                <div className="aspect-[4/3] relative">
+                  <img src="/images/fred-again-msg.webp" alt="" className="w-full h-full object-cover" loading="lazy" />
+                </div>
+                <div className="p-2.5">
+                  <p className="text-xs font-semibold text-foreground truncate">Fred again..</p>
+                  <p className="text-[10px] text-muted-foreground truncate">MSG · New York</p>
+                </div>
+              </div>
+              {/* Mock VS badge */}
+              <div className="absolute left-1/2 -translate-x-1/2 z-10 top-1/2 -translate-y-1/2">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center bg-gradient-to-br from-[hsl(var(--primary))] to-[#7B61FF] -rotate-[5deg]"
+                  style={{ boxShadow: "0 0 12px rgba(0,217,255,0.4)" }}
+                >
+                  <span className="text-white font-bold text-[10px]">VS</span>
+                </div>
+              </div>
+              {/* Mock right card */}
+              <div className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+                <div className="aspect-[4/3] relative">
+                  <img src="/images/odesza-red-rocks.png" alt="" className="w-full h-full object-cover" loading="lazy" />
+                </div>
+                <div className="p-2.5">
+                  <p className="text-xs font-semibold text-foreground truncate">ODESZA</p>
+                  <p className="text-[10px] text-muted-foreground truncate">Red Rocks · Morrison</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={onAddShow}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
-        >
-          <CalendarPlus className="h-4 w-4" />
-          Add a show
-        </button>
+
+        {/* Glassmorphism overlay CTA */}
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="w-full max-w-[280px] rounded-2xl bg-white/[0.04] backdrop-blur-md border border-white/[0.08] p-5 space-y-3 text-center">
+            <div className="mx-auto w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center"
+              style={{ boxShadow: "0 0 16px hsl(var(--primary) / 0.25)" }}
+            >
+              <Trophy className="h-4 w-4 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-foreground">Start Ranking</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Log 2 shows to start comparing your concerts head-to-head.
+              </p>
+            </div>
+            <button
+              onClick={onAddShow}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              Add a show
+            </button>
+          </div>
+        </div>
       </section>
     );
   }

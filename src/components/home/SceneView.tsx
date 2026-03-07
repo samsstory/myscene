@@ -278,28 +278,75 @@ export default function SceneView({
       <VSHeroWidget onNavigateToRank={onNavigateToRank} onAddShow={onAddShow} />
 
       {isColdStart ? (
-        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-foreground">Welcome to Scene ✦</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Start by planning a show or finding friends who share your taste.
-            </p>
+        <section className="relative rounded-2xl overflow-hidden">
+          {/* Blurred mock of populated feed */}
+          <div className="blur-[6px] opacity-40 pointer-events-none select-none space-y-4 p-1" aria-hidden="true">
+            {/* Mock "What's Next" section */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">What's Next</p>
+              <div className="flex gap-3 overflow-hidden">
+                {/* Mock event card 1 */}
+                <div className="min-w-[200px] rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+                  <div className="aspect-[16/9] relative">
+                    <img src="/images/rufus-du-sol-red-rocks.webp" alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  <div className="p-2.5 space-y-0.5">
+                    <p className="text-xs font-semibold text-foreground">RÜFÜS DU SOL</p>
+                    <p className="text-[10px] text-muted-foreground">Red Rocks · Jun 14</p>
+                  </div>
+                </div>
+                {/* Mock event card 2 */}
+                <div className="min-w-[200px] rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+                  <div className="aspect-[16/9] relative">
+                    <img src="/images/jamie-xx-printworks.webp" alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  <div className="p-2.5 space-y-0.5">
+                    <p className="text-xs font-semibold text-foreground">Jamie xx</p>
+                    <p className="text-[10px] text-muted-foreground">Printworks · Jul 22</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Mock "Friends Going" row */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Friends Going</p>
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  <img src="/images/waitlist-1.png" alt="" className="w-8 h-8 rounded-full border-2 border-background object-cover" />
+                  <img src="/images/waitlist-2.png" alt="" className="w-8 h-8 rounded-full border-2 border-background object-cover" />
+                  <img src="/images/waitlist-3.png" alt="" className="w-8 h-8 rounded-full border-2 border-background object-cover" />
+                </div>
+                <p className="text-xs text-muted-foreground">3 friends are going</p>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={onPlanShow}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
-            >
-              <CalendarPlus className="h-4 w-4" />
-              Plan your first show
-            </button>
-            <button
-              onClick={onNavigateToFriends}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.10] text-foreground/80 text-sm font-medium hover:bg-white/[0.10] transition-colors"
-            >
-              <Users className="h-4 w-4" />
-              Find friends
-            </button>
+
+          {/* Glassmorphism overlay CTA */}
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-[320px] rounded-2xl bg-white/[0.04] backdrop-blur-md border border-white/[0.08] p-5 space-y-4 text-center">
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-foreground">Welcome to Scene ✦</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Start by planning a show or finding friends who share your taste.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={onPlanShow}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
+                >
+                  <CalendarPlus className="h-4 w-4" />
+                  Plan your first show
+                </button>
+                <button
+                  onClick={onNavigateToFriends}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.10] text-foreground/80 text-sm font-medium hover:bg-white/[0.10] transition-colors"
+                >
+                  <Users className="h-4 w-4" />
+                  Find friends
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       ) : (
