@@ -121,7 +121,14 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         activeView={viewMode}
         onViewChange={(v) => setViewMode(v)}
         rankNudge={stats.unrankedCount > 0 || stats.incompleteTagsCount > 0}
-        elevated={spotlightTourActive}
+        elevatedTourTarget={
+          spotlightTourActive
+            ? tourStepIndex === 1 ? "pill-rank"
+            : tourStepIndex === 2 ? "pill-my-shows"
+            : tourStepIndex === 3 ? "pill-schedule"
+            : undefined
+            : undefined
+        }
       />
 
       <AnimatePresence mode="wait">

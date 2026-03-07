@@ -297,6 +297,7 @@ const Dashboard = () => {
             onShowOpened={() => setOpenShowId(null)}
             onViewChange={(v) => setHomeView(v)}
             spotlightTourActive={showSpotlightTour}
+            tourStepIndex={showSpotlightTour ? tourStepIndex : undefined}
           />
         </div>
         <div style={{ display: activeTab === "profile" ? "block" : "none" }}>

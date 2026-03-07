@@ -42,6 +42,13 @@ export default function ContentPillNav({ activeView, onViewChange, rankNudge, el
              <motion.button
               key={pill.id}
               data-tour={pill.id === "rank" ? "pill-rank" : pill.id === "rankings" ? "pill-my-shows" : pill.id === "calendar" ? "pill-schedule" : undefined}
+              style={
+                elevatedTourTarget && (
+                  (pill.id === "rank" && elevatedTourTarget === "pill-rank") ||
+                  (pill.id === "rankings" && elevatedTourTarget === "pill-my-shows") ||
+                  (pill.id === "calendar" && elevatedTourTarget === "pill-schedule")
+                ) ? { position: "relative", zIndex: 10003 } : undefined
+              }
               whileTap={{ scale: 0.93 }}
               onClick={() => { navigator.vibrate?.(6); onViewChange(pill.id); }}
               className={cn(
