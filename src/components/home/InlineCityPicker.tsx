@@ -34,7 +34,7 @@ export default function InlineCityPicker({ currentCity, onCityChange }: InlineCi
       setSearching(true);
       try {
         const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=place&limit=5&access_token=${MAPBOX_TOKEN}`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=country,place&limit=5&access_token=${MAPBOX_TOKEN}`
         );
         const data = await res.json();
         setSuggestions((data.features || []).map((f: any) => ({
