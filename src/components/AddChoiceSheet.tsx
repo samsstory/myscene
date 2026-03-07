@@ -76,7 +76,7 @@ export default function AddChoiceSheet({ open, onOpenChange, onLogShow, onPlanSh
             Magic Add uses AI to read screenshots, links &amp; posters
           </p>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 }
