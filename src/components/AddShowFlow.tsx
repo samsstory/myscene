@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { isUserUploadedImage, resolveArtistImage } from "@/lib/artist-image-utils";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, MapPin, Calendar, Music, Star, Camera, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
