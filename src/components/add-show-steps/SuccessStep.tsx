@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
 import ProfileSetupSheet from "@/components/onboarding/ProfileSetupSheet";
+import { supabase } from "@/integrations/supabase/client";
 import {
   staggerContainer,
   fadeUp,
@@ -38,7 +39,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   const [showPwaNudge, setShowPwaNudge] = useState(false);
   const [showPushInterstitial, setShowPushInterstitial] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [isFirstShow, setIsFirstShow] = useState(false);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
   const headlinerImage = show.artists.find(a => a.isHeadliner)?.imageUrl || show.artists[0]?.imageUrl;
@@ -47,14 +48,25 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   useEffect(() => {
     fireConfetti();
 
-    const firstShow = !localStorage.getItem("scene-first-show-logged");
-    localStorage.setItem("scene-first-show-logged", "true");
-    setIsFirstShow(firstShow);
+    // Check if profile needs setup (DB-based, not localStorage)
+    const checkProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, home_city")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!data?.full_name || !data?.home_city) {
+        setNeedsProfileSetup(true);
+      }
+    };
+    checkProfile();
 
-    // Show PWA nudge on first show if not standalone and on mobile
+    // Show PWA nudge if not standalone and on mobile
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (!isStandalone && isMobile && firstShow) {
+    if (!isStandalone && isMobile) {
       setShowPwaNudge(true);
     }
   }, []);
@@ -83,12 +95,12 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   };
 
   const handleDone = useCallback(() => {
-    if (isFirstShow) {
+    if (needsProfileSetup) {
       setShowProfileSetup(true);
     } else {
       onDone();
     }
-  }, [isFirstShow, onDone]);
+  }, [needsProfileSetup, onDone]);
 
   const handleProfileComplete = useCallback(() => {
     setShowProfileSetup(false);

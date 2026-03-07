@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
 import { useShareShow } from "@/hooks/useShareShow";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
+import ProfileSetupSheet from "@/components/onboarding/ProfileSetupSheet";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   staggerContainer,
@@ -64,19 +66,33 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
   const [showInstallCTA, setShowInstallCTA] = useState(false);
   const [installDismissed, setInstallDismissed] = useState(false);
   const [showPushInterstitial, setShowPushInterstitial] = useState(false);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   useEffect(() => {
     fireConfetti();
 
-    const isFirstShow = !localStorage.getItem("scene-first-show-logged");
-    localStorage.setItem("scene-first-show-logged", "true");
+    // DB-based profile check
+    const checkProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, home_city")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!data?.full_name || !data?.home_city) {
+        setNeedsProfileSetup(true);
+      }
+    };
+    checkProfile();
 
     const pushSeen = localStorage.getItem("scene-push-prompt-seen");
-    if (isFirstShow && !pushSeen && "Notification" in window) {
+    if (!pushSeen && "Notification" in window) {
       setShowPushInterstitial(true);
     }
 
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as Record<string, unknown>).standalone === true;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isStandalone || !isMobile) return;
 
@@ -127,6 +143,23 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
       window.location.href = `sms:?body=${encodeURIComponent(shareText)}`;
     }
   }, [isFestival, festivalLineupId, festivalName, addedShows, shareFestivalFromLineup]);
+
+  const handleDone = useCallback(() => {
+    if (needsProfileSetup) {
+      setShowProfileSetup(true);
+    } else {
+      onDone();
+    }
+  }, [needsProfileSetup, onDone]);
+
+  const handleProfileComplete = useCallback(() => {
+    setShowProfileSetup(false);
+    onDone();
+  }, [onDone]);
+
+  if (showProfileSetup) {
+    return <ProfileSetupSheet onComplete={handleProfileComplete} />;
+  }
 
   if (showPushInterstitial) {
     return <PushNotificationInterstitial onComplete={() => setShowPushInterstitial(false)} />;
@@ -262,7 +295,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
           <Plus className="h-3.5 w-3.5" />
           Add More
         </button>
-        <button onClick={onDone} className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+        <button onClick={handleDone} className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
           Done
         </button>
       </motion.div>

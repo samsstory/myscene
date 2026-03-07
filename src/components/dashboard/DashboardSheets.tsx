@@ -54,6 +54,7 @@ interface DashboardSheetsProps {
   festivalInviteState: { festival: FestivalResult; selectedArtists: string[] } | null;
   onFestivalInviteClear: () => void;
   onLogFirstShow: () => void;
+  onShowAdded?: () => void;
 }
 
 const DashboardSheets = ({
@@ -90,6 +91,7 @@ const DashboardSheets = ({
   festivalInviteState,
   onFestivalInviteClear,
   onLogFirstShow,
+  onShowAdded,
 }: DashboardSheetsProps) => {
   const handleSpotlightTourComplete = async () => {
     await supabase
@@ -104,7 +106,7 @@ const DashboardSheets = ({
       <AddShowFlow
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onShowAdded={() => {}}
+        onShowAdded={() => onShowAdded?.()}
         onViewShowDetails={(showId) => {
           setActiveTab("home");
           setOpenShowId(showId);
@@ -115,9 +117,12 @@ const DashboardSheets = ({
         open={showUnifiedAdd}
         onOpenChange={(v) => {
           setShowUnifiedAdd(v);
-          if (!v) onFestivalInviteClear();
+          if (!v) {
+            onFestivalInviteClear();
+            onShowAdded?.();
+          }
         }}
-        onNavigateToFeed={() => setActiveTab("home")}
+        onNavigateToFeed={() => { setActiveTab("home"); onShowAdded?.(); }}
         onNavigateToRank={() => { setActiveTab("home"); setHomeView("rank"); }}
         onAddManually={() => setShowAddDialog(true)}
         initialFestival={festivalInviteState}

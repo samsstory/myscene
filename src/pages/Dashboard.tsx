@@ -359,6 +359,7 @@ const Dashboard = () => {
         festivalInviteState={festivalInviteState}
         onFestivalInviteClear={() => setFestivalInviteState(null)}
         onLogFirstShow={() => setShowAddChoice(true)}
+        onShowAdded={() => window.dispatchEvent(new Event("scene_refetch_quests"))}
       />
     </div>
   );
