@@ -295,7 +295,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
           <Plus className="h-3.5 w-3.5" />
           Add More
         </button>
-        <button onClick={onDone} className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+        <button onClick={handleDone} className="flex-1 flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
           Done
         </button>
       </motion.div>
