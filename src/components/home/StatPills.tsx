@@ -56,7 +56,7 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
     <motion.div className="flex gap-2.5 items-stretch" variants={containerVariants} initial="hidden" animate="show">
       {stats.map((stat) => {
         const isInteractive = stat.action !== null && stat.action !== undefined;
-        const isShowsPill = stat.id === 'total-shows';
+        
         const isTodoPill = stat.isTodo;
 
         // Special rendering for confirmation ring
