@@ -133,7 +133,6 @@ export default function SceneView({
   }, [questsLoading, allComplete]);
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
-  const [pushSheetOpen, setPushSheetOpen] = useState(false);
   const [pwaRepromptDismissed, setPwaRepromptDismissed] = useState(
     () => typeof window !== "undefined" && localStorage.getItem("scene_pwa_reprompt_dismissed") === "true"
   );
