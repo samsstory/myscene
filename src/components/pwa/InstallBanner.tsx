@@ -108,8 +108,8 @@ export default function InstallBanner() {
                 <Download className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0 pr-4">
-                <p className="text-sm font-semibold text-foreground">Install SCENE</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Get the full app experience on your home screen</p>
+                <p className="text-sm font-semibold text-foreground">Save Scene</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Add Scene to your home screen — like an app 😉</p>
               </div>
               <button
                 onClick={handleInstall}
