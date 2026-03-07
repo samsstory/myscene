@@ -194,7 +194,7 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 space-y-1.5">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence mode="sync">
                 {visibleQuests.map((quest) => (
                   <QuestRow
                     key={quest.id}
