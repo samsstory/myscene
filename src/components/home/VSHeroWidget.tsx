@@ -110,7 +110,7 @@ function VSHeroWidgetInner({
             <div className="space-y-1">
               <h2 className="text-base font-semibold text-foreground">Start Ranking</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Log 2 shows to start comparing your concerts head-to-head.
+                Log 2 shows you've been to recently to start ranking them head-to-head.
               </p>
             </div>
             <button
