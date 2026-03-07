@@ -305,6 +305,12 @@ export default function SceneView({
           });
         }}
       />
+
+      {/* Spotify Connect Sheet (from quest) */}
+      <SpotifyConnectSheet
+        open={spotifySheetOpen}
+        onOpenChange={setSpotifySheetOpen}
+      />
     </div>
   );
 }
