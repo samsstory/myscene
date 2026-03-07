@@ -425,7 +425,7 @@ export default function SceneView({
 /** Self-contained leaderboard with its own data fetching + filter state */
 function TopRatedSection({ onQuickAdd }: { onQuickAdd: (item: unknown) => void }) {
   const [showType, setShowType] = useState<ShowTypeFilter>("set");
-  const [geoScope, setGeoScope] = useState<GeoScope>("city");
+  const [geoScope, setGeoScope] = useState<GeoScope>("country");
   const [cityOverride, setCityOverride] = useState<{ name: string; lat: number; lng: number } | null>(null);
 
   const { items, totalUsers, isLoading, hasLocation, cityName, countryName } = usePopularNearMe(
