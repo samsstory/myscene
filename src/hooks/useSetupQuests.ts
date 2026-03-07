@@ -93,6 +93,13 @@ export function useSetupQuests(): UseSetupQuestsReturn {
     return () => { cancelled = true; };
   }, [tick]);
 
+  // Listen for global refetch events (e.g. after adding a show from DashboardSheets)
+  useEffect(() => {
+    const handler = () => setTick((t) => t + 1);
+    window.addEventListener("scene_refetch_quests", handler);
+    return () => window.removeEventListener("scene_refetch_quests", handler);
+  }, []);
+
   const quests: QuestStep[] = useMemo(() => [
     {
       id: "install_pwa",
