@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import confetti from "canvas-confetti";
 import { CalendarPlus, Users } from "lucide-react";
+import { motion } from "framer-motion";
 import WhatsNextStrip from "./WhatsNextStrip";
 import SectionLabel from "./SectionLabel";
 import PopularFeedGrid from "./PopularFeedGrid";
@@ -96,6 +98,39 @@ export default function SceneView({
   // Setup quests
   const { quests, completedCount, totalCount, allComplete, isLoading: questsLoading, refetch: refetchQuests } = useSetupQuests();
 
+  // Track quest completion celebration
+  const wasIncomplete = useRef(true);
+  const [justCompleted, setJustCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!questsLoading && allComplete && wasIncomplete.current) {
+      // Only fire if we transitioned from incomplete → complete (not on first load if already done)
+      const alreadyDone = sessionStorage.getItem("scene_quests_celebrated") === "true";
+      if (!alreadyDone) {
+        wasIncomplete.current = false;
+        setJustCompleted(true);
+        sessionStorage.setItem("scene_quests_celebrated", "true");
+
+        // Fire confetti burst
+        const end = Date.now() + 1500;
+        const fire = () => {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.35 },
+            colors: ["#22d3ee", "#a78bfa", "#f472b6", "#facc15", "#34d399"],
+            disableForReducedMotion: true,
+          });
+          if (Date.now() < end) requestAnimationFrame(fire);
+        };
+        fire();
+      }
+    }
+    if (!questsLoading && !allComplete) {
+      wasIncomplete.current = true;
+    }
+  }, [questsLoading, allComplete]);
+
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
 
   const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
@@ -145,19 +180,26 @@ export default function SceneView({
           onQuestTap={handleQuestTap}
         />
       ) : (
-        <StatsTrophyCard
-          totalShows={stats?.allTimeShows ?? 0}
-          topGenre={stats?.topGenre ?? null}
-          uniqueVenues={stats?.uniqueVenues ?? 0}
-          uniqueArtists={stats?.uniqueArtists ?? 0}
-          uniqueCities={stats?.uniqueCities ?? 0}
-          uniqueCountries={stats?.uniqueCountries ?? 0}
-          milesDanced={stats?.milesDanced ?? null}
-          topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
-          isLoading={statsLoading || questsLoading}
-          onAddShow={onAddShow}
-          totalUsers={stats?.totalUsers}
-        />
+        <motion.div
+          initial={justCompleted ? { scale: 0.85, opacity: 0, y: 20 } : false}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={justCompleted ? { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.2 } : { duration: 0 }}
+          onAnimationComplete={() => { if (justCompleted) setJustCompleted(false); }}
+        >
+          <StatsTrophyCard
+            totalShows={stats?.allTimeShows ?? 0}
+            topGenre={stats?.topGenre ?? null}
+            uniqueVenues={stats?.uniqueVenues ?? 0}
+            uniqueArtists={stats?.uniqueArtists ?? 0}
+            uniqueCities={stats?.uniqueCities ?? 0}
+            uniqueCountries={stats?.uniqueCountries ?? 0}
+            milesDanced={stats?.milesDanced ?? null}
+            topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
+            isLoading={statsLoading || questsLoading}
+            onAddShow={onAddShow}
+            totalUsers={stats?.totalUsers}
+          />
+        </motion.div>
       )}
 
       {/* Pending Email Imports Banner */}
