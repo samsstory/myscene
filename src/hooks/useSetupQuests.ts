@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface QuestStep {
-  id: "log_show" | "set_city" | "connect_spotify" | "add_photo";
+  id: "install_pwa" | "log_show" | "set_city" | "connect_spotify" | "add_photo";
   label: string;
   description: string;
   icon: string;
