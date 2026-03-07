@@ -1250,7 +1250,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   return (
     <>
     <Sheet open={open} onOpenChange={resetAndClose}>
-      <SheetContent side="bottom" className="rounded-t-3xl border-white/10 p-0 gap-0 bg-background relative flex flex-col" style={{ maxHeight: '85vh' }}>
+      <SheetContent side="bottom" className="rounded-t-3xl border-white/10 p-0 gap-0 bg-background relative flex flex-col h-[85vh]">
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-t-[10px] pointer-events-none">
           <div
