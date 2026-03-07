@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface QuestStep {
-  id: "install_pwa" | "log_show" | "set_city" | "connect_spotify" | "add_photo";
+  id: "install_pwa" | "log_show" | "set_city" | "connect_spotify" | "add_photo" | "enable_push";
   label: string;
   description: string;
   icon: string;
@@ -38,12 +38,18 @@ const isInStandaloneMode = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as unknown as Record<string, unknown>).standalone === true;
 
+const isPushEnabled = () => {
+  if (!("Notification" in window)) return false;
+  return Notification.permission === "granted";
+};
+
 export function useSetupQuests(): UseSetupQuestsReturn {
   const [hasPwa, setHasPwa] = useState(false);
   const [hasShow, setHasShow] = useState(false);
   const [hasCity, setHasCity] = useState(false);
   const [hasSpotify, setHasSpotify] = useState(false);
   const [hasPhoto, setHasPhoto] = useState(false);
+  const [hasPush, setHasPush] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [tick, setTick] = useState(0);
 
@@ -53,6 +59,7 @@ export function useSetupQuests(): UseSetupQuestsReturn {
     const check = async () => {
       // Check standalone mode first (no DB needed)
       const standalone = isInStandaloneMode();
+      const pushEnabled = isPushEnabled();
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) return;
@@ -78,6 +85,7 @@ export function useSetupQuests(): UseSetupQuestsReturn {
       setHasCity(!!profileRes.data?.home_city);
       setHasPhoto(!!profileRes.data?.avatar_url);
       setHasSpotify((spotifyRes.count ?? 0) > 0);
+      setHasPush(pushEnabled);
       setIsLoading(false);
     };
 
@@ -101,6 +109,13 @@ export function useSetupQuests(): UseSetupQuestsReturn {
       completed: hasShow,
     },
     {
+      id: "enable_push",
+      label: "Enable notifications",
+      description: "Get updates when friends log shows",
+      icon: "🔔",
+      completed: hasPush,
+    },
+    {
       id: "set_city",
       label: "Set your home city",
       description: "Unlock local discovery & miles danced",
@@ -121,7 +136,7 @@ export function useSetupQuests(): UseSetupQuestsReturn {
       icon: "📸",
       completed: hasPhoto,
     },
-  ], [hasPwa, hasShow, hasCity, hasSpotify, hasPhoto]);
+  ], [hasPwa, hasShow, hasCity, hasSpotify, hasPhoto, hasPush]);
 
   const completedCount = quests.filter((q) => q.completed).length;
 
