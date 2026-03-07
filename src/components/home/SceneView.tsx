@@ -135,6 +135,7 @@ export default function SceneView({
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [spotifySheetOpen, setSpotifySheetOpen] = useState(false);
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
 
   const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
     switch (questId) {
