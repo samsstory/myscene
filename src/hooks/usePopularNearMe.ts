@@ -100,15 +100,16 @@ export function usePopularNearMe(
           let userCountry: string | null = null;
           let minDist = Infinity;
           for (const v of venues) {
-            if (!v.country) continue;
+            const norm = normalizeCountry(v.country);
+            if (!norm) continue;
             const d = haversineKm(homeLat, homeLng, Number(v.latitude), Number(v.longitude));
-            if (d < minDist) { minDist = d; userCountry = v.country; }
+            if (d < minDist) { minDist = d; userCountry = norm; }
           }
           resolvedCountry = userCountry;
           if (!cancelled) setCountryName(userCountry);
           if (userCountry) {
             nearbyVenueIds = new Set(
-              venues.filter(v => v.country === userCountry || !v.country).map(v => v.id)
+              venues.filter(v => normalizeCountry(v.country) === userCountry || !v.country).map(v => v.id)
             );
           } else {
             nearbyVenueIds = null;
