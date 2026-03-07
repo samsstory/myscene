@@ -36,79 +36,82 @@ export default function BottomNav({
   const isFabStep = showSpotlightTour && tourStepIndex === 0;
 
   return (
-    <div
-      className={cn(
-        "flex justify-between items-end px-6 gap-4 pb-safe",
-        "z-50"
-      )}
-      style={{ position: 'fixed', bottom: 24, left: 0, right: 0 }}
-    >
-      {/* Left spacer */}
-      <div className="w-0 shrink-0" />
+    <>
+      <div
+        className="flex justify-between items-end px-6 gap-4 pb-safe z-50"
+        style={{ position: 'fixed', bottom: 24, left: 0, right: 0 }}
+      >
+        {/* Left spacer */}
+        <div className="w-0 shrink-0" />
 
-      {/* Glass Pill Navigation */}
-      <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-3 shadow-2xl">
-        <div className="flex items-center gap-8">
-          {/* Home */}
-          <NavButton
-            active={activeTab === "home" && homeView === "home"}
-            onPress={() => { haptic(); onHomePress(); }}
-          >
-            <HomeIcon className="h-6 w-6" />
-          </NavButton>
+        {/* Glass Pill Navigation */}
+        <nav className="backdrop-blur-xl bg-black/40 border border-white/20 rounded-full px-6 py-3 shadow-2xl">
+          <div className="flex items-center gap-8">
+            {/* Home */}
+            <NavButton
+              active={activeTab === "home" && homeView === "home"}
+              onPress={() => { haptic(); onHomePress(); }}
+            >
+              <HomeIcon className="h-6 w-6" />
+            </NavButton>
 
-          {/* Schedule */}
-          <NavButton
-            active={activeTab === "home" && homeView === "calendar"}
-            onPress={() => { haptic(); onCalendarPress(); }}
-            aria-label="Schedule"
-          >
-            <CalendarDays className="h-6 w-6" />
-          </NavButton>
+            {/* Schedule */}
+            <NavButton
+              active={activeTab === "home" && homeView === "calendar"}
+              onPress={() => { haptic(); onCalendarPress(); }}
+              aria-label="Schedule"
+            >
+              <CalendarDays className="h-6 w-6" />
+            </NavButton>
 
-          {/* Feedback */}
-          <NavButton
-            active={feedbackOpen}
-            onPress={() => { haptic(); onFeedbackPress(); }}
-            aria-label="Share feedback"
-          >
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </NavButton>
+            {/* Feedback */}
+            <NavButton
+              active={feedbackOpen}
+              onPress={() => { haptic(); onFeedbackPress(); }}
+              aria-label="Share feedback"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </NavButton>
 
-          {/* Profile */}
-          <NavButton
-            active={activeTab === "profile"}
-            onPress={() => { haptic(); onProfilePress(); }}
-          >
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-          </NavButton>
-        </div>
-      </nav>
+            {/* Profile */}
+            <NavButton
+              active={activeTab === "profile"}
+              onPress={() => { haptic(); onProfilePress(); }}
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+            </NavButton>
+          </div>
+        </nav>
 
+        {/* Spacer to keep nav centered when FAB is separated */}
+        <div className="w-[76px] shrink-0" />
+      </div>
 
-      {/* FAB — add show */}
-      <div className={cn("flex flex-col items-center gap-3", isFabStep && "relative z-[10003]")}>
+      {/* FAB — rendered as a separate fixed element so it has its own stacking context */}
+      <div
+        className={cn("fixed pb-safe flex flex-col items-center gap-3", isFabStep ? "z-[10003]" : "z-50")}
+        style={{ bottom: 24, right: 24 }}
+      >
         <button
           onClick={() => { if (!showSpotlightTour) { haptic(); onAddPress(); } }}
           data-tour="fab"
           className={cn(
             "relative overflow-hidden backdrop-blur-xl rounded-full p-5 shadow-[0_0_30px_hsl(189_94%_55%/0.4),0_0_60px_hsl(189_94%_55%/0.15)] transition-all hover:scale-110 active:scale-95 hover:shadow-[0_0_40px_hsl(189_94%_55%/0.6),0_0_80px_hsl(189_94%_55%/0.25)]",
-            "bg-gradient-to-br from-primary via-primary to-[hsl(250,80%,60%)] border border-white/20",
-            isFabStep ? "z-[10003]" : "z-50"
+            "bg-gradient-to-br from-primary via-primary to-[hsl(250,80%,60%)] border border-white/20"
           )}
         >
           <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-500" />
           <Plus className="h-9 w-9 text-primary-foreground relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" />
         </button>
       </div>
-    </div>
+    </>
   );
 }
 
