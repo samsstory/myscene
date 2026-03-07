@@ -116,8 +116,6 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
         return (
           <motion.div key={stat.id} variants={itemVariants} className="flex-1">
             <button
-              ref={isShowsPill ? showsRef : undefined}
-              data-tour={isShowsPill && !showsTourActive ? 'stat-shows' : undefined}
               onClick={() => isInteractive && onPillTap?.(stat.action!, stat.actionPayload)}
               disabled={!isInteractive}
               className={cn(
@@ -125,7 +123,6 @@ const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
                 "bg-white/[0.04] backdrop-blur-md border border-white/[0.06]",
                 isInteractive && "hover:bg-white/[0.08] active:scale-[0.97] cursor-pointer hover:border-white/[0.12]",
                 !isInteractive && "cursor-default",
-                isShowsPill && showsTourActive && "opacity-0",
                 "group"
               )}
             >
