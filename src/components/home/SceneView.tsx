@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { CalendarPlus, Users } from "lucide-react";
 import { motion } from "framer-motion";
