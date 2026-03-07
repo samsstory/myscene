@@ -235,8 +235,11 @@ const BulkUploadFlow = ({ open, onOpenChange, onNavigateToFeed, onNavigateToRank
   };
 
   const handleAddManually = () => {
-    handleClose();
-    setTimeout(() => onAddManually?.(), 500);
+    onOpenChange(false);
+    // Use requestAnimationFrame to wait for drawer close animation to finish
+    setTimeout(() => {
+      onAddManually?.();
+    }, 400);
   };
 
   // Normalize show data for PhotoOverlayEditor
