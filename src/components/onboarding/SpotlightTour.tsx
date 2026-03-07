@@ -22,7 +22,7 @@ const STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="pill-rank"]',
-    content: "Rank your shows head-to-head 🏆",
+    content: "Rank your shows head-to-head ⚖",
   },
   {
     target: '[data-tour="pill-my-shows"]',
