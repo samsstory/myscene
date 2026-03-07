@@ -164,6 +164,7 @@ const DashboardSheets = ({
         run={showSpotlightTour}
         onComplete={handleSpotlightTourComplete}
         onStepChange={setTourStepIndex}
+        onLogFirstShow={onLogFirstShow}
       />
 
       {/* Welcome Carousel */}
