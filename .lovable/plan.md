@@ -1,50 +1,41 @@
-## Redesign EmailImportScreen — Compact Two-Card Layout
 
-### Structure (top to bottom)
 
-```
-┌──────────────────────────────────┐
-│  Import from Email               │
-│  Forward confirmations from any  │
-│  inbox. We extract the shows.    │
-│                                  │
-│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 1: Find your tickets    │ │
-│ │ Copy & search in any app:    │ │
-│ │ ┌──────────────────────────┐ │ │
-│ │ │ from:ticketmaster.com OR │ │ │
-│ │ │ from:dice.fm OR ...      │ │ │
-│ │ └──────────────────────────┘ │ │
-│ │ [📋 Copy Search]  (glass)    │ │
-│ │ [Gmail] [Outlook] [iCloud]   │ │
-│ │        [Yahoo]               │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 2: Forward to Scene     │ │
-│ │ Select all results, then     │ │
-│ │ paste this in the To: field: │ │
-│ │   abc123@add.tryscene.app    │ │
-│ │ [📋 Copy Address]  (primary) │ │
-│ │ 💡 Gmail: "Forward as        │ │
-│ │    attachment" for bulk       │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ✓ Send everything—we filter out  │
-│   non-shows automatically        │
-│ Can't find emails? Add manually → │
-└──────────────────────────────────┘
+## Root Cause
+
+In `AddShowFlow.tsx` line 1252, the Drawer's `onOpenChange` is set to `resetAndClose`:
+
+```tsx
+<Drawer open={open} onOpenChange={resetAndClose} ...>
 ```
 
-### Key decisions
-- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
-- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
-- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
-- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
-- **Single file change**: `src/components/email/EmailImportScreen.tsx`
-- Dark cards: `bg-white/[0.04] border-white/[0.08]`
-- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
-- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
-- Keep props interface (`userId`, `onClose`, `onManualEntry`)
+`resetAndClose` unconditionally calls `onOpenChange(false)` (line 909). Vaul's `onOpenChange` callback receives a boolean (`true` when opening, `false` when closing). Since `resetAndClose` ignores the boolean and always fires `onOpenChange(false)`, any internal vaul state change during mount immediately closes the drawer.
+
+This is also why it worked before — when `AddShowFlow` used a Dialog, the Dialog's `onOpenChange` properly passed the boolean through. The Drawer conversion broke this contract.
+
+The same pattern exists in `BulkUploadFlow.tsx` where `handleDialogOpenChange` correctly checks `nextOpen` — but AddShowFlow does not.
+
+## Fix Plan
+
+### 1. Fix AddShowFlow.tsx Drawer `onOpenChange` handler
+Replace `onOpenChange={resetAndClose}` with a proper handler that:
+- If vaul passes `true`, does nothing (parent controls open state)
+- If vaul passes `false` (user swipe-dismisses), runs reset logic and calls `onOpenChange(false)`
+
+```tsx
+<Drawer open={open} onOpenChange={(nextOpen) => {
+  if (!nextOpen) resetAndClose();
+}} shouldScaleBackground={false}>
+```
+
+### 2. Ensure `resetAndClose` doesn't double-close
+Update `resetAndClose` to only reset state without calling `onOpenChange(false)` — the parent already handles the state change. OR keep the `onOpenChange(false)` call but guard the Drawer's `onOpenChange` prop so it only runs cleanup on close.
+
+The cleanest approach: split into `resetState()` (just resets form fields) and have the Drawer's `onOpenChange` call both `resetState()` and `onOpenChange(false)` only when closing.
+
+### 3. Fix drawer-to-drawer timing for "Search manually"
+In `BulkUploadFlow.tsx`, the `handleAddManually` uses a 400ms `setTimeout`. This may not be enough if the vaul close animation hasn't fully completed. Increase to 500ms or use vaul's `onAnimationEnd` / `onClose` callback to ensure the first drawer is fully unmounted before opening the second.
+
+### Files to edit
+- `src/components/AddShowFlow.tsx` — fix `onOpenChange` handler and `resetAndClose`
+- `src/components/BulkUploadFlow.tsx` — verify/increase transition delay for `handleAddManually`
+
