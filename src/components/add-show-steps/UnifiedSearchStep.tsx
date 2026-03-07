@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2, Music, MapPin, Sparkles, ChevronDown, X, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useArtistSearch } from "@/hooks/useArtistSearch";
 
 export type SearchResultType = 'artist' | 'venue';
 export type UnifiedShowType = 'set' | 'show' | 'festival' | 'b2b';
@@ -41,9 +40,11 @@ interface UnifiedSearchStepProps {
 
 const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedSearchStepProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState<UnifiedSearchResult[]>([]);
+  const [artistResults, setArtistResults] = useState<UnifiedSearchResult[]>([]);
+  const [venueResults, setVenueResults] = useState<UnifiedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // B2B state
   const [b2bArtists, setB2bArtists] = useState<B2bArtist[]>([]);
@@ -65,58 +66,62 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
     return 'Search artists...';
   };
 
-  // Use shared hook for artist search (DB-first, cached, debounced)
-  const { results: artistHookResults, isSearching: isArtistSearching } = useArtistSearch(
-    isEventMode ? "" : searchTerm, // skip artist search in event mode
-    { minChars: 3, debounceMs: 500 }
-  );
-
-  // Venue search still uses unified-search edge function
+  // Single unified search — one call returns both artists and venues
   useEffect(() => {
-    if (!isEventMode && searchTerm.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-    if (isEventMode && searchTerm.trim().length < 2) {
-      setResults([]);
+    const trimmed = searchTerm.trim();
+    if (trimmed.length < 2) {
+      setArtistResults([]);
+      setVenueResults([]);
+      setIsSearching(false);
       return;
     }
 
     setIsSearching(true);
 
     const timer = setTimeout(async () => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       try {
+        // Determine what to search for based on mode
+        const searchType = isEventMode ? 'venue' : undefined; // undefined = search all
+
         const { data, error } = await supabase.functions.invoke('unified-search', {
-          body: { 
-            searchTerm: searchTerm.trim(),
-            searchType: 'venue'
-          }
+          body: { searchTerm: trimmed, searchType },
         });
 
+        if (controller.signal.aborted) return;
         if (error) throw error;
-        // Only keep venue results from edge function
-        setResults((data?.results || []).filter((r: any) => r.type === 'venue'));
-      } catch (error) {
-        console.error('Error in venue search:', error);
-        setResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 500);
 
-    return () => clearTimeout(timer);
+        const allResults: UnifiedSearchResult[] = data?.results || [];
+
+        // Split results by type
+        const artists = allResults.filter((r: UnifiedSearchResult) => r.type === 'artist');
+        const venues = allResults.filter((r: UnifiedSearchResult) => r.type === 'venue');
+
+        if (!controller.signal.aborted) {
+          setArtistResults(isEventMode ? [] : artists);
+          setVenueResults(venues);
+        }
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        console.error('Unified search error:', err);
+        setArtistResults([]);
+        setVenueResults([]);
+      } finally {
+        if (!controller.signal.aborted) setIsSearching(false);
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+      abortRef.current?.abort();
+    };
   }, [searchTerm, isEventMode]);
 
-  // Artist results come from the shared hook; venue results from the edge function
-  const artistResults: UnifiedSearchResult[] = isEventMode ? [] : artistHookResults.map(r => ({
-    type: 'artist' as const,
-    id: r.id,
-    name: r.name,
-    subtitle: r.genres?.join(', ') || r.subtitle,
-    imageUrl: r.imageUrl,
-  }));
-  const primaryVenues = results.filter(r => r.type === 'venue' && r.tier !== 'other');
-  const otherVenues = results.filter(r => r.type === 'venue' && r.tier === 'other');
+  const primaryVenues = venueResults.filter(r => r.tier !== 'other');
+  const otherVenues = venueResults.filter(r => r.tier === 'other');
 
   // Filter out already-added B2B artists
   const filteredArtistResults = b2bMode
@@ -125,12 +130,9 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
 
   const handleArtistSelect = (result: UnifiedSearchResult) => {
     if (b2bMode) {
-      // In B2B mode, add to the B2B list
       setB2bArtists(prev => [...prev, { id: result.id, name: result.name, imageUrl: result.imageUrl }]);
       setSearchTerm("");
-      setResults([]);
     } else {
-      // Normal flow — just pass through
       onSelect(result);
     }
   };
@@ -140,7 +142,6 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
     if (b2bMode) {
       setB2bArtists(prev => [...prev, { id: `manual-${Date.now()}`, name: searchTerm.trim() }]);
       setSearchTerm("");
-      setResults([]);
     } else {
       onSelect({ type: 'artist', id: `manual-${Date.now()}`, name: searchTerm.trim() });
     }
@@ -156,7 +157,6 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
     setB2bArtists([{ id: firstArtist.id, name: firstArtist.name, imageUrl: firstArtist.imageUrl }]);
     setB2bMode(true);
     setSearchTerm("");
-    setResults([]);
   };
 
   const enterB2bModeManual = () => {
@@ -164,7 +164,6 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
     setB2bArtists([{ id: `manual-${Date.now()}`, name: searchTerm.trim() }]);
     setB2bMode(true);
     setSearchTerm("");
-    setResults([]);
   };
 
   const removeB2bArtist = (index: number) => {
@@ -242,14 +241,14 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
           )}
           autoFocus
         />
-        {(isSearching || isArtistSearching) && (
+        {isSearching && (
           <Loader2 className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-muted-foreground" />
         )}
       </div>
 
       <div className="space-y-4 max-h-[400px] overflow-y-auto">
         {/* Manual add option(s) */}
-        {searchTerm.trim().length >= 2 && !(isSearching || isArtistSearching) && (
+        {searchTerm.trim().length >= 2 && !isSearching && (
           isEventMode ? (
             <button onClick={handleManualEventAdd} className={cn(
               "w-full p-3 rounded-lg transition-all duration-200 text-left",
@@ -343,7 +342,7 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
         )}
 
         {/* Empty state */}
-        {!(isSearching || isArtistSearching) && searchTerm.trim().length >= 2 && results.length === 0 && artistResults.length === 0 && (
+        {!isSearching && searchTerm.trim().length >= 2 && venueResults.length === 0 && artistResults.length === 0 && (
           <div className="text-center py-8 text-muted-foreground text-sm">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No results found</p>
@@ -380,7 +379,7 @@ function ArtistResultCard({
       <button onClick={() => onSelect(result)} className="w-full text-left">
         <div className="flex items-start gap-3">
           {result.imageUrl ? (
-            <img src={result.imageUrl} alt={result.name} className="h-10 w-10 rounded-full object-cover border border-white/10 flex-shrink-0" />
+            <img src={result.imageUrl} alt={result.name} className="h-10 w-10 rounded-full object-cover border border-white/10 flex-shrink-0" loading="lazy" />
           ) : (
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Music className="h-5 w-5 text-primary" />
