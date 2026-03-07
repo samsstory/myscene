@@ -355,6 +355,7 @@ const Dashboard = () => {
         inviteNote={inviteNote}
         festivalInviteState={festivalInviteState}
         onFestivalInviteClear={() => setFestivalInviteState(null)}
+        onLogFirstShow={() => setShowAddChoice(true)}
       />
     </div>
   );
