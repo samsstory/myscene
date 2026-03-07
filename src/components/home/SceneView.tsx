@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import confetti from "canvas-confetti";
 import { CalendarPlus, Users } from "lucide-react";
+import { motion } from "framer-motion";
 import WhatsNextStrip from "./WhatsNextStrip";
 import SectionLabel from "./SectionLabel";
 import PopularFeedGrid from "./PopularFeedGrid";
