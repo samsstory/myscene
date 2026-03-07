@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { AddedShowData } from "@/hooks/useBulkShowUpload";
 import { useShareShow } from "@/hooks/useShareShow";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
+import ProfileSetupSheet from "@/components/onboarding/ProfileSetupSheet";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   staggerContainer,
