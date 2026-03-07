@@ -313,6 +313,13 @@ export default function SceneView({
         open={spotifySheetOpen}
         onOpenChange={setSpotifySheetOpen}
       />
+
+      {/* Profile Photo Sheet (from quest) */}
+      <ProfilePhotoSheet
+        open={photoSheetOpen}
+        onOpenChange={setPhotoSheetOpen}
+        onPhotoUploaded={() => refetchQuests()}
+      />
     </div>
   );
 }
