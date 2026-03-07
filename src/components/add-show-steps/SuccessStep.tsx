@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
 import ProfileSetupSheet from "@/components/onboarding/ProfileSetupSheet";
+import { supabase } from "@/integrations/supabase/client";
 import {
   staggerContainer,
   fadeUp,
