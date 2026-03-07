@@ -19,8 +19,8 @@ interface ContentPillNavProps {
 
 const PILLS: PillNavItem[] = [
   { id: "home", label: "Home" },
-  { id: "calendar", label: "Schedule" },
   { id: "rankings", label: "My Shows" },
+  { id: "calendar", label: "Schedule" },
   { id: "rank", label: "Rank" },
   { id: "friends", label: "Friends" },
   { id: "globe", label: "Globe" },
