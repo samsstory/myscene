@@ -110,12 +110,28 @@ const ResetPassword = () => {
         <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.08] rounded-2xl p-6 shadow-2xl shadow-black/20">
           {!isRecovery ? (
             <div className="text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Loading recovery session...
-              </p>
-              <p className="text-xs text-muted-foreground">
-                If this takes too long, try clicking the reset link from your email again.
-              </p>
+              {expired ? (
+                <>
+                  <p className="text-sm text-foreground">
+                    This reset link may have expired or already been used.
+                  </p>
+                  <a
+                    href="/auth"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Request a new reset link →
+                  </a>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Loading recovery session...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    If this takes too long, try clicking the reset link from your email again.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <form onSubmit={handleReset} className="space-y-4">
