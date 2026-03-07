@@ -482,7 +482,7 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
       <WelcomeCarousel onComplete={() => {setShowWelcomeCarousel(false);onAddShow?.();}} />
       }
 
-      <div className="space-y-6 max-w-2xl mx-auto pb-8">
+      <div ref={containerRef} className="space-y-6 max-w-2xl mx-auto pb-8">
 
         {/* ── Hero identity row ── */}
         <div className="flex items-center gap-4 pt-2">
