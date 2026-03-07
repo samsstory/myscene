@@ -13,6 +13,7 @@ import StatsTrophyCard from "./StatsTrophyCard";
 import SetupQuestsCard from "./SetupQuestsCard";
 import HomeCityPickerSheet from "./HomeCityPickerSheet";
 import SpotifyConnectSheet from "./SpotifyConnectSheet";
+import ProfilePhotoSheet from "./ProfilePhotoSheet";
 import PendingEmailBanner from "./PendingEmailBanner";
 import EmailImportReviewSheet from "./EmailImportReviewSheet";
 import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
@@ -134,6 +135,7 @@ export default function SceneView({
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [spotifySheetOpen, setSpotifySheetOpen] = useState(false);
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
 
   const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
     switch (questId) {
@@ -147,10 +149,10 @@ export default function SceneView({
         setSpotifySheetOpen(true);
         break;
       case "add_photo":
-        onAddProfilePhoto?.();
+        setPhotoSheetOpen(true);
         break;
     }
-  }, [onAddShow, onAddProfilePhoto]);
+  }, [onAddShow]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
@@ -310,6 +312,13 @@ export default function SceneView({
       <SpotifyConnectSheet
         open={spotifySheetOpen}
         onOpenChange={setSpotifySheetOpen}
+      />
+
+      {/* Profile Photo Sheet (from quest) */}
+      <ProfilePhotoSheet
+        open={photoSheetOpen}
+        onOpenChange={setPhotoSheetOpen}
+        onPhotoUploaded={() => refetchQuests()}
       />
     </div>
   );
