@@ -293,9 +293,7 @@ export default function PopularFeedGrid({
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div>
-        <h3 className="text-base uppercase tracking-[0.10em] font-bold text-white/70">{title}</h3>
-      </div>
+      <SectionLabel>{title}</SectionLabel>
 
       {/* Filter row */}
       <div className="flex items-center gap-2 flex-wrap">
