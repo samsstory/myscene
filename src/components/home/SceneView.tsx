@@ -131,6 +131,9 @@ export default function SceneView({
   }, [questsLoading, allComplete]);
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const [pwaRepromptDismissed, setPwaRepromptDismissed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem("scene_pwa_reprompt_dismissed") === "true"
+  );
 
   // Hidden file input for avatar upload (same logic as Profile.tsx)
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -208,6 +211,33 @@ export default function SceneView({
         className="hidden"
         onChange={handleAvatarUpload}
       />
+
+      {/* Smart PWA re-prompt: show if 2+ quests done but PWA still incomplete */}
+      {!questsLoading && !allComplete && (() => {
+        const pwaQuest = quests.find(q => q.id === "install_pwa");
+        const pwaSkipped = pwaQuest && !pwaQuest.completed;
+        if (pwaSkipped && completedCount >= 2 && !pwaRepromptDismissed) {
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 rounded-xl p-3 bg-primary/[0.06] border border-primary/30"
+            >
+              <span className="text-sm flex-1 text-foreground">
+                You're on a roll! <button onClick={() => navigate("/install")} className="text-primary font-medium underline underline-offset-2">Save Scene to your home screen</button> so you never lose your streak.
+              </span>
+              <button
+                onClick={() => { localStorage.setItem("scene_pwa_reprompt_dismissed", "true"); setPwaRepromptDismissed(true); }}
+                className="text-muted-foreground text-xs shrink-0 hover:text-foreground"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </motion.div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Show quests card if incomplete, stats card if all done */}
       {!questsLoading && !allComplete ? (

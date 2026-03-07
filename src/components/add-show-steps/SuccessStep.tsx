@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Camera, Instagram, Eye, Loader2, Plus } from "lucide-react";
+import { Camera, Instagram, Eye, Loader2, Smartphone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -10,13 +11,8 @@ import {
   fireConfetti,
   SuccessRing,
   ActionButton,
-  InstallCTA,
 } from "@/components/success/SuccessPrimitives";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
 
 interface AddedShowData {
   id: string;
@@ -35,11 +31,10 @@ interface SuccessStepProps {
 }
 
 const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: SuccessStepProps) => {
+  const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
   const [photoAdded, setPhotoAdded] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showInstallCTA, setShowInstallCTA] = useState(false);
-  const [installDismissed, setInstallDismissed] = useState(false);
+  const [showPwaNudge, setShowPwaNudge] = useState(false);
   const [showPushInterstitial, setShowPushInterstitial] = useState(false);
 
   const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
@@ -57,29 +52,13 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
       setShowPushInterstitial(true);
     }
 
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    // Show PWA nudge on first show if not standalone and on mobile
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const alreadyDismissed = localStorage.getItem("scene-pwa-prompt-dismissed");
-
-    if (isStandalone || !isMobile || alreadyDismissed) return;
-    if (!isFirstShow) return;
-
-    setShowInstallCTA(true);
-    const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e as BeforeInstallPromptEvent); };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  const handleInstall = async () => {
-    if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") setShowInstallCTA(false);
-      setDeferredPrompt(null);
-    } else {
-      setInstallDismissed(true);
+    if (!isStandalone && isMobile && isFirstShow) {
+      setShowPwaNudge(true);
     }
-  };
+  }, []);
 
   const handlePhotoClick = () => {
     const input = document.createElement("input");
@@ -138,12 +117,18 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
         )}
       </motion.div>
 
-      {/* ── Install CTA ── */}
-      {showInstallCTA && !installDismissed && (
-        <InstallCTA
-          onInstall={handleInstall}
-          onDismiss={() => { setInstallDismissed(true); localStorage.setItem("scene-pwa-prompt-dismissed", "true"); }}
-        />
+      {/* ── PWA Nudge ── */}
+      {showPwaNudge && (
+        <motion.button
+          variants={fadeUp}
+          onClick={() => navigate("/install")}
+          className="w-full flex items-center gap-3 rounded-xl p-3 bg-primary/[0.06] border border-primary/30 text-left transition-colors hover:bg-primary/[0.10] active:scale-[0.98]"
+        >
+          <Smartphone className="h-4 w-4 text-primary shrink-0" />
+          <p className="text-sm text-foreground">
+            Save Scene to your home screen to track your next one
+          </p>
+        </motion.button>
       )}
 
       {/* ── Actions ── */}
