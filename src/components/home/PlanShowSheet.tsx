@@ -274,7 +274,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const inputFieldClass = "bg-white/[0.05] border-white/10 text-foreground placeholder:text-muted-foreground";
 
   return (
-    <Drawer open={open} onOpenChange={handleClose}>
+    <Drawer open={open} onOpenChange={handleClose} shouldScaleBackground={false}>
       <DrawerContent
         className="rounded-t-2xl border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe-area-inset-bottom"
         style={{ maxHeight: "92vh", overflowY: "auto" }}
