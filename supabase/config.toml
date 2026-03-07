@@ -1,65 +1,51 @@
 project_id = "swbaamxtmzjnbaxizjuw"
 
-[auth.email]
-enable_signup = true
-double_confirm_changes = true
-enable_confirmations = false
-otp_length = 6
-otp_expiry = 3600
+[auth]
+  [auth.email]
+    double_confirm_changes = true
+    enable_confirmations = false
+    enable_signup = true
+    otp_expiry = 3600
+    otp_length = 6
 
-[functions.search-venues]
-verify_jwt = false
-
-[functions.backfill-venue-coordinates]
-verify_jwt = true
-
-[functions.unified-search]
-verify_jwt = false
-
-[functions.match-venue-from-location]
-verify_jwt = false
-
-[functions.get-demo-data]
-verify_jwt = false
-
-[functions.update-waitlist]
-verify_jwt = false
-
-[functions.admin-list-waitlist]
-verify_jwt = false
-
-[functions.approve-waitlist]
-verify_jwt = false
-
-[functions.admin-list-users]
-verify_jwt = false
-
-[functions.resend-notification]
-verify_jwt = false
-
-[functions.parse-show-notes]
-verify_jwt = false
-
-[functions.parse-upcoming-show]
-verify_jwt = false
-
-[functions.send-push-notification]
-verify_jwt = false
-
-[functions.sync-spotify-taste]
-verify_jwt = false
-
-[functions.scan-data-quality]
-verify_jwt = false
-
-[functions.scrape-festival-lineup]
-verify_jwt = false
-
-[functions.parse-lineup-photo]
-verify_jwt = false
-
-[functions.backfill-artist-images]
-verify_jwt = false
-
-[functions.receive-email]
-verify_jwt = false
+[functions]
+  [functions.admin-list-users]
+    verify_jwt = false
+  [functions.admin-list-waitlist]
+    verify_jwt = false
+  [functions.approve-waitlist]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.backfill-artist-images]
+    verify_jwt = false
+  [functions.backfill-venue-coordinates]
+    verify_jwt = true
+  [functions.get-demo-data]
+    verify_jwt = false
+  [functions.match-venue-from-location]
+    verify_jwt = false
+  [functions.parse-lineup-photo]
+    verify_jwt = false
+  [functions.parse-show-notes]
+    verify_jwt = false
+  [functions.parse-upcoming-show]
+    verify_jwt = false
+  [functions.receive-email]
+    verify_jwt = false
+  [functions.resend-notification]
+    verify_jwt = false
+  [functions.scan-data-quality]
+    verify_jwt = false
+  [functions.scrape-festival-lineup]
+    verify_jwt = false
+  [functions.search-venues]
+    verify_jwt = false
+  [functions.send-push-notification]
+    verify_jwt = false
+  [functions.sync-spotify-taste]
+    verify_jwt = false
+  [functions.unified-search]
+    verify_jwt = false
+  [functions.update-waitlist]
+    verify_jwt = false
