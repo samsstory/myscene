@@ -26,7 +26,7 @@ const STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="pill-my-shows"]',
-    content: "See your show stats, all-time favorites, and badges you've earned 📊",
+    content: "See your stats and current all-time favorites 🥇",
   },
   {
     target: '[data-tour="pill-schedule"]',
