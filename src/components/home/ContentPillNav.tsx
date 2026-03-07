@@ -26,13 +26,13 @@ const PILLS: PillNavItem[] = [
   { id: "globe", label: "Globe" },
 ];
 
-export default function ContentPillNav({ activeView, onViewChange, rankNudge }: ContentPillNavProps) {
+export default function ContentPillNav({ activeView, onViewChange, rankNudge, elevated }: ContentPillNavProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
       ref={scrollRef}
-      className="flex gap-2 overflow-x-auto pb-0.5"
+      className={cn("flex gap-2 overflow-x-auto pb-0.5", elevated && "relative z-[10001]")}
       style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
     >
       <LayoutGroup>
