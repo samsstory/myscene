@@ -220,7 +220,6 @@ function GeoDropdown({
           const Icon = opt.icon;
           const isActive = geoScope === opt.id;
           const displayLabel = opt.id === "city" && cityName ? shortCity(cityName) :
-          opt.id === "country" && countryName ? countryName :
           opt.label;
           return (
             <button
