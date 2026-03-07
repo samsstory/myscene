@@ -131,6 +131,9 @@ export default function SceneView({
   }, [questsLoading, allComplete]);
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const [pwaRepromptDismissed, setPwaRepromptDismissed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem("scene_pwa_reprompt_dismissed") === "true"
+  );
 
   // Hidden file input for avatar upload (same logic as Profile.tsx)
   const avatarInputRef = useRef<HTMLInputElement>(null);
