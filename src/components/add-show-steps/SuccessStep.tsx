@@ -13,10 +13,6 @@ import {
   ActionButton,
 } from "@/components/success/SuccessPrimitives";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
 
 interface AddedShowData {
   id: string;
