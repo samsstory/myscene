@@ -17,6 +17,7 @@ const Install = lazy(() => import("./pages/Install"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/auth/spotify/callback" element={<SpotifyCallback />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
