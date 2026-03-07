@@ -17,7 +17,7 @@ const RING_STROKE = 4;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-function ProgressRing({ completed, total }: { completed: number; total: number }) {
+function ProgressRing({ completed, total }: {completed: number;total: number;}) {
   const progress = total > 0 ? completed / total : 0;
   const offset = RING_CIRCUMFERENCE * (1 - progress);
 
@@ -30,8 +30,8 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
           r={RING_RADIUS}
           fill="none"
           stroke="hsl(var(--muted))"
-          strokeWidth={RING_STROKE}
-        />
+          strokeWidth={RING_STROKE} />
+        
         <motion.circle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
@@ -43,26 +43,21 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
           strokeDasharray={RING_CIRCUMFERENCE}
           initial={{ strokeDashoffset: RING_CIRCUMFERENCE }}
           animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        />
+          transition={{ duration: 0.6, ease: "easeOut" }} />
+        
       </svg>
       <span className="absolute text-xs font-bold text-foreground">
         {completed}/{total}
       </span>
-    </div>
-  );
+    </div>);
+
 }
 
-function QuestRow({ quest, onTap, isStartHere = false }: { quest: QuestStep; onTap: () => void; isStartHere?: boolean }) {
-  const isPwa = quest.id === "install_pwa";
+function QuestRow({ quest, onTap }: {quest: QuestStep;onTap: () => void;}) {
   return (
     <motion.button
       onClick={onTap}
-      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
-        isPwa && isStartHere
-          ? "bg-primary/[0.06] hover:bg-primary/[0.12] border border-primary/30 shadow-[0_0_12px_hsl(var(--primary)/0.15)]"
-          : "bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06]"
-      }`}
+      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left transition-colors bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer border border-white/[0.06]"
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -70,28 +65,21 @@ function QuestRow({ quest, onTap, isStartHere = false }: { quest: QuestStep; onT
         x: [0, -3, 3, -3, 3, -2, 0, 0],
         scale: [1, 1, 1, 1, 1, 1, 1.1, 0.5],
         opacity: [1, 1, 1, 1, 1, 1, 1, 0],
-        transition: { duration: 0.9, ease: "easeInOut" },
+        transition: { duration: 0.9, ease: "easeInOut" }
       }}
-      transition={{ duration: 0.25 }}
-    >
+      transition={{ duration: 0.25 }}>
+      
       {/* Icon */}
       <div
         className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-        style={{ background: "hsl(var(--muted) / 0.3)" }}
-      >
+        style={{ background: "hsl(var(--muted) / 0.3)" }}>
+        
         <span className="text-sm">{quest.icon}</span>
       </div>
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p className="text-sm font-medium text-foreground">{quest.label}</p>
-          {isPwa && isStartHere && (
-            <span className="text-[9px] font-semibold uppercase tracking-wider bg-primary/20 text-primary px-1.5 py-0.5 rounded-full leading-none">
-              Start here
-            </span>
-          )}
-        </div>
+        <p className="text-sm font-medium text-foreground">{quest.label}</p>
         <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
           {quest.description}
         </p>
@@ -99,10 +87,10 @@ function QuestRow({ quest, onTap, isStartHere = false }: { quest: QuestStep; onT
 
       {/* Arrow */}
       <div className="shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-        <ChevronDown className="h-3 w-3 text-primary rotate-[-90deg]" />
+        
       </div>
-    </motion.button>
-  );
+    </motion.button>);
+
 }
 
 function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, onQuestTap }: SetupQuestsCardProps) {
@@ -114,7 +102,7 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
   );
 
   // Only show incomplete quests — completed ones exit via AnimatePresence
-  const incompleteQuests = quests.filter(q => !q.completed);
+  const incompleteQuests = quests.filter((q) => !q.completed);
 
   if (isLoading) {
     return (
@@ -124,66 +112,65 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
           <Skeleton className="h-12 w-full rounded-xl" />
           <Skeleton className="h-12 w-full rounded-xl" />
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <motion.section
       className="rounded-2xl border border-white/[0.08] bg-card/80 backdrop-blur-xl overflow-hidden"
       layout
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-    >
+      transition={{ duration: 0.3, ease: "easeInOut" }}>
+      
       {/* Header — always visible */}
       <button
         onClick={toggle}
-        className="w-full flex items-center gap-3 p-4 pb-3 text-left hover:bg-white/[0.02] transition-colors"
-      >
+        className="w-full flex items-center gap-3 p-4 pb-3 text-left hover:bg-white/[0.02] transition-colors">
+        
         <ProgressRing completed={completedCount} total={totalCount} />
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Set Up Your Scene
           </p>
           <p className="text-xs text-muted-foreground/70 mt-0.5">
-            {completedCount === 0
-              ? "Complete these to unlock your stats"
-              : `${completedCount} of ${totalCount} complete — unlock your stats`}
+            {completedCount === 0 ?
+            "Complete these to unlock your stats" :
+            `${completedCount} of ${totalCount} complete — unlock your stats`}
           </p>
         </div>
-        {minimized ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-        )}
+        {minimized ?
+        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> :
+
+        <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+        }
       </button>
 
       {/* Quest rows — collapsible */}
       <AnimatePresence initial={false}>
-        {!minimized && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
+        {!minimized &&
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          className="overflow-hidden">
+          
             <div className="px-4 pb-4 space-y-1.5">
               <AnimatePresence mode="popLayout">
-                {incompleteQuests.map((quest, idx) => (
-                  <QuestRow
-                    key={quest.id}
-                    quest={quest}
-                    onTap={() => handleQuestTap(quest.id)}
-                    isStartHere={idx === 0 && quest.id === "install_pwa"}
-                  />
-                ))}
+                {incompleteQuests.map((quest) =>
+              <QuestRow
+                key={quest.id}
+                quest={quest}
+                onTap={() => handleQuestTap(quest.id)} />
+
+              )}
               </AnimatePresence>
             </div>
           </motion.div>
-        )}
+        }
       </AnimatePresence>
-    </motion.section>
-  );
+    </motion.section>);
+
 }
 
 const SetupQuestsCard = memo(SetupQuestsCardInner);
