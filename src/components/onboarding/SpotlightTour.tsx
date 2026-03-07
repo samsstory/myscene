@@ -30,7 +30,7 @@ const STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="pill-schedule"]',
-    content: "See upcoming shows your friends are going to and plan your next one 🗓️",
+    content: "View the entire squads' upcoming shows and where you overlap 📅",
   },
 ];
 
