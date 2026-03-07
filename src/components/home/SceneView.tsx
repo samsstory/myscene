@@ -9,6 +9,7 @@ import InlineCityPicker from "./InlineCityPicker";
 import VSHeroWidget from "./VSHeroWidget";
 import StatsTrophyCard from "./StatsTrophyCard";
 import SetupQuestsCard from "./SetupQuestsCard";
+import HomeCityPickerSheet from "./HomeCityPickerSheet";
 import PendingEmailBanner from "./PendingEmailBanner";
 import EmailImportReviewSheet from "./EmailImportReviewSheet";
 import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
@@ -95,13 +96,15 @@ export default function SceneView({
   // Setup quests
   const { quests, completedCount, totalCount, allComplete, isLoading: questsLoading, refetch: refetchQuests } = useSetupQuests();
 
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
+
   const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
     switch (questId) {
       case "log_show":
         onAddShow?.();
         break;
       case "set_city":
-        onSetCity?.();
+        setCityPickerOpen(true);
         break;
       case "connect_spotify":
         onConnectSpotify?.();
@@ -110,7 +113,7 @@ export default function SceneView({
         onAddProfilePhoto?.();
         break;
     }
-  }, [onAddShow, onSetCity, onConnectSpotify, onAddProfilePhoto]);
+  }, [onAddShow, onConnectSpotify, onAddProfilePhoto]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
@@ -241,6 +244,22 @@ export default function SceneView({
         onConfirmShow={confirmShow}
         onConfirmAll={confirmAll}
         onDismiss={dismissImport}
+      />
+
+      {/* Home City Picker Sheet (from quest) */}
+      <HomeCityPickerSheet
+        open={cityPickerOpen}
+        onOpenChange={setCityPickerOpen}
+        onCitySaved={() => {
+          refetchQuests();
+          // Refresh homeCity display
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            if (!user) return;
+            supabase.from("profiles").select("home_city").eq("id", user.id).single().then(({ data }) => {
+              if (data?.home_city) setHomeCity(data.home_city);
+            });
+          });
+        }}
       />
     </div>
   );
