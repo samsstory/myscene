@@ -179,6 +179,11 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
               upcomingShows={upcomingShows}
               stats={stats}
               statsLoading={statsLoading}
+              onSetCity={() => onNavigateToProfile?.()}
+              onConnectSpotify={() => {
+                import("@/lib/spotify-pkce").then(({ initiateSpotifyAuth }) => initiateSpotifyAuth());
+              }}
+              onAddProfilePhoto={() => onNavigateToProfile?.()}
             />
           )}
 
