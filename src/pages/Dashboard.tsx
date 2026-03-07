@@ -196,13 +196,9 @@ const Dashboard = () => {
 
         if (count === 0) {
           // Brand-new user — show welcome carousel
+          // Don't mark onboarding complete yet — wait until carousel finishes
           pendingAddFlowRef.current = true;
         }
-        // Mark onboarding as done so this never triggers again
-        supabase.from("profiles").update({
-          onboarding_step: "completed",
-          onboarding_completed_at: new Date().toISOString(),
-        }).eq("id", userId);
       }
     };
 

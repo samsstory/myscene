@@ -167,9 +167,17 @@ const DashboardSheets = ({
       {/* Welcome Carousel */}
       {showWelcomeCarousel && (
         <WelcomeCarousel
-          onComplete={() => {
+          onComplete={async () => {
             setShowWelcomeCarousel(false);
-            setShowUnifiedAdd(true);
+            setShowAddDialog(true);
+            // Mark onboarding complete now that user engaged with carousel
+            await supabase
+              .from("profiles")
+              .update({
+                onboarding_step: "completed",
+                onboarding_completed_at: new Date().toISOString(),
+              })
+              .eq("id", session.user.id);
           }}
           onTakeTour={() => {
             setShowWelcomeCarousel(false);
