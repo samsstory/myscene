@@ -96,13 +96,15 @@ export default function SceneView({
   // Setup quests
   const { quests, completedCount, totalCount, allComplete, isLoading: questsLoading, refetch: refetchQuests } = useSetupQuests();
 
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
+
   const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
     switch (questId) {
       case "log_show":
         onAddShow?.();
         break;
       case "set_city":
-        onSetCity?.();
+        setCityPickerOpen(true);
         break;
       case "connect_spotify":
         onConnectSpotify?.();
@@ -111,7 +113,7 @@ export default function SceneView({
         onAddProfilePhoto?.();
         break;
     }
-  }, [onAddShow, onSetCity, onConnectSpotify, onAddProfilePhoto]);
+  }, [onAddShow, onConnectSpotify, onAddProfilePhoto]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
