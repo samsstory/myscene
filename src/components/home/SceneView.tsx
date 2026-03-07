@@ -179,19 +179,26 @@ export default function SceneView({
           onQuestTap={handleQuestTap}
         />
       ) : (
-        <StatsTrophyCard
-          totalShows={stats?.allTimeShows ?? 0}
-          topGenre={stats?.topGenre ?? null}
-          uniqueVenues={stats?.uniqueVenues ?? 0}
-          uniqueArtists={stats?.uniqueArtists ?? 0}
-          uniqueCities={stats?.uniqueCities ?? 0}
-          uniqueCountries={stats?.uniqueCountries ?? 0}
-          milesDanced={stats?.milesDanced ?? null}
-          topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
-          isLoading={statsLoading || questsLoading}
-          onAddShow={onAddShow}
-          totalUsers={stats?.totalUsers}
-        />
+        <motion.div
+          initial={justCompleted ? { scale: 0.85, opacity: 0, y: 20 } : false}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={justCompleted ? { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.2 } : { duration: 0 }}
+          onAnimationComplete={() => { if (justCompleted) setJustCompleted(false); }}
+        >
+          <StatsTrophyCard
+            totalShows={stats?.allTimeShows ?? 0}
+            topGenre={stats?.topGenre ?? null}
+            uniqueVenues={stats?.uniqueVenues ?? 0}
+            uniqueArtists={stats?.uniqueArtists ?? 0}
+            uniqueCities={stats?.uniqueCities ?? 0}
+            uniqueCountries={stats?.uniqueCountries ?? 0}
+            milesDanced={stats?.milesDanced ?? null}
+            topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
+            isLoading={statsLoading || questsLoading}
+            onAddShow={onAddShow}
+            totalUsers={stats?.totalUsers}
+          />
+        </motion.div>
       )}
 
       {/* Pending Email Imports Banner */}
