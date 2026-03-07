@@ -49,9 +49,10 @@ interface HomeProps {
   openShowId?: string | null;
   onShowOpened?: () => void;
   spotlightTourActive?: boolean;
+  tourStepIndex?: number;
 }
 
-const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange, spotlightTourActive }: HomeProps) => {
+const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange, spotlightTourActive, tourStepIndex }: HomeProps) => {
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   const { shows, loading, rankings, fetchShows, deleteShow: handleDeleteShow, deleteConfirmShow, setDeleteConfirmShow, isDeleting, getShowRankInfo } = useShows({ onRealtimeChange: refetchStats });
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
