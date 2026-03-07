@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
-import { Home as HomeIcon, Plus, Music, CalendarDays } from "lucide-react";
+import { Home as HomeIcon, Plus, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentView } from "@/components/home/ContentPillNav";
-import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
 
 // Soft haptic tap — silently ignored on desktop / unsupported browsers
 const haptic = () => { try { navigator.vibrate?.(6); } catch {} };
