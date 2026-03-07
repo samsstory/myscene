@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Camera, Instagram, Eye, Loader2, Plus } from "lucide-react";
+import { Camera, Instagram, Eye, Loader2, Smartphone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -10,7 +11,6 @@ import {
   fireConfetti,
   SuccessRing,
   ActionButton,
-  InstallCTA,
 } from "@/components/success/SuccessPrimitives";
 
 interface BeforeInstallPromptEvent extends Event {
