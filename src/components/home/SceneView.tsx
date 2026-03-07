@@ -327,7 +327,7 @@ export default function SceneView({
               <div className="space-y-1">
                 <h2 className="text-base font-semibold text-foreground">Welcome to Scene ✦</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Start by planning a show or finding friends who share your taste.
+                  Start by planning a show you're going to or find friends to see what they have coming up.
                 </p>
               </div>
               <div className="flex gap-3">
