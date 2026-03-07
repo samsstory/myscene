@@ -110,15 +110,26 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
   const { minimized, toggle } = useSetupQuestsMinimized();
 
   // Track which quests just completed so we can animate them out
-  // Build a string key from completed quest IDs so we can use it as a stable dependency
   const completedKey = quests.filter(q => q.completed).map(q => q.id).sort().join(",");
-  const prevCompletedKey = useRef(completedKey);
+  const prevCompletedKey = useRef<string | null>(null); // null = first load
   const [animatingOut, setAnimatingOut] = useState<Set<string>>(new Set());
-  const [hidden, setHidden] = useState<Set<string>>(() => new Set(quests.filter(q => q.completed).map(q => q.id)));
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const prevIds = new Set(prevCompletedKey.current.split(",").filter(Boolean));
+    if (isLoading) return;
+
     const currentIds = completedKey.split(",").filter(Boolean);
+
+    // First data load: hide already-completed quests instantly (no animation)
+    if (prevCompletedKey.current === null) {
+      prevCompletedKey.current = completedKey;
+      if (currentIds.length > 0) {
+        setHidden(new Set(currentIds));
+      }
+      return;
+    }
+
+    const prevIds = new Set(prevCompletedKey.current.split(",").filter(Boolean));
     const newlyDone = currentIds.filter(id => !prevIds.has(id));
 
     if (newlyDone.length > 0) {
@@ -135,7 +146,7 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
       return () => clearTimeout(timer);
     }
     prevCompletedKey.current = completedKey;
-  }, [completedKey]);
+  }, [completedKey, isLoading]);
 
   const handleQuestTap = useCallback(
     (id: QuestStep["id"]) => onQuestTap(id),
