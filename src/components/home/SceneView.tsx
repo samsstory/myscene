@@ -75,6 +75,9 @@ export default function SceneView({
   upcomingShows = [],
   stats,
   statsLoading = false,
+  onSetCity,
+  onConnectSpotify,
+  onAddProfilePhoto,
 }: SceneViewProps) {
   // Pending email imports
   const {
