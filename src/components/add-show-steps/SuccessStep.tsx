@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Camera, Instagram, Eye, Loader2, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import PushNotificationInterstitial from "@/components/onboarding/PushNotificationInterstitial";
+import ProfileSetupSheet from "@/components/onboarding/ProfileSetupSheet";
 import {
   staggerContainer,
   fadeUp,
@@ -36,6 +37,8 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   const [photoAdded, setPhotoAdded] = useState(false);
   const [showPwaNudge, setShowPwaNudge] = useState(false);
   const [showPushInterstitial, setShowPushInterstitial] = useState(false);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [isFirstShow, setIsFirstShow] = useState(false);
 
   const headliner = show.artists.find(a => a.isHeadliner)?.name || show.artists[0]?.name || "Show";
   const headlinerImage = show.artists.find(a => a.isHeadliner)?.imageUrl || show.artists[0]?.imageUrl;
@@ -44,18 +47,14 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   useEffect(() => {
     fireConfetti();
 
-    const isFirstShow = !localStorage.getItem("scene-first-show-logged");
+    const firstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
-
-    const pushSeen = localStorage.getItem("scene-push-prompt-seen");
-    if (isFirstShow && !pushSeen && "Notification" in window) {
-      setShowPushInterstitial(true);
-    }
+    setIsFirstShow(firstShow);
 
     // Show PWA nudge on first show if not standalone and on mobile
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (!isStandalone && isMobile && isFirstShow) {
+    if (!isStandalone && isMobile && firstShow) {
       setShowPwaNudge(true);
     }
   }, []);
@@ -83,8 +82,30 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     input.click();
   };
 
+  const handleDone = useCallback(() => {
+    if (isFirstShow) {
+      setShowProfileSetup(true);
+    } else {
+      onDone();
+    }
+  }, [isFirstShow, onDone]);
+
+  const handleProfileComplete = useCallback(() => {
+    setShowProfileSetup(false);
+    const pushSeen = localStorage.getItem("scene-push-prompt-seen");
+    if (!pushSeen && "Notification" in window) {
+      setShowPushInterstitial(true);
+    } else {
+      onDone();
+    }
+  }, [onDone]);
+
+  if (showProfileSetup) {
+    return <ProfileSetupSheet onComplete={handleProfileComplete} />;
+  }
+
   if (showPushInterstitial) {
-    return <PushNotificationInterstitial onComplete={() => setShowPushInterstitial(false)} />;
+    return <PushNotificationInterstitial onComplete={() => { setShowPushInterstitial(false); onDone(); }} />;
   }
 
   return (
@@ -151,7 +172,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
 
       {/* ── Footer ── */}
       <motion.div variants={fadeUp} className="pt-2">
-        <button onClick={onDone} className="w-full flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+        <button onClick={handleDone} className="w-full flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
           Done
         </button>
       </motion.div>
