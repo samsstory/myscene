@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Zap, ChevronDown, MapPin, Globe, Map, Search, Loader2 } from "lucide-react";
+import { Users, Plus, Zap, ChevronDown, MapPin, Globe, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
