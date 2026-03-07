@@ -68,12 +68,12 @@ function HomeCityPickerSheetInner({ open, onOpenChange, onCitySaved }: HomeCityP
       if (!user) throw new Error("Not authenticated");
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: user.id,
           home_city: city.name,
           home_latitude: city.lat,
           home_longitude: city.lng,
-        })
-        .eq("id", user.id);
+        });
       if (error) throw error;
       toast.success(`Home city set to ${city.name.split(",")[0]}`);
       onCitySaved();

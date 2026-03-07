@@ -148,7 +148,7 @@ export default function SceneView({
       await supabase.storage.from("show-photos").upload(filePath, file, { upsert: true });
       const { data: { publicUrl } } = supabase.storage.from("show-photos").getPublicUrl(filePath);
       const urlWithBuster = `${publicUrl}?t=${Date.now()}`;
-      await supabase.from("profiles").update({ avatar_url: urlWithBuster }).eq("id", user.id);
+      await supabase.from("profiles").upsert({ id: user.id, avatar_url: urlWithBuster });
       toast.success("Profile photo updated! 📸");
       refetchQuests();
     } catch {
