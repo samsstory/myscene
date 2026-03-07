@@ -36,7 +36,7 @@ export function useSetupQuestsMinimized() {
 
 const isInStandaloneMode = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
-  (navigator as Record<string, unknown>).standalone === true;
+  (navigator as unknown as Record<string, unknown>).standalone === true;
 
 export function useSetupQuests(): UseSetupQuestsReturn {
   const [hasPwa, setHasPwa] = useState(false);
