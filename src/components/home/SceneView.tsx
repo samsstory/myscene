@@ -336,7 +336,7 @@ export default function SceneView({
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
                 >
                   <CalendarPlus className="h-4 w-4 shrink-0 -mt-px" />
-                  Plan your first show
+                  Plan a show
                 </button>
                 <button
                   onClick={onNavigateToFriends}
