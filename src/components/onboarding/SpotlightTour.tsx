@@ -18,7 +18,7 @@ interface TourStep {
 const STEPS: TourStep[] = [
   {
     target: '[data-tour="fab"]',
-    content: "Log shows you've seen, add shows you want to see 🎵",
+    content: "Add the shows you've seen and the ones you want to see next 🔍",
   },
   {
     target: '[data-tour="pill-rank"]',
