@@ -60,14 +60,16 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
     onStepChange?.(stepIndex);
 
     const measure = () => setTargetRect(getTargetRect(STEPS[stepIndex].target));
-    // Measure immediately + next frame for layout settling
+    // Measure immediately + next frame + delayed for layout settling (esp. fixed-position FAB)
     measure();
     const raf = requestAnimationFrame(measure);
+    const timer = setTimeout(measure, 100);
     const onResize = () => measure();
     window.addEventListener("resize", onResize);
     window.addEventListener("scroll", onResize, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(timer);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("scroll", onResize);
     };
