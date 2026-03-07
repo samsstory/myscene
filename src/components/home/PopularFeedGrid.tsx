@@ -294,7 +294,7 @@ export default function PopularFeedGrid({
     <div className="space-y-3">
       {/* Header */}
       <div>
-        <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">{title}</h3>
+        <h3 className="text-base uppercase tracking-[0.10em] font-bold text-white/70">{title}</h3>
       </div>
 
       {/* Filter row */}
