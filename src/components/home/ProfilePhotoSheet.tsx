@@ -67,7 +67,7 @@ function ProfilePhotoSheetInner({ open, onOpenChange, onPhotoUploaded }: Profile
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader>
           <SheetTitle className="text-base font-bold tracking-tight">Add a Profile Photo</SheetTitle>
-        </SheetHeader>
+          <SheetDescription className="sr-only">Upload a profile photo to complete your setup</SheetDescription>
 
         <div className="mt-5 space-y-5">
           {/* Preview / placeholder */}
