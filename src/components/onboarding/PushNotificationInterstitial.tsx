@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BellOff, Sparkles } from "lucide-react";
+import { ArrowLeft, Bell, BellOff, Sparkles } from "lucide-react";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
