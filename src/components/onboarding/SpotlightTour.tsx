@@ -177,22 +177,27 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
       )}
 
       {/* Center-screen tooltip */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={stepIndex}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          style={{
-            position: "fixed",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            zIndex: 10002,
-            pointerEvents: "none",
-          }}
-        >
+      {/* Fixed centering wrapper — immune to framer-motion transform overrides */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 10002,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+        }}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={stepIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            style={{ pointerEvents: "none" }}
+          >
           <div
             className="max-w-[300px] rounded-xl border border-white/20 bg-black/60 backdrop-blur-xl p-5 shadow-2xl"
             style={{
