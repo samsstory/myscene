@@ -50,7 +50,7 @@ export default function Install() {
           >
             {platform === "desktop" && (
               <h3 className="text-base font-bold flex items-center gap-2">
-                <span className="text-lg">🍎</span> iPhone / iPad
+                <span className="text-lg">🍎</span> Apple
               </h3>
             )}
             <div className="space-y-2.5">
