@@ -47,18 +47,14 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   useEffect(() => {
     fireConfetti();
 
-    const isFirstShow = !localStorage.getItem("scene-first-show-logged");
+    const firstShow = !localStorage.getItem("scene-first-show-logged");
     localStorage.setItem("scene-first-show-logged", "true");
-
-    const pushSeen = localStorage.getItem("scene-push-prompt-seen");
-    if (isFirstShow && !pushSeen && "Notification" in window) {
-      setShowPushInterstitial(true);
-    }
+    setIsFirstShow(firstShow);
 
     // Show PWA nudge on first show if not standalone and on mobile
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (!isStandalone && isMobile && isFirstShow) {
+    if (!isStandalone && isMobile && firstShow) {
       setShowPwaNudge(true);
     }
   }, []);
