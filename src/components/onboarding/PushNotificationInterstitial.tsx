@@ -98,7 +98,7 @@ const PushNotificationInterstitial = ({ onComplete }: PushNotificationInterstiti
           </button>
           <button
             onClick={handleEnable}
-            className="w-full py-3 px-4 rounded-xl bg-primary/[0.12] border border-primary/[0.30] text-sm font-semibold text-primary/90 transition-all hover:bg-primary/[0.18] hover:border-primary/[0.45] active:scale-[0.98]"
+            className="w-full py-3 px-4 rounded-xl text-sm font-semibold text-primary/90 transition-all hover:text-primary active:scale-[0.98]"
           >
             Allow Push Notifications
           </button>
