@@ -1,4 +1,4 @@
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
 import { Camera, CalendarDays, Sparkles, ArrowRight } from "lucide-react";
 
@@ -11,9 +11,10 @@ interface AddChoiceSheetProps {
 
 export default function AddChoiceSheet({ open, onOpenChange, onLogShow, onPlanShow }: AddChoiceSheetProps) {
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} shouldScaleBackground={false}>
-      <DrawerContent
-        className="border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe"
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe"
         style={{ maxHeight: "60vh" }}
       >
         <div className="px-5 pt-5 pb-8 space-y-3">
@@ -76,7 +77,7 @@ export default function AddChoiceSheet({ open, onOpenChange, onLogShow, onPlanSh
             Magic Add uses AI to read screenshots, links &amp; posters
           </p>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   );
 }

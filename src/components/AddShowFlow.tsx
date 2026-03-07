@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { isUserUploadedImage, resolveArtistImage } from "@/lib/artist-image-utils";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, MapPin, Calendar, Music, Star, Camera, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedSearchStep, { SearchResultType } from "./add-show-steps/UnifiedSearchStep";
@@ -878,7 +878,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     setGroupingMeta(null);
   };
 
-  const resetState = () => {
+  const resetAndClose = () => {
     setShowData({
       venue: "",
       venueLocation: "",
@@ -906,10 +906,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     setGroupingSiblings([]);
     setGroupingNewShowId(null);
     setGroupingMeta(null);
-  };
-
-  const resetAndClose = () => {
-    resetState();
     onOpenChange(false);
   };
 
@@ -1253,10 +1249,10 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
   return (
     <>
-    <Drawer open={open} onOpenChange={(nextOpen) => { if (!nextOpen) resetAndClose(); }} shouldScaleBackground={false}>
-      <DrawerContent className="p-0 gap-0 bg-background relative max-h-[85dvh] flex flex-col overflow-hidden border-white/[0.08]">
+    <Dialog open={open} onOpenChange={resetAndClose}>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[65vh] sm:max-h-[85vh] flex flex-col fixed top-[max(4.5rem,env(safe-area-inset-top,4.5rem))] sm:top-[50%] left-[50%] translate-x-[-50%] sm:translate-y-[-50%] translate-y-0 overflow-hidden">
         {/* Mesh gradient background - Scene aesthetic */}
-        <div className="absolute inset-0 overflow-hidden rounded-t-[10px] pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
           <div
             className="absolute inset-0 animate-pulse-glow"
             style={{ background: "radial-gradient(ellipse at 20% 10%, hsl(189 94% 55% / 0.06) 0%, transparent 50%)" }} />
@@ -1285,7 +1281,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         }
 
         {/* Step content - scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 pt-2 pb-4 min-h-0 relative z-10">
+        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4 min-h-0 relative z-10">
           <div className="flex flex-col items-center">
             {step !== 5 &&
             <h2 className="text-xl font-bold text-center mb-4">
@@ -1313,8 +1309,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           )}
           </div>
         }
-      </DrawerContent>
-    </Drawer>
+      </DialogContent>
+    </Dialog>
 
     <GroupShowPrompt
       open={groupPromptOpen}
