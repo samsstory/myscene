@@ -14,7 +14,7 @@ interface ContentPillNavProps {
   activeView: ContentView;
   onViewChange: (view: ContentView) => void;
   rankNudge?: boolean;
-  elevated?: boolean;
+  elevatedTourTarget?: string;
 }
 
 const PILLS: PillNavItem[] = [
