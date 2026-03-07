@@ -95,12 +95,12 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
   };
 
   const handleDone = useCallback(() => {
-    if (isFirstShow) {
+    if (needsProfileSetup) {
       setShowProfileSetup(true);
     } else {
       onDone();
     }
-  }, [isFirstShow, onDone]);
+  }, [needsProfileSetup, onDone]);
 
   const handleProfileComplete = useCallback(() => {
     setShowProfileSetup(false);

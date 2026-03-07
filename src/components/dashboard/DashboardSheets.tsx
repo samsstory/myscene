@@ -106,7 +106,7 @@ const DashboardSheets = ({
       <AddShowFlow
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onShowAdded={() => {}}
+        onShowAdded={() => onShowAdded?.()}
         onViewShowDetails={(showId) => {
           setActiveTab("home");
           setOpenShowId(showId);
