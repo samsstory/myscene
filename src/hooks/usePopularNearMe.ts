@@ -9,6 +9,23 @@ const MILES_TO_KM = 1.60934;
 const RADIUS_MILES = 50;
 const RADIUS_KM = RADIUS_MILES * MILES_TO_KM;
 
+const US_STATE_ABBREVS = new Set([
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+  "VA","WA","WV","WI","WY","DC",
+]);
+
+/** Normalize messy venue.country values to a clean country name */
+function normalizeCountry(raw: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (US_STATE_ABBREVS.has(trimmed.toUpperCase())) return "United States";
+  if (trimmed.toLowerCase().includes("united states")) return "United States";
+  if (trimmed.toLowerCase() === "usa" || trimmed.toLowerCase() === "us") return "United States";
+  return trimmed;
+}
+
 export type GeoScope = "city" | "country" | "world";
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
