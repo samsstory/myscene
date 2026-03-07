@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import confetti from "canvas-confetti";
 import { CalendarPlus, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import WhatsNextStrip from "./WhatsNextStrip";
 import SectionLabel from "./SectionLabel";
 import PopularFeedGrid from "./PopularFeedGrid";
@@ -12,8 +13,6 @@ import VSHeroWidget from "./VSHeroWidget";
 import StatsTrophyCard from "./StatsTrophyCard";
 import SetupQuestsCard from "./SetupQuestsCard";
 import HomeCityPickerSheet from "./HomeCityPickerSheet";
-import SpotifyConnectSheet from "./SpotifyConnectSheet";
-import ProfilePhotoSheet from "./ProfilePhotoSheet";
 import PendingEmailBanner from "./PendingEmailBanner";
 import EmailImportReviewSheet from "./EmailImportReviewSheet";
 import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
@@ -21,6 +20,7 @@ import { useSetupQuests } from "@/hooks/useSetupQuests";
 import { type EdmtrainEvent } from "@/hooks/useEdmtrainEvents";
 import { type FriendShow } from "@/hooks/useFriendUpcomingShows";
 import { supabase } from "@/integrations/supabase/client";
+import { initiateSpotifyAuth } from "@/lib/spotify-pkce";
 import type { UpcomingShow } from "@/hooks/usePlanUpcomingShow";
 import type { ShowTypeFilter } from "@/hooks/usePopularShows";
 import { usePopularNearMe, type GeoScope } from "@/hooks/usePopularNearMe";
@@ -80,9 +80,6 @@ export default function SceneView({
   upcomingShows = [],
   stats,
   statsLoading = false,
-  onSetCity,
-  onConnectSpotify,
-  onAddProfilePhoto,
 }: SceneViewProps) {
   // Pending email imports
   const {
@@ -106,14 +103,12 @@ export default function SceneView({
 
   useEffect(() => {
     if (!questsLoading && allComplete && wasIncomplete.current) {
-      // Only fire if we transitioned from incomplete → complete (not on first load if already done)
       const alreadyDone = sessionStorage.getItem("scene_quests_celebrated") === "true";
       if (!alreadyDone) {
         wasIncomplete.current = false;
         setJustCompleted(true);
         sessionStorage.setItem("scene_quests_celebrated", "true");
 
-        // Fire confetti burst
         const end = Date.now() + 1500;
         const fire = () => {
           confetti({
@@ -134,8 +129,34 @@ export default function SceneView({
   }, [questsLoading, allComplete]);
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
-  const [spotifySheetOpen, setSpotifySheetOpen] = useState(false);
-  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
+
+  // Hidden file input for avatar upload (same logic as Profile.tsx)
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Please upload a JPG, PNG, or WEBP image"); return;
+    }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be smaller than 5MB"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+      await supabase.storage.from("show-photos").upload(filePath, file, { upsert: true });
+      const { data: { publicUrl } } = supabase.storage.from("show-photos").getPublicUrl(filePath);
+      const urlWithBuster = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from("profiles").update({ avatar_url: urlWithBuster }).eq("id", user.id);
+      toast.success("Profile photo updated! 📸");
+      refetchQuests();
+    } catch {
+      toast.error("Failed to upload profile picture");
+    }
+    // Reset input so same file can be re-selected
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  }, [refetchQuests]);
 
   const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
     switch (questId) {
@@ -146,10 +167,10 @@ export default function SceneView({
         setCityPickerOpen(true);
         break;
       case "connect_spotify":
-        setSpotifySheetOpen(true);
+        initiateSpotifyAuth().catch(() => toast.error("Failed to start Spotify connection"));
         break;
       case "add_photo":
-        setPhotoSheetOpen(true);
+        avatarInputRef.current?.click();
         break;
     }
   }, [onAddShow]);
@@ -174,6 +195,15 @@ export default function SceneView({
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input for avatar upload from quest */}
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp"
+        className="hidden"
+        onChange={handleAvatarUpload}
+      />
+
       {/* Show quests card if incomplete, stats card if all done */}
       {!questsLoading && !allComplete ? (
         <SetupQuestsCard
@@ -298,7 +328,6 @@ export default function SceneView({
         onOpenChange={setCityPickerOpen}
         onCitySaved={() => {
           refetchQuests();
-          // Refresh homeCity display
           supabase.auth.getUser().then(({ data: { user } }) => {
             if (!user) return;
             supabase.from("profiles").select("home_city").eq("id", user.id).single().then(({ data }) => {
@@ -307,25 +336,12 @@ export default function SceneView({
           });
         }}
       />
-
-      {/* Spotify Connect Sheet (from quest) */}
-      <SpotifyConnectSheet
-        open={spotifySheetOpen}
-        onOpenChange={setSpotifySheetOpen}
-      />
-
-      {/* Profile Photo Sheet (from quest) */}
-      <ProfilePhotoSheet
-        open={photoSheetOpen}
-        onOpenChange={setPhotoSheetOpen}
-        onPhotoUploaded={() => refetchQuests()}
-      />
     </div>
   );
 }
 
 /** Self-contained leaderboard with its own data fetching + filter state */
-function TopRatedSection({ onQuickAdd }: { onQuickAdd: (item: any) => void }) {
+function TopRatedSection({ onQuickAdd }: { onQuickAdd: (item: unknown) => void }) {
   const [showType, setShowType] = useState<ShowTypeFilter>("set");
   const [geoScope, setGeoScope] = useState<GeoScope>("city");
   const [cityOverride, setCityOverride] = useState<{ name: string; lat: number; lng: number } | null>(null);

@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useEffect, useRef } from "react";
+import { memo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { type QuestStep, useSetupQuestsMinimized } from "@/hooks/useSetupQuests";
@@ -53,32 +53,21 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
   );
 }
 
-function QuestRow({ quest, onTap, justCompleted }: { quest: QuestStep; onTap: () => void; justCompleted: boolean }) {
+function QuestRow({ quest, onTap }: { quest: QuestStep; onTap: () => void }) {
   return (
     <motion.button
-      onClick={quest.completed ? undefined : onTap}
-      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left transition-colors ${
-        quest.completed
-          ? "bg-primary/[0.06] opacity-60 cursor-default"
-          : "bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer border border-white/[0.06]"
-      }`}
+      onClick={onTap}
+      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left transition-colors bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer border border-white/[0.06]"
       layout
       initial={{ opacity: 0, y: 8 }}
-      animate={
-        justCompleted
-          ? {
-              x: [0, -3, 3, -3, 3, -2, 0, 0],
-              scale: [1, 1, 1, 1, 1, 1, 1.1, 0.5],
-              opacity: [1, 1, 1, 1, 1, 1, 1, 0],
-            }
-          : { opacity: 1, y: 0 }
-      }
-      exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
-      transition={
-        justCompleted
-          ? { duration: 0.9, ease: "easeInOut" }
-          : { duration: 0.25 }
-      }
+      animate={{ opacity: 1, y: 0 }}
+      exit={{
+        x: [0, -3, 3, -3, 3, -2, 0, 0],
+        scale: [1, 1, 1, 1, 1, 1, 1.1, 0.5],
+        opacity: [1, 1, 1, 1, 1, 1, 1, 0],
+        transition: { duration: 0.9, ease: "easeInOut" },
+      }}
+      transition={{ duration: 0.25 }}
     >
       {/* Icon */}
       <div
@@ -97,11 +86,9 @@ function QuestRow({ quest, onTap, justCompleted }: { quest: QuestStep; onTap: ()
       </div>
 
       {/* Arrow */}
-      {!quest.completed && (
-        <div className="shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-          <ChevronDown className="h-3 w-3 text-primary rotate-[-90deg]" />
-        </div>
-      )}
+      <div className="shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+        <ChevronDown className="h-3 w-3 text-primary rotate-[-90deg]" />
+      </div>
     </motion.button>
   );
 }
@@ -109,51 +96,13 @@ function QuestRow({ quest, onTap, justCompleted }: { quest: QuestStep; onTap: ()
 function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, onQuestTap }: SetupQuestsCardProps) {
   const { minimized, toggle } = useSetupQuestsMinimized();
 
-  // Track which quests just completed so we can animate them out
-  const completedKey = quests.filter(q => q.completed).map(q => q.id).sort().join(",");
-  const prevCompletedKey = useRef<string | null>(null); // null = first load
-  const [animatingOut, setAnimatingOut] = useState<Set<string>>(new Set());
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    const currentIds = completedKey.split(",").filter(Boolean);
-
-    // First data load: hide already-completed quests instantly (no animation)
-    if (prevCompletedKey.current === null) {
-      prevCompletedKey.current = completedKey;
-      if (currentIds.length > 0) {
-        setHidden(new Set(currentIds));
-      }
-      return;
-    }
-
-    const prevIds = new Set(prevCompletedKey.current.split(",").filter(Boolean));
-    const newlyDone = currentIds.filter(id => !prevIds.has(id));
-
-    if (newlyDone.length > 0) {
-      setAnimatingOut(new Set(newlyDone));
-      const timer = setTimeout(() => {
-        setHidden(h => {
-          const next = new Set(h);
-          newlyDone.forEach(id => next.add(id));
-          return next;
-        });
-        setAnimatingOut(new Set());
-      }, 850);
-      prevCompletedKey.current = completedKey;
-      return () => clearTimeout(timer);
-    }
-    prevCompletedKey.current = completedKey;
-  }, [completedKey, isLoading]);
-
   const handleQuestTap = useCallback(
     (id: QuestStep["id"]) => onQuestTap(id),
     [onQuestTap]
   );
 
-  const visibleQuests = quests.filter(q => !hidden.has(q.id) || animatingOut.has(q.id));
+  // Only show incomplete quests — completed ones exit via AnimatePresence
+  const incompleteQuests = quests.filter(q => !q.completed);
 
   if (isLoading) {
     return (
@@ -207,13 +156,12 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 space-y-1.5">
-              <AnimatePresence mode="sync">
-                {visibleQuests.map((quest) => (
+              <AnimatePresence mode="popLayout">
+                {incompleteQuests.map((quest) => (
                   <QuestRow
                     key={quest.id}
                     quest={quest}
                     onTap={() => handleQuestTap(quest.id)}
-                    justCompleted={animatingOut.has(quest.id)}
                   />
                 ))}
               </AnimatePresence>
