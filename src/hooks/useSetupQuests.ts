@@ -51,7 +51,7 @@ export function useSetupQuests(): UseSetupQuestsReturn {
 
       const [showRes, profileRes, spotifyRes] = await Promise.all([
         supabase.from("shows").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        supabase.from("profiles").select("home_city, avatar_url").eq("id", user.id).single(),
+        supabase.from("profiles").select("home_city, avatar_url").eq("id", user.id).maybeSingle(),
         supabase.from("spotify_connections").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
 

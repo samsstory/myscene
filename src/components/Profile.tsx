@@ -271,7 +271,20 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
   const [detectingLocation, setDetectingLocation] = useState(false);
   const citySearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {fetchProfile();}, []);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Re-fetch profile when component becomes visible (tab switch via display:block/none)
+  useEffect(() => {
+    fetchProfile();
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) fetchProfile(); },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -469,7 +482,7 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
       <WelcomeCarousel onComplete={() => {setShowWelcomeCarousel(false);onAddShow?.();}} />
       }
 
-      <div className="space-y-6 max-w-2xl mx-auto pb-8">
+      <div ref={containerRef} className="space-y-6 max-w-2xl mx-auto pb-8">
 
         {/* ── Hero identity row ── */}
         <div className="flex items-center gap-4 pt-2">
