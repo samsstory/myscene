@@ -84,7 +84,14 @@ function QuestRow({ quest, onTap, isStartHere = false }: { quest: QuestStep; onT
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground">{quest.label}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-foreground">{quest.label}</p>
+          {isPwa && isStartHere && (
+            <span className="text-[9px] font-semibold uppercase tracking-wider bg-primary/20 text-primary px-1.5 py-0.5 rounded-full leading-none">
+              Start here
+            </span>
+          )}
+        </div>
         <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
           {quest.description}
         </p>
