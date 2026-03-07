@@ -149,10 +149,10 @@ export default function SceneView({
         setSpotifySheetOpen(true);
         break;
       case "add_photo":
-        onAddProfilePhoto?.();
+        setPhotoSheetOpen(true);
         break;
     }
-  }, [onAddShow, onAddProfilePhoto]);
+  }, [onAddShow]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
