@@ -314,8 +314,6 @@ const Dashboard = () => {
         homeView={homeView}
         feedbackOpen={feedbackOpen}
         showSpotlightTour={showSpotlightTour}
-        tourStepIndex={tourStepIndex}
-        showsStatRef={showsStatRef}
         onHomePress={() => {
           setActiveTab("home");
           setHomeView(prev => prev === "home" ? "" as ContentView : prev);
