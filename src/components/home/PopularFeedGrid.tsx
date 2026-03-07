@@ -42,7 +42,7 @@ const GEO_OPTIONS: {id: GeoScope;label: string;icon: typeof MapPin;}[] = [
 
 
 function getTitle(): string {
-  return "The Scene Charts";
+  return "Scene Top Charts";
 }
 
 /** Extract short city name: "Los Angeles, California, United States" → "Los Angeles" */
