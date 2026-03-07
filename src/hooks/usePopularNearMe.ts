@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PopularItem, ShowTypeFilter } from "@/hooks/usePopularShows";
 
+const DEFAULT_LAT = 30.2672;
+const DEFAULT_LNG = -97.7431;
+const DEFAULT_CITY = "Austin, Texas, United States";
 const MILES_TO_KM = 1.60934;
 const RADIUS_MILES = 50;
 const RADIUS_KM = RADIUS_MILES * MILES_TO_KM;
@@ -51,17 +54,11 @@ export function usePopularNearMe(
 
       if (cancelled) return;
 
-      // Use override coords/city if provided, otherwise fall back to profile
-      const homeLat = overrideLat ?? (profile?.home_latitude ? Number(profile.home_latitude) : null);
-      const homeLng = overrideLng ?? (profile?.home_longitude ? Number(profile.home_longitude) : null);
-      const resolvedCity = overrideCity ?? profile?.home_city ?? null;
-      if (resolvedCity) setCityName(resolvedCity);
-
-      if (geoScope !== "world" && (!homeLat || !homeLng)) {
-        setHasLocation(false);
-        setIsLoading(false);
-        return;
-      }
+      // Use override coords/city if provided, otherwise fall back to profile, then Austin defaults
+      const homeLat = overrideLat ?? (profile?.home_latitude ? Number(profile.home_latitude) : null) ?? DEFAULT_LAT;
+      const homeLng = overrideLng ?? (profile?.home_longitude ? Number(profile.home_longitude) : null) ?? DEFAULT_LNG;
+      const resolvedCity = overrideCity ?? profile?.home_city ?? DEFAULT_CITY;
+      setCityName(resolvedCity);
       setHasLocation(true);
 
       let nearbyVenueIds: Set<string> | null = null;
