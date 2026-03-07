@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PhotoSelectStep from "./bulk-upload/PhotoSelectStep";
