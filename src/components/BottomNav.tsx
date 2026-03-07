@@ -101,7 +101,7 @@ export default function BottomNav({
           className={cn(
             "relative overflow-hidden backdrop-blur-xl rounded-full p-5 shadow-[0_0_30px_hsl(189_94%_55%/0.4),0_0_60px_hsl(189_94%_55%/0.15)] transition-all hover:scale-110 active:scale-95 hover:shadow-[0_0_40px_hsl(189_94%_55%/0.6),0_0_80px_hsl(189_94%_55%/0.25)]",
             "bg-gradient-to-br from-primary via-primary to-[hsl(250,80%,60%)] border border-white/20",
-            showSpotlightTour ? "z-[10003]" : "z-50"
+            isFabStep ? "z-[10003]" : "z-50"
           )}
         >
           <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-500" />
