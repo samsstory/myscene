@@ -43,7 +43,7 @@ interface SceneViewProps {
   onNavigateToFriends?: () => void;
   onNavigateToRank?: () => void;
   onAddShow?: () => void;
-  onQuickAdd: (item: any) => void;
+  onQuickAdd: (item: unknown) => void;
   onAddEdmtrainToSchedule?: (event: EdmtrainEvent, rsvpStatus?: string) => void;
   userArtistNames?: string[];
   friendShows?: FriendShow[];
@@ -54,6 +54,9 @@ interface SceneViewProps {
   upcomingShows?: UpcomingShow[];
   stats?: StatsForCard;
   statsLoading?: boolean;
+  onSetCity?: () => void;
+  onConnectSpotify?: () => void;
+  onAddProfilePhoto?: () => void;
 }
 
 export default function SceneView({
