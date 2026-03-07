@@ -53,7 +53,7 @@ const PushNotificationInterstitial = ({ onComplete }: PushNotificationInterstiti
 
   const handleSkip = async () => {
     await markDone();
-    onComplete();
+    setPhase("denied");
   };
 
   if (phase === "done") {

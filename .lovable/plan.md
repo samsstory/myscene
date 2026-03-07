@@ -1,29 +1,50 @@
+## Redesign EmailImportScreen — Compact Two-Card Layout
 
-
-## What's Happening
-
-There are two issues with the current flow:
-
-### Issue 1: "Enable Notifications" button goes straight to "denied" phase
-When you click "Enable Notifications" on desktop/laptop in the Lovable preview iframe, `Notification.requestPermission()` either throws or returns `"denied"` immediately because the iframe sandbox doesn't support the Push API. The code in `handleEnable` (line 32-51) catches this and sets `phase = "denied"`, which shows the "No worries at all" / "Continue to my shows" screen. So the button appears broken but is actually working as designed — the browser just instantly denies the permission.
-
-### Issue 2: "Maybe later" skips the denied screen
-`handleSkip` (line 54-57) calls `markDone()` then immediately calls `onComplete()`, which closes the sheet and returns to the dashboard. The user never sees the friendly "No worries, you can enable later" confirmation. This is the bug you're reporting.
-
-## Plan
-
-**Single change in `PushNotificationInterstitial.tsx`:**
-
-1. Change `handleSkip` to set `phase = "denied"` instead of calling `onComplete()` directly. This shows the "No worries at all" screen with the "Continue to my shows →" button, which then calls `onComplete()` when tapped.
+### Structure (top to bottom)
 
 ```
-const handleSkip = async () => {
-  await markDone();
-  setPhase("denied");  // was: onComplete()
-};
+┌──────────────────────────────────┐
+│  Import from Email               │
+│  Forward confirmations from any  │
+│  inbox. We extract the shows.    │
+│                                  │
+│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ Card 1: Find your tickets    │ │
+│ │ Copy & search in any app:    │ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │ from:ticketmaster.com OR │ │ │
+│ │ │ from:dice.fm OR ...      │ │ │
+│ │ └──────────────────────────┘ │ │
+│ │ [📋 Copy Search]  (glass)    │ │
+│ │ [Gmail] [Outlook] [iCloud]   │ │
+│ │        [Yahoo]               │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ Card 2: Forward to Scene     │ │
+│ │ Select all results, then     │ │
+│ │ paste this in the To: field: │ │
+│ │   abc123@add.tryscene.app    │ │
+│ │ [📋 Copy Address]  (primary) │ │
+│ │ 💡 Gmail: "Forward as        │ │
+│ │    attachment" for bulk       │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ✓ Send everything—we filter out  │
+│   non-shows automatically        │
+│ Can't find emails? Add manually → │
+└──────────────────────────────────┘
 ```
 
-That's it. One line change. The "denied" phase UI already has the friendly copy and a "Continue to my shows →" button wired to `onComplete`.
-
-For the "Enable Notifications" button appearing to fail on desktop — this is expected browser behavior in the preview iframe. On a real PWA install it will work correctly. No code change needed there.
-
+### Key decisions
+- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
+- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
+- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
+- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
+- **Single file change**: `src/components/email/EmailImportScreen.tsx`
+- Dark cards: `bg-white/[0.04] border-white/[0.08]`
+- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
+- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
+- Keep props interface (`userId`, `onClose`, `onManualEntry`)
