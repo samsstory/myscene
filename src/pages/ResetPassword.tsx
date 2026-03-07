@@ -14,6 +14,8 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
 
+  const [expired, setExpired] = useState(false);
+
   useEffect(() => {
     // Listen for the PASSWORD_RECOVERY event from the hash fragment
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -22,7 +24,34 @@ const ResetPassword = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Check if the token was already exchanged before mount (303 redirect race)
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsRecovery(true);
+      }
+    };
+
+    // Also check the URL hash for type=recovery as a secondary signal
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) {
+      setIsRecovery(true);
+    }
+
+    checkExistingSession();
+
+    // Timeout fallback — if nothing triggers after 5s, show expired message
+    const timeout = setTimeout(() => {
+      setIsRecovery((prev) => {
+        if (!prev) setExpired(true);
+        return prev;
+      });
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleReset = async (e: React.FormEvent) => {
@@ -81,12 +110,28 @@ const ResetPassword = () => {
         <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.08] rounded-2xl p-6 shadow-2xl shadow-black/20">
           {!isRecovery ? (
             <div className="text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Loading recovery session...
-              </p>
-              <p className="text-xs text-muted-foreground">
-                If this takes too long, try clicking the reset link from your email again.
-              </p>
+              {expired ? (
+                <>
+                  <p className="text-sm text-foreground">
+                    This reset link may have expired or already been used.
+                  </p>
+                  <a
+                    href="/auth"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Request a new reset link →
+                  </a>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Loading recovery session...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    If this takes too long, try clicking the reset link from your email again.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <form onSubmit={handleReset} className="space-y-4">
