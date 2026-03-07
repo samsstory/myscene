@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { MAPBOX_TOKEN } from "@/lib/mapbox";
 import type { PopularItem, ShowTypeFilter } from "@/hooks/usePopularShows";
 import type { GeoScope } from "@/hooks/usePopularNearMe";
+import SectionLabel from "./SectionLabel";
 
 export interface CityOverride {
   name: string;
