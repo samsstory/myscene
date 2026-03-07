@@ -1253,7 +1253,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
   return (
     <>
-    <Drawer open={open} onOpenChange={resetAndClose} shouldScaleBackground={false}>
+    <Drawer open={open} onOpenChange={(nextOpen) => { if (!nextOpen) resetAndClose(); }} shouldScaleBackground={false}>
       <DrawerContent className="p-0 gap-0 bg-background relative max-h-[85dvh] flex flex-col overflow-hidden border-white/[0.08]">
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-t-[10px] pointer-events-none">
