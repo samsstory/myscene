@@ -485,7 +485,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
             }
           }}
           className="pl-10 pr-10 h-12 text-base"
-          autoFocus
+          autoFocus={false}
         />
         {isSearching && (
           <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
@@ -551,7 +551,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
                     onChange={(e) => setEventDescription(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSelectAsEvent()}
                     className="h-9 text-sm"
-                    autoFocus
+                    autoFocus={false}
                   />
                   <button
                     onClick={handleSelectAsEvent}
@@ -751,7 +751,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
                       handleAddressSubmit(false);
                     }
                   }}
-                  autoFocus
+                  autoFocus={false}
                 />
                 {isSearchingAddresses && (
                   <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />

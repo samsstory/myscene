@@ -65,7 +65,7 @@ const FestivalSearchStep = ({ onSelect, onUploadFallback }: FestivalSearchStepPr
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           className="pl-9 bg-white/[0.05] border-white/[0.09]"
-          autoFocus
+          autoFocus={false}
         />
       </div>
 

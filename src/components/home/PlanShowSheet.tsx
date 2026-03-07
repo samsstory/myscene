@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -274,9 +274,8 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
   const inputFieldClass = "bg-white/[0.05] border-white/10 text-foreground placeholder:text-muted-foreground";
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent
-        side="bottom"
+    <Drawer open={open} onOpenChange={handleClose}>
+      <DrawerContent
         className="rounded-t-2xl border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe-area-inset-bottom"
         style={{ maxHeight: "92vh", overflowY: "auto" }}
       >
@@ -293,10 +292,10 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
         {/* ─── INPUT STAGE ─────────────────────────────────────── */}
         {stage === "input" && (
           <div className="px-5 pt-2 pb-6 space-y-4">
-            <SheetHeader className="text-left space-y-0.5">
-              <SheetTitle className="text-lg font-bold">Plan a Show</SheetTitle>
+            <div className="text-left space-y-0.5">
+              <h2 className="text-lg font-bold">Plan a Show</h2>
               <p className="text-sm text-muted-foreground">AI reads links, captions, or screenshots</p>
-            </SheetHeader>
+            </div>
 
             {/* Tab switcher */}
             <div className="flex gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/[0.07]">
@@ -333,7 +332,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   className={`min-h-[130px] resize-none text-sm ${inputFieldClass}`}
-                  autoFocus
+                  autoFocus={false}
                 />
               </>
             )}
@@ -509,10 +508,10 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
             <button onClick={() => setStage("input")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
-            <SheetHeader className="text-left space-y-1">
-              <SheetTitle className="text-lg font-bold">Add a Show</SheetTitle>
+            <div className="text-left space-y-1">
+              <h2 className="text-lg font-bold">Add a Show</h2>
               <p className="text-sm text-muted-foreground">Fill in what you know</p>
-            </SheetHeader>
+            </div>
             <div className="space-y-3">
               {/* Artist search with Spotify suggestions */}
               <div>
@@ -532,7 +531,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                       setManualArtistImageUrl(undefined);
                     }}
                     className={`${manualArtistImageUrl ? "pl-11" : "pl-9"} ${inputFieldClass}`}
-                    autoFocus
+                    autoFocus={false}
                   />
                 </div>
 
@@ -598,7 +597,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
           </div>
         )}
 
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 }

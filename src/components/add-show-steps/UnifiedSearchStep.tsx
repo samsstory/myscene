@@ -240,7 +240,7 @@ const UnifiedSearchStep = ({ onSelect, onB2bSelect, showType = 'set' }: UnifiedS
             "focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
             "focus:shadow-[0_0_16px_hsl(189_94%_55%/0.2)]"
           )}
-          autoFocus
+          autoFocus={false}
         />
         {(isSearching || isArtistSearching) && (
           <Loader2 className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-muted-foreground" />
