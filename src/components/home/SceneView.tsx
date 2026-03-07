@@ -227,7 +227,7 @@ export default function SceneView({
                 You're on a roll! <button onClick={() => navigate("/install")} className="text-primary font-medium underline underline-offset-2">Save Scene to your home screen</button> so you never lose your streak.
               </span>
               <button
-                onClick={() => localStorage.setItem("scene_pwa_reprompt_dismissed", "true")}
+                onClick={() => { localStorage.setItem("scene_pwa_reprompt_dismissed", "true"); setPwaRepromptDismissed(true); }}
                 className="text-muted-foreground text-xs shrink-0 hover:text-foreground"
                 aria-label="Dismiss"
               >
