@@ -11,10 +11,9 @@ interface AddChoiceSheetProps {
 
 export default function AddChoiceSheet({ open, onOpenChange, onLogShow, onPlanShow }: AddChoiceSheetProps) {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-3xl border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe"
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent
+        className="border-white/10 bg-background/95 backdrop-blur-xl px-0 pb-safe"
         style={{ maxHeight: "60vh" }}
       >
         <div className="px-5 pt-5 pb-8 space-y-3">
