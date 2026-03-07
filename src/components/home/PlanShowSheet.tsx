@@ -598,7 +598,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
           </div>
         )}
 
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 }

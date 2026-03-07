@@ -485,7 +485,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
             }
           }}
           className="pl-10 pr-10 h-12 text-base"
-          autoFocus
+          autoFocus={false}
         />
         {isSearching && (
           <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
