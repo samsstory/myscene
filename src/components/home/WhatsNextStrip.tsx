@@ -290,7 +290,7 @@ export default function WhatsNextStrip({ onPlanShow, userArtistNames = [], onAdd
               <UpcomingChip
                 key={show.id}
                 show={show}
-                goingWith={idx === 0 ? DEMO_10_FRIENDS : (friendOverlapByShowId.get(show.id) ?? [])}
+                goingWith={friendOverlapByShowId.get(show.id) ?? []}
                 onTap={handleChipTap}
               />
             ))}

@@ -247,7 +247,7 @@ function WhosGoingCard({ followingIds }: { followingIds: string[] }) {
 
       {/* Show rows — full-bleed cards */}
       <div className="space-y-2.5">
-        {displayShows.map((show, i) => (
+        {weekShows.map((show, i) => (
           <motion.div
             key={show.key}
             initial={{ opacity: 0, y: 6 }}

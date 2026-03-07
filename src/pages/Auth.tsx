@@ -303,7 +303,7 @@ const Auth = () => {
             />
           </div>
           <span className="text-sm text-muted-foreground">
-            Join 1,200+ music lovers
+            Join the beta
           </span>
         </div>
       </div>
