@@ -82,7 +82,6 @@ const Auth = () => {
       // If signup successful and we have a referral code, create referral record
       if (data.user && referralCode) {
         try {
-          // Look up the referrer by their referral code
           const { data: referrerProfile } = await supabase
             .from('profiles')
             .select('id')
@@ -90,7 +89,6 @@ const Auth = () => {
             .single();
 
           if (referrerProfile) {
-            // Create the referral record
             await supabase.from('referrals').insert({
               referrer_id: referrerProfile.id,
               referred_id: data.user.id,
@@ -100,30 +98,35 @@ const Auth = () => {
             });
           }
           
-          // Clear the stored referral code
           clearStoredReferralCode();
         } catch (refError) {
-          // Don't fail signup if referral tracking fails
           console.error('Referral tracking error:', refError);
         }
       }
 
-      toast.success("Sign up successful! Welcome to Scene 🎵");
-      // Forward invite params if present
-      const showParam = authSearchParams.get("show");
-      const typeParam = authSearchParams.get("type");
-      if (showParam && typeParam) {
-        const rsvpParam = authSearchParams.get("rsvp");
-        const refParam = authSearchParams.get("ref");
-        const qs = new URLSearchParams({ invite: "true", show: showParam, type: typeParam });
-        if (rsvpParam) qs.set("rsvp", rsvpParam);
-        if (refParam) qs.set("ref", refParam);
-        navigate(`/dashboard?${qs.toString()}`);
-      } else {
-        navigate("/dashboard");
+      // With email confirmation required, show the verification screen
+      // Supabase returns a user but no session until email is confirmed
+      if (data.user && !data.session) {
+        setVerificationEmail(email);
+      } else if (data.session) {
+        // Auto-confirm is on (shouldn't happen in prod, but handle gracefully)
+        toast.success("Sign up successful! Welcome to Scene 🎵");
+        const showParam = authSearchParams.get("show");
+        const typeParam = authSearchParams.get("type");
+        if (showParam && typeParam) {
+          const rsvpParam = authSearchParams.get("rsvp");
+          const refParam = authSearchParams.get("ref");
+          const qs = new URLSearchParams({ invite: "true", show: showParam, type: typeParam });
+          if (rsvpParam) qs.set("rsvp", rsvpParam);
+          if (refParam) qs.set("ref", refParam);
+          navigate(`/dashboard?${qs.toString()}`);
+        } else {
+          navigate("/dashboard");
+        }
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign up");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to sign up";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
