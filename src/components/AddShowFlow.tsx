@@ -1249,8 +1249,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
   return (
     <>
-    <Dialog open={open} onOpenChange={resetAndClose}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-background relative max-h-[65vh] sm:max-h-[85vh] flex flex-col fixed top-[max(4.5rem,env(safe-area-inset-top,4.5rem))] sm:top-[50%] left-[50%] translate-x-[-50%] sm:translate-y-[-50%] translate-y-0 overflow-hidden">
+    <Drawer open={open} onOpenChange={resetAndClose}>
+      <DrawerContent className="p-0 gap-0 bg-background relative max-h-[85dvh] flex flex-col overflow-hidden border-white/[0.08]">
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
           <div
