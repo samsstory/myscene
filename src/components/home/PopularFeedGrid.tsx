@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { MAPBOX_TOKEN } from "@/lib/mapbox";
 import type { PopularItem, ShowTypeFilter } from "@/hooks/usePopularShows";
 import type { GeoScope } from "@/hooks/usePopularNearMe";
+import SectionLabel from "./SectionLabel";
 
 export interface CityOverride {
   name: string;
@@ -292,9 +293,7 @@ export default function PopularFeedGrid({
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div>
-        <h3 className="text-base uppercase tracking-[0.10em] font-bold text-white/70">{title}</h3>
-      </div>
+      <SectionLabel>{title}</SectionLabel>
 
       {/* Filter row */}
       <div className="flex items-center gap-2 flex-wrap">
