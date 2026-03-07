@@ -37,8 +37,7 @@ const TYPE_PILLS: {id: ShowTypeFilter;label: string;}[] = [
 
 const GEO_OPTIONS: {id: GeoScope;label: string;icon: typeof MapPin;}[] = [
 { id: "city", label: "Nearby", icon: MapPin },
-{ id: "country", label: "Country", icon: Map },
-{ id: "world", label: "Worldwide", icon: Globe }];
+{ id: "country", label: "United States", icon: Globe }];
 
 
 function getTitle(): string {
