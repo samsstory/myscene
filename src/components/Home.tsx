@@ -120,6 +120,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         activeView={viewMode}
         onViewChange={(v) => setViewMode(v)}
         rankNudge={stats.unrankedCount > 0 || stats.incompleteTagsCount > 0}
+        elevated={spotlightTourActive}
       />
 
       <AnimatePresence mode="wait">
