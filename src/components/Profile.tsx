@@ -349,8 +349,9 @@ const Profile = ({ onStartTour, onAddShow }: {onStartTour?: () => void;onAddShow
       const filePath = `${user.id}/avatar.${fileExt}`;
       await supabase.storage.from("show-photos").upload(filePath, file, { upsert: true });
       const { data: { publicUrl } } = supabase.storage.from("show-photos").getPublicUrl(filePath);
-      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
-      setAvatarUrl(publicUrl);
+      const urlWithBuster = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from("profiles").update({ avatar_url: urlWithBuster }).eq("id", user.id);
+      setAvatarUrl(urlWithBuster);
       toast.success("Profile picture updated!");
     } catch {toast.error("Failed to upload profile picture");} finally
     {setUploading(false);}
