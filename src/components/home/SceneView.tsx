@@ -216,8 +216,7 @@ export default function SceneView({
       {!questsLoading && !allComplete && (() => {
         const pwaQuest = quests.find(q => q.id === "install_pwa");
         const pwaSkipped = pwaQuest && !pwaQuest.completed;
-        const dismissed = typeof window !== "undefined" && localStorage.getItem("scene_pwa_reprompt_dismissed") === "true";
-        if (pwaSkipped && completedCount >= 2 && !dismissed) {
+        if (pwaSkipped && completedCount >= 2 && !pwaRepromptDismissed) {
           return (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
