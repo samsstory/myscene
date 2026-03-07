@@ -1281,7 +1281,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         }
 
         {/* Step content - scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-4 min-h-0 relative z-10">
+        <div className="flex-1 overflow-y-auto px-6 pt-2 pb-4 min-h-0 relative z-10">
           <div className="flex flex-col items-center">
             {step !== 5 &&
             <h2 className="text-xl font-bold text-center mb-4">
