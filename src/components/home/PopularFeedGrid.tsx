@@ -49,9 +49,9 @@ function shortCity(full: string): string {
   return full.split(",")[0].trim() || full;
 }
 
-function getGeoLabel(geoScope: GeoScope, cityName?: string | null, countryName?: string | null): string {
+function getGeoLabel(geoScope: GeoScope, cityName?: string | null, _countryName?: string | null): string {
   if (geoScope === "city" && cityName) return shortCity(cityName);
-  if (geoScope === "country" && countryName) return countryName;
+  if (geoScope === "country") return "United States";
   return GEO_OPTIONS.find((g) => g.id === geoScope)?.label ?? "Nearby";
 }
 
