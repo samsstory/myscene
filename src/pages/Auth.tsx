@@ -245,6 +245,8 @@ const Auth = () => {
       </div>
     );
   }
+
+  return (
     <div className="min-h-screen relative overflow-hidden bg-background flex items-center justify-center p-4 pt-safe">
       {/* Dev overlay */}
       {import.meta.env.DEV && <DynamicIslandOverlay />}
