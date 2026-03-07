@@ -49,9 +49,10 @@ interface HomeProps {
   openShowId?: string | null;
   onShowOpened?: () => void;
   spotlightTourActive?: boolean;
+  tourStepIndex?: number;
 }
 
-const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange, spotlightTourActive }: HomeProps) => {
+const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange, spotlightTourActive, tourStepIndex }: HomeProps) => {
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   const { shows, loading, rankings, fetchShows, deleteShow: handleDeleteShow, deleteConfirmShow, setDeleteConfirmShow, isDeleting, getShowRankInfo } = useShows({ onRealtimeChange: refetchStats });
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
@@ -120,7 +121,14 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         activeView={viewMode}
         onViewChange={(v) => setViewMode(v)}
         rankNudge={stats.unrankedCount > 0 || stats.incompleteTagsCount > 0}
-        elevated={spotlightTourActive}
+        elevatedTourTarget={
+          spotlightTourActive
+            ? tourStepIndex === 1 ? "pill-rank"
+            : tourStepIndex === 2 ? "pill-my-shows"
+            : tourStepIndex === 3 ? "pill-schedule"
+            : undefined
+            : undefined
+        }
       />
 
       <AnimatePresence mode="wait">

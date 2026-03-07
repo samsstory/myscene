@@ -14,7 +14,7 @@ interface ContentPillNavProps {
   activeView: ContentView;
   onViewChange: (view: ContentView) => void;
   rankNudge?: boolean;
-  elevated?: boolean;
+  elevatedTourTarget?: string;
 }
 
 const PILLS: PillNavItem[] = [
@@ -26,13 +26,13 @@ const PILLS: PillNavItem[] = [
   { id: "globe", label: "Globe" },
 ];
 
-export default function ContentPillNav({ activeView, onViewChange, rankNudge, elevated }: ContentPillNavProps) {
+export default function ContentPillNav({ activeView, onViewChange, rankNudge, elevatedTourTarget }: ContentPillNavProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
       ref={scrollRef}
-      className={cn("flex gap-2 overflow-x-auto pb-0.5", elevated && "relative z-[10001]")}
+      className="flex gap-2 overflow-x-auto pb-0.5"
       style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
     >
       <LayoutGroup>
@@ -42,6 +42,13 @@ export default function ContentPillNav({ activeView, onViewChange, rankNudge, el
              <motion.button
               key={pill.id}
               data-tour={pill.id === "rank" ? "pill-rank" : pill.id === "rankings" ? "pill-my-shows" : pill.id === "calendar" ? "pill-schedule" : undefined}
+              style={
+                elevatedTourTarget && (
+                  (pill.id === "rank" && elevatedTourTarget === "pill-rank") ||
+                  (pill.id === "rankings" && elevatedTourTarget === "pill-my-shows") ||
+                  (pill.id === "calendar" && elevatedTourTarget === "pill-schedule")
+                ) ? { position: "relative", zIndex: 10003 } : undefined
+              }
               whileTap={{ scale: 0.93 }}
               onClick={() => { navigator.vibrate?.(6); onViewChange(pill.id); }}
               className={cn(
