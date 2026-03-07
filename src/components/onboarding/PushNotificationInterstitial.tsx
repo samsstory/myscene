@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BellOff, Sparkles } from "lucide-react";
+import { ArrowLeft, Bell, BellOff, Sparkles } from "lucide-react";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -72,7 +72,14 @@ const PushNotificationInterstitial = ({ onComplete }: PushNotificationInterstiti
 
   if (phase === "denied") {
     return (
-      <div className="flex flex-col items-center gap-5 py-6 text-center">
+      <div className="relative flex flex-col items-center gap-5 py-6 text-center">
+        <button
+          onClick={() => setPhase("prompt")}
+          className="absolute top-2 left-0 p-1.5 rounded-lg text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.06]"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="h-5 w-5" strokeWidth={1.5} />
+        </button>
         <div className="h-16 w-16 rounded-full bg-white/[0.06] border border-white/[0.10] flex items-center justify-center">
           <BellOff className="h-8 w-8 text-muted-foreground" />
         </div>
@@ -94,12 +101,6 @@ const PushNotificationInterstitial = ({ onComplete }: PushNotificationInterstiti
             className="w-full py-3 px-4 rounded-xl bg-primary/[0.12] border border-primary/[0.30] text-sm font-semibold text-primary/90 transition-all hover:bg-primary/[0.18] hover:border-primary/[0.45] active:scale-[0.98]"
           >
             Allow Push Notifications
-          </button>
-          <button
-            onClick={() => setPhase("prompt")}
-            className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-white/[0.04]"
-          >
-            ← Go back
           </button>
         </div>
       </div>
