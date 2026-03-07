@@ -47,8 +47,9 @@ function ProfilePhotoSheetInner({ open, onOpenChange, onPhotoUploaded }: Profile
       await supabase.from("profiles").update({ avatar_url: freshUrl }).eq("id", user.id);
 
       toast.success("Profile photo added! 📸");
-      onPhotoUploaded?.();
       onOpenChange(false);
+      // Small delay to let the sheet close and DB settle before refetching quests
+      setTimeout(() => onPhotoUploaded?.(), 400);
     } catch {
       toast.error("Failed to upload photo");
     } finally {
