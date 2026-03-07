@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Zap, ChevronDown, MapPin, Globe, Map, Search, Loader2 } from "lucide-react";
+import { Users, Plus, Zap, ChevronDown, MapPin, Globe, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -37,8 +37,7 @@ const TYPE_PILLS: {id: ShowTypeFilter;label: string;}[] = [
 
 const GEO_OPTIONS: {id: GeoScope;label: string;icon: typeof MapPin;}[] = [
 { id: "city", label: "Nearby", icon: MapPin },
-{ id: "country", label: "Country", icon: Map },
-{ id: "world", label: "Worldwide", icon: Globe }];
+{ id: "country", label: "United States", icon: Globe }];
 
 
 function getTitle(): string {
@@ -50,9 +49,9 @@ function shortCity(full: string): string {
   return full.split(",")[0].trim() || full;
 }
 
-function getGeoLabel(geoScope: GeoScope, cityName?: string | null, countryName?: string | null): string {
+function getGeoLabel(geoScope: GeoScope, cityName?: string | null, _countryName?: string | null): string {
   if (geoScope === "city" && cityName) return shortCity(cityName);
-  if (geoScope === "country" && countryName) return countryName;
+  if (geoScope === "country") return "United States";
   return GEO_OPTIONS.find((g) => g.id === geoScope)?.label ?? "Nearby";
 }
 
@@ -221,7 +220,6 @@ function GeoDropdown({
           const Icon = opt.icon;
           const isActive = geoScope === opt.id;
           const displayLabel = opt.id === "city" && cityName ? shortCity(cityName) :
-          opt.id === "country" && countryName ? countryName :
           opt.label;
           return (
             <button
