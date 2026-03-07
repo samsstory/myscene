@@ -508,10 +508,10 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
             <button onClick={() => setStage("input")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
-            <SheetHeader className="text-left space-y-1">
-              <SheetTitle className="text-lg font-bold">Add a Show</SheetTitle>
+            <div className="text-left space-y-1">
+              <h2 className="text-lg font-bold">Add a Show</h2>
               <p className="text-sm text-muted-foreground">Fill in what you know</p>
-            </SheetHeader>
+            </div>
             <div className="space-y-3">
               {/* Artist search with Spotify suggestions */}
               <div>
