@@ -48,11 +48,9 @@ interface HomeProps {
   initialView?: ViewMode;
   openShowId?: string | null;
   onShowOpened?: () => void;
-  showsTourActive?: boolean;
-  showsRef?: React.RefObject<HTMLButtonElement>;
 }
 
-const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, showsTourActive, showsRef, onViewChange }: HomeProps) => {
+const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange }: HomeProps) => {
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   const { shows, loading, rankings, fetchShows, deleteShow: handleDeleteShow, deleteConfirmShow, setDeleteConfirmShow, isDeleting, getShowRankInfo } = useShows({ onRealtimeChange: refetchStats });
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
