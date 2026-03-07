@@ -110,10 +110,37 @@ function QuestRow({ quest, onTap, justCompleted }: { quest: QuestStep; onTap: ()
 function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, onQuestTap }: SetupQuestsCardProps) {
   const { minimized, toggle } = useSetupQuestsMinimized();
 
+  // Track which quests just completed so we can animate them out
+  const prevCompleted = useRef<Set<string>>(new Set(quests.filter(q => q.completed).map(q => q.id)));
+  const [animatingOut, setAnimatingOut] = useState<Set<string>>(new Set());
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const prev = prevCompleted.current;
+    const newlyDone = quests.filter(q => q.completed && !prev.has(q.id)).map(q => q.id);
+    if (newlyDone.length > 0) {
+      setAnimatingOut(new Set(newlyDone));
+      // After animation, hide them
+      const timer = setTimeout(() => {
+        setHidden(h => {
+          const next = new Set(h);
+          newlyDone.forEach(id => next.add(id));
+          return next;
+        });
+        setAnimatingOut(new Set());
+      }, 850);
+      prevCompleted.current = new Set(quests.filter(q => q.completed).map(q => q.id));
+      return () => clearTimeout(timer);
+    }
+    prevCompleted.current = new Set(quests.filter(q => q.completed).map(q => q.id));
+  }, [quests]);
+
   const handleQuestTap = useCallback(
     (id: QuestStep["id"]) => onQuestTap(id),
     [onQuestTap]
   );
+
+  const visibleQuests = quests.filter(q => !hidden.has(q.id) || animatingOut.has(q.id));
 
   if (isLoading) {
     return (
@@ -167,13 +194,16 @@ function SetupQuestsCardInner({ quests, completedCount, totalCount, isLoading, o
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 space-y-1.5">
-              {quests.map((quest) => (
-                <QuestRow
-                  key={quest.id}
-                  quest={quest}
-                  onTap={() => handleQuestTap(quest.id)}
-                />
-              ))}
+              <AnimatePresence mode="popLayout">
+                {visibleQuests.map((quest) => (
+                  <QuestRow
+                    key={quest.id}
+                    quest={quest}
+                    onTap={() => handleQuestTap(quest.id)}
+                    justCompleted={animatingOut.has(quest.id)}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
