@@ -53,11 +53,16 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
   );
 }
 
-function QuestRow({ quest, onTap }: { quest: QuestStep; onTap: () => void }) {
+function QuestRow({ quest, onTap, isStartHere = false }: { quest: QuestStep; onTap: () => void; isStartHere?: boolean }) {
+  const isPwa = quest.id === "install_pwa";
   return (
     <motion.button
       onClick={onTap}
-      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left transition-colors bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer border border-white/[0.06]"
+      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+        isPwa && isStartHere
+          ? "bg-primary/[0.06] hover:bg-primary/[0.12] border border-primary/30 shadow-[0_0_12px_hsl(var(--primary)/0.15)]"
+          : "bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06]"
+      }`}
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
