@@ -260,7 +260,8 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
             </div>
           </div>
         </motion.div>
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
     </div>,
     document.body
   );
