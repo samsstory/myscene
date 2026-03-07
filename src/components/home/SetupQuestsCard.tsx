@@ -67,17 +67,16 @@ function QuestRow({ quest, onTap, justCompleted }: { quest: QuestStep; onTap: ()
       animate={
         justCompleted
           ? {
-              opacity: [1, 1, 1, 0],
-              scale: [1, 1, 1.08, 0.6],
-              x: [0, -4, 4, -3, 3, 0, 0, 0],
-              y: [0, 0, 0, -10],
+              x: [0, -3, 3, -3, 3, -2, 0, 0],
+              scale: [1, 1, 1, 1, 1, 1, 1.1, 0.5],
+              opacity: [1, 1, 1, 1, 1, 1, 1, 0],
             }
           : { opacity: 1, y: 0 }
       }
-      exit={{ opacity: 0, scale: 0.6, y: -10, transition: { duration: 0.3 } }}
+      exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
       transition={
         justCompleted
-          ? { duration: 0.8, ease: "easeInOut", times: [0, 0.4, 0.7, 1] }
+          ? { duration: 0.9, ease: "easeInOut" }
           : { duration: 0.25 }
       }
     >
