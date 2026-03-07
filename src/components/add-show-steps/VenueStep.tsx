@@ -551,7 +551,7 @@ const VenueStep = ({ value, locationFilter, showType, onSelect, onLocationFilter
                     onChange={(e) => setEventDescription(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSelectAsEvent()}
                     className="h-9 text-sm"
-                    autoFocus
+                    autoFocus={false}
                   />
                   <button
                     onClick={handleSelectAsEvent}
