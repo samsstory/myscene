@@ -16,6 +16,30 @@ const Auth = () => {
   const navigate = useNavigate();
   const [authSearchParams] = useState(() => new URLSearchParams(window.location.search));
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!resetEmail) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setResetSent(true);
+      toast.success("Reset link sent! Check your inbox.");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to send reset link";
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Capture referral code from URL if present
   useReferralCapture();
