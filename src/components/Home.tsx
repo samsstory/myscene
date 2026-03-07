@@ -48,9 +48,10 @@ interface HomeProps {
   initialView?: ViewMode;
   openShowId?: string | null;
   onShowOpened?: () => void;
+  spotlightTourActive?: boolean;
 }
 
-const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange }: HomeProps) => {
+const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange, spotlightTourActive }: HomeProps) => {
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useHomeStats();
   const { shows, loading, rankings, fetchShows, deleteShow: handleDeleteShow, deleteConfirmShow, setDeleteConfirmShow, isDeleting, getShowRankInfo } = useShows({ onRealtimeChange: refetchStats });
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "home");
@@ -119,6 +120,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
         activeView={viewMode}
         onViewChange={(v) => setViewMode(v)}
         rankNudge={stats.unrankedCount > 0 || stats.incompleteTagsCount > 0}
+        elevated={spotlightTourActive}
       />
 
       <AnimatePresence mode="wait">
