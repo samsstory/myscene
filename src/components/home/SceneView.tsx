@@ -160,8 +160,11 @@ export default function SceneView({
     if (avatarInputRef.current) avatarInputRef.current.value = "";
   }, [refetchQuests]);
 
-  const handleQuestTap = useCallback((questId: "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
+  const handleQuestTap = useCallback((questId: "install_pwa" | "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
     switch (questId) {
+      case "install_pwa":
+        navigate("/install");
+        break;
       case "log_show":
         onAddShow?.();
         break;
@@ -175,7 +178,7 @@ export default function SceneView({
         avatarInputRef.current?.click();
         break;
     }
-  }, [onAddShow]);
+  }, [onAddShow, navigate]);
 
   // Home city from profile (for display & reset)
   const [homeCity, setHomeCity] = useState("");
