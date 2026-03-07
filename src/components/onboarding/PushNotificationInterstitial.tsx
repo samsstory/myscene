@@ -82,12 +82,26 @@ const PushNotificationInterstitial = ({ onComplete }: PushNotificationInterstiti
             You can always enable notifications later in your Profile settings whenever you're ready.
           </p>
         </div>
-        <button
-          onClick={onComplete}
-          className="w-full py-3 px-4 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.10] text-sm font-medium text-foreground transition-all hover:bg-white/[0.10] hover:border-white/[0.18] active:scale-[0.98]"
-        >
-          Continue to my shows →
-        </button>
+        <div className="w-full space-y-2">
+          <button
+            onClick={onComplete}
+            className="w-full py-3 px-4 rounded-xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.10] text-sm font-medium text-foreground transition-all hover:bg-white/[0.10] hover:border-white/[0.18] active:scale-[0.98]"
+          >
+            Continue to my shows →
+          </button>
+          <button
+            onClick={handleEnable}
+            className="w-full py-3 px-4 rounded-xl bg-primary/[0.12] border border-primary/[0.30] text-sm font-semibold text-primary/90 transition-all hover:bg-primary/[0.18] hover:border-primary/[0.45] active:scale-[0.98]"
+          >
+            Allow Push Notifications
+          </button>
+          <button
+            onClick={() => setPhase("prompt")}
+            className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-white/[0.04]"
+          >
+            ← Go back
+          </button>
+        </div>
       </div>
     );
   }
