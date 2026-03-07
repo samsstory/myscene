@@ -1309,8 +1309,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           )}
           </div>
         }
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
 
     <GroupShowPrompt
       open={groupPromptOpen}
