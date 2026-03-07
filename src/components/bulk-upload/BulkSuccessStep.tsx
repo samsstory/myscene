@@ -72,15 +72,27 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
   useEffect(() => {
     fireConfetti();
 
-    const isFirstShow = !localStorage.getItem("scene-first-show-logged");
-    localStorage.setItem("scene-first-show-logged", "true");
+    // DB-based profile check
+    const checkProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, home_city")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!data?.full_name || !data?.home_city) {
+        setNeedsProfileSetup(true);
+      }
+    };
+    checkProfile();
 
     const pushSeen = localStorage.getItem("scene-push-prompt-seen");
-    if (isFirstShow && !pushSeen && "Notification" in window) {
+    if (!pushSeen && "Notification" in window) {
       setShowPushInterstitial(true);
     }
 
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as Record<string, unknown>).standalone === true;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isStandalone || !isMobile) return;
 
