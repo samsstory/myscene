@@ -48,6 +48,7 @@ interface HomeProps {
   initialView?: ViewMode;
   openShowId?: string | null;
   onShowOpened?: () => void;
+  spotlightTourActive?: boolean;
 }
 
 const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSingleShow, initialView, openShowId, onShowOpened, onViewChange }: HomeProps) => {
