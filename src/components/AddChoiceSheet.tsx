@@ -1,4 +1,4 @@
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { motion } from "framer-motion";
 import { Camera, CalendarDays, Sparkles, ArrowRight } from "lucide-react";
 
