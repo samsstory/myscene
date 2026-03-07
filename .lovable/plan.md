@@ -1,50 +1,51 @@
-## Redesign EmailImportScreen — Compact Two-Card Layout
 
-### Structure (top to bottom)
 
-```
-┌──────────────────────────────────┐
-│  Import from Email               │
-│  Forward confirmations from any  │
-│  inbox. We extract the shows.    │
-│                                  │
-│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 1: Find your tickets    │ │
-│ │ Copy & search in any app:    │ │
-│ │ ┌──────────────────────────┐ │ │
-│ │ │ from:ticketmaster.com OR │ │ │
-│ │ │ from:dice.fm OR ...      │ │ │
-│ │ └──────────────────────────┘ │ │
-│ │ [📋 Copy Search]  (glass)    │ │
-│ │ [Gmail] [Outlook] [iCloud]   │ │
-│ │        [Yahoo]               │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 2: Forward to Scene     │ │
-│ │ Select all results, then     │ │
-│ │ paste this in the To: field: │ │
-│ │   abc123@add.tryscene.app    │ │
-│ │ [📋 Copy Address]  (primary) │ │
-│ │ 💡 Gmail: "Forward as        │ │
-│ │    attachment" for bulk       │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ✓ Send everything—we filter out  │
-│   non-shows automatically        │
-│ Can't find emails? Add manually → │
-└──────────────────────────────────┘
-```
+# PWA Retention Improvements Plan
 
-### Key decisions
-- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
-- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
-- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
-- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
-- **Single file change**: `src/components/email/EmailImportScreen.tsx`
-- Dark cards: `bg-white/[0.04] border-white/[0.08]`
-- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
-- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
-- Keep props interface (`userId`, `onClose`, `onManualEntry`)
+Based on the analysis, there are 3 actionable improvements to maximize PWA installation without gating the experience.
+
+---
+
+## 1. Make PWA quest visually distinct ("Start here" treatment)
+
+**File:** `src/components/home/SetupQuestsCard.tsx`
+
+Give the PWA quest row (`install_pwa`) a differentiated visual treatment:
+- Add a subtle cyan glow border (`border-primary/30` + `shadow-[0_0_12px_hsl(var(--primary)/0.15)]`) instead of the default `border-white/[0.06]`
+- Add a small "Start here" badge/chip (tiny `text-[9px]` pill) next to the label
+- Only apply this treatment when it's the first incomplete quest
+
+This draws the eye without blocking anything.
+
+## 2. Add PWA nudge to post-first-show success screen
+
+**File:** `src/components/add-show-steps/SuccessStep.tsx`
+
+After the user logs their first show (highest-motivation moment), add a lightweight PWA prompt:
+- Only show if NOT already in standalone mode and on mobile
+- Insert between the Install CTA section and the action buttons
+- Simple single-line card: "Save Scene to your home screen to track your next one" with a tap target that navigates to `/install`
+- Replace the existing `InstallCTA` logic in SuccessStep with this simpler, more contextual version (the current one already does something similar but uses the browser's `beforeinstallprompt` which is Android-only)
+
+## 3. Smart re-prompt if PWA quest is skipped
+
+**File:** `src/components/home/SceneView.tsx` (or new small component)
+
+Add a one-time nudge when the user has completed 2+ other quests but skipped PWA:
+- Check conditions in `SceneView` using the existing `useSetupQuests` hook data
+- Show a dismissible inline banner above the quest card: "You're on a roll! Save Scene to your home screen so you never lose your streak."
+- Persist dismissal with `scene_pwa_reprompt_dismissed` in localStorage
+- Only triggers once, non-blocking
+
+---
+
+## Summary of changes
+
+| File | Change |
+|------|--------|
+| `SetupQuestsCard.tsx` | Visual glow + "Start here" badge on PWA quest row |
+| `SuccessStep.tsx` | Simplified PWA nudge card after first show log |
+| `SceneView.tsx` | Smart re-prompt banner when 2+ quests done but PWA skipped |
+
+All three changes are additive and non-blocking. No gating, no new routes, no schema changes.
+
