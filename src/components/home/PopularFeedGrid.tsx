@@ -294,7 +294,7 @@ export default function PopularFeedGrid({
     <div className="space-y-3">
       {/* Header */}
       <div className="space-y-1">
-        <h2 className="text-base font-bold text-foreground">{title}</h2>
+        <h3 className="text-sm uppercase tracking-[0.12em] font-semibold text-white/35">{title}</h3>
         <p className="text-[11px] text-muted-foreground">Shows that dominate their matchups</p>
       </div>
 
