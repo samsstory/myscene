@@ -87,6 +87,13 @@ export function useSetupQuests(): UseSetupQuestsReturn {
 
   const quests: QuestStep[] = useMemo(() => [
     {
+      id: "install_pwa",
+      label: "Add Scene to home screen",
+      description: "Get the full app experience with one tap",
+      icon: "📲",
+      completed: hasPwa,
+    },
+    {
       id: "log_show",
       label: "Log your first show",
       description: "Add a concert or festival you've been to",
@@ -114,7 +121,7 @@ export function useSetupQuests(): UseSetupQuestsReturn {
       icon: "📸",
       completed: hasPhoto,
     },
-  ], [hasShow, hasCity, hasSpotify, hasPhoto]);
+  ], [hasPwa, hasShow, hasCity, hasSpotify, hasPhoto]);
 
   const completedCount = quests.filter((q) => q.completed).length;
 
