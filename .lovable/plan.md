@@ -1,28 +1,50 @@
+## Redesign EmailImportScreen — Compact Two-Card Layout
 
+### Structure (top to bottom)
 
-## Diagnosis: Drawer Content Not Visible
+```
+┌──────────────────────────────────┐
+│  Import from Email               │
+│  Forward confirmations from any  │
+│  inbox. We extract the shows.    │
+│                                  │
+│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ Card 1: Find your tickets    │ │
+│ │ Copy & search in any app:    │ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │ from:ticketmaster.com OR │ │ │
+│ │ │ from:dice.fm OR ...      │ │ │
+│ │ └──────────────────────────┘ │ │
+│ │ [📋 Copy Search]  (glass)    │ │
+│ │ [Gmail] [Outlook] [iCloud]   │ │
+│ │        [Yahoo]               │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ Card 2: Forward to Scene     │ │
+│ │ Select all results, then     │ │
+│ │ paste this in the To: field: │ │
+│ │   abc123@add.tryscene.app    │ │
+│ │ [📋 Copy Address]  (primary) │ │
+│ │ 💡 Gmail: "Forward as        │ │
+│ │    attachment" for bulk       │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ✓ Send everything—we filter out  │
+│   non-shows automatically        │
+│ Can't find emails? Add manually → │
+└──────────────────────────────────┘
+```
 
-### Root Cause
-The `DrawerContent` in `AddShowFlow.tsx` uses `max-h-[85vh]` and `overflow-hidden` but has no minimum height. Combined with `h-auto` from the base drawer class and `flex-1` on the inner scrollable div, the content area collapses to near-zero height. The overlay (black backdrop) renders at z-50 and is visible, but the drawer panel itself appears empty/collapsed behind it.
-
-Additionally, vaul's `Drawer` component needs careful handling — the content must have enough intrinsic height for the drawer to snap open properly.
-
-### Fix Plan
-
-**File: `src/components/AddShowFlow.tsx` (line 1253)**
-
-Update the `DrawerContent` className to add a minimum height and ensure proper sizing:
-- Add `min-h-[50vh]` so the drawer always has visible height even before step content renders
-- Keep `max-h-[85vh]` as the upper bound
-- Ensure the inner scrollable div uses `flex-1 min-h-0` correctly
-
-**File: `src/components/ui/drawer.tsx` (line 34)**
-
-Ensure the base `DrawerContent` styles don't conflict:
-- The base class already has `h-auto` which is fine, but confirm `z-50` on both overlay and content doesn't cause stacking issues
-- Bump content to `z-[51]` or ensure DOM order guarantees content renders above overlay (it should, but worth confirming)
-
-### Changes
-1. **`AddShowFlow.tsx` line 1253**: Add `min-h-[50vh]` to `DrawerContent` className
-2. **`drawer.tsx` line 34**: No change needed if DOM order is correct (content renders after overlay in DrawerPortal) — but if still hidden, bump content z-index above overlay
-
+### Key decisions
+- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
+- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
+- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
+- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
+- **Single file change**: `src/components/email/EmailImportScreen.tsx`
+- Dark cards: `bg-white/[0.04] border-white/[0.08]`
+- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
+- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
+- Keep props interface (`userId`, `onClose`, `onManualEntry`)
