@@ -9,6 +9,7 @@ import InlineCityPicker from "./InlineCityPicker";
 import VSHeroWidget from "./VSHeroWidget";
 import StatsTrophyCard from "./StatsTrophyCard";
 import SetupQuestsCard from "./SetupQuestsCard";
+import HomeCityPickerSheet from "./HomeCityPickerSheet";
 import PendingEmailBanner from "./PendingEmailBanner";
 import EmailImportReviewSheet from "./EmailImportReviewSheet";
 import { usePendingEmailImports } from "@/hooks/usePendingEmailImports";
