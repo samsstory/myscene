@@ -1249,8 +1249,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
   return (
     <>
-    <Sheet open={open} onOpenChange={resetAndClose}>
-      <SheetContent side="bottom" className="rounded-t-3xl border-white/10 p-0 gap-0 bg-background relative flex flex-col h-[85vh]">
+    <Dialog open={open} onOpenChange={resetAndClose}>
+      <DialogContent className="rounded-t-3xl rounded-b-none border-white/10 p-0 gap-0 bg-background flex flex-col h-[85vh] w-full max-w-lg fixed bottom-0 left-[50%] translate-x-[-50%] translate-y-0 top-auto data-[state=open]:slide-in-from-bottom data-[state=open]:duration-300 data-[state=closed]:slide-out-to-bottom data-[state=closed]:duration-200">
+        <DialogTitle className="sr-only">Add a Show</DialogTitle>
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-t-[10px] pointer-events-none">
           <div
