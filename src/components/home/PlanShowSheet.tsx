@@ -531,7 +531,7 @@ export default function PlanShowSheet({ open, onOpenChange }: PlanShowSheetProps
                       setManualArtistImageUrl(undefined);
                     }}
                     className={`${manualArtistImageUrl ? "pl-11" : "pl-9"} ${inputFieldClass}`}
-                    autoFocus
+                    autoFocus={false}
                   />
                 </div>
 
