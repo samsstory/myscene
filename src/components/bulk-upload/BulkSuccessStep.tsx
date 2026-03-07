@@ -66,6 +66,8 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
   const [showInstallCTA, setShowInstallCTA] = useState(false);
   const [installDismissed, setInstallDismissed] = useState(false);
   const [showPushInterstitial, setShowPushInterstitial] = useState(false);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   useEffect(() => {
     fireConfetti();
