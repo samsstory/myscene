@@ -172,7 +172,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
 
       {/* ── Footer ── */}
       <motion.div variants={fadeUp} className="pt-2">
-        <button onClick={onDone} className="w-full flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
+        <button onClick={handleDone} className="w-full flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/[0.04]">
           Done
         </button>
       </motion.div>
