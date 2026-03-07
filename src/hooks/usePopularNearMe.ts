@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PopularItem, ShowTypeFilter } from "@/hooks/usePopularShows";
 
+const DEFAULT_LAT = 30.2672;
+const DEFAULT_LNG = -97.7431;
+const DEFAULT_CITY = "Austin, Texas, United States";
 const MILES_TO_KM = 1.60934;
 const RADIUS_MILES = 50;
 const RADIUS_KM = RADIUS_MILES * MILES_TO_KM;
