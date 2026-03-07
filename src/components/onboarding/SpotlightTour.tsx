@@ -185,11 +185,12 @@ const SpotlightTour = ({ run, onComplete, onStepChange, onLogFirstShow }: Spotli
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
-            position: "absolute",
+            position: "fixed",
             left: "50%",
             top: "50%",
             transform: "translate(-50%, -50%)",
             zIndex: 10002,
+            pointerEvents: "none",
           }}
         >
           <div
