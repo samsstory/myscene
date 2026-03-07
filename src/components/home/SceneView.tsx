@@ -163,7 +163,7 @@ export default function SceneView({
     if (avatarInputRef.current) avatarInputRef.current.value = "";
   }, [refetchQuests]);
 
-  const handleQuestTap = useCallback((questId: "install_pwa" | "log_show" | "set_city" | "connect_spotify" | "add_photo") => {
+  const handleQuestTap = useCallback((questId: "install_pwa" | "log_show" | "set_city" | "connect_spotify" | "add_photo" | "enable_push") => {
     switch (questId) {
       case "install_pwa":
         navigate("/install");
@@ -179,6 +179,9 @@ export default function SceneView({
         break;
       case "add_photo":
         avatarInputRef.current?.click();
+        break;
+      case "enable_push":
+        setPushSheetOpen(true);
         break;
     }
   }, [onAddShow, navigate]);
