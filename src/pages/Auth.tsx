@@ -169,9 +169,82 @@ const Auth = () => {
     }
   };
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResendVerification = async () => {
+    if (!verificationEmail || resendCooldown > 0) return;
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: verificationEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) throw error;
+      setResendCooldown(60);
+      toast.success("Verification email resent!");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to resend";
+      toast.error(message);
+    }
+  };
+
   const inputClassName = "bg-white/[0.04] border-white/[0.08] placeholder:text-white/30 focus:border-primary/50 focus:ring-primary/20 text-base transition-all duration-200 focus:shadow-[0_0_12px_hsl(var(--primary)/0.15)]";
 
-  return (
+  // ─── Verification screen ───
+  if (verificationEmail) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-background flex items-center justify-center p-4 pt-safe">
+        <div
+          className="absolute top-0 left-0 w-[60%] h-[60%] opacity-[0.15] blur-3xl animate-pulse"
+          style={{
+            background: "radial-gradient(circle at center, hsl(var(--primary)), transparent 70%)",
+            animationDuration: "4s",
+          }}
+        />
+        <div className="relative z-10 w-full max-w-md text-center space-y-6">
+          <SceneLogo size="lg" className="text-2xl mb-3" />
+          <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.08] rounded-2xl p-8 shadow-2xl shadow-black/20 space-y-5">
+            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-3xl">📧</span>
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Check your inbox</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              We sent a verification link to{" "}
+              <span className="text-primary font-medium">{verificationEmail}</span>.
+              <br />
+              Click the link to activate your account.
+            </p>
+            <div className="pt-2 space-y-3">
+              <Button
+                onClick={handleResendVerification}
+                variant="glass"
+                className="w-full"
+                disabled={resendCooldown > 0}
+              >
+                {resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : "Resend verification email"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setVerificationEmail(null)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Back to sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
     <div className="min-h-screen relative overflow-hidden bg-background flex items-center justify-center p-4 pt-safe">
       {/* Dev overlay */}
       {import.meta.env.DEV && <DynamicIslandOverlay />}
