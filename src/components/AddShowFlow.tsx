@@ -1249,8 +1249,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
   return (
     <>
-    <Drawer open={open} onOpenChange={resetAndClose}>
-      <DrawerContent className="min-h-[50vh] max-h-[85vh] p-0 gap-0 bg-background relative flex flex-col overflow-hidden border-white/[0.08]">
+    <Drawer open={open} onOpenChange={resetAndClose} snapPoints={[0.85]} activeSnapPoint={0.85} setActiveSnapPoint={() => {}}>
+      <DrawerContent className="max-h-[85vh] p-0 gap-0 bg-background relative flex flex-col border-white/[0.08]" style={{ height: '85vh' }}>
         {/* Mesh gradient background - Scene aesthetic */}
         <div className="absolute inset-0 overflow-hidden rounded-t-[10px] pointer-events-none">
           <div
