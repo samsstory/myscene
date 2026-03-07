@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
-import { Home as HomeIcon, Plus, Music, CalendarDays } from "lucide-react";
+import { Home as HomeIcon, Plus, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentView } from "@/components/home/ContentPillNav";
-import FloatingTourTarget from "@/components/onboarding/FloatingTourTarget";
 
 // Soft haptic tap — silently ignored on desktop / unsupported browsers
 const haptic = () => { try { navigator.vibrate?.(6); } catch {} };
@@ -12,8 +11,7 @@ interface BottomNavProps {
   homeView: ContentView;
   feedbackOpen: boolean;
   showSpotlightTour: boolean;
-  tourStepIndex: number;
-  showsStatRef: React.RefObject<HTMLButtonElement>;
+  
   onHomePress: () => void;
   onCalendarPress: () => void;
   onFeedbackPress: () => void;
@@ -26,16 +24,13 @@ export default function BottomNav({
   homeView,
   feedbackOpen,
   showSpotlightTour,
-  tourStepIndex,
-  showsStatRef,
   onHomePress,
   onCalendarPress,
   onFeedbackPress,
   onProfilePress,
   onAddPress,
 }: BottomNavProps) {
-  const shouldElevateNavZ = showSpotlightTour && tourStepIndex === 0;
-  const showsTourActive = showSpotlightTour && tourStepIndex === 2;
+  const shouldElevateNavZ = showSpotlightTour;
 
   return (
     <div
@@ -94,19 +89,6 @@ export default function BottomNav({
         </div>
       </nav>
 
-      {/* Floating tour target for Shows stat pill */}
-      <FloatingTourTarget active={showsTourActive} targetRef={showsStatRef} dataTour="stat-shows">
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.08] border border-white/20"
-          style={{ boxShadow: "0 0 12px hsl(var(--primary) / 0.4), 0 0 24px hsl(var(--primary) / 0.2)" }}
-        >
-          <Music className="h-4 w-4 text-primary" style={{ filter: "drop-shadow(0 0 6px hsl(var(--primary) / 0.9))" }} />
-          <div className="flex flex-col items-start">
-            <span className="text-[9px] uppercase tracking-[0.15em] text-white/50 font-medium">Shows</span>
-            <span className="text-lg font-bold text-white/90" style={{ textShadow: "0 0 10px rgba(255,255,255,0.4)" }}>–</span>
-          </div>
-        </div>
-      </FloatingTourTarget>
 
       {/* FAB — add show */}
       <div className={cn("flex flex-col items-center gap-3", showSpotlightTour && "z-[10001]")}>

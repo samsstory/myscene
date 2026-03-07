@@ -15,7 +15,7 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" as const } },
 };
 
-import { RefObject } from "react";
+
 
 export type StatPillAction = 'rankings' | 'calendar' | 'rank-tab' | 'show-detail' | 'globe' | 'todo-sheet' | 'rankings-attention' | null;
 
@@ -39,12 +39,9 @@ interface StatPillsProps {
   stats: StatPill[];
   isLoading?: boolean;
   onPillTap?: (action: StatPillAction, payload?: string) => void;
-  // Tour-related props for Step 5
-  showsTourActive?: boolean;
-  showsRef?: RefObject<HTMLButtonElement>;
 }
 
-const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: StatPillsProps) => {
+const StatPills = ({ stats, isLoading, onPillTap }: StatPillsProps) => {
   if (isLoading) {
     return (
       <div className="flex gap-2.5 pb-2 items-stretch">
@@ -59,7 +56,7 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
     <motion.div className="flex gap-2.5 items-stretch" variants={containerVariants} initial="hidden" animate="show">
       {stats.map((stat) => {
         const isInteractive = stat.action !== null && stat.action !== undefined;
-        const isShowsPill = stat.id === 'total-shows';
+        
         const isTodoPill = stat.isTodo;
 
         // Special rendering for confirmation ring
@@ -119,8 +116,6 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
         return (
           <motion.div key={stat.id} variants={itemVariants} className="flex-1">
             <button
-              ref={isShowsPill ? showsRef : undefined}
-              data-tour={isShowsPill && !showsTourActive ? 'stat-shows' : undefined}
               onClick={() => isInteractive && onPillTap?.(stat.action!, stat.actionPayload)}
               disabled={!isInteractive}
               className={cn(
@@ -128,7 +123,6 @@ const StatPills = ({ stats, isLoading, onPillTap, showsTourActive, showsRef }: S
                 "bg-white/[0.04] backdrop-blur-md border border-white/[0.06]",
                 isInteractive && "hover:bg-white/[0.08] active:scale-[0.97] cursor-pointer hover:border-white/[0.12]",
                 !isInteractive && "cursor-default",
-                isShowsPill && showsTourActive && "opacity-0",
                 "group"
               )}
             >

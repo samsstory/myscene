@@ -53,6 +53,7 @@ interface DashboardSheetsProps {
   // Festival invite
   festivalInviteState: { festival: FestivalResult; selectedArtists: string[] } | null;
   onFestivalInviteClear: () => void;
+  onLogFirstShow: () => void;
 }
 
 const DashboardSheets = ({
@@ -88,6 +89,7 @@ const DashboardSheets = ({
   inviteNote,
   festivalInviteState,
   onFestivalInviteClear,
+  onLogFirstShow,
 }: DashboardSheetsProps) => {
   const handleSpotlightTourComplete = async () => {
     await supabase
@@ -162,6 +164,7 @@ const DashboardSheets = ({
         run={showSpotlightTour}
         onComplete={handleSpotlightTourComplete}
         onStepChange={setTourStepIndex}
+        onLogFirstShow={onLogFirstShow}
       />
 
       {/* Welcome Carousel */}

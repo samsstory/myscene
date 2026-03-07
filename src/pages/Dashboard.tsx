@@ -43,7 +43,6 @@ const Dashboard = () => {
   const [showWelcomeCarousel, setShowWelcomeCarousel] = useState(false);
   const [festivalInviteState, setFestivalInviteState] = useState<{ festival: FestivalResult; selectedArtists: string[] } | null>(null);
 
-  const showsStatRef = useRef<HTMLButtonElement | null>(null);
   const pendingAddFlowRef = useRef(false);
 
   const showLoader = !dataReady;
@@ -296,8 +295,6 @@ const Dashboard = () => {
             onAddSingleShow={() => setShowAddDialog(true)}
             openShowId={openShowId}
             onShowOpened={() => setOpenShowId(null)}
-            showsTourActive={showSpotlightTour && tourStepIndex === 2}
-            showsRef={showsStatRef}
             onViewChange={(v) => setHomeView(v)}
           />
         </div>
@@ -314,8 +311,6 @@ const Dashboard = () => {
         homeView={homeView}
         feedbackOpen={feedbackOpen}
         showSpotlightTour={showSpotlightTour}
-        tourStepIndex={tourStepIndex}
-        showsStatRef={showsStatRef}
         onHomePress={() => {
           setActiveTab("home");
           setHomeView(prev => prev === "home" ? "" as ContentView : prev);
@@ -360,6 +355,7 @@ const Dashboard = () => {
         inviteNote={inviteNote}
         festivalInviteState={festivalInviteState}
         onFestivalInviteClear={() => setFestivalInviteState(null)}
+        onLogFirstShow={() => setShowAddChoice(true)}
       />
     </div>
   );
