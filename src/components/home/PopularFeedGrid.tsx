@@ -31,7 +31,6 @@ interface PopularFeedGridProps {
 
 const TYPE_PILLS: {id: ShowTypeFilter;label: string;}[] = [
 { id: "set", label: "Sets" },
-{ id: "show", label: "Shows" },
 { id: "festival", label: "Festivals" }];
 
 
