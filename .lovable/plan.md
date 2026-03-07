@@ -1,50 +1,22 @@
-## Redesign EmailImportScreen — Compact Two-Card Layout
 
-### Structure (top to bottom)
 
-```
-┌──────────────────────────────────┐
-│  Import from Email               │
-│  Forward confirmations from any  │
-│  inbox. We extract the shows.    │
-│                                  │
-│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 1: Find your tickets    │ │
-│ │ Copy & search in any app:    │ │
-│ │ ┌──────────────────────────┐ │ │
-│ │ │ from:ticketmaster.com OR │ │ │
-│ │ │ from:dice.fm OR ...      │ │ │
-│ │ └──────────────────────────┘ │ │
-│ │ [📋 Copy Search]  (glass)    │ │
-│ │ [Gmail] [Outlook] [iCloud]   │ │
-│ │        [Yahoo]               │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 2: Forward to Scene     │ │
-│ │ Select all results, then     │ │
-│ │ paste this in the To: field: │ │
-│ │   abc123@add.tryscene.app    │ │
-│ │ [📋 Copy Address]  (primary) │ │
-│ │ 💡 Gmail: "Forward as        │ │
-│ │    attachment" for bulk       │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ✓ Send everything—we filter out  │
-│   non-shows automatically        │
-│ Can't find emails? Add manually → │
-└──────────────────────────────────┘
-```
+## Root Cause
 
-### Key decisions
-- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
-- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
-- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
-- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
-- **Single file change**: `src/components/email/EmailImportScreen.tsx`
-- Dark cards: `bg-white/[0.04] border-white/[0.08]`
-- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
-- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
-- Keep props interface (`userId`, `onClose`, `onManualEntry`)
+The tooltip uses `position: absolute` with `left: 50%` / `top: 50%` inside a `position: fixed` container. This *should* work, but the issue is the **SVG viewBox** is setting the coordinate space to `window.innerWidth x window.innerHeight`, and the outer `div` contains both the SVG and the absolutely-positioned tooltip. The SVG's `viewBox` + `preserveAspectRatio="none"` can cause the container to have unexpected intrinsic sizing behavior that shifts child elements.
+
+More critically, the tooltip's parent `div` has `position: fixed; inset: 0` — so `position: absolute; left: 50%; top: 50%` on the tooltip should be relative to the viewport. But this relies on the fixed container not being affected by CSS transforms or other stacking context issues from parent elements in the Dashboard. If any ancestor has a `transform`, `filter`, or `will-change` property, `position: fixed` becomes relative to that ancestor instead of the viewport — breaking the centering.
+
+**The fix**: Change the tooltip wrapper from `position: absolute` to `position: fixed` directly, removing its dependency on the parent container entirely. This guarantees viewport-center positioning regardless of ancestor transforms.
+
+## Plan
+
+**Single file edit: `src/components/onboarding/SpotlightTour.tsx`**
+
+1. Change the center-screen tooltip `motion.div` (line 181-255) from `position: "absolute"` to `position: "fixed"` with `left: "50%"`, `top: "50%"`, `transform: "translate(-50%, -50%)"`, and `zIndex: 10002`.
+
+2. Add `width: "100%"` and `display: "flex"`, `justifyContent: "center"`, `alignItems: "center"` as a fallback — or simpler: just use `position: fixed` directly on the tooltip `motion.div` so it's always viewport-relative.
+
+3. Also add `pointerEvents: "none"` to the outer fixed container and `pointerEvents: "auto"` only on the tooltip card itself, so the overlay click-through behavior is correct.
+
+This is a 1-line change (`absolute` → `fixed` on line 188) that fully resolves the issue.
+
