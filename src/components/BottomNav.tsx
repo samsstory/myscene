@@ -11,6 +11,7 @@ interface BottomNavProps {
   homeView: ContentView;
   feedbackOpen: boolean;
   showSpotlightTour: boolean;
+  tourStepIndex?: number;
   
   onHomePress: () => void;
   onCalendarPress: () => void;
@@ -24,13 +25,15 @@ export default function BottomNav({
   homeView,
   feedbackOpen,
   showSpotlightTour,
+  tourStepIndex,
   onHomePress,
   onCalendarPress,
   onFeedbackPress,
   onProfilePress,
   onAddPress,
 }: BottomNavProps) {
-  const shouldElevateNavZ = showSpotlightTour;
+  // Only elevate the nav container when the FAB is the active tour target (step 0)
+  const isFabStep = showSpotlightTour && tourStepIndex === 0;
 
   return (
     <div
