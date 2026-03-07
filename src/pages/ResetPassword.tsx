@@ -14,6 +14,8 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
 
+  const [expired, setExpired] = useState(false);
+
   useEffect(() => {
     // Listen for the PASSWORD_RECOVERY event from the hash fragment
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -22,7 +24,34 @@ const ResetPassword = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Check if the token was already exchanged before mount (303 redirect race)
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsRecovery(true);
+      }
+    };
+
+    // Also check the URL hash for type=recovery as a secondary signal
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) {
+      setIsRecovery(true);
+    }
+
+    checkExistingSession();
+
+    // Timeout fallback — if nothing triggers after 5s, show expired message
+    const timeout = setTimeout(() => {
+      setIsRecovery((prev) => {
+        if (!prev) setExpired(true);
+        return prev;
+      });
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleReset = async (e: React.FormEvent) => {
