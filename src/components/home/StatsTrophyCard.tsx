@@ -87,7 +87,6 @@ function StatsTrophyCardInner({
     [milesDanced]
   );
   const comparisonIndex = useRotatingIndex(comparisons.length);
-  const sceneTitle = useMemo(() => getSceneTitle(topGenre, totalShows), [topGenre, totalShows]);
   const percentileLabel = useMemo(() => getPercentile(totalShows, totalUsers), [totalShows, totalUsers]);
   const topArtistNames = useMemo(() => topArtists.map((a) => a.name).join(", "), [topArtists]);
 
