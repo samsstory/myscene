@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,8 +57,54 @@ const Auth = () => {
     checkSession();
   }, [navigate]);
 
+  const [signupFullName, setSignupFullName] = useState("");
+  const [signupUsername, setSignupUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const usernameCheckRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const USERNAME_REGEX = /^[a-z0-9_]+$/;
+
+  const handleUsernameChange = (val: string) => {
+    const lower = val.toLowerCase().replace(/[^a-z0-9_]/g, "");
+    setSignupUsername(lower);
+    setUsernameError(null);
+
+    if (usernameCheckRef.current) clearTimeout(usernameCheckRef.current);
+    if (lower.length < 3) {
+      if (lower.length > 0) setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+    if (!USERNAME_REGEX.test(lower)) {
+      setUsernameError("Only lowercase letters, numbers, and underscores");
+      return;
+    }
+
+    setCheckingUsername(true);
+    usernameCheckRef.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", lower)
+        .maybeSingle();
+      if (data) {
+        setUsernameError("Username already taken");
+      }
+      setCheckingUsername(false);
+    }, 400);
+  };
+
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const trimmedName = signupFullName.trim();
+    const trimmedUsername = signupUsername.trim();
+
+    if (!trimmedName) { toast.error("Please enter your name"); return; }
+    if (trimmedUsername.length < 3) { toast.error("Username must be at least 3 characters"); return; }
+    if (!USERNAME_REGEX.test(trimmedUsername)) { toast.error("Username can only contain lowercase letters, numbers, and underscores"); return; }
+    if (usernameError) { toast.error(usernameError); return; }
+
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -73,7 +119,11 @@ const Auth = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            full_name: trimmedName,
+            username: trimmedUsername,
+          },
         }
       });
 
@@ -408,6 +458,39 @@ const Auth = () => {
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="signup-fullname" className="text-white/70">Full Name</Label>
+                  <Input
+                    id="signup-fullname"
+                    value={signupFullName}
+                    onChange={(e) => setSignupFullName(e.target.value)}
+                    placeholder="Your name"
+                    maxLength={50}
+                    required
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-username" className="text-white/70">Username</Label>
+                  <Input
+                    id="signup-username"
+                    value={signupUsername}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    placeholder="yourname"
+                    maxLength={30}
+                    required
+                    className={inputClassName}
+                  />
+                  {usernameError && (
+                    <p className="text-xs text-destructive">{usernameError}</p>
+                  )}
+                  {checkingUsername && (
+                    <p className="text-xs text-muted-foreground">Checking availability…</p>
+                  )}
+                  {signupUsername.length >= 3 && !usernameError && !checkingUsername && (
+                    <p className="text-xs text-primary">Username available ✓</p>
+                  )}
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-white/70">Email</Label>
                   <Input
                     id="signup-email"
@@ -433,7 +516,7 @@ const Auth = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-primary to-primary/80 shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200" 
-                  disabled={isLoading}
+                  disabled={isLoading || !!usernameError || checkingUsername}
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>

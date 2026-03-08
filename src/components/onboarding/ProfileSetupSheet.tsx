@@ -1,5 +1,5 @@
-import { memo, useState, useRef, useEffect, useCallback } from "react";
-import { MapPin, Search, X, Loader2, Navigation, User } from "lucide-react";
+import { memo, useState, useRef, useCallback } from "react";
+import { MapPin, Search, X, Loader2, Navigation } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -19,16 +19,7 @@ interface ProfileSetupSheetProps {
   onComplete: () => void;
 }
 
-function titleCase(str: string): string {
-  return str
-    .split(/[\s._-]+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
-}
-
 function ProfileSetupSheetInner({ onComplete }: ProfileSetupSheetProps) {
-  const [displayName, setDisplayName] = useState("");
   const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
   const [cityQuery, setCityQuery] = useState("");
   const [citySuggestions, setCitySuggestions] = useState<CityResult[]>([]);
@@ -37,15 +28,6 @@ function ProfileSetupSheetInner({ onComplete }: ProfileSetupSheetProps) {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const cityInputRef = useRef<HTMLInputElement>(null);
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Pre-fill display name from email
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email) {
-        setDisplayName(titleCase(user.email.split("@")[0]));
-      }
-    });
-  }, []);
 
   const searchCity = useCallback((q: string) => {
     setCityQuery(q);
@@ -122,8 +104,7 @@ function ProfileSetupSheetInner({ onComplete }: ProfileSetupSheetProps) {
   }, [pickCity]);
 
   const handleSave = useCallback(async () => {
-    const trimmedName = displayName.trim();
-    if (!trimmedName || !selectedCity) return;
+    if (!selectedCity) return;
 
     setSaving(true);
     try {
@@ -135,7 +116,6 @@ function ProfileSetupSheetInner({ onComplete }: ProfileSetupSheetProps) {
       const { error } = await supabase
         .from("profiles")
         .update({
-          full_name: trimmedName,
           home_city: selectedCity.name,
           home_latitude: selectedCity.lat,
           home_longitude: selectedCity.lng,
@@ -149,9 +129,9 @@ function ProfileSetupSheetInner({ onComplete }: ProfileSetupSheetProps) {
     } finally {
       setSaving(false);
     }
-  }, [displayName, selectedCity, onComplete]);
+  }, [selectedCity, onComplete]);
 
-  const isValid = displayName.trim().length > 0 && selectedCity !== null;
+  const isValid = selectedCity !== null;
 
   return (
     <motion.div
@@ -163,33 +143,17 @@ function ProfileSetupSheetInner({ onComplete }: ProfileSetupSheetProps) {
       {/* Header */}
       <motion.div variants={fadeUp} className="space-y-2">
         <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/[0.12] border border-primary/30 flex items-center justify-center">
-          <User className="h-7 w-7 text-primary" strokeWidth={1.5} />
+          <MapPin className="h-7 w-7 text-primary" strokeWidth={1.5} />
         </div>
         <h2
           className="text-2xl font-bold tracking-tight"
           style={{ textShadow: "0 0 24px hsl(189 94% 55% / 0.25)" }}
         >
-          Set up your profile
+          Where's your scene?
         </h2>
         <p className="text-sm text-muted-foreground">
-          So your friends can find you and you can discover shows nearby.
+          Set your home city so you can discover shows nearby.
         </p>
-      </motion.div>
-
-      {/* Display Name */}
-      <motion.div variants={fadeUp} className="space-y-2 text-left">
-        <Label htmlFor="display-name" className="text-xs text-muted-foreground uppercase tracking-wider">
-          Display Name
-        </Label>
-        <Input
-          id="display-name"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="Your name"
-          className="bg-white/[0.04] border-white/[0.10] text-foreground placeholder:text-muted-foreground/50"
-          disabled={saving}
-          maxLength={50}
-        />
       </motion.div>
 
       {/* Home City */}

@@ -57,7 +57,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
         .select("full_name, home_city")
         .eq("id", user.id)
         .maybeSingle();
-      if (!data?.full_name || !data?.home_city) {
+      if (!data?.home_city) {
         setNeedsProfileSetup(true);
       }
     };
