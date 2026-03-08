@@ -290,7 +290,6 @@ function StatsTrophyCardInner({
 
 const StatsTrophyCard = memo(StatsTrophyCardInner, (prev, next) =>
   prev.totalShows === next.totalShows &&
-  prev.topGenre === next.topGenre &&
   prev.uniqueVenues === next.uniqueVenues &&
   prev.uniqueArtists === next.uniqueArtists &&
   prev.uniqueCities === next.uniqueCities &&

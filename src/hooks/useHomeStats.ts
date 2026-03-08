@@ -409,7 +409,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         missingPhotosCount,
         profileIncomplete,
         topArtists,
-        topGenre,
         uniqueVenues,
         milesDanced,
         totalUsers: totalUsersCount ?? 0,
