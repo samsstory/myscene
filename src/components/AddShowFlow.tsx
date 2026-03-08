@@ -10,6 +10,8 @@ import type { ShowType } from "./add-show-steps/ShowTypeStep";
 import VenueStep from "./add-show-steps/VenueStep";
 import DateStep from "./add-show-steps/DateStep";
 import ArtistsStep from "./add-show-steps/ArtistsStep";
+import AdditionalArtistsPromptStep from "./add-show-steps/AdditionalArtistsPromptStep";
+import EventNamePromptStep from "./add-show-steps/EventNamePromptStep";
 import RatingStep from "./add-show-steps/RatingStep";
 import QuickCompareStep from "./add-show-steps/QuickCompareStep";
 import SuccessStep from "./add-show-steps/SuccessStep";
@@ -78,6 +80,7 @@ export interface ShowData {
 
 
 type EntryPoint = 'artist' | 'venue' | null;
+type ArtistSubStep = 'additionalPrompt' | 'addArtists' | 'eventName';
 
 const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editShow, prefill }: AddShowFlowProps) => {
   const [step, setStep] = useState(0);
@@ -85,6 +88,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
   const [showStepSelector, setShowStepSelector] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [addedShow, setAddedShow] = useState<AddedShowData | null>(null);
+  // Sub-step state for artist flow step 2 (additionalPrompt → addArtists → eventName)
+  const [artistSubStep, setArtistSubStep] = useState<ArtistSubStep>('additionalPrompt');
   const [showData, setShowData] = useState<ShowData>({
     venue: "",
     venueLocation: "",
@@ -127,7 +132,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       const months = [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"];
-
 
       setShowData({
         venue: editShow.venue.name,
@@ -174,15 +178,16 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       initPrefill();
 
       setEntryPoint('artist');
-      // Skip steps that are already filled
+      // Skip steps that are already filled — new step order:
+      // Type(0) → Search(1) → AdditionalArtists(2) → Venue(3) → Date(4) → Rating(5) → Success(6)
       const hasVenue = !!prefill.venueName;
       const hasDate = !!prefill.showDate;
       if (hasVenue && hasDate) {
-        setStep(4); // Skip to rating/details
+        setStep(5); // Skip to rating/details
       } else if (hasVenue) {
-        setStep(3); // Skip to date
+        setStep(4); // Skip to date
       } else {
-        setStep(2); // Go to venue
+        setStep(3); // Go to venue
       }
       setShowStepSelector(false);
       setEditInitialized(true);
@@ -192,6 +197,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setEntryPoint(null);
       setEditPhotoUrl(null);
       setEditInitialized(false);
+      setArtistSubStep('additionalPrompt');
     }
   }, [editShow, open, editInitialized, prefill]);
 
@@ -262,33 +268,12 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     }
   };
 
-  // Get step count based on entry point
-  const getTotalSteps = () => {
-    return 4; // Search -> [Venue/Artists] -> Date -> Rating/Details
-  };
-
-  // Get current step number for progress indicator
-  const getCurrentStepNumber = () => {
-    if (showStepSelector) return step;
-    return step;
-  };
-
-  // Get step labels for progress
-  const getStepLabels = () => {
-    if (entryPoint === 'artist') {
-      return ['Search', 'Venue', 'Date', 'Details'];
-    }
-    return ['Search', 'Date', 'Artists', 'Details'];
-  };
-
   const handleBack = () => {
     if (step === 0) {
-      // At type picker, close dialog
       onOpenChange(false);
       return;
     }
     if (step === 1 && !showStepSelector) {
-      // Back from search → go to type picker
       setStep(0);
       return;
     }
@@ -296,15 +281,36 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       setStep(0);
       return;
     }
-    // Navigate back based on entry point
+    // Artist-first flow back navigation
     if (entryPoint === 'artist') {
-      if (step === 2) setStep(1);
-      else if (step === 3) setStep(2);
-      else if (step === 4) setStep(3);
+      if (step === 2) {
+        // Within sub-steps of step 2
+        if (artistSubStep === 'eventName') {
+          // If they added artists, go back to addArtists; otherwise back to prompt
+          if (showData.showType === 'show') {
+            setArtistSubStep('addArtists');
+          } else {
+            setArtistSubStep('additionalPrompt');
+          }
+        } else if (artistSubStep === 'addArtists') {
+          setArtistSubStep('additionalPrompt');
+          // Revert show type back to set
+          updateShowData({ showType: 'set' });
+        } else {
+          // additionalPrompt → back to search
+          setStep(1);
+        }
+      } else if (step === 3) {
+        setStep(2);
+        setArtistSubStep('eventName');
+      } else if (step === 4) setStep(3);
+      else if (step === 5) setStep(4);
     } else {
+      // Venue-first flow (festival/event from registry)
       if (step === 2) setStep(1);
       else if (step === 3) setStep(2);
       else if (step === 4) setStep(3);
+      else if (step === 5) setStep(4);
     }
   };
 
@@ -314,7 +320,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     const isEventMode = showData.showType === 'show' || showData.showType === 'festival';
 
     if (!isEventMode && result.type === 'artist') {
-      // Solo Show: artist selected → go to venue step
+      // Artist selected → go to additional artists prompt (step 2)
       setEntryPoint('artist');
       const isManual = result.id.startsWith('manual-');
       const newArtist = {
@@ -324,7 +330,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         spotifyId: isManual ? undefined : result.id,
       };
       updateShowData({ artists: [newArtist] });
-      setStep(2); // Go to venue step
+      setArtistSubStep('additionalPrompt');
+      setStep(2); // Go to additional artists prompt
 
       // If manual add (no image from Spotify suggestion), enrich in background
       if (isManual && !result.imageUrl) {
@@ -358,9 +365,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venueLatitude: result.latitude,
         venueLongitude: result.longitude
       });
-      setStep(3); // Skip venue step, go directly to date
+      setStep(3); // Skip venue step, go directly to date (venue-first: step 3 = date)
     } else {
-      // Showcase/Festival: event/venue selected → stores eventName, go to venue step (optional)
+      // Showcase/Festival: event/venue selected → stores eventName, go to venue step
       setEntryPoint('venue');
       updateShowData({
         eventName: result.name,
@@ -370,7 +377,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         venueLatitude: result.latitude,
         venueLongitude: result.longitude
       });
-      setStep(2); // Go to venue step
+      setStep(2); // Go to venue step (venue-first flow)
     }
   };
 
@@ -387,7 +394,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     if (showStepSelector) {
       setStep(0);
     } else if (entryPoint === 'artist') {
-      setStep(3); // Go to date step
+      setStep(4); // Go to date step (artist flow: venue=3, date=4)
     } else {
       setStep(2); // Normal venue-first flow
     }
@@ -398,10 +405,9 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     if (showStepSelector) {
       setStep(0);
     } else if (entryPoint === 'artist') {
-      // Artist flow: after date, go to rating step
-      setStep(4);
+      setStep(5); // Artist flow: after date, go to rating
     } else {
-      setStep(3); // Go to artists
+      setStep(3); // Venue-first: go to artists
     }
   };
 
@@ -410,8 +416,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     if (showStepSelector) {
       setStep(0);
     } else {
-      // After artists step, go to rating step
-      setStep(4);
+      setStep(4); // After artists step, go to rating step
     }
   };
 
@@ -428,7 +433,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         spotifyId: a.id.startsWith('manual-') ? undefined : a.id,
       })),
     });
-    setStep(2); // Go to venue step
+    setStep(3); // B2B: skip additional artists prompt, go to venue
 
     // Background-enrich any manual artists
     const manualArtists = artists.filter((a) => a.id.startsWith('manual-') && !a.imageUrl);
@@ -471,7 +476,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       const months = [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"];
-
 
       let showDate: string;
       if (showData.datePrecision === "exact" && showData.date) {
@@ -665,7 +669,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
       // Insert/update tags
       if (isEditing) {
-        // Delete existing tags for this show
         await supabase.from("show_tags").delete().eq('show_id', show.id);
       }
 
@@ -713,12 +716,12 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               .neq("id", show.id);
 
             if (siblings && siblings.length > 0) {
-              // Build sibling list including the new show
               const siblingList = [
-                ...siblings.map((s: any) => {
-                  const headliner = s.show_artists?.find((a: any) => a.is_headliner) || s.show_artists?.[0];
+                ...siblings.map((s: Record<string, unknown>) => {
+                  const artists = s.show_artists as Array<{ artist_name: string; artist_image_url: string | null; is_headliner: boolean }> | undefined;
+                  const headliner = artists?.find((a) => a.is_headliner) || artists?.[0];
                   return {
-                    id: s.id,
+                    id: s.id as string,
                     artistName: headliner?.artist_name || "Unknown",
                     artistImageUrl: headliner?.artist_image_url || null,
                   };
@@ -739,16 +742,16 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
                 datePrecision: showData.datePrecision,
                 userId: user.id,
               });
-              setStep(5); // Go to success step
-              setGroupPromptOpen(true); // Show group prompt on top
-              return; // Don't go to success step yet — prompt is shown
+              setStep(6); // Go to success step
+              setGroupPromptOpen(true);
+              return;
             }
           } catch (err) {
             console.error("Error checking siblings:", err);
           }
         }
 
-        setStep(5); // Success step
+        setStep(6); // Success step
       }
     } catch (error) {
       console.error("Error adding show:", error);
@@ -763,7 +766,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) throw new Error("Not authenticated");
 
-    // Compress and upload
     const ext = file.type.split('/')[1] || 'jpg';
     const fileName = `${session.user.id}/${addedShow.id}-${Date.now()}.${ext}`;
 
@@ -776,7 +778,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
     if (uploadError) throw uploadError;
 
-    // Get public URL and update show record
     const { data: { publicUrl } } = supabase.storage.
     from('show-photos').
     getPublicUrl(fileName);
@@ -832,7 +833,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     if (!groupingMeta || !groupingNewShowId) return;
     setIsGrouping(true);
     try {
-      // Create parent Show record
       const { data: parentShow, error: parentError } = await supabase
         .from("shows")
         .insert({
@@ -849,7 +849,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
       if (parentError) throw parentError;
 
-      // Link all children
       const childIds = groupingSiblings.map((s) => s.id);
       const { error: linkError } = await supabase
         .from("shows")
@@ -902,6 +901,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     setHasUnsavedChanges(false);
     setAddedShow(null);
     setEditPhotoUrl(null);
+    setArtistSubStep('additionalPrompt');
     setGroupPromptOpen(false);
     setGroupingSiblings([]);
     setGroupingNewShowId(null);
@@ -939,9 +939,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onShowAdded(addedShow);
           }
           resetAndClose();
-        }} />);
-
-
+        }} />
+    );
   };
 
   // Render step content based on entry point and current step
@@ -1049,9 +1048,54 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
     // After step 1, flow depends on entry point
     if (entryPoint === 'artist') {
-      // Artist-first flow: Search -> Venue -> Date -> Rating
+      // Artist-first flow: Search(1) → AdditionalArtists(2) → Venue(3) → Date(4) → Rating(5) → Success(6)
+      
+      // Step 2: Additional artists sub-steps
       if (step === 2) {
-        // Get headliner name for dynamic header
+        if (artistSubStep === 'additionalPrompt') {
+          return (
+            <AdditionalArtistsPromptStep
+              onAddArtists={() => {
+                updateShowData({ showType: 'show' });
+                setArtistSubStep('addArtists');
+              }}
+              onSkip={() => {
+                // Keep as 'set', skip to event name
+                setArtistSubStep('eventName');
+              }}
+            />
+          );
+        }
+        if (artistSubStep === 'addArtists') {
+          return (
+            <ArtistsStep
+              artists={showData.artists}
+              onArtistsChange={(artists) => updateShowData({ artists })}
+              onContinue={() => {
+                setHasUnsavedChanges(true);
+                setArtistSubStep('eventName');
+              }}
+            />
+          );
+        }
+        if (artistSubStep === 'eventName') {
+          return (
+            <EventNamePromptStep
+              onContinue={(eventName) => {
+                updateShowData({ eventName });
+                setHasUnsavedChanges(true);
+                setStep(3); // Go to venue
+              }}
+              onSkip={() => {
+                setStep(3); // Go to venue
+              }}
+            />
+          );
+        }
+      }
+
+      // Step 3: Venue
+      if (step === 3) {
         const headliner = showData.artists.find((a) => a.isHeadliner);
         const artistName = headliner?.name || showData.artists[0]?.name;
 
@@ -1074,7 +1118,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
                 venueLocation: '',
                 venueId: null,
               });
-              setStep(3);
+              setStep(4);
             }}
             onEventRegistrySelect={(event) => {
               updateShowData({
@@ -1084,12 +1128,13 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
                 venueId: event.venueId,
               });
               setHasUnsavedChanges(true);
-              setStep(3); // Skip to date step
-            }} />);
-
-
+              setStep(4); // Skip to date step
+            }} />
+        );
       }
-      if (step === 3) {
+
+      // Step 4: Date
+      if (step === 4) {
         return (
           <DateStep
             date={showData.date}
@@ -1100,12 +1145,12 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onPrecisionChange={(precision) => updateShowData({ datePrecision: precision as "exact" | "approximate" | "unknown" })}
             onMonthChange={(month) => updateShowData({ selectedMonth: month })}
             onYearChange={(year) => updateShowData({ selectedYear: year })}
-            onContinue={handleDateSelect} />);
-
-
+            onContinue={handleDateSelect} />
+        );
       }
-      if (step === 4) {
-        // Show RatingStep for both new shows and edit mode
+
+      // Step 5: Rating
+      if (step === 5) {
         return (
           <RatingStep
             tags={showData.tags}
@@ -1114,9 +1159,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onNotesChange={(notes) => updateShowData({ notes })}
             onSubmit={handleSubmit}
             onSkip={handleSubmit}
-            isEditMode={showStepSelector} />);
-
-
+            isEditMode={showStepSelector} />
+        );
       }
     } else {
       // Venue-first flow: Search -> Date -> Artists -> Rating
@@ -1134,9 +1178,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               onYearChange={(year) => updateShowData({ selectedYear: year })}
               onContinue={handleDateSelect}
               isEditing={true}
-              onSave={handleSubmit} />);
-
-
+              onSave={handleSubmit} />
+          );
         }
         return (
           <DateStep
@@ -1148,9 +1191,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onPrecisionChange={(precision) => updateShowData({ datePrecision: precision as "exact" | "approximate" | "unknown" })}
             onMonthChange={(month) => updateShowData({ selectedMonth: month })}
             onYearChange={(year) => updateShowData({ selectedYear: year })}
-            onContinue={handleDateSelect} />);
-
-
+            onContinue={handleDateSelect} />
+        );
       }
       if (step === 3) {
         if (showStepSelector) {
@@ -1160,20 +1202,17 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               onArtistsChange={(artists) => updateShowData({ artists })}
               onContinue={handleArtistsComplete}
               isEditing={true}
-              onSave={handleSubmit} />);
-
-
+              onSave={handleSubmit} />
+          );
         }
         return (
           <ArtistsStep
             artists={showData.artists}
             onArtistsChange={(artists) => updateShowData({ artists })}
-            onContinue={handleArtistsComplete} />);
-
-
+            onContinue={handleArtistsComplete} />
+        );
       }
       if (step === 4) {
-        // Show RatingStep for both new shows and edit mode
         return (
           <RatingStep
             tags={showData.tags}
@@ -1182,9 +1221,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             onNotesChange={(notes) => updateShowData({ notes })}
             onSubmit={handleSubmit}
             onSkip={handleSubmit}
-            isEditMode={showStepSelector} />);
-
-
+            isEditMode={showStepSelector} />
+        );
       }
     }
 
@@ -1196,7 +1234,6 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
             if (!editShow) return;
             updateShowData({ showType: type });
             setHasUnsavedChanges(true);
-            // Save directly to avoid stale-state race condition
             const { error } = await supabase
               .from("shows")
               .update({ show_type: type })
@@ -1212,8 +1249,8 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
       );
     }
 
-    // Success step (step 5 for new shows)
-    if (step === 5 && addedShow) {
+    // Success step (step 6 for new shows)
+    if (step === 6 && addedShow) {
       return (
         <SuccessStep
           show={addedShow}
@@ -1231,21 +1268,48 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
               onShowAdded(addedShow);
             }
             resetAndClose();
-          }} />);
-
-
+          }} />
+      );
     }
 
-    // Quick compare step (step 6 for new shows)
-    if (step === 6 && addedShow) {
+    // Quick compare step (step 7 for new shows — only when not in edit mode)
+    if (step === 7 && !showStepSelector && addedShow) {
       return renderQuickCompareStep();
     }
 
     return null;
   };
 
+  // Determine if back button should show
+  const showBackButton = () => {
+    if (showStepSelector && step > 0) return true;
+    if (!showStepSelector && step >= 1 && step < 6) return true;
+    return false;
+  };
+
   // SVG noise texture for tactile feel
   const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
+
+  // Calculate progress dots
+  const getProgressDots = () => {
+    if (entryPoint === 'artist') {
+      // Artist flow: Search(1), Artists(2), Venue(3), Date(4), Details(5)
+      return 5;
+    }
+    // Venue flow: Search(1), Date(2), Artists(3), Details(4)
+    return 4;
+  };
+
+  const getProgressStep = () => {
+    if (entryPoint === 'artist') {
+      if (step === 1) return 1;
+      if (step === 2) return 2;
+      if (step === 3) return 3;
+      if (step === 4) return 4;
+      if (step === 5) return 5;
+    }
+    return step;
+  };
 
   return (
     <>
@@ -1269,14 +1333,13 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
 
         </div>
 
-        {/* Back button - absolute positioned (hide on success/quick compare steps) */}
-        {step > 1 && step < 5 &&
+        {/* Back button */}
+        {showBackButton() &&
         <Button
           variant="ghost"
           size="icon"
           onClick={handleBack}
           className="h-8 w-8 absolute left-4 top-4 z-20">
-
             <ArrowLeft className="h-5 w-5" />
           </Button>
         }
@@ -1284,7 +1347,7 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
         {/* Step content - scrollable */}
         <div className="flex-1 overflow-y-auto px-6 pt-4 pb-4 min-h-0 relative z-10">
           <div className="flex flex-col items-center">
-            {step !== 5 &&
+            {step !== 6 &&
             <h2 className="text-xl font-bold text-center mb-4">
                 {editShow ? "Edit Show" : "Add a Show"}
               </h2>
@@ -1295,37 +1358,37 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
           </div>
         </div>
 
-        {/* Progress indicator - hide for step selector and success/quick compare steps */}
-        {step > 0 && step < 5 && !showStepSelector &&
+        {/* Progress indicator */}
+        {step > 0 && step < 6 && !showStepSelector &&
         <div className="flex gap-1.5 px-6 pb-4 pt-2 border-t border-white/[0.06] bg-transparent relative z-10">
-            {[1, 2, 3, 4].map((i) =>
+            {Array.from({ length: getProgressDots() }, (_, i) => i + 1).map((i) =>
           <div
             key={i}
             className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-            i <= step ?
+            i <= getProgressStep() ?
             "bg-primary shadow-[0_0_8px_hsl(189_94%_55%/0.6)]" :
-            "bg-white/20"}`
-            } />
-
-          )}
+            "bg-white/[0.08]"
+            }`} />
+            )}
           </div>
         }
       </DialogContent>
     </Dialog>
 
-    <GroupShowPrompt
-      open={groupPromptOpen}
-      onOpenChange={setGroupPromptOpen}
-      venueName={groupingMeta?.venueName || ""}
-      showDate={groupingMeta?.showDate || ""}
-      siblingShows={groupingSiblings}
-      onGroup={handleGroupShows}
-      onDismiss={handleDismissGroup}
-      isGrouping={isGrouping}
-    />
+    {/* Group Show Prompt */}
+    {groupPromptOpen && groupingSiblings.length > 0 && (
+      <GroupShowPrompt
+        open={groupPromptOpen}
+        siblings={groupingSiblings}
+        venueName={groupingMeta?.venueName || ""}
+        showDate={groupingMeta?.showDate || ""}
+        onGroup={handleGroupShows}
+        onDismiss={handleDismissGroup}
+        isLoading={isGrouping}
+      />
+    )}
     </>
   );
-
 };
 
 export default AddShowFlow;
