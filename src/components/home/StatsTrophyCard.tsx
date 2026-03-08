@@ -39,27 +39,6 @@ function getPercentile(showCount: number, totalUsers?: number): string | null {
   return "Top 50%";
 }
 
-/* Badge breathe keyframe (injected once) */
-const badgeBreatheStyle = `
-@keyframes badge-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-`;
-
-/* Hoisted style objects for referential stability */
-const meshGradientTopLeft: React.CSSProperties = {
-  background: "radial-gradient(circle at 0% 0%, hsl(var(--primary)), transparent 70%)"
-};
-const meshGradientBottomRight: React.CSSProperties = {
-  background: "radial-gradient(circle at 100% 100%, hsl(var(--secondary)), transparent 70%)"
-};
-const sceneBadgeStyle: React.CSSProperties = {
-  background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(280 60% 60% / 0.2))",
-  color: "hsl(var(--primary))",
-  border: "1px solid hsl(var(--primary) / 0.25)",
-  animation: "badge-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite"
-};
 const percentileBadgeStyle: React.CSSProperties = {
   background: "linear-gradient(135deg, hsl(45 90% 50% / 0.15), hsl(35 90% 55% / 0.15))",
   color: "hsl(45 90% 55%)",
