@@ -22,6 +22,7 @@ interface StatsTrophyCardProps {
   topArtists: TopArtist[];
   isLoading: boolean;
   onAddShow?: () => void;
+  onShowsTap?: () => void;
   totalUsers?: number;
 }
 
@@ -65,6 +66,7 @@ function StatsTrophyCardInner({
   topArtists,
   isLoading,
   onAddShow,
+  onShowsTap,
   totalUsers
 }: StatsTrophyCardProps) {
   // All hooks MUST be called before any early returns
@@ -170,7 +172,10 @@ function StatsTrophyCardInner({
 
         {/* Stats row */}
         <div className="flex gap-2.5 relative z-10">
-          <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
+          <button
+            onClick={onShowsTap}
+            className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5 transition-colors active:bg-white/[0.10]"
+          >
             <CountUp
               value={totalShows}
               className="text-[32px] font-bold text-foreground block leading-tight"
@@ -179,7 +184,7 @@ function StatsTrophyCardInner({
             <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">
               Shows
             </p>
-          </div>
+          </button>
 
           <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
             <CountUp
@@ -284,6 +289,7 @@ const StatsTrophyCard = memo(StatsTrophyCardInner, (prev, next) =>
   prev.isLoading === next.isLoading &&
   prev.totalUsers === next.totalUsers &&
   prev.onAddShow === next.onAddShow &&
+  prev.onShowsTap === next.onShowsTap &&
   prev.topArtists.map(a => a.name).join(',') === next.topArtists.map(a => a.name).join(',')
 );
 

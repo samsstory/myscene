@@ -47,6 +47,7 @@ interface StatsForCard {
 
 interface SceneViewProps {
   onPlanShow: () => void;
+  onNavigateToMyShows?: () => void;
   onNavigateToFriends?: () => void;
   onNavigateToRank?: () => void;
   onAddShow?: () => void;
@@ -68,6 +69,7 @@ interface SceneViewProps {
 
 export default function SceneView({
   onPlanShow,
+  onNavigateToMyShows,
   onNavigateToFriends,
   onNavigateToRank,
   onAddShow,
@@ -270,6 +272,7 @@ export default function SceneView({
             topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
             isLoading={statsLoading || questsLoading}
             onAddShow={onAddShow}
+            onShowsTap={onNavigateToMyShows}
             totalUsers={stats?.totalUsers}
           />
         </motion.div>

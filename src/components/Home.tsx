@@ -142,6 +142,7 @@ const Home = ({ onNavigateToRank, onNavigateToProfile, onAddFromPhotos, onAddSin
           {viewMode === 'home' && (
             <SceneView
               onPlanShow={() => sheets.setPlanShowOpen(true)}
+              onNavigateToMyShows={() => setViewMode('rankings')}
               onNavigateToFriends={() => setViewMode('friends')}
               onNavigateToRank={() => setViewMode('rank')}
               onAddShow={onAddSingleShow}
