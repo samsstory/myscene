@@ -152,6 +152,7 @@ function PhoneLookup({
         <PhoneCall className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
         <input
           type="tel"
+          autoFocus={false}
           value={tel}
           onChange={(e) => setTel(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleCheck()}
