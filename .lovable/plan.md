@@ -1,50 +1,23 @@
-## Redesign EmailImportScreen — Compact Two-Card Layout
 
-### Structure (top to bottom)
 
-```
-┌──────────────────────────────────┐
-│  Import from Email               │
-│  Forward confirmations from any  │
-│  inbox. We extract the shows.    │
-│                                  │
-│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 1: Find your tickets    │ │
-│ │ Copy & search in any app:    │ │
-│ │ ┌──────────────────────────┐ │ │
-│ │ │ from:ticketmaster.com OR │ │ │
-│ │ │ from:dice.fm OR ...      │ │ │
-│ │ └──────────────────────────┘ │ │
-│ │ [📋 Copy Search]  (glass)    │ │
-│ │ [Gmail] [Outlook] [iCloud]   │ │
-│ │        [Yahoo]               │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 2: Forward to Scene     │ │
-│ │ Select all results, then     │ │
-│ │ paste this in the To: field: │ │
-│ │   abc123@add.tryscene.app    │ │
-│ │ [📋 Copy Address]  (primary) │ │
-│ │ 💡 Gmail: "Forward as        │ │
-│ │    attachment" for bulk       │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ✓ Send everything—we filter out  │
-│   non-shows automatically        │
-│ Can't find emails? Add manually → │
-└──────────────────────────────────┘
-```
+## Update: Rename "Openers" to "Additional Artists"
 
-### Key decisions
-- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
-- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
-- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
-- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
-- **Single file change**: `src/components/email/EmailImportScreen.tsx`
-- Dark cards: `bg-white/[0.04] border-white/[0.08]`
-- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
-- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
-- Keep props interface (`userId`, `onClose`, `onManualEntry`)
+### What changes
+
+This is a terminology update across the approved plan. Everywhere the flow references "openers" or "Did you see any openers?", it should use "additional artists" instead.
+
+**Specifically in the plan:**
+
+1. **`OpenersPromptStep.tsx`** → Rename to **`AdditionalArtistsPromptStep.tsx`**
+   - Prompt text: **"Did you see any other artists at this event?"** (instead of "Did you see any openers?")
+   - Yes/No buttons remain the same
+   - Callbacks: `onAddArtists()` / `onSkip()` (not `onAddOpeners`)
+
+2. **`AddShowFlow.tsx`** — Internal naming
+   - Sub-step flag: `showAdditionalArtists` (not `showOpenersAdder`)
+   - Step label in progress dots: "Artists" (not "Openers")
+
+3. **User-facing copy** — No mention of "openers" anywhere. The prompt is simply about whether there were other artists at the event, which covers openers, support acts, surprise guests, and co-headliners without forcing a hierarchy label.
+
+Everything else from the previously approved plan remains unchanged — same step order (`Type → Search → AdditionalArtistsPrompt → [ArtistsStep if Yes] → EventName → Venue → Date → Rating → Success`), same show_type inference logic, same ELO ranking behavior.
+
