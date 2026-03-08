@@ -30,7 +30,6 @@ interface StatsData {
   missingPhotosCount: number;
   profileIncomplete: boolean;
   topArtists: TopArtist[];
-  topGenre: string | null;
   uniqueVenues: number;
   milesDanced: number | null;
   totalUsers: number;
