@@ -157,9 +157,6 @@ function StatsTrophyCardInner({
 
   return (
     <div className="stats-trophy-wrapper rounded-2xl p-[1px]">
-      {/* Inject badge-breathe keyframe */}
-      <style>{badgeBreatheStyle}</style>
-
       <section className="rounded-2xl bg-card/80 backdrop-blur-xl p-5 space-y-4 relative overflow-hidden">
         {/* Subtle mesh gradient overlay */}
         <div
@@ -169,13 +166,8 @@ function StatsTrophyCardInner({
           className="absolute bottom-0 right-0 w-32 h-32 opacity-[0.04] pointer-events-none"
           style={meshGradientBottomRight} />
 
-        {/* Title badge + Header */}
+        {/* Header */}
         <div className="relative z-10 space-y-1">
-          <span
-            className="inline-block text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-0.5 rounded-full"
-            style={sceneBadgeStyle}>
-            🎵 {sceneTitle}
-          </span>
           <div className="flex items-center gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Your Scene Stats
