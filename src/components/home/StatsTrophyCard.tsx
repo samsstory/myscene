@@ -298,6 +298,7 @@ const StatsTrophyCard = memo(StatsTrophyCardInner, (prev, next) =>
   prev.totalUsers === next.totalUsers &&
   prev.onAddShow === next.onAddShow &&
   prev.onShowsTap === next.onShowsTap &&
+  prev.onVenuesTap === next.onVenuesTap &&
   prev.topArtists.map(a => a.name).join(',') === next.topArtists.map(a => a.name).join(',')
 );
 
