@@ -57,8 +57,54 @@ const Auth = () => {
     checkSession();
   }, [navigate]);
 
+  const [signupFullName, setSignupFullName] = useState("");
+  const [signupUsername, setSignupUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const usernameCheckRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const USERNAME_REGEX = /^[a-z0-9_]+$/;
+
+  const handleUsernameChange = (val: string) => {
+    const lower = val.toLowerCase().replace(/[^a-z0-9_]/g, "");
+    setSignupUsername(lower);
+    setUsernameError(null);
+
+    if (usernameCheckRef.current) clearTimeout(usernameCheckRef.current);
+    if (lower.length < 3) {
+      if (lower.length > 0) setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+    if (!USERNAME_REGEX.test(lower)) {
+      setUsernameError("Only lowercase letters, numbers, and underscores");
+      return;
+    }
+
+    setCheckingUsername(true);
+    usernameCheckRef.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", lower)
+        .maybeSingle();
+      if (data) {
+        setUsernameError("Username already taken");
+      }
+      setCheckingUsername(false);
+    }, 400);
+  };
+
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const trimmedName = signupFullName.trim();
+    const trimmedUsername = signupUsername.trim();
+
+    if (!trimmedName) { toast.error("Please enter your name"); return; }
+    if (trimmedUsername.length < 3) { toast.error("Username must be at least 3 characters"); return; }
+    if (!USERNAME_REGEX.test(trimmedUsername)) { toast.error("Username can only contain lowercase letters, numbers, and underscores"); return; }
+    if (usernameError) { toast.error(usernameError); return; }
+
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -73,7 +119,11 @@ const Auth = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            full_name: trimmedName,
+            username: trimmedUsername,
+          },
         }
       });
 
