@@ -1379,12 +1379,13 @@ const AddShowFlow = ({ open, onOpenChange, onShowAdded, onViewShowDetails, editS
     {groupPromptOpen && groupingSiblings.length > 0 && (
       <GroupShowPrompt
         open={groupPromptOpen}
-        siblings={groupingSiblings}
+        onOpenChange={handleDismissGroup}
+        siblingShows={groupingSiblings}
         venueName={groupingMeta?.venueName || ""}
         showDate={groupingMeta?.showDate || ""}
         onGroup={handleGroupShows}
         onDismiss={handleDismissGroup}
-        isLoading={isGrouping}
+        isGrouping={isGrouping}
       />
     )}
     </>
