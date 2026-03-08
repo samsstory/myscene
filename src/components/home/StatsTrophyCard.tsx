@@ -14,7 +14,6 @@ interface TopArtist {
 
 interface StatsTrophyCardProps {
   totalShows: number;
-  topGenre: string | null;
   uniqueVenues: number;
   uniqueArtists: number;
   uniqueCities: number;
