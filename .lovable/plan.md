@@ -1,50 +1,20 @@
-## Redesign EmailImportScreen — Compact Two-Card Layout
 
-### Structure (top to bottom)
 
-```
-┌──────────────────────────────────┐
-│  Import from Email               │
-│  Forward confirmations from any  │
-│  inbox. We extract the shows.    │
-│                                  │
-│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 1: Find your tickets    │ │
-│ │ Copy & search in any app:    │ │
-│ │ ┌──────────────────────────┐ │ │
-│ │ │ from:ticketmaster.com OR │ │ │
-│ │ │ from:dice.fm OR ...      │ │ │
-│ │ └──────────────────────────┘ │ │
-│ │ [📋 Copy Search]  (glass)    │ │
-│ │ [Gmail] [Outlook] [iCloud]   │ │
-│ │        [Yahoo]               │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ┌──────────────────────────────┐ │
-│ │ Card 2: Forward to Scene     │ │
-│ │ Select all results, then     │ │
-│ │ paste this in the To: field: │ │
-│ │   abc123@add.tryscene.app    │ │
-│ │ [📋 Copy Address]  (primary) │ │
-│ │ 💡 Gmail: "Forward as        │ │
-│ │    attachment" for bulk       │ │
-│ └──────────────────────────────┘ │
-│                                  │
-│ ✓ Send everything—we filter out  │
-│   non-shows automatically        │
-│ Can't find emails? Add manually → │
-└──────────────────────────────────┘
-```
+## Reverse ShowsBarChart to newest-first
 
-### Key decisions
-- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
-- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
-- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
-- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
-- **Single file change**: `src/components/email/EmailImportScreen.tsx`
-- Dark cards: `bg-white/[0.04] border-white/[0.08]`
-- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
-- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
-- Keep props interface (`userId`, `onClose`, `onManualEntry`)
+### What changes
+**File:** `src/components/rankings/ShowsBarChart.tsx`
+
+1. **Reverse the data array** — After building the chronological `data` array (line 36-44), call `.reverse()` so the most recent month is at index 0 (leftmost). This is the core fix.
+
+2. **Remove auto-scroll-to-right** — Currently the `useEffect` (lines 73-83) scrolls to `scrollWidth` because newest data is at the far right. With reversed order, the newest month is already at the left, so remove the `scrollLeft = scrollWidth` logic.
+
+3. **Fix year boundary detection** — The year separator check (line 116) compares `data[i-1].year !== data[i].year`. This still works correctly with reversed data (boundaries just appear in reverse order). No change needed.
+
+4. **Update visible year fallback** — The initial `visibleYear` (line 75) defaults to `data[0].year`, which after reversal will be the most recent year. Correct behavior.
+
+5. **Sticky year label position** — Move from `left-3` to `right-3` since the user now scrolls right to see older data, and the label should reflect what's entering the viewport from the right edge. Update `updateVisibleYear` to find the bar nearest the right edge instead of the left.
+
+### Summary
+One-file change. Reverse the array, remove the auto-scroll hack, and adjust the sticky year label to anchor on the right side of the viewport.
+
