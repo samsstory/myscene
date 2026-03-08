@@ -41,9 +41,7 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
         year: format(m, "yyyy"),
         count: counts.get(key) || 0,
       };
-    });
-
-    
+    }).reverse();
 
     const maxCount = Math.max(...data.map((d) => d.count), 1);
     return { data, maxCount };
@@ -53,15 +51,14 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
     const container = scrollRef.current;
     if (!container || !monthData) return;
 
-    // Find the bar element closest to the left edge of the visible area
+    // Find the bar element closest to the right edge of the visible area
     const bars = container.querySelectorAll<HTMLElement>("[data-year]");
-    const containerLeft = container.getBoundingClientRect().left;
+    const containerRight = container.getBoundingClientRect().right;
     let closestYear = monthData.data[0]?.year || "";
 
-    for (const bar of bars) {
+    for (const bar of Array.from(bars).reverse()) {
       const rect = bar.getBoundingClientRect();
-      // First bar whose right edge is past the container's left edge
-      if (rect.right > containerLeft + 8) {
+      if (rect.left < containerRight - 8) {
         closestYear = bar.dataset.year || closestYear;
         break;
       }
@@ -73,13 +70,6 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
   useEffect(() => {
     if (!monthData) return;
     setVisibleYear(monthData.data[0]?.year || "");
-    // Auto-scroll to the right (newest months)
-    const container = scrollRef.current;
-    if (container) {
-      requestAnimationFrame(() => {
-        container.scrollLeft = container.scrollWidth;
-      });
-    }
   }, [monthData]);
 
   useEffect(() => {
@@ -99,7 +89,7 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 relative">
       {/* Sticky year label */}
       {multiYear && visibleYear && (
-        <span className="absolute top-2.5 left-3 text-[11px] font-semibold text-white/50 tabular-nums z-10 pointer-events-none">
+        <span className="absolute top-2.5 right-3 text-[11px] font-semibold text-white/50 tabular-nums z-10 pointer-events-none">
           {visibleYear}
         </span>
       )}
