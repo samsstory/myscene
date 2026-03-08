@@ -22,6 +22,7 @@ interface StatsTrophyCardProps {
   topArtists: TopArtist[];
   isLoading: boolean;
   onAddShow?: () => void;
+  onShowsTap?: () => void;
   totalUsers?: number;
 }
 
