@@ -81,7 +81,7 @@ const BulkSuccessStep = ({ addedCount, addedShows, festivalName, festivalLineupI
         .select("full_name, home_city")
         .eq("id", user.id)
         .maybeSingle();
-      if (!data?.full_name || !data?.home_city) {
+      if (!data?.home_city) {
         setNeedsProfileSetup(true);
       }
     };
