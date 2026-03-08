@@ -65,10 +65,11 @@ export function useSetupQuests(): UseSetupQuestsReturn {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
-      const [showRes, profileRes, spotifyRes] = await Promise.all([
+      const [showRes, profileRes, spotifyRes, pushRes] = await Promise.all([
         supabase.from("shows").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("profiles").select("home_city, avatar_url, pwa_installed").eq("id", user.id).maybeSingle(),
         supabase.from("spotify_connections").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
 
       if (cancelled) return;
