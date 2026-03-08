@@ -71,6 +71,7 @@ interface SceneViewProps {
 export default function SceneView({
   onPlanShow,
   onNavigateToMyShows,
+  onNavigateToGlobe,
   onNavigateToFriends,
   onNavigateToRank,
   onAddShow,
