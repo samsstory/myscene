@@ -272,6 +272,7 @@ export default function SceneView({
             topArtists={stats?.topArtists ?? EMPTY_ARTISTS}
             isLoading={statsLoading || questsLoading}
             onAddShow={onAddShow}
+            onShowsTap={onNavigateToMyShows}
             totalUsers={stats?.totalUsers}
           />
         </motion.div>
