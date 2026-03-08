@@ -215,7 +215,7 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
     <Sheet open={open} onOpenChange={handleOpen}>
       <SheetContent
         side="bottom"
-        className="max-h-[80dvh] flex flex-col rounded-t-2xl px-0 bg-background/80 backdrop-blur-xl border-t border-white/[0.08] overflow-x-hidden w-full"
+        className="max-h-[92dvh] min-h-[60dvh] flex flex-col rounded-t-2xl px-0 bg-background/80 backdrop-blur-xl border-t border-white/[0.08] overflow-x-hidden w-full"
       >
         {/* Header */}
         <div className="px-4 pt-2 pb-4 border-b border-white/[0.06] w-full box-border space-y-3">
