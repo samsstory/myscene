@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCityFromLocation, getCountryFromLocation } from "@/lib/location-utils";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 
 interface TopShow {
