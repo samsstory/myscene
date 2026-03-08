@@ -39,6 +39,13 @@ function getPercentile(showCount: number, totalUsers?: number): string | null {
   return "Top 50%";
 }
 
+/* Hoisted style objects for referential stability */
+const meshGradientTopLeft: React.CSSProperties = {
+  background: "radial-gradient(circle at 0% 0%, hsl(var(--primary)), transparent 70%)"
+};
+const meshGradientBottomRight: React.CSSProperties = {
+  background: "radial-gradient(circle at 100% 100%, hsl(var(--secondary)), transparent 70%)"
+};
 const percentileBadgeStyle: React.CSSProperties = {
   background: "linear-gradient(135deg, hsl(45 90% 50% / 0.15), hsl(35 90% 55% / 0.15))",
   color: "hsl(45 90% 55%)",
