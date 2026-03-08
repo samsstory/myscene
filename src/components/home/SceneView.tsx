@@ -36,7 +36,6 @@ const NOOP = () => {};
 
 interface StatsForCard {
   allTimeShows: number;
-  topGenre: string | null;
   uniqueVenues: number;
   uniqueArtists: number;
   uniqueCities: number;
@@ -263,7 +262,6 @@ export default function SceneView({
         >
           <StatsTrophyCard
             totalShows={stats?.allTimeShows ?? 0}
-            topGenre={stats?.topGenre ?? null}
             uniqueVenues={stats?.uniqueVenues ?? 0}
             uniqueArtists={stats?.uniqueArtists ?? 0}
             uniqueCities={stats?.uniqueCities ?? 0}

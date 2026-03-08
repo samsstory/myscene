@@ -30,7 +30,6 @@ interface StatsData {
   missingPhotosCount: number;
   profileIncomplete: boolean;
   topArtists: TopArtist[];
-  topGenre: string | null;
   uniqueVenues: number;
   milesDanced: number | null;
   totalUsers: number;
@@ -77,7 +76,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
     missingPhotosCount: 0,
     profileIncomplete: false,
     topArtists: [],
-    topGenre: null,
     uniqueVenues: 0,
     milesDanced: null,
     totalUsers: 0,
@@ -341,39 +339,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         }
       }
 
-      // Top genre — aggregate genres from artists table for user's show artists
-      let topGenre: string | null = null;
-      if (allArtists && allArtists.length > 0) {
-        const artistNames = [...new Set(allArtists.map(a => a.artist_name))];
-        // Query artists table in batches for genres
-        const { data: artistsWithGenres } = await supabase
-          .from('artists')
-          .select('genres')
-          .in('name', artistNames.slice(0, 100)); // limit to avoid huge query
-
-        if (artistsWithGenres) {
-          const genreCounts = new Map<string, number>();
-          for (const artist of artistsWithGenres) {
-            if (artist.genres) {
-              for (const genre of artist.genres) {
-                const normalized = genre.toLowerCase().trim();
-                if (normalized) {
-                  genreCounts.set(normalized, (genreCounts.get(normalized) || 0) + 1);
-                }
-              }
-            }
-          }
-          if (genreCounts.size > 0) {
-            const sorted = [...genreCounts.entries()].sort((a, b) => b[1] - a[1]);
-            // Title-case the top genre
-            const raw = sorted[0][0];
-            topGenre = raw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-          } else {
-            topGenre = "Eclectic";
-          }
-        }
-      }
-
       // Unique venues
       const venueNames = new Set<string>();
       shows?.forEach(s => {
@@ -444,7 +409,6 @@ export const useHomeStats = (): UseHomeStatsReturn => {
         missingPhotosCount,
         profileIncomplete,
         topArtists,
-        topGenre,
         uniqueVenues,
         milesDanced,
         totalUsers: totalUsersCount ?? 0,

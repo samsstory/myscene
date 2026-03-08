@@ -14,7 +14,6 @@ interface TopArtist {
 
 interface StatsTrophyCardProps {
   totalShows: number;
-  topGenre: string | null;
   uniqueVenues: number;
   uniqueArtists: number;
   uniqueCities: number;
@@ -26,21 +25,6 @@ interface StatsTrophyCardProps {
   totalUsers?: number;
 }
 
-/** Maps genre + show count → persona title */
-function getSceneTitle(topGenre: string | null, totalShows: number): string {
-  if (!topGenre) return "Music Lover";
-  const g = topGenre.toLowerCase();
-  if (g.includes("electronic") || g.includes("edm") || g.includes("bass"))
-  return totalShows >= 50 ? "Rave Veteran" : "Raver";
-  if (g.includes("house")) return "House Head";
-  if (g.includes("techno")) return "Techno Purist";
-  if (g.includes("hip hop") || g.includes("hip-hop") || g.includes("rap")) return "Hypebeast";
-  if (g.includes("rock") || g.includes("metal")) return "Headbanger";
-  if (g.includes("indie")) return "Indie Kid";
-  if (g.includes("pop")) return "Pop Stan";
-  if (g === "eclectic") return "Genre Fluid";
-  return "Music Lover";
-}
 
 /** Returns percentile label or null. */
 function getPercentile(showCount: number, totalUsers?: number): string | null {
@@ -55,26 +39,12 @@ function getPercentile(showCount: number, totalUsers?: number): string | null {
   return "Top 50%";
 }
 
-/* Badge breathe keyframe (injected once) */
-const badgeBreatheStyle = `
-@keyframes badge-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-`;
-
 /* Hoisted style objects for referential stability */
 const meshGradientTopLeft: React.CSSProperties = {
   background: "radial-gradient(circle at 0% 0%, hsl(var(--primary)), transparent 70%)"
 };
 const meshGradientBottomRight: React.CSSProperties = {
   background: "radial-gradient(circle at 100% 100%, hsl(var(--secondary)), transparent 70%)"
-};
-const sceneBadgeStyle: React.CSSProperties = {
-  background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(280 60% 60% / 0.2))",
-  color: "hsl(var(--primary))",
-  border: "1px solid hsl(var(--primary) / 0.25)",
-  animation: "badge-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite"
 };
 const percentileBadgeStyle: React.CSSProperties = {
   background: "linear-gradient(135deg, hsl(45 90% 50% / 0.15), hsl(35 90% 55% / 0.15))",
@@ -87,7 +57,6 @@ const emptyStateGlowStyle: React.CSSProperties = {
 
 function StatsTrophyCardInner({
   totalShows,
-  topGenre,
   uniqueVenues,
   uniqueArtists,
   uniqueCities,
@@ -104,7 +73,6 @@ function StatsTrophyCardInner({
     [milesDanced]
   );
   const comparisonIndex = useRotatingIndex(comparisons.length);
-  const sceneTitle = useMemo(() => getSceneTitle(topGenre, totalShows), [topGenre, totalShows]);
   const percentileLabel = useMemo(() => getPercentile(totalShows, totalUsers), [totalShows, totalUsers]);
   const topArtistNames = useMemo(() => topArtists.map((a) => a.name).join(", "), [topArtists]);
 
@@ -175,9 +143,6 @@ function StatsTrophyCardInner({
 
   return (
     <div className="stats-trophy-wrapper rounded-2xl p-[1px]">
-      {/* Inject badge-breathe keyframe */}
-      <style>{badgeBreatheStyle}</style>
-
       <section className="rounded-2xl bg-card/80 backdrop-blur-xl p-5 space-y-4 relative overflow-hidden">
         {/* Subtle mesh gradient overlay */}
         <div
@@ -187,13 +152,8 @@ function StatsTrophyCardInner({
           className="absolute bottom-0 right-0 w-32 h-32 opacity-[0.04] pointer-events-none"
           style={meshGradientBottomRight} />
 
-        {/* Title badge + Header */}
+        {/* Header */}
         <div className="relative z-10 space-y-1">
-          <span
-            className="inline-block text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-0.5 rounded-full"
-            style={sceneBadgeStyle}>
-            🎵 {sceneTitle}
-          </span>
           <div className="flex items-center gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Your Scene Stats
@@ -316,7 +276,6 @@ function StatsTrophyCardInner({
 
 const StatsTrophyCard = memo(StatsTrophyCardInner, (prev, next) =>
   prev.totalShows === next.totalShows &&
-  prev.topGenre === next.topGenre &&
   prev.uniqueVenues === next.uniqueVenues &&
   prev.uniqueArtists === next.uniqueArtists &&
   prev.uniqueCities === next.uniqueCities &&
