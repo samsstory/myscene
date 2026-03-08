@@ -36,7 +36,6 @@ const NOOP = () => {};
 
 interface StatsForCard {
   allTimeShows: number;
-  topGenre: string | null;
   uniqueVenues: number;
   uniqueArtists: number;
   uniqueCities: number;
