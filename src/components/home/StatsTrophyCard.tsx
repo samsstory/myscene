@@ -23,6 +23,7 @@ interface StatsTrophyCardProps {
   isLoading: boolean;
   onAddShow?: () => void;
   onShowsTap?: () => void;
+  onVenuesTap?: () => void;
   totalUsers?: number;
 }
 
