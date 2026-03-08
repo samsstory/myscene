@@ -275,6 +275,7 @@ export default function SceneView({
             isLoading={statsLoading || questsLoading}
             onAddShow={onAddShow}
             onShowsTap={onNavigateToMyShows}
+            onVenuesTap={onNavigateToGlobe}
             totalUsers={stats?.totalUsers}
           />
         </motion.div>
