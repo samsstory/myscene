@@ -89,7 +89,7 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 relative">
       {/* Sticky year label */}
       {multiYear && visibleYear && (
-        <span className="absolute top-2.5 left-3 text-[11px] font-semibold text-white/50 tabular-nums z-10 pointer-events-none">
+        <span className="absolute top-2.5 right-3 text-[11px] font-semibold text-white/50 tabular-nums z-10 pointer-events-none">
           {visibleYear}
         </span>
       )}
