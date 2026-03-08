@@ -87,7 +87,7 @@ export function useSetupQuests(): UseSetupQuestsReturn {
       setHasCity(!!profileRes.data?.home_city);
       setHasPhoto(!!profileRes.data?.avatar_url);
       setHasSpotify((spotifyRes.count ?? 0) > 0);
-      setHasPush(pushEnabled);
+      setHasPush(pushEnabled || (pushRes.count ?? 0) > 0);
       setIsLoading(false);
     };
 
