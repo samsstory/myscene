@@ -234,6 +234,7 @@ export default function FindFriendsSheet({ open, onOpenChange }: FindFriendsShee
               value={query}
               onChange={(e) => { setQuery(e.target.value); resetContacts(); setPhoneLookupResult(null); }}
               placeholder="Search by name or @username…"
+              autoFocus={false}
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
