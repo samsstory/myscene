@@ -71,7 +71,6 @@ const emptyStateGlowStyle: React.CSSProperties = {
 
 function StatsTrophyCardInner({
   totalShows,
-  topGenre,
   uniqueVenues,
   uniqueArtists,
   uniqueCities,
