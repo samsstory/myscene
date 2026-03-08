@@ -63,10 +63,11 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
     };
     checkProfile();
 
-    // Show PWA nudge if not standalone and on mobile
+    // Show PWA nudge if not standalone, on mobile, and not permanently dismissed
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (!isStandalone && isMobile) {
+    const pwaDismissed = localStorage.getItem("pwa-nudge-dismissed");
+    if (!isStandalone && isMobile && !pwaDismissed) {
       setShowPwaNudge(true);
     }
   }, []);
