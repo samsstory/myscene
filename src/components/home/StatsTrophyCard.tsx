@@ -25,21 +25,6 @@ interface StatsTrophyCardProps {
   totalUsers?: number;
 }
 
-/** Maps genre + show count → persona title */
-function getSceneTitle(topGenre: string | null, totalShows: number): string {
-  if (!topGenre) return "Music Lover";
-  const g = topGenre.toLowerCase();
-  if (g.includes("electronic") || g.includes("edm") || g.includes("bass"))
-  return totalShows >= 50 ? "Rave Veteran" : "Raver";
-  if (g.includes("house")) return "House Head";
-  if (g.includes("techno")) return "Techno Purist";
-  if (g.includes("hip hop") || g.includes("hip-hop") || g.includes("rap")) return "Hypebeast";
-  if (g.includes("rock") || g.includes("metal")) return "Headbanger";
-  if (g.includes("indie")) return "Indie Kid";
-  if (g.includes("pop")) return "Pop Stan";
-  if (g === "eclectic") return "Genre Fluid";
-  return "Music Lover";
-}
 
 /** Returns percentile label or null. */
 function getPercentile(showCount: number, totalUsers?: number): string | null {
