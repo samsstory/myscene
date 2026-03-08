@@ -66,6 +66,7 @@ function StatsTrophyCardInner({
   topArtists,
   isLoading,
   onAddShow,
+  onShowsTap,
   totalUsers
 }: StatsTrophyCardProps) {
   // All hooks MUST be called before any early returns
