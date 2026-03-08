@@ -36,9 +36,10 @@ export default function InstallBanner() {
     if (!localStorage.getItem("scene-first-show-logged")) return;
 
     const dismissed = localStorage.getItem("pwa-banner-dismissed");
+    const permaDismissed = localStorage.getItem("pwa-nudge-dismissed");
+    if (permaDismissed) return;
     if (dismissed) {
       const dismissedAt = parseInt(dismissed, 10);
-      // Show again after 3 days
       if (Date.now() - dismissedAt < 3 * 24 * 60 * 60 * 1000) return;
     }
 
