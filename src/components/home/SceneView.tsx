@@ -107,11 +107,11 @@ export default function SceneView({
 
   useEffect(() => {
     if (!questsLoading && allComplete && wasIncomplete.current) {
-      const alreadyDone = sessionStorage.getItem("scene_quests_celebrated") === "true";
+      const alreadyDone = localStorage.getItem("scene_quests_celebrated") === "true";
       if (!alreadyDone) {
         wasIncomplete.current = false;
         setJustCompleted(true);
-        sessionStorage.setItem("scene_quests_celebrated", "true");
+        localStorage.setItem("scene_quests_celebrated", "true");
 
         const end = Date.now() + 1500;
         const fire = () => {
