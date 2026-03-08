@@ -201,14 +201,17 @@ function StatsTrophyCardInner({
             </p>
           </button>
 
-          <div className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5">
+          <button
+            onClick={onVenuesTap}
+            className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] p-3 text-center space-y-0.5 transition-colors active:bg-white/[0.10]"
+          >
             <CountUp
               value={uniqueVenues}
               className="text-[32px] font-bold text-foreground block leading-tight" />
             <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium flex items-center justify-center gap-1">
                Venues
             </p>
-          </div>
+          </button>
         </div>
 
         {/* Bottom details row — staggered entrance */}
