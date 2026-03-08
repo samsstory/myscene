@@ -153,16 +153,26 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
 
       {/* ── PWA Nudge ── */}
       {showPwaNudge && (
-        <motion.button
-          variants={fadeUp}
-          onClick={() => navigate("/install")}
-          className="w-full flex items-center gap-3 rounded-xl p-3 bg-primary/[0.06] border border-primary/30 text-left transition-colors hover:bg-primary/[0.10] active:scale-[0.98]"
-        >
-          <Smartphone className="h-4 w-4 text-primary shrink-0" />
-          <p className="text-sm text-foreground">
-            Save Scene to your home screen to track your next one
-          </p>
-        </motion.button>
+        <motion.div variants={fadeUp} className="space-y-2">
+          <button
+            onClick={() => navigate("/install")}
+            className="w-full flex items-center gap-3 rounded-xl p-3 bg-primary/[0.06] border border-primary/30 text-left transition-colors hover:bg-primary/[0.10] active:scale-[0.98]"
+          >
+            <Smartphone className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm text-foreground">
+              Save Scene to your home screen to track your next one
+            </p>
+          </button>
+          <button
+            onClick={() => {
+              localStorage.setItem("pwa-nudge-dismissed", "1");
+              setShowPwaNudge(false);
+            }}
+            className="flex items-center gap-2 mx-auto text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          >
+            Already installed? Don't show this again
+          </button>
+        </motion.div>
       )}
 
       {/* ── Actions ── */}
