@@ -170,7 +170,7 @@ const SuccessStep = ({ show, onAddPhoto, onShare, onViewDetails, onDone }: Succe
           <ActionButton
             onClick={handlePhotoClick}
             icon={isUploading ? Loader2 : Camera}
-            label={isUploading ? "Uploading..." : "Add My Photo"}
+            label={isUploading ? "Uploading..." : "Add a Photo From the Show"}
             variant="primary"
             disabled={isUploading}
           />
