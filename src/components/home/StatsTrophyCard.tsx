@@ -30,7 +30,7 @@ interface StatsTrophyCardProps {
 function getPercentile(showCount: number, totalUsers?: number): string | null {
   if (showCount < 5) return null;
   if (!totalUsers || totalUsers < 50) {
-    return showCount >= 1 ? "Early Adopter ⭐" : null;
+    return showCount >= 1 ? "Beta Tester ⭐" : null;
   }
   if (showCount >= 100) return "Top 1% 🏆";
   if (showCount >= 50) return "Top 5% 🏆";
