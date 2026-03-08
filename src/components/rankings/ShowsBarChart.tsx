@@ -51,15 +51,14 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
     const container = scrollRef.current;
     if (!container || !monthData) return;
 
-    // Find the bar element closest to the left edge of the visible area
+    // Find the bar element closest to the right edge of the visible area
     const bars = container.querySelectorAll<HTMLElement>("[data-year]");
-    const containerLeft = container.getBoundingClientRect().left;
+    const containerRight = container.getBoundingClientRect().right;
     let closestYear = monthData.data[0]?.year || "";
 
-    for (const bar of bars) {
+    for (const bar of Array.from(bars).reverse()) {
       const rect = bar.getBoundingClientRect();
-      // First bar whose right edge is past the container's left edge
-      if (rect.right > containerLeft + 8) {
+      if (rect.left < containerRight - 8) {
         closestYear = bar.dataset.year || closestYear;
         break;
       }
