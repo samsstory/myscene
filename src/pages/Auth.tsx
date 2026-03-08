@@ -458,6 +458,39 @@ const Auth = () => {
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="signup-fullname" className="text-white/70">Full Name</Label>
+                  <Input
+                    id="signup-fullname"
+                    value={signupFullName}
+                    onChange={(e) => setSignupFullName(e.target.value)}
+                    placeholder="Your name"
+                    maxLength={50}
+                    required
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-username" className="text-white/70">Username</Label>
+                  <Input
+                    id="signup-username"
+                    value={signupUsername}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    placeholder="yourname"
+                    maxLength={30}
+                    required
+                    className={inputClassName}
+                  />
+                  {usernameError && (
+                    <p className="text-xs text-destructive">{usernameError}</p>
+                  )}
+                  {checkingUsername && (
+                    <p className="text-xs text-muted-foreground">Checking availability…</p>
+                  )}
+                  {signupUsername.length >= 3 && !usernameError && !checkingUsername && (
+                    <p className="text-xs text-primary">Username available ✓</p>
+                  )}
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-white/70">Email</Label>
                   <Input
                     id="signup-email"
@@ -483,7 +516,7 @@ const Auth = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-primary to-primary/80 shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200" 
-                  disabled={isLoading}
+                  disabled={isLoading || !!usernameError || checkingUsername}
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
