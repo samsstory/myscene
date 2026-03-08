@@ -41,9 +41,7 @@ const ShowsBarChart = ({ shows, timeFilter }: ShowsBarChartProps) => {
         year: format(m, "yyyy"),
         count: counts.get(key) || 0,
       };
-    });
-
-    
+    }).reverse();
 
     const maxCount = Math.max(...data.map((d) => d.count), 1);
     return { data, maxCount };
