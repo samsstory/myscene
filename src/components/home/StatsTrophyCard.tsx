@@ -251,7 +251,7 @@ function StatsTrophyCardInner({
           {/* Miles danced */}
           {milesDanced !== null && milesDanced > 0 &&
             <motion.div variants={staggerChild} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-              <span className="text-[13px]">📍</span>
+              <span className="text-[13px]">🕺</span>
               <CountUp
                 value={Math.round(milesDanced)}
                 className="font-semibold text-foreground"
