@@ -48,6 +48,7 @@ interface StatsForCard {
 interface SceneViewProps {
   onPlanShow: () => void;
   onNavigateToMyShows?: () => void;
+  onNavigateToGlobe?: () => void;
   onNavigateToFriends?: () => void;
   onNavigateToRank?: () => void;
   onAddShow?: () => void;
