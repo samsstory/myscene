@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { getCityFromLocation, getCountryFromLocation } from "@/lib/location-utils";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "@/components/ui/button";
@@ -112,40 +113,7 @@ const MapView = ({ shows, onEditShow, onAddFromPhotos, onAddSingleShow, onShowTa
     return Array.from(groups.values());
   }, [mappableShows]);
 
-  // Extract country from location string
-  const getCountryFromLocation = (location: string): string => {
-    const parts = location.split(',').map(p => p.trim());
-    const lastPart = parts[parts.length - 1];
-    if (['USA', 'US', 'United States', 'U.S.', 'U.S.A.'].includes(lastPart)) {
-      return 'United States';
-    }
-    const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
-    for (const part of parts) {
-      const cleanedPart = part.replace(/\s*\d+\s*$/, '').trim();
-      if (usStates.includes(cleanedPart)) {
-        return 'United States';
-      }
-    }
-    if (parts.length >= 2) {
-      return lastPart;
-    }
-    return 'United States';
-  };
-
-  // Extract city from location string
-  const getCityFromLocation = (location: string): string => {
-    const parts = location.split(',').map(p => p.trim());
-    if (parts.length >= 3 && /^\d/.test(parts[0])) {
-      return `${parts[1]}, ${parts[2].replace(/\s*\d+\s*$/, '').trim()}`;
-    }
-    if (parts.length >= 2) {
-      const state = parts[1].replace(/\s*\d+\s*$/, '').trim();
-      return `${parts[0]}, ${state}`;
-    }
-    return parts[0];
-  };
+  // Imported from shared location-utils
 
   // Fetch user's home city coordinates
   useEffect(() => {

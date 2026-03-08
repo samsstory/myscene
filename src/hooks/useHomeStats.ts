@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCityFromLocation, getCountryFromLocation } from "@/lib/location-utils";
 import { InsightData, InsightType, InsightAction } from "@/components/home/DynamicInsight";
 
 interface TopShow {
@@ -154,35 +155,7 @@ export const useHomeStats = (): UseHomeStatsReturn => {
       const cities = new Set<string>();
       const countries = new Set<string>();
 
-      const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 
-        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 
-        'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 
-        'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 
-        'WA', 'WV', 'WI', 'WY'];
-
-      const getCountryFromLocation = (location: string): string => {
-        const parts = location.split(',').map(p => p.trim());
-        const lastPart = parts[parts.length - 1];
-        if (['USA', 'US', 'United States'].includes(lastPart)) return 'United States';
-        
-        for (const part of parts) {
-          const cleanedPart = part.replace(/\s*\d+\s*$/, '').trim();
-          if (usStates.includes(cleanedPart)) return 'United States';
-        }
-        
-        return parts.length >= 2 ? lastPart : 'United States';
-      };
-
-      const getCityFromLocation = (location: string): string => {
-        const parts = location.split(',').map(p => p.trim());
-        if (parts.length >= 3 && /^\d/.test(parts[0])) {
-          return `${parts[1]}, ${parts[2].replace(/\s*\d+\s*$/, '').trim()}`;
-        }
-        if (parts.length >= 2) {
-          return `${parts[0]}, ${parts[1].replace(/\s*\d+\s*$/, '').trim()}`;
-        }
-        return parts[0];
-      };
+      // Using shared getCityFromLocation / getCountryFromLocation from location-utils
 
       // Fetch shows with venue_location for geographic stats
       const { data: showsWithLocation } = await supabase
