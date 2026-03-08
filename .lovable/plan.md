@@ -1,17 +1,50 @@
+## Redesign EmailImportScreen — Compact Two-Card Layout
 
+### Structure (top to bottom)
 
-## Problem
-The search input in the FindFriendsSheet auto-focuses on open, which triggers the mobile keyboard immediately and covers the sheet content. Users should have to explicitly tap the search field first.
+```
+┌──────────────────────────────────┐
+│  Import from Email               │
+│  Forward confirmations from any  │
+│  inbox. We extract the shows.    │
+│                                  │
+│  [🔍 Search] ─ [✓ Select] ─ [➤ Send]
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ Card 1: Find your tickets    │ │
+│ │ Copy & search in any app:    │ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │ from:ticketmaster.com OR │ │ │
+│ │ │ from:dice.fm OR ...      │ │ │
+│ │ └──────────────────────────┘ │ │
+│ │ [📋 Copy Search]  (glass)    │ │
+│ │ [Gmail] [Outlook] [iCloud]   │ │
+│ │        [Yahoo]               │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ Card 2: Forward to Scene     │ │
+│ │ Select all results, then     │ │
+│ │ paste this in the To: field: │ │
+│ │   abc123@add.tryscene.app    │ │
+│ │ [📋 Copy Address]  (primary) │ │
+│ │ 💡 Gmail: "Forward as        │ │
+│ │    attachment" for bulk       │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ✓ Send everything—we filter out  │
+│   non-shows automatically        │
+│ Can't find emails? Add manually → │
+└──────────────────────────────────┘
+```
 
-## Changes
-
-### 1. Prevent auto-focus on the search input (`FindFriendsSheet.tsx`)
-- Add `autoFocus={false}` to the search `<input>` (line 233) and the phone `<input>` in `PhoneLookup` (line 154)
-- This ensures the keyboard only opens when the user explicitly taps a field
-
-### 2. Increase sheet height for keyboard visibility (`FindFriendsSheet.tsx`)
-- Change `max-h-[80dvh]` to `max-h-[92dvh]` on the `SheetContent` (line 218) so when the keyboard does open, both the search field and phone number field remain visible above it
-- Add `min-h-[60dvh]` to ensure the sheet is tall enough by default
-
-Two small edits, both in `FindFriendsSheet.tsx`.
-
+### Key decisions
+- **No platform branching** — remove `isMobile` detection. Copy-first works universally.
+- **Provider pills**: Gmail (`buildGmailUrl(0)`), Outlook (`outlook.live.com`), iCloud (`icloud.com/mail`), Yahoo (`mail.yahoo.com`). Drop ProtonMail.
+- **Compact spacing**: `p-3` on cards, `space-y-3` between sections, fits iPhone 14 (393×852) without scroll.
+- **Primary CTA**: "Copy Address" (accent). Secondary: "Copy Search" (glass).
+- **Single file change**: `src/components/email/EmailImportScreen.tsx`
+- Dark cards: `bg-white/[0.04] border-white/[0.08]`
+- Mono query block: `text-[10px] font-mono`, 2-3 lines, truncated
+- Keep domain lists, `buildGmailUrl`, `buildCopyableQuery` helpers
+- Keep props interface (`userId`, `onClose`, `onManualEntry`)
