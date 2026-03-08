@@ -43,6 +43,7 @@ const isPushEnabled = () => {
   return Notification.permission === "granted";
 };
 
+
 export function useSetupQuests(): UseSetupQuestsReturn {
   const [hasPwa, setHasPwa] = useState(false);
   const [hasShow, setHasShow] = useState(false);
