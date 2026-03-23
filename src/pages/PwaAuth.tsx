@@ -13,7 +13,7 @@ const PwaAuth = () => {
         <img
           src="/images/fred-again-msg-mobile.webp"
           alt="Concert crowd with stage lights"
-          className="w-full h-full object-contain object-bottom"
+          className="w-full h-full object-cover"
         />
         {/* Top gradient — fully black at 15% from top, fades to transparent at 50% so bottom half is vivid */}
         <div
