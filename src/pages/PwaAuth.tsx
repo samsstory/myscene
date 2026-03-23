@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import SceneLogo from "@/components/ui/SceneLogo";
+import BrandTagline from "@/components/ui/BrandTagline";
 
 const PwaAuth = () => {
   const navigate = useNavigate();
