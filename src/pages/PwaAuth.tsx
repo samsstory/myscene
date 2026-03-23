@@ -15,8 +15,9 @@ const PwaAuth = () => {
           alt="Concert crowd with stage lights"
           className="w-full h-full object-cover"
         />
-        {/* Gradient overlay — dark vignette top for logo contrast + heavy fade to black bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/30 via-30% to-transparent" />
+        {/* Top gradient — image fades to solid black well before the logo */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background from-20% via-background/60 via-40% to-transparent" />
+        {/* Bottom gradient — fade to black */}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 via-40% to-transparent" />
       </div>
 
