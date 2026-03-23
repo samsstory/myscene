@@ -15,14 +15,15 @@ const PwaAuth = () => {
           alt="Concert crowd with stage lights"
           className="w-full h-full object-cover"
         />
-        {/* Gradient overlay — fade to black on bottom ~60% */}
+        {/* Gradient overlay — dark vignette top for logo contrast + heavy fade to black bottom */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/30 via-30% to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 via-40% to-transparent" />
       </div>
 
       {/* Content layer */}
-      <div className="relative z-10 flex flex-col h-full justify-between">
-        {/* Logo + tagline centered in upper area */}
-        <div className="flex-1 flex flex-col items-center justify-center pb-16">
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Logo + tagline pinned to upper third */}
+        <div className="pt-[22vh] flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -39,6 +40,8 @@ const PwaAuth = () => {
             Track, rank, and share every concert
           </motion.p>
         </div>
+
+        <div className="flex-1" />
 
         {/* Bottom CTA area */}
         <motion.div
