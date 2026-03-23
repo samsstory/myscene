@@ -72,7 +72,7 @@ const PwaAuth = () => {
             New to Scene?{" "}
             <button
               onClick={() => navigate("/auth?tab=signup")}
-              className="text-primary font-medium hover:underline transition-colors"
+              className="text-white font-medium hover:underline transition-colors"
             >
               Sign Up
             </button>
