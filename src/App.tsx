@@ -75,6 +75,8 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/pwa-splash" element={<PwaSplash />} />
                 <Route path="/pwa-auth" element={<PwaAuth />} />
+                <Route path="/pwa-auth-preview" element={<PwaAuth />} />
+                <Route path="/pwa-splash-preview" element={<PwaSplash />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
