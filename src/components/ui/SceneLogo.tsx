@@ -15,14 +15,14 @@ const SceneLogo = ({ className, size = "md" }: SceneLogoProps) => {
   return (
     <span
       className={cn(
-        "text-white tracking-[0.35em] uppercase select-none",
+        "text-white tracking-[0.30em] uppercase select-none",
         sizeClasses[size],
         className
       )}
       style={{
-        fontFamily: "'Rajdhani', sans-serif",
-        fontWeight: 700,
-        textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)"
+        fontFamily: "'Montserrat', sans-serif",
+        fontWeight: 900,
+        textShadow: "0 0 10px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.15)"
       }}
     >
       Scene ✦
