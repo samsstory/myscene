@@ -48,7 +48,7 @@ const PwaAuth = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            Track, rank, and share every concert
+            Every show you've ever scene
           </motion.p>
         </div>
 
