@@ -8,58 +8,63 @@ const PwaAuth = () => {
 
   return (
     <div className="fixed inset-0 bg-background flex flex-col">
-      {/* Top section with logo */}
-      <div className="flex-shrink-0 pt-16 pb-4 flex justify-center">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <SceneLogo size="lg" className="text-2xl" />
-        </motion.div>
-      </div>
-
-      {/* Concert image */}
-      <motion.div
-        className="flex-1 relative overflow-hidden mx-4 rounded-2xl"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, delay: 0.15 }}
-      >
+      {/* Full-bleed background image */}
+      <div className="absolute inset-0">
         <img
-          src="/images/concert-crowd.jpg"
+          src="/images/fred-again-msg-mobile.webp"
           alt="Concert crowd with stage lights"
           className="w-full h-full object-cover"
         />
-        {/* Bottom gradient fade */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
-      </motion.div>
+        {/* Gradient overlay — fade to black on bottom ~60% */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 via-40% to-transparent" />
+      </div>
 
-      {/* Bottom section */}
-      <motion.div
-        className="flex-shrink-0 px-6 pb-10 pt-6 space-y-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-      >
-        <p className="text-center text-muted-foreground text-sm">
-          Track, rank, and share every concert
-        </p>
+      {/* Content layer */}
+      <div className="relative z-10 flex flex-col h-full justify-between">
+        {/* Logo + tagline centered in upper area */}
+        <div className="flex-1 flex flex-col items-center justify-center pb-16">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <SceneLogo size="lg" className="text-2xl" />
+          </motion.div>
+          <motion.p
+            className="text-center text-muted-foreground text-sm mt-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            Track, rank, and share every concert
+          </motion.p>
+        </div>
 
-        <Button
-          onClick={() => navigate("/auth")}
-          className="w-full h-12 rounded-full bg-primary text-primary-foreground text-base font-semibold hover:bg-primary/90 transition-colors"
+        {/* Bottom CTA area */}
+        <motion.div
+          className="flex-shrink-0 px-6 pb-10 space-y-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
         >
-          Log In
-        </Button>
+          <Button
+            onClick={() => navigate("/auth")}
+            className="w-full h-12 rounded-full bg-primary text-primary-foreground text-base font-semibold hover:bg-primary/90 transition-colors"
+          >
+            Log In
+          </Button>
 
-        <button
-          onClick={() => navigate("/auth?tab=signup")}
-          className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Create an account
-        </button>
-      </motion.div>
+          <p className="text-center text-sm text-muted-foreground">
+            New to Scene?{" "}
+            <button
+              onClick={() => navigate("/auth?tab=signup")}
+              className="text-primary font-medium hover:underline transition-colors"
+            >
+              Sign Up
+            </button>
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 };
