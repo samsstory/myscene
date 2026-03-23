@@ -15,11 +15,12 @@ const SceneLogo = ({ className, size = "md" }: SceneLogoProps) => {
   return (
     <span
       className={cn(
-        "text-white/75 font-black tracking-[0.25em] uppercase select-none",
+        "text-white font-black tracking-[0.25em] uppercase select-none",
         sizeClasses[size],
         className
       )}
       style={{
+        WebkitTextStroke: "0.5px rgba(255,255,255,0.8)",
         textShadow: "0 0 8px rgba(255,255,255,0.5), 0 0 20px rgba(255,255,255,0.2)"
       }}
     >
