@@ -333,14 +333,16 @@ const Auth = () => {
         }}
       />
 
-      {/* Back to website link */}
-      <Link 
-        to="/" 
-        className="absolute top-4 left-4 z-20 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to website
-      </Link>
+      {/* Back to website link — hidden in standalone PWA mode */}
+      {!(window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone) && (
+        <Link 
+          to="/" 
+          className="absolute top-4 left-4 z-20 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to website
+        </Link>
+      )}
 
       {/* Content container */}
       <div className="relative z-10 w-full max-w-md">
