@@ -361,7 +361,7 @@ const Auth = () => {
 
         {/* Glassmorphism card */}
         <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.08] rounded-2xl p-6 shadow-2xl shadow-black/20">
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "signup" ? "signup" : "signin"} className="w-full">
             {/* Glass pill tabs */}
             <TabsList className="grid w-full grid-cols-2 bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-full p-1 mb-6">
               <TabsTrigger 
