@@ -349,14 +349,6 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <SceneLogo size="lg" className="text-2xl mb-3" />
-          <p 
-            className="text-muted-foreground text-sm"
-            style={{
-              textShadow: "0 0 20px rgba(255,255,255,0.1)"
-            }}
-          >
-            Track, rank, and share every concert
-          </p>
         </div>
 
         {/* Glassmorphism card */}

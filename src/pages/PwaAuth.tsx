@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import SceneLogo from "@/components/ui/SceneLogo";
+import BrandTagline from "@/components/ui/BrandTagline";
 
 const PwaAuth = () => {
   const navigate = useNavigate();
@@ -42,14 +43,14 @@ const PwaAuth = () => {
           >
             <SceneLogo size="lg" className="text-2xl" />
           </motion.div>
-          <motion.p
-            className="text-center text-white text-sm mt-3"
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-3"
           >
-            Every concert you've ever Scene
-          </motion.p>
+            <BrandTagline />
+          </motion.div>
         </div>
 
         <div className="flex-1" />
