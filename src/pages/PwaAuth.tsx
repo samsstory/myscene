@@ -15,10 +15,20 @@ const PwaAuth = () => {
           alt="Concert crowd with stage lights"
           className="w-full h-full object-cover"
         />
-        {/* Top gradient — image fades to solid black well before the logo */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background from-20% via-background/60 via-40% to-transparent" />
-        {/* Bottom gradient — fade to black */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 via-40% to-transparent" />
+        {/* Top gradient — fully black at 15% from top, fades to transparent at 50% so bottom half is vivid */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(to bottom, hsl(var(--background)) 15%, hsl(var(--background) / 0.6) 35%, transparent 50%)"
+          }}
+        />
+        {/* Bottom gradient — subtle fade for button area only */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-32"
+          style={{
+            background: "linear-gradient(to top, hsl(var(--background)) 0%, transparent 100%)"
+          }}
+        />
       </div>
 
       {/* Content layer */}
