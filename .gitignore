@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Local backend CLI connection/cache state. Never include in checkpoints.
+supabase/.temp/
+
+# Keep new environment credentials out of Git. Already tracked public client
+# configuration is preserved in the legacy checkpoint; ignore rules do not untrack it.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
