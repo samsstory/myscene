@@ -10,6 +10,15 @@ const corsHeaders = {
 const DEMO_USER_ID = "da422baa-3f54-4fac-88bb-5137bc085ddc";
 
 Deno.serve(async (req) => {
+  // The legacy demo reads a real account through service-role credentials.
+  // Keep it paused until the dataset is verified synthetic or explicitly published.
+  const demoPaused = true;
+  if (demoPaused) {
+    return new Response(JSON.stringify({ error: 'DEMO_PAUSED' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    });
+  }
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
