@@ -81,6 +81,15 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Containment: no provider authentication has been verified for this endpoint.
+  // Preserve the parser below, but require a separately reviewed release to resume.
+  const intakePaused = true;
+  if (intakePaused) {
+    return new Response(JSON.stringify({ error: 'EMAIL_INTAKE_PAUSED' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    });
+  }
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
